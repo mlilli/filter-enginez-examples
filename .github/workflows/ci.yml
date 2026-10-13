@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: filter-enginez-examples
 
@@ -61,7 +61,7 @@ jobs:
 
       # A public repo, so no token. Its path must be the sibling the override block names.
       - name: Checkout the engine beside it (pinned)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: mlilli/filter-enginez
           ref: ${{ steps.engine.outputs.sha }}
