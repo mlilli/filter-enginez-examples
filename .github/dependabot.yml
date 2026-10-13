@@ -21,8 +21,8 @@
 # Minor and patch bumps arrive as one grouped PR; a major bump arrives on its own,
 # because it is the one that changes inputs or the runtime an action needs.
 #
-# `cooldown.default-days: 7` waits a week after a release before proposing it,
-# matching the 7-day npm release-age policy on the development machines.
+# `cooldown.default-days: 3` waits three days after a release before proposing it,
+# so a release that is yanked soon after publishing never becomes a PR.
 # ─────────────────────────────────────────────────────────────────────────────
 version: 2
 
@@ -34,7 +34,7 @@ updates:
       day: monday
     open-pull-requests-limit: 3
     cooldown:
-      default-days: 7
+      default-days: 3
     commit-message:
       prefix: ci
       include: scope
