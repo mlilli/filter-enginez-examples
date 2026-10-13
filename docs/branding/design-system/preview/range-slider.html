@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Range Slider</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 22px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .field { background: var(--gray-1); border: 1px solid var(--gray-4); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .label { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--gray-10); }
+  .range { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--accent); }
+  .histo { display: flex; gap: 2px; align-items: flex-end; height: 32px; margin-bottom: 6px; }
+  .bar { flex: 1; background: var(--gray-5); border-radius: 1px; }
+  .bar.in { background: var(--accent); box-shadow: 0 0 6px var(--accent-haze); }
+  .track { position: relative; height: 4px; background: var(--gray-4); border-radius: 2px; }
+  .fill { position: absolute; top: 0; bottom: 0; left: 22%; right: 30%; background: var(--accent); border-radius: 2px; box-shadow: 0 0 6px var(--accent-haze); }
+  .thumb { position: absolute; top: -6px; width: 16px; height: 16px; border-radius: 50%; background: var(--gray-11); border: 2px solid var(--accent); box-shadow: 0 0 0 4px rgba(34,211,238,0.2), 0 2px 6px rgba(0,0,0,0.6); }
+  .thumb.left { left: calc(22% - 8px); }
+  .thumb.right { right: calc(30% - 8px); }
+  .nums { display: flex; justify-content: space-between; margin-top: 14px; }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--gray-10); background: var(--gray-2); border: 1px solid var(--gray-5); border-radius: 4px; padding: 4px 8px; }
+</style></head>
+<body>
+<div class="meta">range slider · with histogram overlay · price filter</div>
+<div class="field">
+  <div class="head">
+    <div class="label">Price</div>
+    <div class="range">$450k — $1.2M</div>
+  </div>
+  <div class="histo">
+    <div class="bar" style="height:25%"></div>
+    <div class="bar" style="height:48%"></div>
+    <div class="bar in" style="height:72%"></div>
+    <div class="bar in" style="height:88%"></div>
+    <div class="bar in" style="height:65%"></div>
+    <div class="bar in" style="height:55%"></div>
+    <div class="bar in" style="height:38%"></div>
+    <div class="bar" style="height:30%"></div>
+    <div class="bar" style="height:22%"></div>
+    <div class="bar" style="height:18%"></div>
+    <div class="bar" style="height:12%"></div>
+    <div class="bar" style="height:8%"></div>
+  </div>
+  <div class="track">
+    <div class="fill"></div>
+    <div class="thumb left"></div>
+    <div class="thumb right"></div>
+  </div>
+  <div class="nums">
+    <div class="num">$450,000</div>
+    <div class="num">$1,200,000</div>
+  </div>
+</div>
+</body></html>

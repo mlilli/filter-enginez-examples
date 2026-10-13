@@ -1,0 +1,41 @@
+{
+  "name": "@filter-enginez/brand",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — canonical brand assets: logomark, Orbitron wordmark, three loaders (Synaptic Orbit / Neural Cluster / Brain Synapse), design tokens, variable webfonts. Browser-only.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./motion": "./src/motion.ts",
+    "./mark": "./src/Mark.tsx",
+    "./wordmark": "./src/Wordmark.tsx",
+    "./loaders": "./src/loaders/index.ts",
+    "./loaders/synaptic-orbit": "./src/loaders/SynapticOrbit.tsx",
+    "./loaders/neural-cluster": "./src/loaders/NeuralCluster.tsx",
+    "./loaders/brain-synapse": "./src/loaders/BrainSynapse.tsx",
+    "./loaders/brain-synapse-geometry": "./src/loaders/brainSynapseGeometry.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./assets/*": "./src/assets/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --build tsconfig.build.json",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "react-dom": "^19.2.8"
+  }
+}

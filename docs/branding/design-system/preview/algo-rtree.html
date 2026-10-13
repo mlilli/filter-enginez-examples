@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>R-tree Hero</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 12px 16px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 9px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .stage { background: radial-gradient(ellipse at center, #151412, #0B0A09); border: 1px solid var(--gray-4); border-radius: var(--radius-lg); padding: 6px; position: relative; }
+  .ttl { position: absolute; top: 10px; left: 14px; font-family: var(--font-display); font-size: 10px; color: var(--gray-9); letter-spacing: 0.16em; text-transform: uppercase; z-index:2; }
+  .lbl { position: absolute; bottom: 8px; right: 14px; font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 0.04em; z-index:2; }
+  svg { display: block; width: 100%; height: 180px; }
+  .box-outer { stroke: #56524A; stroke-width: 1; fill: none; opacity: 0.45; stroke-dasharray: 2 3; }
+  .box-mid { stroke: #747066; stroke-width: 1; fill: none; opacity: 0.5; }
+  .box-mid.pruned { opacity: 0.18; }
+  .box-leaf { stroke: #969085; stroke-width: 1; fill: none; opacity: 0.7; }
+  .box-leaf.pruned { opacity: 0.15; }
+  .point { fill: #56524A; }
+  .point.hit { fill: #22D3EE; filter: drop-shadow(0 0 4px #22D3EE); }
+  .point.pruned { opacity: 0.18; }
+  .query { fill: #67E8F9; filter: drop-shadow(0 0 8px #22D3EE); }
+  .query-ring { stroke: #22D3EE; stroke-width: 1; fill: none; stroke-dasharray: 3 3; opacity: 0.7; animation: ring 3s var(--ease-in-out) infinite; }
+  @keyframes ring { 0%,100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+  .pulse { animation: pulse 2.4s var(--ease-in-out) infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.6); opacity: 1; } }
+</style></head>
+<body>
+<div class="meta">algorithm hero · r-tree · spatial pruning · descend only into intersecting branches</div>
+<div class="stage">
+  <div class="ttl">R-TREE · SPATIAL DESCENT</div>
+  <svg viewBox="0 0 660 180">
+    <!-- Pruned region: top-left -->
+    <rect class="box-outer" x="20" y="20" width="280" height="60" rx="4"/>
+    <rect class="box-mid pruned" x="30" y="28" width="120" height="42" rx="3"/>
+    <rect class="box-mid pruned" x="160" y="28" width="130" height="42" rx="3"/>
+    <rect class="box-leaf pruned" x="40" y="36" width="40" height="26" rx="2"/>
+    <rect class="box-leaf pruned" x="90" y="36" width="50" height="26" rx="2"/>
+    <rect class="box-leaf pruned" x="170" y="36" width="50" height="26" rx="2"/>
+    <rect class="box-leaf pruned" x="230" y="36" width="50" height="26" rx="2"/>
+
+    <!-- Active region: query area -->
+    <rect class="box-outer" x="20" y="90" width="600" height="80" rx="4"/>
+    <rect class="box-mid pruned" x="30" y="100" width="160" height="60" rx="3"/>
+    <rect class="box-mid" x="200" y="100" width="200" height="60" rx="3"/>
+    <rect class="box-mid" x="410" y="100" width="200" height="60" rx="3"/>
+
+    <rect class="box-leaf pruned" x="40" y="108" width="60" height="20" rx="2"/>
+    <rect class="box-leaf pruned" x="40" y="132" width="60" height="20" rx="2"/>
+    <rect class="box-leaf pruned" x="110" y="108" width="70" height="20" rx="2"/>
+    <rect class="box-leaf pruned" x="110" y="132" width="70" height="20" rx="2"/>
+
+    <rect class="box-leaf" x="210" y="108" width="80" height="44" rx="2"/>
+    <rect class="box-leaf" x="300" y="108" width="90" height="44" rx="2"/>
+    <rect class="box-leaf" x="420" y="108" width="80" height="44" rx="2"/>
+    <rect class="box-leaf" x="510" y="108" width="90" height="44" rx="2"/>
+
+    <!-- Points outside query (pruned) -->
+    <g>
+      <circle class="point pruned" cx="50" cy="50" r="2"/>
+      <circle class="point pruned" cx="70" cy="56" r="2"/>
+      <circle class="point pruned" cx="100" cy="44" r="2"/>
+      <circle class="point pruned" cx="125" cy="58" r="2"/>
+      <circle class="point pruned" cx="180" cy="50" r="2"/>
+      <circle class="point pruned" cx="210" cy="42" r="2"/>
+      <circle class="point pruned" cx="245" cy="56" r="2"/>
+      <circle class="point pruned" cx="275" cy="48" r="2"/>
+      <circle class="point pruned" cx="55" cy="120" r="2"/>
+      <circle class="point pruned" cx="80" cy="142" r="2"/>
+      <circle class="point pruned" cx="120" cy="118" r="2"/>
+      <circle class="point pruned" cx="150" cy="140" r="2"/>
+    </g>
+
+    <!-- Points inside query (hit) -->
+    <circle class="point hit pulse" cx="240" cy="130" r="2.6" style="animation-delay:0s"/>
+    <circle class="point hit pulse" cx="260" cy="118" r="2.6" style="animation-delay:0.15s"/>
+    <circle class="point hit pulse" cx="285" cy="135" r="2.6" style="animation-delay:0.25s"/>
+    <circle class="point hit pulse" cx="320" cy="125" r="2.6" style="animation-delay:0.35s"/>
+    <circle class="point hit pulse" cx="345" cy="138" r="2.6" style="animation-delay:0.45s"/>
+    <circle class="point hit pulse" cx="375" cy="120" r="2.6" style="animation-delay:0.55s"/>
+    <circle class="point hit pulse" cx="440" cy="130" r="2.6" style="animation-delay:0.65s"/>
+    <circle class="point hit pulse" cx="470" cy="118" r="2.6" style="animation-delay:0.75s"/>
+    <circle class="point hit pulse" cx="490" cy="138" r="2.6" style="animation-delay:0.85s"/>
+    <circle class="point hit pulse" cx="540" cy="125" r="2.6" style="animation-delay:0.95s"/>
+    <circle class="point hit pulse" cx="570" cy="135" r="2.6" style="animation-delay:1.05s"/>
+
+    <!-- Query point + radius -->
+    <circle class="query-ring" cx="410" cy="130" r="200"/>
+    <circle class="query-ring" cx="410" cy="130" r="155"/>
+    <circle class="query" cx="410" cy="130" r="4"/>
+  </svg>
+  <div class="lbl">11 / 23 within radius</div>
+</div>
+</body></html>

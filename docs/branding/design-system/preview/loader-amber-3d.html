@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FilterEngineZ · Loader · 3D sphere + color picker</title>
+  <link rel="stylesheet" href="../colors_and_type.css"/>
+  <style>
+    body {
+      margin: 0;
+      background: var(--gray-0);
+      color: var(--gray-9);
+      font-family: var(--font-sans);
+      padding: 40px 32px 80px;
+    }
+    .container { max-width: 1320px; margin: 0 auto; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 8px 0 28px; border-bottom: 1px solid var(--gray-4); margin-bottom: 36px; }
+    .hero-eyebrow { font-family: var(--font-mono); font-size: 11px; color: var(--loader); letter-spacing: 0.2em; text-transform: uppercase; transition: color 200ms ease; }
+    .hero-title { font-family: var(--font-display); font-weight: 800; font-size: 24px; color: var(--gray-11); letter-spacing: 0.12em; margin: 10px 0 12px; text-transform: uppercase; }
+    .hero-sub { font-family: var(--font-sans); font-size: 13px; color: var(--gray-8); max-width: 720px; margin: 0 auto; line-height: 1.6; }
+
+    /* =========================================================
+       COLOR PICKER — toggles --loader-* vars via body class
+       ========================================================= */
+    .picker {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      background: var(--gray-1);
+      border: 1px solid var(--gray-4);
+      border-radius: var(--radius-lg);
+      margin: 0 auto 36px;
+      max-width: 720px;
+      justify-content: center;
+    }
+    .picker-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--gray-7);
+      letter-spacing: 0.14em;
+      margin-right: 8px;
+    }
+    .swatch {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      background: transparent;
+      border: 1px solid var(--gray-5);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+    .swatch:hover { border-color: var(--gray-6); background: var(--gray-2); }
+    .swatch.active {
+      border-color: var(--swatch-color);
+      background: var(--gray-2);
+      box-shadow: 0 0 0 1px var(--swatch-color), 0 0 12px var(--swatch-glow);
+    }
+    .swatch-chip {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--swatch-color);
+      box-shadow: 0 0 8px var(--swatch-glow);
+    }
+    .swatch-name {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--gray-8);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .swatch.active .swatch-name { color: var(--gray-11); }
+
+    /* =========================================================
+       LOADER COLOR THEMES — single set of vars, swapped via body class
+       Default = amber
+       ========================================================= */
+    :root {
+      --loader-glow:  #FCD34D;
+      --loader:       #FBBF24;
+      --loader-deep:  #F59E0B;
+      --loader-burnt: #D97706;
+      --loader-line:  #3A3025;
+      --loader-node:  #5A4A35;
+    }
+    body.theme-amber {
+      --loader-glow:  #FCD34D; --loader: #FBBF24; --loader-deep: #F59E0B; --loader-burnt: #D97706;
+      --loader-line: #3A3025; --loader-node: #5A4A35;
+    }
+    body.theme-coral {
+      --loader-glow:  #FED7AA; --loader: #FB923C; --loader-deep: #F97316; --loader-burnt: #EA580C;
+      --loader-line: #3A2B22; --loader-node: #5A4032;
+    }
+    body.theme-acid {
+      --loader-glow:  #D9F99D; --loader: #A3E635; --loader-deep: #84CC16; --loader-burnt: #65A30D;
+      --loader-line: #1F2D14; --loader-node: #354820;
+    }
+    body.theme-magenta {
+      --loader-glow:  #FBCFE8; --loader: #EC4899; --loader-deep: #DB2777; --loader-burnt: #BE185D;
+      --loader-line: #2F1424; --loader-node: #4C2238;
+    }
+    body.theme-phosphor {
+      --loader-glow:  #FED7AA; --loader: #F97316; --loader-deep: #EA580C; --loader-burnt: #C2410C;
+      --loader-line: #321F11; --loader-node: #4D2E18;
+    }
+    body.theme-cyan {
+      --loader-glow: #67E8F9; --loader: #22D3EE; --loader-deep: #0EA5C7; --loader-burnt: #0891B2;
+      --loader-line: #112C33; --loader-node: #1F4148;
+    }
+
+    /* Variant cards */
+    .variant { margin-bottom: 36px; background: var(--gray-1); border: 1px solid var(--gray-4); border-radius: var(--radius-lg); overflow: hidden; }
+    .variant-head { display: flex; justify-content: space-between; align-items: baseline; padding: 18px 24px; border-bottom: 1px solid var(--gray-4); }
+    .variant-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--gray-11); letter-spacing: 0.14em; text-transform: uppercase; display: flex; align-items: center; gap: 12px; }
+    .badge { display: inline-flex; align-items: center; padding: 3px 8px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; border-radius: 9999px; }
+    .badge.b2d { background: rgba(251,191,36,0.10); border: 1px solid var(--loader-line); color: var(--loader); transition: all 200ms ease; }
+    .badge.b3d { background: rgba(255,255,255,0.04); border: 1px solid var(--loader-deep); color: var(--loader-glow); transition: all 200ms ease; }
+    .variant-desc { font-family: var(--font-sans); font-size: 12px; color: var(--gray-7); max-width: 420px; text-align: right; line-height: 1.5; }
+
+    /* Scale row */
+    .scales { display: flex; align-items: flex-end; justify-content: center; gap: 32px; padding: 40px 24px 36px; background: radial-gradient(ellipse 60% 50% at center, #1A1714, #0B0A09 80%); }
+    .scale-tile { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .scale-size { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; }
+
+    /* =========================================================
+       A · ORBIT 2D (fast, flat)
+       ========================================================= */
+    .a-rotate { transform-origin: 100px 100px; animation: aSpin 11s linear infinite; }
+    @keyframes aSpin { to { transform: rotate(360deg) } }
+    .a-ring { fill: none; stroke: var(--loader-line); stroke-width: 0.5; opacity: 0.4; }
+    .a-sat { fill: var(--loader-node); }
+    .a-sat-glow { fill: var(--loader-glow); filter: drop-shadow(0 0 3px var(--loader)) drop-shadow(0 0 6px var(--loader-deep)); animation: aSatPulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes aSatPulse { 0%, 100% { opacity: 0.6 } 50% { opacity: 1 } }
+    .a-core { fill: var(--loader-glow); filter: drop-shadow(0 0 4px var(--loader)) drop-shadow(0 0 10px var(--loader-deep)); animation: aCore 1.6s ease-in-out infinite; transform-origin: 100px 100px; }
+    @keyframes aCore { 0%, 100% { transform: scale(1); opacity: 0.8 } 50% { transform: scale(1.3); opacity: 1 } }
+    .a-syn { stroke: var(--loader); stroke-width: 0.6; fill: none; opacity: 0; filter: drop-shadow(0 0 2px var(--loader)); }
+    .a-syn-1 { animation: aFlick 2.4s ease-out infinite 0.0s; }
+    .a-syn-2 { animation: aFlick 2.4s ease-out infinite 0.6s; }
+    .a-syn-3 { animation: aFlick 2.4s ease-out infinite 1.2s; }
+    .a-syn-4 { animation: aFlick 2.8s ease-out infinite 0.4s; }
+    .a-syn-5 { animation: aFlick 2.8s ease-out infinite 1.6s; }
+    .a-syn-6 { animation: aFlick 3.2s ease-out infinite 0.9s; }
+    @keyframes aFlick {
+      0%, 8%, 100% { opacity: 0; stroke-width: 0.6; }
+      10% { opacity: 1; stroke-width: 1.2; }
+      18% { opacity: 0.6; stroke-width: 0.8; }
+      26% { opacity: 0; }
+    }
+
+    /* =========================================================
+       B · NEURAL CLUSTER (sped up to match A/C energy)
+       ========================================================= */
+    .b-rotate { transform-origin: 100px 100px; animation: bSpin 16s linear infinite; }
+    @keyframes bSpin { to { transform: rotate(360deg) } }
+    .b-edge { stroke: var(--loader-line); stroke-width: 0.5; fill: none; }
+    .b-node { fill: var(--loader-node); }
+    .b-node-fire {
+      fill: var(--loader-glow);
+      filter: drop-shadow(0 0 3px var(--loader)) drop-shadow(0 0 7px var(--loader-deep));
+      animation: bNodeFire 2.4s ease-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    @keyframes bNodeFire {
+      0%, 70%, 100% { opacity: 0.3; transform: scale(1); }
+      75%           { opacity: 1; transform: scale(1.6); }
+      85%           { opacity: 0.7; transform: scale(1.1); }
+    }
+    .b-edge-pulse { animation: bEdgePulse 2.6s ease-in-out infinite; }
+    @keyframes bEdgePulse {
+      0%, 78%, 100% { stroke: var(--loader-line); stroke-width: 0.5; opacity: 0.5; filter: none; }
+      85%           { stroke: var(--loader); stroke-width: 1; opacity: 1; filter: drop-shadow(0 0 2px var(--loader)); }
+      95%           { stroke: var(--loader-burnt); stroke-width: 0.7; opacity: 0.6; }
+    }
+
+    /* =========================================================
+       C · STORM 2D (fast, flat)
+       ========================================================= */
+    .c-field { fill: none; stroke: var(--loader-line); stroke-width: 0.6; stroke-dasharray: 2 3; opacity: 0.5; transform-origin: 100px 100px; animation: cFieldRotate 14s linear infinite; }
+    @keyframes cFieldRotate { to { transform: rotate(360deg) } }
+    .c-bg-node { fill: var(--loader-node); opacity: 0.35; }
+    .c-bolt {
+      stroke: var(--loader); stroke-width: 1.2; fill: none; opacity: 0;
+      stroke-linecap: round; stroke-linejoin: round;
+      filter: drop-shadow(0 0 3px var(--loader-glow)) drop-shadow(0 0 6px var(--loader-deep));
+    }
+    .c-bolt-1 { animation: cStrike 3s ease-out infinite 0.15s; }
+    .c-bolt-2 { animation: cStrike 3s ease-out infinite 1.0s; }
+    .c-bolt-3 { animation: cStrike 3s ease-out infinite 1.8s; }
+    .c-bolt-4 { animation: cStrike 3s ease-out infinite 2.5s; }
+    @keyframes cStrike {
+      0%, 6%, 100% { opacity: 0; stroke-width: 1.2; }
+      8% { opacity: 1; stroke-width: 2; }
+      14% { opacity: 1; stroke-width: 1.4; }
+      20% { opacity: 0.6; }
+      30% { opacity: 0; }
+    }
+    .c-core {
+      fill: var(--loader-glow); filter: drop-shadow(0 0 4px var(--loader)) drop-shadow(0 0 9px var(--loader-deep));
+      transform-origin: center; animation: cCore 2.2s ease-in-out infinite;
+    }
+    @keyframes cCore { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+
+    /* =========================================================
+       A3D · ORBITAL SPHERE
+       Three flat orbital ring SVGs at different 3D orientations.
+       Wrapper rotates so they precess like real orbital planes.
+       ========================================================= */
+    .a3d-wrap {
+      position: relative;
+      transform-style: preserve-3d;
+      perspective: 600px;
+    }
+    .a3d-rotor {
+      position: absolute; inset: 0;
+      transform-style: preserve-3d;
+      animation: a3dRotor 9s linear infinite;
+    }
+    @keyframes a3dRotor {
+      0%   { transform: rotateY(0deg)   rotateX(20deg); }
+      100% { transform: rotateY(360deg) rotateX(20deg); }
+    }
+    .a3d-ring-plane {
+      position: absolute; inset: 0;
+      transform-style: preserve-3d;
+    }
+    .a3d-ring-plane svg { width: 100%; height: 100%; display: block; }
+    .a3d-plane-1 { transform: rotateX(0deg)  rotateY(0deg);  }
+    .a3d-plane-2 { transform: rotateX(70deg) rotateY(0deg);  }
+    .a3d-plane-3 { transform: rotateX(0deg)  rotateY(70deg); }
+    /* Core stays in place — perspective center */
+    .a3d-core-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* =========================================================
+       C3D · NEBULOUS SPHERE
+       16 nodes distributed via Fibonacci on a sphere, each
+       firing at staggered intervals. The whole sphere rotates.
+       ========================================================= */
+    .c3d-wrap {
+      position: relative;
+      perspective: 500px;
+    }
+    .c3d-sphere {
+      position: absolute; inset: 0;
+      transform-style: preserve-3d;
+      animation: c3dRotate 12s linear infinite;
+    }
+    @keyframes c3dRotate {
+      0%   { transform: rotateY(0deg)   rotateX(15deg); }
+      100% { transform: rotateY(360deg) rotateX(15deg); }
+    }
+    .c3d-node {
+      position: absolute; top: 50%; left: 50%;
+      width: var(--node-size); height: var(--node-size);
+      margin-left: calc(var(--node-size) / -2);
+      margin-top:  calc(var(--node-size) / -2);
+      border-radius: 50%;
+      background: var(--loader-node);
+      transform: translate3d(calc(var(--nx) * 1px), calc(var(--ny) * 1px), calc(var(--nz) * 1px));
+      animation: c3dFire 4s ease-in-out infinite;
+      animation-delay: var(--node-delay);
+    }
+    @keyframes c3dFire {
+      0%, 100%       { background: var(--loader-node); filter: none; transform: translate3d(calc(var(--nx) * 1px), calc(var(--ny) * 1px), calc(var(--nz) * 1px)) scale(1); }
+      6%, 14%        { background: var(--loader-glow); filter: drop-shadow(0 0 6px var(--loader)) drop-shadow(0 0 14px var(--loader-deep)); transform: translate3d(calc(var(--nx) * 1px), calc(var(--ny) * 1px), calc(var(--nz) * 1px)) scale(1.8); }
+      24%            { background: var(--loader); filter: drop-shadow(0 0 3px var(--loader-deep)); transform: translate3d(calc(var(--nx) * 1px), calc(var(--ny) * 1px), calc(var(--nz) * 1px)) scale(1.2); }
+    }
+    /* Ghost sphere outline — very faint dashed circle to suggest the sphere boundary */
+    .c3d-ghost {
+      position: absolute; inset: 12%;
+      border: 1px dashed var(--loader-line);
+      border-radius: 50%;
+      opacity: 0.4;
+      animation: c3dGhost 14s linear infinite;
+    }
+    @keyframes c3dGhost {
+      0% { transform: rotate(0deg) scaleX(1); }
+      50% { transform: rotate(180deg) scaleX(0.15); }
+      100% { transform: rotate(360deg) scaleX(1); }
+    }
+    /* Central core */
+    .c3d-core {
+      position: absolute; top: 50%; left: 50%;
+      width: 6px; height: 6px; margin: -3px 0 0 -3px;
+      border-radius: 50%;
+      background: var(--loader-glow);
+      filter: drop-shadow(0 0 4px var(--loader)) drop-shadow(0 0 10px var(--loader-deep));
+      animation: c3dCore 2s ease-in-out infinite;
+    }
+    @keyframes c3dCore { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transform: none !important; }
+    }
+  </style>
+</head>
+<body class="theme-amber">
+<div class="container">
+  <header class="hero">
+    <div class="hero-eyebrow">LOADER · 3D NEBULOUS SPHERE + COLOR PICKER</div>
+    <h1 class="hero-title">FIRING IN 3D SPACE</h1>
+    <p class="hero-sub">
+      Pick a color below. All four loaders update live. The 3D variants use proper
+      spherical distributions — orbital rings tilted across three axes (A3D), and 16 nodes
+      Fibonacci-distributed across a true 3D sphere (C3D) firing in place at staggered times.
+    </p>
+  </header>
+
+  <!-- COLOR PICKER -->
+  <div class="picker">
+    <span class="picker-label">COLOR ·</span>
+    <button class="swatch active" data-theme="amber"
+            style="--swatch-color:#FBBF24; --swatch-glow: rgba(251,191,36,0.5);">
+      <span class="swatch-chip"></span><span class="swatch-name">amber</span>
+    </button>
+    <button class="swatch" data-theme="coral"
+            style="--swatch-color:#FB923C; --swatch-glow: rgba(251,146,60,0.5);">
+      <span class="swatch-chip"></span><span class="swatch-name">coral</span>
+    </button>
+    <button class="swatch" data-theme="acid"
+            style="--swatch-color:#A3E635; --swatch-glow: rgba(163,230,53,0.5);">
+      <span class="swatch-chip"></span><span class="swatch-name">acid</span>
+    </button>
+    <button class="swatch" data-theme="phosphor"
+            style="--swatch-color:#F97316; --swatch-glow: rgba(249,115,22,0.5);">
+      <span class="swatch-chip"></span><span class="swatch-name">phosphor</span>
+    </button>
+    <button class="swatch" data-theme="magenta"
+            style="--swatch-color:#EC4899; --swatch-glow: rgba(236,72,153,0.5);">
+      <span class="swatch-chip"></span><span class="swatch-name">magenta</span>
+    </button>
+    <button class="swatch" data-theme="cyan"
+            style="--swatch-color:#22D3EE; --swatch-glow: rgba(34,211,238,0.5);">
+      <span class="swatch-chip"></span><span class="swatch-name">cyan</span>
+    </button>
+  </div>
+
+  <!-- A · ORBIT 2D fast -->
+  <article class="variant">
+    <header class="variant-head">
+      <div class="variant-name"><span class="badge b2d">A · 2D FAST</span>SYNAPTIC ORBIT</div>
+      <p class="variant-desc">Orbit rotation 11s · synapse flickers 2.4s · core breath 1.6s.</p>
+    </header>
+    <div class="scales" id="a-scales"></div>
+  </article>
+
+  <!-- B · NEURAL CLUSTER -->
+  <article class="variant">
+    <header class="variant-head">
+      <div class="variant-name"><span class="badge b2d">B · 2D FAST</span>NEURAL CLUSTER</div>
+      <p class="variant-desc">Dense brain-shaped mesh · cluster rotation 16s · edge pulses 2.6s · node fires 2.4s. The most overtly brain-like of the set.</p>
+    </header>
+    <div class="scales" id="b-scales"></div>
+  </article>
+
+  <!-- A3D · ORBITAL SPHERE -->
+  <article class="variant">
+    <header class="variant-head">
+      <div class="variant-name"><span class="badge b3d">A · 3D SPHERE</span>ORBITAL SPHERE</div>
+      <p class="variant-desc">Three orbital ring planes at orthogonal 3D angles. The whole sphere rotates 9s with a 20° tilt; you see the rings precess past each other as if you're watching a real orbital system.</p>
+    </header>
+    <div class="scales" id="a3d-scales"></div>
+  </article>
+
+  <!-- C · STORM 2D fast -->
+  <article class="variant">
+    <header class="variant-head">
+      <div class="variant-name"><span class="badge b2d">C · 2D FAST</span>SYNAPSE STORM</div>
+      <p class="variant-desc">Strike cycle 3s · staggered bolts · field rotation 14s · core breath 2.2s.</p>
+    </header>
+    <div class="scales" id="c-scales"></div>
+  </article>
+
+  <!-- C3D · NEBULOUS SPHERE -->
+  <article class="variant">
+    <header class="variant-head">
+      <div class="variant-name"><span class="badge b3d">C · 3D SPHERE</span>NEBULOUS SPHERE</div>
+      <p class="variant-desc">16 nodes distributed Fibonacci-style on a true 3D sphere. Each fires at a different staggered time (4s loop), so firings happen at different visible depths as the sphere rotates 12s. No flat disc — proper volumetric feel.</p>
+    </header>
+    <div class="scales" id="c3d-scales"></div>
+  </article>
+</div>
+
+<!-- Templates -->
+<template id="tpl-orbit-2d">
+  <svg viewBox="0 0 200 200">
+    <g class="a-rotate">
+      <circle class="a-ring" cx="100" cy="100" r="78"/>
+      <circle class="a-ring" cx="100" cy="100" r="55"/>
+      <circle class="a-ring" cx="100" cy="100" r="34"/>
+      <circle class="a-sat-glow" cx="178" cy="100" r="3.5" style="animation-delay: 0s"/>
+      <circle class="a-sat" cx="61" cy="167.6" r="3"/>
+      <circle class="a-sat-glow" cx="61" cy="32.4" r="3.5" style="animation-delay: 0.5s"/>
+      <circle class="a-sat" cx="127.5" cy="52.4" r="3"/>
+      <circle class="a-sat-glow" cx="72.5" cy="147.6" r="3.5" style="animation-delay: 0.2s"/>
+      <circle class="a-sat" cx="134" cy="100" r="2.5"/>
+      <circle class="a-sat" cx="83" cy="129.4" r="2.5"/>
+      <circle class="a-sat-glow" cx="83" cy="70.6" r="3" style="animation-delay: 0.7s"/>
+      <line class="a-syn a-syn-1" x1="178" y1="100" x2="127.5" y2="52.4"/>
+      <line class="a-syn a-syn-2" x1="127.5" y1="52.4" x2="61" y2="32.4"/>
+      <line class="a-syn a-syn-3" x1="72.5" y1="147.6" x2="61" y2="167.6"/>
+      <line class="a-syn a-syn-4" x1="83" y1="70.6" x2="134" y2="100"/>
+      <line class="a-syn a-syn-5" x1="178" y1="100" x2="134" y2="100"/>
+      <line class="a-syn a-syn-6" x1="83" y1="129.4" x2="72.5" y2="147.6"/>
+    </g>
+    <circle class="a-core" cx="100" cy="100" r="5"/>
+  </svg>
+</template>
+
+<template id="tpl-cluster-2d">
+  <svg viewBox="0 0 200 200">
+    <g class="b-rotate">
+      <line class="b-edge b-edge-pulse" x1="62" y1="58"  x2="88" y2="42"  style="animation-delay: 0.0s"/>
+      <line class="b-edge b-edge-pulse" x1="88" y1="42"  x2="125" y2="50" style="animation-delay: 0.3s"/>
+      <line class="b-edge b-edge-pulse" x1="125" y1="50" x2="148" y2="76" style="animation-delay: 0.5s"/>
+      <line class="b-edge b-edge-pulse" x1="148" y1="76" x2="155" y2="112" style="animation-delay: 0.8s"/>
+      <line class="b-edge b-edge-pulse" x1="155" y1="112" x2="140" y2="148" style="animation-delay: 1.0s"/>
+      <line class="b-edge b-edge-pulse" x1="140" y1="148" x2="108" y2="160" style="animation-delay: 1.3s"/>
+      <line class="b-edge b-edge-pulse" x1="108" y1="160" x2="72" y2="152" style="animation-delay: 1.5s"/>
+      <line class="b-edge b-edge-pulse" x1="72" y1="152" x2="48" y2="122" style="animation-delay: 1.8s"/>
+      <line class="b-edge b-edge-pulse" x1="48" y1="122" x2="45" y2="88" style="animation-delay: 2.0s"/>
+      <line class="b-edge b-edge-pulse" x1="45" y1="88" x2="62" y2="58" style="animation-delay: 2.3s"/>
+      <line class="b-edge b-edge-pulse" x1="88" y1="42"  x2="100" y2="92" style="animation-delay: 0.4s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="148" y2="76" style="animation-delay: 0.7s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="155" y2="112" style="animation-delay: 0.9s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="108" y2="160" style="animation-delay: 1.4s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="48" y2="122" style="animation-delay: 1.9s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="62" y2="58" style="animation-delay: 2.4s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="72" y2="118" style="animation-delay: 0.2s"/>
+      <line class="b-edge b-edge-pulse" x1="100" y1="92" x2="118" y2="130" style="animation-delay: 1.6s"/>
+      <line class="b-edge b-edge-pulse" x1="72" y1="118" x2="48" y2="122" style="animation-delay: 1.2s"/>
+      <line class="b-edge b-edge-pulse" x1="72" y1="118" x2="72" y2="152" style="animation-delay: 0.3s"/>
+      <line class="b-edge b-edge-pulse" x1="118" y1="130" x2="140" y2="148" style="animation-delay: 0.9s"/>
+      <line class="b-edge b-edge-pulse" x1="118" y1="130" x2="108" y2="160" style="animation-delay: 2.1s"/>
+      <circle class="b-node-fire" cx="62" cy="58" r="3" style="animation-delay: 0s"/>
+      <circle class="b-node" cx="88" cy="42" r="2.5"/>
+      <circle class="b-node-fire" cx="125" cy="50" r="3" style="animation-delay: 0.9s"/>
+      <circle class="b-node" cx="148" cy="76" r="2.5"/>
+      <circle class="b-node-fire" cx="155" cy="112" r="3" style="animation-delay: 0.3s"/>
+      <circle class="b-node" cx="140" cy="148" r="2.5"/>
+      <circle class="b-node-fire" cx="108" cy="160" r="3" style="animation-delay: 1.4s"/>
+      <circle class="b-node" cx="72" cy="152" r="2.5"/>
+      <circle class="b-node-fire" cx="48" cy="122" r="3" style="animation-delay: 0.6s"/>
+      <circle class="b-node" cx="45" cy="88" r="2.5"/>
+      <circle class="b-node" cx="72" cy="118" r="2.5"/>
+      <circle class="b-node" cx="118" cy="130" r="2.5"/>
+      <circle class="b-node-fire" cx="100" cy="92" r="4" style="animation-delay: 1.7s"/>
+    </g>
+  </svg>
+</template>
+
+<template id="tpl-storm-2d">
+  <svg viewBox="0 0 200 200">
+    <circle class="c-field" cx="100" cy="100" r="80"/>
+    <circle class="c-bg-node" cx="62" cy="65" r="2"/>
+    <circle class="c-bg-node" cx="130" cy="55" r="2"/>
+    <circle class="c-bg-node" cx="155" cy="100" r="2"/>
+    <circle class="c-bg-node" cx="135" cy="145" r="2"/>
+    <circle class="c-bg-node" cx="80" cy="155" r="2"/>
+    <circle class="c-bg-node" cx="45" cy="115" r="2"/>
+    <circle class="c-bg-node" cx="85" cy="95" r="2"/>
+    <circle class="c-bg-node" cx="120" cy="105" r="2"/>
+    <path class="c-bolt c-bolt-1" d="M 60 60 L 78 82 L 70 92 L 100 100"/>
+    <path class="c-bolt c-bolt-2" d="M 100 100 L 122 88 L 116 104 L 152 100"/>
+    <path class="c-bolt c-bolt-3" d="M 100 100 L 115 122 L 108 138 L 130 148"/>
+    <path class="c-bolt c-bolt-4" d="M 100 100 L 78 118 L 86 130 L 60 142"/>
+    <circle class="c-core" cx="100" cy="100" r="5"/>
+  </svg>
+</template>
+
+<!-- Orbital ring used inside the 3D planes — a single ring with 4 satellites -->
+<template id="tpl-orbit-ring-flat">
+  <svg viewBox="0 0 200 200" style="overflow:visible">
+    <circle class="a-ring" cx="100" cy="100" r="78"/>
+    <circle class="a-sat-glow" cx="178" cy="100" r="4"/>
+    <circle class="a-sat-glow" cx="100" cy="22" r="4" style="animation-delay: 0.5s"/>
+    <circle class="a-sat" cx="22" cy="100" r="3.5"/>
+    <circle class="a-sat-glow" cx="100" cy="178" r="4" style="animation-delay: 1.0s"/>
+  </svg>
+</template>
+
+<script>
+  /* ---- Color picker ---- */
+  document.querySelectorAll('.swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const theme = btn.dataset.theme;
+      document.body.className = 'theme-' + theme;
+      document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  /* ---- Render rows ---- */
+  const SIZES = [64, 96, 128, 192];
+
+  function clone(templateId) {
+    return document.getElementById(templateId).content.cloneNode(true);
+  }
+
+  function add(row, tile) {
+    row.appendChild(tile);
+  }
+
+  // 2D rows — straight clone of template SVG
+  function renderFlatRow(rowId, tplId) {
+    const row = document.getElementById(rowId);
+    SIZES.forEach(px => {
+      const tile = document.createElement('div');
+      tile.className = 'scale-tile';
+      const node = clone(tplId);
+      const svg = node.querySelector('svg');
+      svg.setAttribute('width', px);
+      svg.setAttribute('height', px);
+      tile.appendChild(svg);
+      const lbl = document.createElement('span');
+      lbl.className = 'scale-size';
+      lbl.textContent = px;
+      tile.appendChild(lbl);
+      add(row, tile);
+    });
+  }
+
+  renderFlatRow('a-scales', 'tpl-orbit-2d');
+  renderFlatRow('b-scales', 'tpl-cluster-2d');
+  renderFlatRow('c-scales', 'tpl-storm-2d');
+
+  // A3D · orbital sphere — three ring planes at orthogonal 3D angles
+  function renderA3D() {
+    const row = document.getElementById('a3d-scales');
+    SIZES.forEach(px => {
+      const tile = document.createElement('div');
+      tile.className = 'scale-tile';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'a3d-wrap';
+      wrap.style.cssText = `width:${px}px; height:${px}px; position:relative;`;
+
+      const rotor = document.createElement('div');
+      rotor.className = 'a3d-rotor';
+
+      // Three planes
+      ['a3d-plane-1', 'a3d-plane-2', 'a3d-plane-3'].forEach((cls, i) => {
+        const plane = document.createElement('div');
+        plane.className = 'a3d-ring-plane ' + cls;
+        const node = clone('tpl-orbit-ring-flat');
+        const svg = node.querySelector('svg');
+        svg.setAttribute('width', px);
+        svg.setAttribute('height', px);
+        // Stagger satellite firing per plane
+        svg.querySelectorAll('.a-sat-glow').forEach((c, j) => {
+          c.style.animationDelay = `${(i * 0.4 + j * 0.25) % 2}s`;
+        });
+        plane.appendChild(svg);
+        rotor.appendChild(plane);
+      });
+
+      // Core (stays at center, no 3D transform)
+      const coreSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      coreSvg.setAttribute('viewBox', '0 0 200 200');
+      coreSvg.setAttribute('class', 'a3d-core-svg');
+      coreSvg.innerHTML = `<circle class="a-core" cx="100" cy="100" r="5"/>`;
+      wrap.appendChild(rotor);
+      wrap.appendChild(coreSvg);
+      tile.appendChild(wrap);
+
+      const lbl = document.createElement('span');
+      lbl.className = 'scale-size';
+      lbl.textContent = px;
+      tile.appendChild(lbl);
+      add(row, tile);
+    });
+  }
+  renderA3D();
+
+  // C3D · Fibonacci sphere of 16 nodes
+  function renderC3D() {
+    const row = document.getElementById('c3d-scales');
+    const N = 16;
+    SIZES.forEach(px => {
+      const tile = document.createElement('div');
+      tile.className = 'scale-tile';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'c3d-wrap';
+      wrap.style.cssText = `width:${px}px; height:${px}px; position:relative;`;
+
+      const sphere = document.createElement('div');
+      sphere.className = 'c3d-sphere';
+
+      // Faint ghost equator
+      const ghost = document.createElement('div');
+      ghost.className = 'c3d-ghost';
+      sphere.appendChild(ghost);
+
+      // Radius scales with container; bigger spheres get larger node positions
+      const R = px * 0.35;
+      const nodeSize = Math.max(3, px / 24);
+
+      // Fibonacci sphere distribution
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 0; i < N; i++) {
+        const y = 1 - (i / (N - 1)) * 2;        // -1..1
+        const r = Math.sqrt(1 - y * y);
+        const theta = goldenAngle * i;
+        const x = Math.cos(theta) * r;
+        const z = Math.sin(theta) * r;
+
+        const node = document.createElement('div');
+        node.className = 'c3d-node';
+        node.style.setProperty('--nx', (x * R).toFixed(2));
+        node.style.setProperty('--ny', (y * R).toFixed(2));
+        node.style.setProperty('--nz', (z * R).toFixed(2));
+        node.style.setProperty('--node-size', nodeSize + 'px');
+        // Stagger each node's firing across the 4s cycle
+        node.style.setProperty('--node-delay', ((i * 0.27) % 4).toFixed(2) + 's');
+        sphere.appendChild(node);
+      }
+
+      // Central core
+      const core = document.createElement('div');
+      core.className = 'c3d-core';
+      sphere.appendChild(core);
+
+      wrap.appendChild(sphere);
+      tile.appendChild(wrap);
+
+      const lbl = document.createElement('span');
+      lbl.className = 'scale-size';
+      lbl.textContent = px;
+      tile.appendChild(lbl);
+      add(row, tile);
+    });
+  }
+  renderC3D();
+</script>
+</body>
+</html>

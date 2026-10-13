@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>FilterEngineZ · Lockup PNG Rasterizer</title>
+  <link rel="stylesheet" href="../../colors_and_type.css"/>
+  <link rel="stylesheet" href="../../assets/logomark/mark.css"/>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    /* Each card is exact pixel dimensions matched to the export target. */
+    body { margin: 0; background: #2a2a2a; font-family: var(--font-sans); color: var(--gray-9); padding: 24px; }
+    .grid { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+    .card {
+      position: relative;
+      box-shadow: 0 0 0 1px var(--gray-5), 0 16px 40px rgba(0,0,0,0.6);
+    }
+    .card-lbl {
+      position: absolute; top: -22px; left: 0;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--gray-8); letter-spacing: 0.08em;
+    }
+    .card-dark { background: #0B0A09; padding: 32px 36px; }
+    .card-light { background: #E7E2D6; padding: 32px 36px; }
+
+    /* Override the lockup CSS to force exact font-size for export */
+    .x-lock-22 { font-size: 22px; }
+    .x-lock-44 { font-size: 44px; }
+    .x-lock-64 { font-size: 64px; }
+    .x-lock-h-dark { color: #F1ECDF; }
+    .x-lock-h-light { color: #1D1B19; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="../../assets/logomark/Mark.jsx"></script>
+  <script type="text/babel" src="../../assets/logomark/Lockups.jsx"></script>
+  <script type="text/babel" data-presets="env,react">
+    function App() {
+      return (
+        <div className="grid">
+          {/* Horizontal lockup · D canonical · primary · medium (22px wordmark, mark ~28px) */}
+          <div className="card card-dark" data-export="lockup-h-22-primary">
+            <div className="card-lbl">lockup-h-22-primary</div>
+            <FezLockupHorizontal size={22} mode="primary"/>
+          </div>
+          <div className="card card-light" data-export="lockup-h-22-subdued">
+            <div className="card-lbl">lockup-h-22-subdued</div>
+            <FezLockupHorizontal size={22} mode="subdued"/>
+          </div>
+
+          {/* Hero (E) · 44px · no rings */}
+          <div className="card card-dark" data-export="lockup-h-44-primary">
+            <div className="card-lbl">lockup-h-44-primary (hero, no rings)</div>
+            <FezLockupHero size={44} mode="primary"/>
+          </div>
+          <div className="card card-light" data-export="lockup-h-44-subdued">
+            <div className="card-lbl">lockup-h-44-subdued (hero, no rings)</div>
+            <FezLockupHero size={44} mode="subdued"/>
+          </div>
+
+          {/* Mega hero · 64px */}
+          <div className="card card-dark" data-export="lockup-h-64-primary">
+            <div className="card-lbl">lockup-h-64-primary (mega hero)</div>
+            <FezLockupHero size={64} mode="primary"/>
+          </div>
+
+          {/* Beside (A) · mark + wordmark with text-Z */}
+          <div className="card card-dark" data-export="lockup-beside-primary">
+            <div className="card-lbl">lockup-beside-primary</div>
+            <FezLockupBeside size={32} markSize={64} mode="primary"/>
+          </div>
+          <div className="card card-light" data-export="lockup-beside-subdued">
+            <div className="card-lbl">lockup-beside-subdued</div>
+            <FezLockupBeside size={32} markSize={64} mode="subdued"/>
+          </div>
+
+          {/* Stacked */}
+          <div className="card card-dark" data-export="lockup-stacked-primary" style={{ padding: 40 }}>
+            <div className="card-lbl">lockup-stacked-primary</div>
+            <FezLockupStacked markSize={160} wordSize={22} mode="primary"/>
+          </div>
+          <div className="card card-light" data-export="lockup-stacked-subdued" style={{ padding: 40 }}>
+            <div className="card-lbl">lockup-stacked-subdued</div>
+            <FezLockupStacked markSize={160} wordSize={22} mode="subdued"/>
+          </div>
+        </div>
+      );
+    }
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App/>);
+  </script>
+</body>
+</html>

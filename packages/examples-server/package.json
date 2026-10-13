@@ -1,0 +1,28 @@
+{
+  "name": "@filter-enginez/examples-server",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — server-side / isomorphic demo. A Node CLI + a tiny node:http endpoint that filter a mock dataset by a JSON FilterEngineConfig, proving the engine's isomorphic core runs unchanged outside the browser. Private, never published.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "serve:api": "tsx src/server.ts",
+    "gen:sample": "tsx src/gen-sample.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "devDependencies": {
+    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/eslint": "0.0.1",
+    "@filter-enginez/mock-data": "0.0.1",
+    "tsx": "^4.23.0"
+  }
+}

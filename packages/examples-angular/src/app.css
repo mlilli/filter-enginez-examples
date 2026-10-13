@@ -1,0 +1,14 @@
+/* The shared visual system — brand design tokens + the framework-agnostic ui-styles component CSS
+   (the same fe-* classes the React / Svelte / Vue / vanilla apps render over). Listed in
+   `angular.json`'s `styles` array, which is Angular's equivalent of the other verticals' single
+   app-entry CSS import. Angular's stylesheet bundler resolves the bare specifiers through the
+   workspace packages' `exports` maps, exactly as Vite does. */
+@import '@filter-enginez/brand/tokens.css';
+@import '@filter-enginez/ui-styles/styles.css';
+
+body {
+	margin: 0;
+	background: var(--gray-0);
+	color: var(--gray-11);
+	font-family: var(--font-sans);
+}

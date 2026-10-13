@@ -1,0 +1,216 @@
+packages:
+  - "packages/*"
+
+# ─── Dependency install-script approvals ───────────────────────────────────────
+# pnpm blocks dependency lifecycle scripts by default (a package's `postinstall` is arbitrary code
+# running with your shell's privileges — the standard supply-chain foothold), and since pnpm 11 an
+# unapproved build is a hard `ERR_PNPM_IGNORED_BUILDS` error. Each script below is approved
+# deliberately.
+#
+# The first four are native modules whose install scripts are only a FALLBACK: each ships prebuilt
+# platform binaries as optional deps (`@esbuild/darwin-arm64`, `@lmdb/lmdb-darwin-arm64`, and so on),
+# and the script compiles from source only when no prebuilt matches. They're approved because the
+# fallback should be available on a machine or CI arch where the prebuilt doesn't resolve.
+allowBuilds:
+  # Native FS watching for dev servers; without it, watch mode degrades to polling.
+  '@parcel/watcher': true
+  # Links/validates the platform binary. Every dev server and build in the repo goes through esbuild.
+  esbuild: true
+  # @angular/build's optional persistent disk cache, used by `examples-angular`. Angular
+  # degrades gracefully without it, at the cost of slower incremental rebuilds.
+  lmdb: true
+  # lmdb's companion native (de)serializer; same optional-accelerator story.
+  msgpackr-extract: true
+  # msw's postinstall copies `mockServiceWorker.js` into the directories named by a package's
+  # `msw.workerDirectory` field (examples-react-rtk + examples-react-plain declare `public`). The wine
+  # route uses browser-mode MSW (`setupWorker(...).start()` in each app's `src/mocks/browser.ts`, to
+  # serve the default-tier streaming endpoint in dev), so the worker script is load-bearing, not dead
+  # weight. Approving keeps that committed `public/mockServiceWorker.js` in sync with the installed msw
+  # version on every install.
+  msw: true
+
+# ─── Supply-chain policy exceptions ────────────────────────────────────────────
+# 🟢 **pnpm 12 REPORTS an unrecognized setting in this file instead of ignoring it.** A misspelled
+# `minimumReleaseAge` or `minimumReleaseAgeExclude` would otherwise drop the policy silently — a
+# supply-chain guard that evaporates with no output. The build-script settings pnpm 12 removed
+# (`onlyBuiltDependencies`, `neverBuiltDependencies`, `ignoredBuiltDependencies`, and the rest) are
+# expressed by the `allowBuilds` map above.
+#
+# ⚠ This file is in `.prettierignore`. Prettier rewrites single-quoted YAML scalars to double quotes,
+# so an unrelated comment edit would arrive as a whole-file diff in the file that carries the
+# supply-chain policy. The quoting below is deliberate; leave it alone.
+#
+# pnpm defaults `minimumReleaseAge` to 1440 (24h): a newly-published version can't be installed
+# until it has aged a day, on the theory that malicious releases are usually yanked within the hour.
+# The check runs twice — once during resolution, and again as a verification pass over every entry of
+# an already-written lockfile.
+#
+# Nothing in this lockfile needs an exemption, so there is no `minimumReleaseAgeExclude` list. When one
+# is needed, pin it to the ONE version, not the package, so a later release gets the full 24h soak like
+# everything else, and delete the entry once the lockfile moves past it.
+
+# ─── Security remediation — force patched transitive versions ─────────────────────────────────────
+# Every advisory these address is in DEV TOOLING or the unpublished demo apps. These pin the patched
+# floor for the transitive-only ones; the app-facing direct deps are bumped in their own package.json
+# instead.
+#
+# What each pin is for: esbuild/postcss (dev-server file-read + source-map traversal), fast-uri
+# (Angular CLI chain), cookie (SvelteKit + msw; see below), linkify-it / markdown-it (markdownlint),
+# smol-toml (markdownlint; see below), and brace-expansion's v5 line (the vulnerable copy is 5.0.6,
+# `<=5.0.7`; scoped by major so that a v1 or v2 copy keeps its own chain intact).
+#
+# **react-router is NOT overridden.** Its RSC-mode CSRF advisory is patched only in 8.3.0, a MAJOR
+# bump, so the React apps depend on `react-router@^8.3.0` directly. No transitive pin is needed; the
+# direct dep IS the fix.
+#
+# **react / react-dom are pinned to ONE workspace-wide copy.** react-router 8 needs react >=19.2.7,
+# while packages such as react-ui, brand and the engine's React bindings declare the honest wider
+# `^19.0.0` peer — so without these overrides pnpm can keep a second React copy alongside the newer
+# one, and a component rendered by one react-dom whose hooks resolve the other react gets `null` from
+# `useContext`/`useId` (every React component test and app crashes at mount). These overrides dedupe
+# every react/react-dom in the install to a single 19.x copy WITHOUT lying about the bindings' real peer
+# range. `^19.2.7` == `>=19.2.7 <20`, so it satisfies react-router 8 and stays capped below the next
+# major (per the cap rule below).
+#
+# **Every replacement carries an UPPER major bound.** A pnpm override replacement is a range, and pnpm
+# resolves it to the HIGHEST available match — so an open-ended `>=x` silently floats to a new major.
+# Widen a cap only alongside the matching direct-dep major bump.
+#
+# 🟢 `tests/tooling/overrideUpperBounds.test.ts` enforces that rule, and also rejects a pin that matches
+# nothing in the lockfile: **a pin that matches nothing is worse than useless.** It is a standing claim
+# that a risk was weighed, and it keeps looking true long after the risk is gone. If such a package
+# returns through some other chain, its advisory returns with it through `pnpm audit`, which is the
+# instrument that is supposed to notice.
+#
+# 🟢 Each cap is set to the NEXT major above what is installed, and each floor to the resolved version,
+# so bounding them is lockfile-neutral BY CONSTRUCTION: the tree already satisfies every one. The
+# original advisory floors are recorded here rather than in the ranges, because a floor that no longer
+# matches the installed version only reads as precision —
+# `esbuild >=0.28.1`, `postcss >=8.5.18`, `fast-uri >=3.1.4`, `linkify-it >=5.0.2`,
+# `markdown-it >=14.1.2`. ⚠ `esbuild`'s cap is `<0.29.0`, not `<1.0.0`: in 0.x the MINOR is the
+# breaking boundary, so a `<1` cap on a 0.x package is not a cap at all.
+#
+# ── 🔴 `cookie` — why the cap is `<2.0.0` ────────────────────────────────────────────────────────────
+#
+# The pin exists for CVE-2024-47764 (out-of-bounds characters in cookie name / path / domain), patched
+# in 0.7.0. Unbounded, it floats to **2.x**, and cookie 2.x RENAMED THE ENTIRE API:
+#
+#   parse -> parseCookie        serialize -> stringifySetCookie
+#
+# `@sveltejs/kit@2.70.3` declares `cookie: ^0.6.0` and imports `{ parse, serialize }`. Against 2.x
+# those exports do not exist, so SvelteKit's SSR runtime fails to evaluate — `The requested module
+# 'cookie' does not provide an export named 'serialize'` — and every Playwright project behind the
+# SvelteKit dev server is dead before the first test runs.
+#
+# 🔴 AND NO TYPE CHECK CAN CATCH IT. Kit ships `@types/cookie@0.6.0` as its own dependency, so
+# TypeScript resolves `serialize` from the 0.6 type stubs while Node resolves a module that does not
+# export it. cookie 2.x even keeps a TYPE called `SerializeOptions` "for backward compatibility" while
+# having dropped the function — the type survives the rename and the value does not, which is the worst
+# possible combination for catching this early.
+#
+# 🟢 THE CAP IS FORCED RATHER THAN CHOSEN. Two packages consume `cookie` here with incompatible declared
+# ranges:
+#
+#   @sveltejs/kit@2.70.3  cookie: ^0.6.0   needs `parse` / `serialize`
+#   msw@2.15.0            cookie: ^1.1.1   needs `parseCookie` / `stringifySetCookie`
+#
+# `cookie@1.1.1` is the only line that satisfies BOTH, because 1.x ships the new names AND keeps the
+# old ones as aliases — `export { stringifySetCookie as serialize, parseCookie as parse }`, with a
+# `(name, val, options)` overload matching how kit calls it. 2.x dropped the aliases; `<1.0.0` would
+# resolve 0.7.x and break msw instead. So one cap serves both consumers and dedupes `cookie` to one
+# installed copy.
+#
+# ── `smol-toml` ──────────────────────────────────────────────────────────────────────────────────────
+#
+# For GHSA-r4xh-jqrq-34v2 (quadratic `parse()`). `markdownlint-cli2` pins `smol-toml: "1.8.0"` EXACTLY,
+# so there is no upstream bump to reach for — an override is the only remediation that changes the
+# installed tree. It is within-minor (1.8.0 -> 1.9.0), and `smol-toml@1.9.0` is also installed via
+# `cspell-config-lib`, so the pin DEDUPES two copies to one rather than introducing anything.
+#
+# ⚠ Chosen over accepting the advisory even though the vulnerable code is unreachable — this repo has
+# **no TOML file at all**, so `markdownlint-cli2` never calls `smol-toml.parse()`. That reachability
+# argument is the fragile one: it holds only until someone adds a `.markdownlint.toml`, and it would hold
+# silently wrong from that moment. Removing the vulnerable code from the tree does not depend on nobody
+# doing that.
+#
+# ⚠ The override is doing real work, and because pnpm audit reads resolved versions it needs no
+# `ignoreGhsas` entry. Deleting it restores markdownlint-cli2's exact `1.8.0` pin and the advisory comes
+# straight back; retire it only when markdownlint-cli2 moves past 1.8.0 upstream.
+overrides:
+  react: '^19.2.7'
+  react-dom: '^19.2.7'
+  esbuild: '>=0.28.2 <0.29.0'
+  postcss: '>=8.5.29 <9.0.0'
+  fast-uri: '>=4.2.1 <5.0.0'
+  cookie: '>=0.7.0 <2.0.0'
+  linkify-it: '>=6.1.0 <7.0.0'
+  markdown-it: '>=15.0.2 <16.0.0'
+  smol-toml: '>=1.9.0 <2.0.0'
+  'brace-expansion@^5.0.0': '>=5.0.8 <6.0.0'
+  # ─── The engine, consumed as PACKED TARBALLS from the sibling repo ──────────────────────────────
+  # 🔴 The 12 engine packages these apps use are not workspace members here — they live in
+  # ../filter-enginez — so every manifest names them at their real version (`0.0.1`) and this block points
+  # each at the tarball `bash scripts/pack-engine-tarballs.sh` writes in the engine repo.
+  #
+  # 🔴 WHY TARBALLS AND NOT `link:../filter-enginez/packages/*`, which would be faster: a linked package
+  # resolves its PEER dependencies — React, RxJS, Svelte, Vue, Angular — from the ENGINE repo's
+  # node_modules, so the apps would get a second React. That is the duplicate-React failure described
+  # in the react / react-dom note above: a component rendered by one React whose hooks resolve another
+  # gets `null` from `useContext`/`useId`, and every app crashes at mount. A tarball installs INTO this
+  # tree and resolves its peers here. It also exercises the real publish surface — `dist/`, the `files`
+  # allow-list, `publishConfig.exports` — rather than raw source.
+  #
+  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.1.tgz'
+  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.1.tgz'
+  '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.1.tgz'
+  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.1.tgz'
+  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.1.tgz'
+  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.1.tgz'
+  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.1.tgz'
+  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.1.tgz'
+  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.1.tgz'
+  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.1.tgz'
+  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.1.tgz'
+  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.1.tgz'
+
+# ─── Accepted / false-positive advisories (kept out of `pnpm audit` noise) ─────────────────────────
+# `auditConfig.ignoreGhsas` (pnpm 11+) suppresses the specific GHSA IDs below from `pnpm audit`. Each is
+# individually justified; a NEW advisory on any of these packages still surfaces. See SECURITY.md →
+# "Accepted advisories", which records the review date, and `scripts/recheck-accepted-advisories.mjs`,
+# which re-checks each premise against the registry.
+#
+# 🟢 **pnpm audit reads RESOLVED versions, not declared ranges, so an override that fully patches the
+# tree needs no ignore at all.** An ignore is for exactly two situations — no fix exists, or the
+# vulnerable version survives in the tree on some path an override cannot reach. **An ignore that
+# matches nothing is worse than useless**, for the same reason as a pin that matches nothing.
+#
+# ⚠ `postcss-selector-parser` shows the second situation: it resolves to BOTH 6.0.10 (via
+# @tailwindcss/typography's exact pin) and 7.1.6, and it still matches — because the vulnerable copy is
+# genuinely present.
+#
+#   - GHSA-vfj7-8cjw-p6xm (braces, high) — ACCEPTED BECAUSE THERE IS NO FIX. Stack-exhaustion DoS via
+#     deeply-nested brace patterns. `braces@3.0.3` is the latest published version and `micromatch@4.0.8`
+#     still declares `braces: ^3.0.3`, so the advisory's "Patched versions: None" is accurate — there is
+#     nothing to upgrade to, and an override cannot invent a patched release. Every path is dev tooling
+#     (`lint-staged`, `markdownlint-cli2`, `@tailwindcss/cli > @parcel/watcher`). The attack needs a
+#     hostile glob PATTERN, and every glob in this repo comes from a committed config file rather than
+#     from input. Re-review when braces publishes a fix or micromatch drops it.
+#
+#   - GHSA-rj75-hqrm-r3gf (postcss-selector-parser, moderate) — ACCEPTED: NO IN-MAJOR FIX, and the forced major is the
+#     greater risk. Patched only in `>=7.1.6`; the vulnerable copy is `6.0.10`, pinned EXACTLY by
+#     `@tailwindcss/typography`, whose latest release still pins it. So an override means forcing 6.x → 7.x on a plugin
+#     that uses the library to rewrite selectors — a major bump against an exact pin, the kind of forced major that
+#     breaks dev tooling. One path only, `examples-react-rtk`, an UNPUBLISHED demo app, at build time. Exploiting it
+#     needs a hostile CSS SELECTOR, and every selector here comes from committed source. Re-review when
+#     @tailwindcss/typography moves to 7.x.
+#   - GHSA-238p-pmpm-9mq7 (katex, low) — ACCEPTED: the vulnerable code is never executed. Reached via
+#     `markdownlint-cli2 > markdownlint > micromark-extension-math > katex`, and **`.markdownlint-cli2.yaml` enables no
+#     math extension**, so KaTeX never renders anything. Patched only in `>=0.18.2` against a resolved `0.16.47` — in
+#     0.x semver a minor bump is a breaking one, so an override would force a breaking change on a transitive dep to fix
+#     a path that does not run. Lowest severity of the three. Re-review when markdownlint drops the math extension or a
+#     0.16.x patch appears.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
+    - GHSA-rj75-hqrm-r3gf
+    - GHSA-238p-pmpm-9mq7

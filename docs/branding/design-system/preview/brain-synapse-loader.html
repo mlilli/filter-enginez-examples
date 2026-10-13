@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Brain-Synapse Loader</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 22px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+  .stage {
+    position: relative; height: 220px; border-radius: var(--radius-lg);
+    background: radial-gradient(ellipse at center, #151412 0%, #0B0A09 80%);
+    border: 1px solid var(--gray-4); overflow: hidden;
+  }
+  .lbl { position: absolute; left: 14px; bottom: 12px; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: var(--gray-9); letter-spacing: 0.16em; text-transform: uppercase; }
+  .lbl .dot { display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px var(--accent); animation: pulse 1.4s var(--ease-in-out) infinite; vertical-align: middle; }
+  @keyframes pulse { 0%,100% { opacity: 0.4 } 50% { opacity: 1 } }
+  svg { width: 100%; height: 100%; display: block; }
+
+  .edge { stroke: #312E29; stroke-width: 0.6; opacity: 0.6; }
+  .node { fill: #56524A; }
+  .node.fire { animation: nodeFire 1.6s var(--ease-out) infinite; }
+  @keyframes nodeFire {
+    0%, 70%, 100% { fill: #56524A; r: 2.5; filter: none; }
+    75% { fill: #67E8F9; r: 4; filter: drop-shadow(0 0 6px #22D3EE); }
+    85% { fill: #22D3EE; r: 3.2; filter: drop-shadow(0 0 4px #22D3EE); }
+  }
+
+  /* Pulses traveling along edges */
+  .pulse {
+    fill: #67E8F9;
+    filter: drop-shadow(0 0 5px #22D3EE) drop-shadow(0 0 2px #67E8F9);
+  }
+  .p1 { animation: travel1 2.4s var(--ease-in-out) infinite; }
+  .p2 { animation: travel2 2.8s var(--ease-in-out) infinite 0.4s; }
+  .p3 { animation: travel3 3.1s var(--ease-in-out) infinite 0.9s; }
+  .p4 { animation: travel4 2.6s var(--ease-in-out) infinite 1.3s; }
+  .p5 { animation: travel5 2.9s var(--ease-in-out) infinite 1.7s; }
+
+  @keyframes travel1 {
+    0% { transform: translate(60px, 50px); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translate(180px, 90px); opacity: 0; }
+  }
+  @keyframes travel2 {
+    0% { transform: translate(160px, 70px); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translate(260px, 130px); opacity: 0; }
+  }
+  @keyframes travel3 {
+    0% { transform: translate(220px, 110px); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translate(340px, 60px); opacity: 0; }
+  }
+  @keyframes travel4 {
+    0% { transform: translate(100px, 130px); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translate(220px, 170px); opacity: 0; }
+  }
+  @keyframes travel5 {
+    0% { transform: translate(300px, 90px); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translate(420px, 140px); opacity: 0; }
+  }
+</style></head>
+<body>
+<div class="meta">brain-synapse loader · the signature piece · ~30 nodes · pulses cascade</div>
+<div class="stage">
+  <svg viewBox="0 0 660 220" preserveAspectRatio="xMidYMid slice">
+    <!-- edges -->
+    <line class="edge" x1="60" y1="50" x2="160" y2="70"/>
+    <line class="edge" x1="160" y1="70" x2="220" y2="110"/>
+    <line class="edge" x1="160" y1="70" x2="260" y2="130"/>
+    <line class="edge" x1="220" y1="110" x2="340" y2="60"/>
+    <line class="edge" x1="220" y1="110" x2="180" y2="90"/>
+    <line class="edge" x1="100" y1="130" x2="180" y2="170"/>
+    <line class="edge" x1="100" y1="130" x2="220" y2="170"/>
+    <line class="edge" x1="300" y1="90" x2="420" y2="140"/>
+    <line class="edge" x1="340" y1="60" x2="420" y2="40"/>
+    <line class="edge" x1="420" y1="140" x2="540" y2="170"/>
+    <line class="edge" x1="420" y1="140" x2="500" y2="80"/>
+    <line class="edge" x1="500" y1="80" x2="600" y2="110"/>
+    <line class="edge" x1="600" y1="110" x2="540" y2="170"/>
+    <line class="edge" x1="600" y1="110" x2="620" y2="50"/>
+    <line class="edge" x1="420" y1="40" x2="500" y2="80"/>
+    <line class="edge" x1="340" y1="60" x2="300" y2="90"/>
+    <line class="edge" x1="60" y1="180" x2="100" y2="130"/>
+    <line class="edge" x1="60" y1="180" x2="180" y2="170"/>
+
+    <!-- nodes -->
+    <circle class="node fire" cx="60"  cy="50"  r="2.5" style="animation-delay: 0s"/>
+    <circle class="node fire" cx="160" cy="70"  r="2.5" style="animation-delay: 0.6s"/>
+    <circle class="node fire" cx="220" cy="110" r="2.5" style="animation-delay: 1.0s"/>
+    <circle class="node fire" cx="260" cy="130" r="2.5" style="animation-delay: 1.4s"/>
+    <circle class="node fire" cx="340" cy="60"  r="2.5" style="animation-delay: 1.8s"/>
+    <circle class="node"      cx="180" cy="90"  r="2.5"/>
+    <circle class="node"      cx="100" cy="130" r="2.5"/>
+    <circle class="node"      cx="180" cy="170" r="2.5"/>
+    <circle class="node"      cx="220" cy="170" r="2.5"/>
+    <circle class="node fire" cx="300" cy="90"  r="2.5" style="animation-delay: 0.3s"/>
+    <circle class="node fire" cx="420" cy="140" r="2.5" style="animation-delay: 2.1s"/>
+    <circle class="node fire" cx="420" cy="40"  r="2.5" style="animation-delay: 0.9s"/>
+    <circle class="node fire" cx="500" cy="80"  r="2.5" style="animation-delay: 1.3s"/>
+    <circle class="node fire" cx="540" cy="170" r="2.5" style="animation-delay: 2.5s"/>
+    <circle class="node fire" cx="600" cy="110" r="2.5" style="animation-delay: 0.7s"/>
+    <circle class="node"      cx="620" cy="50"  r="2.5"/>
+    <circle class="node"      cx="60"  cy="180" r="2.5"/>
+
+    <!-- pulses -->
+    <circle class="pulse p1" cx="0" cy="0" r="2.5"/>
+    <circle class="pulse p2" cx="0" cy="0" r="2.5"/>
+    <circle class="pulse p3" cx="0" cy="0" r="2.5"/>
+    <circle class="pulse p4" cx="0" cy="0" r="2.5"/>
+    <circle class="pulse p5" cx="0" cy="0" r="2.5"/>
+  </svg>
+  <div class="lbl"><span class="dot"></span>loading filters · 1,442 / 1,679</div>
+</div>
+</body></html>

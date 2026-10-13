@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>MinHash + LSH Hero</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 12px 16px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 9px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .stage { background: radial-gradient(ellipse at center, #151412, #0B0A09); border: 1px solid var(--gray-4); border-radius: var(--radius-lg); padding: 6px; position: relative; }
+  .ttl { position: absolute; top: 10px; left: 14px; font-family: var(--font-display); font-size: 10px; color: var(--gray-9); letter-spacing: 0.16em; text-transform: uppercase; z-index:2; }
+  svg { display: block; width: 100%; height: 200px; }
+  .item-box { fill: #1D1B19; stroke: #312E29; stroke-width: 1; }
+  .item-box.query { stroke: #22D3EE; fill: #0E4A57; filter: drop-shadow(0 0 8px #22D3EE); }
+  .item-box.match { stroke: #67E8F9; fill: #155E6E; }
+  .sig-cell { stroke: #312E29; stroke-width: 0.5; }
+  .bucket { fill: #1D1B19; stroke: #413E37; stroke-width: 1; rx: 4; }
+  .bucket.active { stroke: #22D3EE; fill: #0E4A57; }
+  .bucket-lbl { font-family: var(--font-mono); font-size: 9px; fill: var(--gray-8); }
+  .item-lbl { font-family: var(--font-mono); font-size: 9px; fill: var(--gray-9); }
+  .feeler { stroke: #312E29; stroke-width: 1; fill: none; }
+  .feeler.active { stroke: #22D3EE; opacity: 0.8; stroke-dasharray: 3 3; }
+  .sim { font-family: var(--font-mono); font-size: 9px; fill: var(--accent); }
+  .shimmer { animation: shim 2.4s ease-in-out infinite; }
+  @keyframes shim { 0%,100% { opacity: 0.7 } 50% { opacity: 1 } }
+</style></head>
+<body>
+<div class="meta">algorithm hero · minhash + lsh · similar items share buckets · O(1) similarity lookup</div>
+<div class="stage">
+  <div class="ttl">MINHASH · LSH</div>
+  <svg viewBox="0 0 660 200">
+    <!-- column headers -->
+    <text class="bucket-lbl" x="40" y="22">ITEMS · SIGNATURES</text>
+    <text class="bucket-lbl" x="480" y="22">LSH BUCKETS</text>
+
+    <!-- Query item -->
+    <rect class="item-box query" x="30" y="32" width="14" height="14" rx="2"/>
+    <g transform="translate(52, 32)">
+      <rect class="sig-cell" x="0"  y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="11" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="22" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="33" y="0" width="10" height="14" fill="#67E8F9"/>
+      <rect class="sig-cell" x="44" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="55" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="66" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="77" y="0" width="10" height="14" fill="#67E8F9"/>
+      <rect class="sig-cell" x="88" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="99" y="0" width="10" height="14" fill="#56524A"/>
+    </g>
+    <text class="item-lbl" x="170" y="44">query</text>
+
+    <!-- Match item 1 -->
+    <rect class="item-box match" x="30" y="58" width="14" height="14" rx="2"/>
+    <g transform="translate(52, 58)" class="shimmer">
+      <rect class="sig-cell" x="0"  y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="11" y="0" width="10" height="14" fill="#747066"/>
+      <rect class="sig-cell" x="22" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="33" y="0" width="10" height="14" fill="#67E8F9"/>
+      <rect class="sig-cell" x="44" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="55" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="66" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="77" y="0" width="10" height="14" fill="#67E8F9"/>
+      <rect class="sig-cell" x="88" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="99" y="0" width="10" height="14" fill="#969085"/>
+    </g>
+    <text class="sim" x="170" y="70">0.86</text>
+
+    <!-- Match 2 -->
+    <rect class="item-box match" x="30" y="84" width="14" height="14" rx="2"/>
+    <g transform="translate(52, 84)" class="shimmer">
+      <rect class="sig-cell" x="0"  y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="11" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="22" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="33" y="0" width="10" height="14" fill="#67E8F9"/>
+      <rect class="sig-cell" x="44" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="55" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="66" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="77" y="0" width="10" height="14" fill="#67E8F9"/>
+      <rect class="sig-cell" x="88" y="0" width="10" height="14" fill="#22D3EE"/>
+      <rect class="sig-cell" x="99" y="0" width="10" height="14" fill="#56524A"/>
+    </g>
+    <text class="sim" x="170" y="96">0.74</text>
+
+    <!-- Misc items below (non-matches) -->
+    <rect class="item-box" x="30" y="110" width="14" height="14" rx="2"/>
+    <g transform="translate(52, 110)">
+      <rect class="sig-cell" x="0"  y="0" width="10" height="14" fill="#747066"/>
+      <rect class="sig-cell" x="11" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="22" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="33" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="44" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="55" y="0" width="10" height="14" fill="#747066"/>
+      <rect class="sig-cell" x="66" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="77" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="88" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="99" y="0" width="10" height="14" fill="#413E37"/>
+    </g>
+
+    <rect class="item-box" x="30" y="136" width="14" height="14" rx="2"/>
+    <g transform="translate(52, 136)">
+      <rect class="sig-cell" x="0"  y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="11" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="22" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="33" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="44" y="0" width="10" height="14" fill="#747066"/>
+      <rect class="sig-cell" x="55" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="66" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="77" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="88" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="99" y="0" width="10" height="14" fill="#969085"/>
+    </g>
+
+    <rect class="item-box" x="30" y="162" width="14" height="14" rx="2"/>
+    <g transform="translate(52, 162)">
+      <rect class="sig-cell" x="0"  y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="11" y="0" width="10" height="14" fill="#747066"/>
+      <rect class="sig-cell" x="22" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="33" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="44" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="55" y="0" width="10" height="14" fill="#747066"/>
+      <rect class="sig-cell" x="66" y="0" width="10" height="14" fill="#56524A"/>
+      <rect class="sig-cell" x="77" y="0" width="10" height="14" fill="#413E37"/>
+      <rect class="sig-cell" x="88" y="0" width="10" height="14" fill="#969085"/>
+      <rect class="sig-cell" x="99" y="0" width="10" height="14" fill="#56524A"/>
+    </g>
+
+    <!-- Feeler lines -->
+    <path class="feeler active" d="M 200 38 C 320 38, 360 70, 480 60"/>
+    <path class="feeler active" d="M 200 64 C 320 64, 360 65, 480 60"/>
+    <path class="feeler active" d="M 200 90 C 320 90, 360 78, 480 60"/>
+    <path class="feeler" d="M 200 116 C 320 116, 380 115, 480 110"/>
+    <path class="feeler" d="M 200 142 C 320 142, 360 150, 480 160"/>
+    <path class="feeler" d="M 200 168 C 320 168, 360 165, 480 160"/>
+
+    <!-- Buckets -->
+    <rect class="bucket active" x="476" y="44" width="170" height="34" rx="4"/>
+    <text class="bucket-lbl" x="486" y="64" style="fill: var(--accent)">bucket #a3 · 3 items</text>
+
+    <rect class="bucket" x="476" y="94" width="170" height="32" rx="4"/>
+    <text class="bucket-lbl" x="486" y="114">bucket #b1 · 1 item</text>
+
+    <rect class="bucket" x="476" y="144" width="170" height="34" rx="4"/>
+    <text class="bucket-lbl" x="486" y="164">bucket #c7 · 2 items</text>
+  </svg>
+</div>
+</body></html>

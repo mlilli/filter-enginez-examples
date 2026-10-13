@@ -1,0 +1,11 @@
+/* The shared visual system — brand design tokens + the framework-agnostic ui-styles component CSS
+   (the same fe-* classes the React + Svelte apps render over). Imported once at app entry. */
+@import '@filter-enginez/brand/tokens.css';
+@import '@filter-enginez/ui-styles/styles.css';
+
+body {
+	margin: 0;
+	background: var(--gray-0);
+	color: var(--gray-11);
+	font-family: var(--font-sans);
+}

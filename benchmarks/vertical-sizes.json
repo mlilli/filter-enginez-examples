@@ -1,0 +1,71 @@
+{
+  "generatedAt": "2026-08-01T22:41:13.120Z",
+  "note": "Counts each vertical’s OWN src only; tests, vendored mockServiceWorker.js and generated output are excluded. Quote `code`; `comment` is reported so its exclusion is visible rather than assumed. READ WITH `shared`: that slice is written in React, so the two React verticals consume ~10,800 lines the other four had to re-express in their own idiom. These figures are NOT a framework-verbosity comparison.",
+  "shared": {
+    "examples-shared": {
+      "blank": 1806,
+      "code": 9131,
+      "comment": 6603,
+      "files": 157,
+      "total": 17540
+    },
+    "react-ui": {
+      "blank": 263,
+      "code": 1678,
+      "comment": 1343,
+      "files": 19,
+      "total": 3284
+    },
+    "ui-styles": {
+      "blank": 173,
+      "code": 4574,
+      "comment": 704,
+      "files": 1,
+      "total": 5451
+    }
+  },
+  "verticals": {
+    "react-rtk": {
+      "blank": 286,
+      "code": 2005,
+      "comment": 862,
+      "files": 22,
+      "total": 3153
+    },
+    "react-plain": {
+      "blank": 238,
+      "code": 1854,
+      "comment": 731,
+      "files": 18,
+      "total": 2823
+    },
+    "sveltekit": {
+      "blank": 1130,
+      "code": 6206,
+      "comment": 3159,
+      "files": 93,
+      "total": 10495
+    },
+    "vue": {
+      "blank": 718,
+      "code": 4615,
+      "comment": 2038,
+      "files": 58,
+      "total": 7371
+    },
+    "angular": {
+      "blank": 1085,
+      "code": 5405,
+      "comment": 3182,
+      "files": 59,
+      "total": 9672
+    },
+    "vanilla": {
+      "blank": 763,
+      "code": 4851,
+      "comment": 2502,
+      "files": 45,
+      "total": 8116
+    }
+  }
+}

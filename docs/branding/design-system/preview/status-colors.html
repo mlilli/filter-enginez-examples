@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Status Colors</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 20px; background: var(--gray-0); }
+  .label { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .col { border-radius: var(--radius-md); border: 1px solid var(--gray-4); overflow: hidden; }
+  .head { padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .name { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--gray-10); letter-spacing: 0.02em; }
+  .row { display: flex; height: 28px; }
+  .cell { flex: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 9px; color: var(--gray-11); }
+</style></head>
+<body>
+<div class="label">status · semantic only · never decorative</div>
+<div class="grid">
+  <div class="col">
+    <div class="head" style="background:#26241F"><div class="dot" style="background:#F43F5E"></div><div class="name">danger</div></div>
+    <div class="row"><div class="cell" style="background:#4A1220">soft</div><div class="cell" style="background:#F43F5E; color:#0B0A09">F43F5E</div><div class="cell" style="background:#E11D48; color:#0B0A09">strong</div></div>
+  </div>
+  <div class="col">
+    <div class="head" style="background:#26241F"><div class="dot" style="background:#F59E0B"></div><div class="name">warn</div></div>
+    <div class="row"><div class="cell" style="background:#4A2E08">soft</div><div class="cell" style="background:#F59E0B; color:#0B0A09">F59E0B</div><div class="cell" style="background:#D97706; color:#0B0A09">strong</div></div>
+  </div>
+  <div class="col">
+    <div class="head" style="background:#26241F"><div class="dot" style="background:#10B981"></div><div class="name">success</div></div>
+    <div class="row"><div class="cell" style="background:#07382A">soft</div><div class="cell" style="background:#10B981; color:#0B0A09">10B981</div><div class="cell" style="background:#059669; color:#0B0A09">strong</div></div>
+  </div>
+  <div class="col">
+    <div class="head" style="background:#26241F"><div class="dot" style="background:#0EA5E9"></div><div class="name">info</div></div>
+    <div class="row"><div class="cell" style="background:#0B3A52">soft</div><div class="cell" style="background:#0EA5E9; color:#0B0A09">0EA5E9</div><div class="cell" style="background:#0284C7; color:#0B0A09">strong</div></div>
+  </div>
+</div>
+</body></html>

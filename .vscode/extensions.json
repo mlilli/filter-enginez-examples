@@ -1,0 +1,43 @@
+{
+  // Filter EngineZ examples — recommended VS Code extensions.
+  //
+  // Curated to match the stack: a pnpm + Turborepo monorepo of TypeScript demo
+  // apps (React, SvelteKit, Vue, Angular and framework-free), linted by ESLint
+  // (@stylistic) and formatted by Prettier for JSON, YAML, CSS and Markdown.
+  // The two React apps style with Tailwind v4, where the Tailwind extension
+  // gives hover-docs and class-name autocomplete at authoring time.
+  "recommendations": [
+    // Editor essentials
+    "abumalick.vscode-nvm",
+    "editorconfig.editorconfig",
+    "eamodio.gitlens",
+    "oderwat.indent-rainbow",
+    // Linting + formatting
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "streetsidesoftware.code-spell-checker",
+    "davidanson.vscode-markdownlint",
+    "htmlhint.vscode-htmlhint",
+    // HTML / CSS / JS / TS — language tooling
+    "leizongmin.node-module-intellisense",
+    "mariusalchimavicius.json-to-ts",
+    "steoates.autoimport",
+    "salbert.comment-ts",
+    "psulek-solo.typedoc-live-preview",
+    // Tailwind v4 — hover-docs and class-name autocomplete for utility classes.
+    "bradlc.vscode-tailwindcss",
+    "stylelint.vscode-stylelint",
+    // Accessibility — flags WCAG violations in markup as it is written.
+    "deque-systems.vscode-axe-linter",
+    // GitHub workflow integration
+    "codezombiech.gitignore",
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
+    // Productivity / nice-to-have
+    "gruntfuggly.todo-tree",
+    "jmkrivocapich.drawfolderstructure",
+    "mikestead.dotenv",
+    "redhat.vscode-yaml",
+    "tyriar.sort-lines"
+  ]
+}

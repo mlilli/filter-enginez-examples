@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Filter Options</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 14px 18px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .panel { background: var(--gray-1); border: 1px solid var(--gray-4); border-radius: var(--radius-lg); padding: 6px; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; }
+  .title { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--gray-10); }
+  .badge { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 10px; color: var(--accent); padding: 2px 7px; background: var(--accent-soft); border-radius: 9999px; }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background 150ms var(--ease-out); }
+  .opt:hover { background: var(--gray-3); }
+  .check { width: 14px; height: 14px; border: 1px solid var(--gray-6); border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .opt.selected .check { background: var(--accent); border-color: var(--accent); }
+  .opt.selected .check svg { display: block; }
+  .check svg { display: none; width: 10px; height: 10px; stroke: var(--gray-0); fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .lbl { font-family: var(--font-sans); font-size: 13px; color: var(--gray-10); flex: 1; }
+  .opt.selected .lbl { color: var(--gray-11); }
+  .count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 11px; color: var(--gray-7); }
+  .opt.zero { opacity: 0.4; cursor: not-allowed; }
+</style></head>
+<body>
+<div class="meta">filter option · checkbox · hover · selected · zero-result disabled</div>
+<div class="panel">
+  <div class="header">
+    <div class="title">Region</div>
+    <div class="badge">2 active</div>
+  </div>
+  <div class="opt selected"><span class="check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span><span class="lbl">Burgundy</span><span class="count">147</span></div>
+  <div class="opt selected"><span class="check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span><span class="lbl">Loire Valley</span><span class="count">82</span></div>
+  <div class="opt"><span class="check"></span><span class="lbl">Bordeaux</span><span class="count">221</span></div>
+  <div class="opt"><span class="check"></span><span class="lbl">Rhône</span><span class="count">94</span></div>
+  <div class="opt zero"><span class="check"></span><span class="lbl">Champagne</span><span class="count">0</span></div>
+</div>
+</body></html>

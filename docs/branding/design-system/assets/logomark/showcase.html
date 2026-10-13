@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>FilterEngineZ · Brand Assets</title>
+	<link rel="stylesheet" href="../../colors_and_type.css" />
+	<link rel="stylesheet" href="../../assets/logomark/mark.css" />
+
+	<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+		integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
+		crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+		integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
+		crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
+		integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
+		crossorigin="anonymous"></script>
+
+	<style>
+		body {
+			margin: 0;
+			background: var(--gray-0);
+			color: var(--gray-9);
+			font-family: var(--font-sans);
+		}
+
+		.container {
+			max-width: 1320px;
+			margin: 0 auto;
+			padding: 64px 32px 96px;
+		}
+
+		/* Hero */
+		.sw-hero {
+			text-align: center;
+			padding: 48px 0 64px;
+			border-bottom: 1px solid var(--gray-4);
+			margin-bottom: 56px;
+		}
+
+		.sw-hero-mark {
+			display: flex;
+			justify-content: center;
+			margin-bottom: 28px;
+		}
+
+		.sw-hero-title {
+			font-family: var(--font-display);
+			font-weight: 800;
+			font-size: 56px;
+			letter-spacing: 0.12em;
+			color: var(--gray-11);
+			line-height: 1;
+		}
+
+		.sw-hero-title .z {
+			color: var(--accent);
+			text-shadow: 0 0 8px rgba(103, 232, 249, 0.55), 0 0 22px rgba(34, 211, 238, 0.5);
+		}
+
+		.sw-hero-tag {
+			font-family: var(--font-mono);
+			font-size: 13px;
+			color: var(--gray-7);
+			letter-spacing: 0.24em;
+			text-transform: uppercase;
+			margin-top: 14px;
+		}
+
+		.sw-hero-meta {
+			font-family: var(--font-mono);
+			font-size: 11px;
+			color: var(--gray-7);
+			letter-spacing: 0.04em;
+			margin-top: 24px;
+		}
+
+		/* Section */
+		.sw-section {
+			margin-bottom: 64px;
+		}
+
+		.sw-section-head {
+			margin-bottom: 24px;
+		}
+
+		.sw-eyebrow {
+			font-family: var(--font-mono);
+			font-size: 11px;
+			color: var(--accent);
+			letter-spacing: 0.18em;
+			text-transform: uppercase;
+		}
+
+		.sw-section-title {
+			font-family: var(--font-display);
+			font-size: 24px;
+			font-weight: 700;
+			color: var(--gray-11);
+			letter-spacing: 0.08em;
+			margin: 4px 0 10px;
+			text-transform: uppercase;
+		}
+
+		.sw-section-desc {
+			font-family: var(--font-sans);
+			font-size: 15px;
+			color: var(--gray-8);
+			line-height: 1.6;
+			max-width: 720px;
+		}
+
+		/* Cards & grid */
+		.sw-grid {
+			display: grid;
+			gap: 16px;
+		}
+
+		.sw-grid.cols-2 {
+			grid-template-columns: 1fr 1fr;
+		}
+
+		.sw-grid.cols-3 {
+			grid-template-columns: repeat(3, 1fr);
+		}
+
+		.sw-grid.cols-4 {
+			grid-template-columns: repeat(4, 1fr);
+		}
+
+		.sw-card {
+			display: flex;
+			flex-direction: column;
+			background: var(--gray-1);
+			border: 1px solid var(--gray-4);
+			border-radius: var(--radius-lg);
+			overflow: hidden;
+			transition: all 150ms var(--ease-out);
+		}
+
+		.sw-card:hover {
+			border-color: var(--gray-5);
+			transform: translateY(-1px);
+		}
+
+		.sw-card-stage {
+			flex: 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 36px 24px;
+			background: radial-gradient(ellipse 70% 60% at center, #18130F, #0B0A09 80%);
+			min-height: 200px;
+		}
+
+		.sw-card-stage.light {
+			background: #E7E2D6;
+		}
+
+		.sw-card-stage.tight {
+			padding: 14px;
+		}
+
+		.sw-card-meta {
+			padding: 12px 16px;
+			border-top: 1px solid var(--gray-4);
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			background: var(--gray-1);
+		}
+
+		.sw-card-label {
+			font-family: var(--font-mono);
+			font-size: 11px;
+			color: var(--gray-9);
+			letter-spacing: 0.04em;
+		}
+
+		.sw-card-size {
+			font-family: var(--font-mono);
+			font-size: 10px;
+			color: var(--gray-7);
+		}
+
+		.sw-link {
+			font-family: var(--font-mono);
+			font-size: 10px;
+			color: var(--accent);
+			text-decoration: none;
+			letter-spacing: 0.04em;
+		}
+
+		.sw-link:hover {
+			color: var(--accent-glow);
+		}
+
+		/* Favicon torture row */
+		.sw-favicon-row {
+			display: flex;
+			align-items: flex-end;
+			justify-content: center;
+			gap: 28px;
+			padding: 24px;
+		}
+
+		.sw-favicon-cell {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.sw-favicon-cell-size {
+			font-family: var(--font-mono);
+			font-size: 10px;
+			color: var(--gray-7);
+		}
+
+		/* Color tokens table */
+		.sw-token-grid {
+			display: grid;
+			grid-template-columns: 80px 140px 1fr;
+			gap: 4px;
+			font-family: var(--font-mono);
+			font-size: 12px;
+		}
+
+		.sw-token-grid>* {
+			padding: 8px 12px;
+			border-bottom: 1px solid var(--gray-4);
+		}
+
+		.sw-token-swatch {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.sw-token-chip {
+			width: 14px;
+			height: 14px;
+			border-radius: 3px;
+			border: 1px solid rgba(255, 255, 255, 0.08);
+		}
+
+		.sw-token-value {
+			color: var(--gray-9);
+		}
+
+		.sw-token-usage {
+			color: var(--gray-8);
+		}
+
+		/* Code blocks */
+		pre {
+			background: var(--gray-1);
+			border: 1px solid var(--gray-4);
+			border-radius: var(--radius-md);
+			padding: 16px 20px;
+			font-family: var(--font-mono);
+			font-size: 12px;
+			color: var(--gray-10);
+			overflow-x: auto;
+			line-height: 1.55;
+		}
+
+		pre .kw {
+			color: var(--accent);
+		}
+
+		pre .str {
+			color: #FBBF24;
+		}
+
+		pre .com {
+			color: var(--gray-7);
+		}
+
+		/* Download button */
+		.sw-dl {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 12px;
+			background: var(--gray-2);
+			border: 1px solid var(--gray-5);
+			border-radius: var(--radius-md);
+			font-family: var(--font-mono);
+			font-size: 11px;
+			color: var(--gray-10);
+			text-decoration: none;
+			transition: all 150ms var(--ease-out);
+		}
+
+		.sw-dl:hover {
+			background: var(--gray-3);
+			border-color: var(--accent-dim);
+			color: var(--accent);
+		}
+
+		/* Animated stage */
+		.sw-anim-stage {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 18px;
+			padding: 48px;
+			background: radial-gradient(ellipse 60% 50% at center, #1A1714, #0B0A09 80%);
+			border: 1px solid var(--gray-4);
+			border-radius: var(--radius-xl);
+		}
+
+		.sw-anim-note {
+			font-family: var(--font-mono);
+			font-size: 11px;
+			color: var(--gray-7);
+			letter-spacing: 0.08em;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div id="root"></div>
+	</div>
+
+	<script type="text/babel" src="./Mark.jsx"></script>
+	<script type="text/babel" src="./Lockups.jsx"></script>
+	<script type="text/babel" data-presets="env,react">
+		const PNG = (name) => `png/${name}.png`;
+		const SVG = (name) => `svg/${name}.svg`;
+
+		function CardStage({ children, light = false, tight = false }) {
+			return <div className={`sw-card-stage ${light ? "light" : ""} ${tight ? "tight" : ""}`}>{children}</div>;
+		}
+		function Card({ label, size, link, light, tight, children }) {
+			return (
+				<div className="sw-card">
+					<CardStage light={light} tight={tight}>{children}</CardStage>
+					<div className="sw-card-meta">
+						<span className="sw-card-label">{label}</span>
+						{size && <span className="sw-card-size">{size}</span>}
+						{link && <a className="sw-link" href={link} target="_blank" rel="noreferrer">SVG ↗</a>}
+					</div>
+				</div>
+			);
+		}
+		function Section({ eyebrow, title, desc, children }) {
+			return (
+				<section className="sw-section">
+					<header className="sw-section-head">
+						<div className="sw-eyebrow">{eyebrow}</div>
+						<h2 className="sw-section-title">{title}</h2>
+						<p className="sw-section-desc">{desc}</p>
+					</header>
+					{children}
+				</section>
+			);
+		}
+
+		function App() {
+			return (
+				<>
+					{/* Hero */}
+					<header className="sw-hero">
+						<div className="sw-hero-mark">
+							<FezMark size={180} mode="primary" animated />
+						</div>
+						<div className="sw-hero-title">FILTER ENGINE<span className="z">Z</span></div>
+						<div className="sw-hero-tag">PREDICATES THAT PROPAGATE</div>
+						<div className="sw-hero-meta">canonical mark · primary mode</div>
+					</header>
+
+					{/* Canonical mark */}
+					<Section
+						eyebrow="01"
+						title="The canonical mark"
+						desc="Asymmetric chamfers (7u baseline, 10u flare on the right), translucent Z, three crescent arcs at offset angles, glowing synapse node at center. Two presentation modes: primary (cyan + neon) for dark surfaces, subdued (mono-gray outline-only) for light surfaces.">
+						<div className="sw-grid cols-2">
+							<Card label="MARK · PRIMARY" size="standalone, on dark" link={SVG("mark-primary")}>
+								<FezMark size={220} mode="primary" />
+							</Card>
+							<Card label="MARK · SUBDUED" size="standalone, on light" link={SVG("mark-subdued")} light>
+								<FezMark size={220} mode="subdued" />
+							</Card>
+						</div>
+					</Section>
+
+					{/* Animated */}
+					<Section
+						eyebrow="02"
+						title="Animation · gentle breathing"
+						desc="2.4s ease-in-out · scale 1.0 → 1.25 · opacity 0.7 → 1.0 on the center synapse node. The mark feels alive without demanding attention. Reduces to a static dim node under prefers-reduced-motion. Use on app load (4-6s then settle) — not perpetually.">
+						<div className="sw-anim-stage">
+							<FezMark size={280} mode="primary" animated />
+							<div className="sw-anim-note">live · the synapse breathes</div>
+							<div className="sw-anim-note">embed via &lt;img src="svg/mark-primary-animated.svg"/&gt; — CSS keyframes are baked in</div>
+						</div>
+					</Section>
+
+					{/* Lockups */}
+					<Section
+						eyebrow="03"
+						title="Canonical lockups"
+						desc="D — mark replaces Z, with rings (small inline usage). E — mark replaces Z, no rings, sized to cap (hero contexts). A — mark beside text wordmark with breathing room (documentation, partner co-branding).">
+						<div className="sw-grid">
+							<Card label="D · canonical · primary · 22px wordmark" link={SVG("lockup-horizontal-primary")}>
+								<FezLockupHorizontal size={22} mode="primary" />
+							</Card>
+							<Card label="D · canonical · subdued · 22px wordmark" link={SVG("lockup-horizontal-subdued")} light>
+								<FezLockupHorizontal size={22} mode="subdued" />
+							</Card>
+							<Card label="E · hero · primary · 44px · no rings">
+								<FezLockupHero size={44} mode="primary" />
+							</Card>
+							<Card label="E · hero · primary · 64px · no rings">
+								<FezLockupHero size={64} mode="primary" />
+							</Card>
+							<Card label="A · beside · primary · 32px wordmark + 64px mark">
+								<FezLockupBeside size={32} markSize={64} mode="primary" />
+							</Card>
+							<Card label="A · beside · subdued · 32px wordmark + 64px mark" light>
+								<FezLockupBeside size={32} markSize={64} mode="subdued" />
+							</Card>
+							<Card label="STACKED · primary" link={SVG("lockup-stacked-primary")}>
+								<FezLockupStacked markSize={160} wordSize={22} mode="primary" />
+							</Card>
+							<Card label="STACKED · subdued" link={SVG("lockup-stacked-subdued")} light>
+								<FezLockupStacked markSize={160} wordSize={22} mode="subdued" />
+							</Card>
+						</div>
+					</Section>
+
+					{/* Mark-in-circle */}
+					<Section
+						eyebrow="04"
+						title="Mark-in-circle · profile / avatar"
+						desc="For Twitter, GitHub avatars, Slack workspace icons, anywhere a circular container is required. Mark inset 22% so the rings have breathing room inside the boundary.">
+						<div className="sw-grid cols-4">
+							<Card label="PRIMARY · 192" tight link={SVG("mark-in-circle-primary")}>
+								<FezMarkInCircle size={192} mode="primary" />
+							</Card>
+							<Card label="SUBDUED · 192" tight link={SVG("mark-in-circle-subdued")} light>
+								<FezMarkInCircle size={192} mode="subdued" />
+							</Card>
+							<Card label="PRIMARY · 96" tight>
+								<FezMarkInCircle size={96} mode="primary" />
+							</Card>
+							<Card label="PRIMARY · 64" tight>
+								<FezMarkInCircle size={64} mode="primary" />
+							</Card>
+						</div>
+					</Section>
+
+					{/* Favicon torture */}
+					<Section
+						eyebrow="05"
+						title="Favicon torture · size matrix"
+						desc="The full mark is used at 32px and up. At 16/12/8 the rings drop and the bare Z carries identity. Both modes hold their identity through 8px.">
+						<Card label="PRIMARY · 64 / 32 / 16 / 12 / 8" tight>
+							<div className="sw-favicon-row">
+								{[64, 32, 16, 12, 8].map(s => (
+									<div key={s} className="sw-favicon-cell">
+										<FezMark size={s} mode="primary" />
+										<span className="sw-favicon-cell-size">{s}px</span>
+									</div>
+								))}
+							</div>
+						</Card>
+						<div style={{ height: 16 }} />
+						<Card label="SUBDUED · 64 / 32 / 16 / 12 / 8" tight light>
+							<div className="sw-favicon-row">
+								{[64, 32, 16, 12, 8].map(s => (
+									<div key={s} className="sw-favicon-cell">
+										<FezMark size={s} mode="subdued" />
+										<span className="sw-favicon-cell-size">{s}px</span>
+									</div>
+								))}
+							</div>
+						</Card>
+					</Section>
+
+					{/* OG card */}
+					<Section
+						eyebrow="06"
+						title="OpenGraph card · 1200 × 630"
+						desc="The social-media share image. Centered mark, wordmark below, tagline. Used when filter-enginez.com is shared on Twitter/X, LinkedIn, Slack unfurls.">
+						<div className="sw-card">
+							<div className="sw-card-stage" style={{ padding: 0 }}>
+								<img src="png/og-card.png" alt="Filter EngineZ OG card" style={{ maxWidth: "100%", display: "block" }} />
+							</div>
+							<div className="sw-card-meta">
+								<span className="sw-card-label">OG-CARD · 1200×630</span>
+								<a className="sw-link" href={SVG("og-card")}>SVG ↗</a>
+							</div>
+						</div>
+					</Section>
+
+					{/* Color tokens */}
+					<Section
+						eyebrow="07"
+						title="Color tokens used"
+						desc="The mark draws from the design system's grayscale + cyan accent, plus two mark-specific gray tokens for the crescent arcs.">
+						<div className="sw-token-grid">
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#22D3EE" }} /></div>
+							<div className="sw-token-value">#22D3EE</div>
+							<div className="sw-token-usage">--accent · Z fill + outline (primary)</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#67E8F9" }} /></div>
+							<div className="sw-token-value">#67E8F9</div>
+							<div className="sw-token-usage">--accent-glow · synapse core + glow halo</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#0EA5C7" }} /></div>
+							<div className="sw-token-value">#0EA5C7</div>
+							<div className="sw-token-usage">deep cyan · outer drop-shadow bloom</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#605C53" }} /></div>
+							<div className="sw-token-value">#605C53</div>
+							<div className="sw-token-usage">crescent stroke · primary mode · outer + middle</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#7C7669" }} /></div>
+							<div className="sw-token-value">#7C7669</div>
+							<div className="sw-token-usage">inner crescent stroke · primary mode</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#56524A" }} /></div>
+							<div className="sw-token-value">#56524A</div>
+							<div className="sw-token-usage">--gray-6 · Z stroke (subdued mode)</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#3A3731" }} /></div>
+							<div className="sw-token-value">#3A3731</div>
+							<div className="sw-token-usage">crescent stroke · subdued mode · outer + middle</div>
+
+							<div className="sw-token-swatch"><span className="sw-token-chip" style={{ background: "#0B0A09", border: "1px solid #312E29" }} /></div>
+							<div className="sw-token-value">#0B0A09</div>
+							<div className="sw-token-usage">--gray-0 · default backdrop</div>
+						</div>
+					</Section>
+
+					{/* Code */}
+					<Section
+						eyebrow="08"
+						title="Integration"
+						desc="Drop the assets/logomark/ folder into your project's public/branding/ directory. Add the head snippet to your HTML.">
+						<pre><span className="com">{/* HTML <head> snippet */}</span>{`
+`}<span className="kw">{`<link`}</span> rel=<span className="str">"icon"</span> type=<span className="str">"image/svg+xml"</span> href=<span className="str">"/branding/favicon.svg"</span><span className="kw">{`/>`}</span>{`
+`}<span className="kw">{`<link`}</span> rel=<span className="str">"apple-touch-icon"</span> sizes=<span className="str">"180x180"</span> href=<span className="str">"/branding/apple-touch-icon.png"</span><span className="kw">{`/>`}</span>{`
+`}<span className="kw">{`<link`}</span> rel=<span className="str">"mask-icon"</span> href=<span className="str">"/branding/safari-mask-icon.svg"</span> color=<span className="str">"#22D3EE"</span><span className="kw">{`/>`}</span>{`
+`}<span className="kw">{`<link`}</span> rel=<span className="str">"manifest"</span> href=<span className="str">"/branding/site.webmanifest"</span><span className="kw">{`/>`}</span>{`
+`}<span className="kw">{`<meta`}</span> name=<span className="str">"theme-color"</span> content=<span className="str">"#0B0A09"</span><span className="kw">{`/>`}</span>{`
+
+`}<span className="kw">{`<meta`}</span> property=<span className="str">"og:image"</span> content=<span className="str">"/branding/og-card.png"</span><span className="kw">{`/>`}</span>{`
+`}<span className="kw">{`<meta`}</span> name=<span className="str">"twitter:card"</span> content=<span className="str">"summary_large_image"</span><span className="kw">{`/>`}</span>
+						</pre>
+						<pre style={{ marginTop: 16 }}><span className="com">{/* React — use the canonical components */}</span>{`
+`}<span className="kw">import</span> {"{ FezMark, FezLockupHorizontal }"} <span className="kw">from</span> <span className="str">"./branding/Mark"</span>;{`
+
+`}<span className="kw">{`<FezMark`}</span> size={"{64}"} mode=<span className="str">"primary"</span> animated <span className="kw">{`/>`}</span>{`
+`}<span className="kw">{`<FezLockupHorizontal`}</span> size={"{22}"} mode=<span className="str">"primary"</span> <span className="kw">{`/>`}</span>
+						</pre>
+					</Section>
+
+					{/* Footnote */}
+					<footer style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid var(--gray-4)", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--gray-7)", letterSpacing: "0.08em" }}>
+						Full guidelines · <a className="sw-link" href="BRAND-USAGE.md">BRAND-USAGE.md</a>
+						<span style={{ margin: "0 12px", color: "var(--gray-5)" }}>·</span>
+						Component source · <a className="sw-link" href="Mark.jsx">Mark.jsx</a>
+						<span style={{ margin: "0 12px", color: "var(--gray-5)" }}>·</span>
+						Lockups · <a className="sw-link" href="Lockups.jsx">Lockups.jsx</a>
+					</footer>
+				</>
+			);
+		}
+
+		const root = ReactDOM.createRoot(document.getElementById("root"));
+		root.render(<App />);
+	</script>
+</body>
+
+</html>

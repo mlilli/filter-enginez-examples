@@ -1,0 +1,151 @@
+# =============================================================================
+# Filter EngineZ — .gitignore
+# =============================================================================
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Node / pnpm
+# ─────────────────────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build artifacts (per-package)
+# ─────────────────────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.turbo/
+*.tsbuildinfo
+packages/*/dist/
+packages/*/build/
+packages/*/out/
+packages/*/.turbo/
+packages/*/*.tsbuildinfo
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+coverage/
+packages/*/coverage/
+# The coverage register's authorization artifact. Outside coverage/ ON PURPOSE — that directory is
+# cleaned by the root `pnpm test:coverage` run, which would delete this measurement between taking
+# it and using it. See scripts/assert-module-covered.mjs.
+.coverage-probe/
+.nyc_output/
+.vitest/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Env / secrets
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.dev.vars
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IDE / editor
+# ─────────────────────────────────────────────────────────────────────────────
+.idea/
+*.swp
+*.swo
+*.swn
+
+# Keep workspace-shared VS Code config; ignore personal overrides
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.vscode/settings.local.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# macOS / Windows / Linux OS cruft
+# ─────────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Local development certs (mkcert)
+# ─────────────────────────────────────────────────────────────────────────────
+.local-certs/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Real wine corpus links
+# ─────────────────────────────────────────────────────────────────────────────
+# The real wine corpus (the full 130k `data-real-full.json`, ~116 MB, and its NDJSON streaming
+# variant) lives in the engine repository's `packages/mock-data`, where it is generated locally and
+# gitignored. 🔴 It must never be committed or distributed: the Kaggle "Wine Reviews" dataset is
+# CC BY-NC-SA 4.0 (non-commercial, share-alike) and carries WineEnthusiast's review text, while this
+# project is Apache-2.0.
+#
+# `pnpm link:wine-corpus` links it into each wine app's static-asset dir; see
+# scripts/link-wine-corpus.mjs for why the links matter (a missing corpus falls back SILENTLY to the
+# 10k tier, below WORKER_THRESHOLD). A link is a real entry to git, so every one is ignored here.
+packages/examples-react-rtk/public/data-real-full.json
+packages/examples-react-rtk/public/data-real-full.ndjson
+packages/examples-react-plain/public/data-real-full.json
+packages/examples-react-plain/public/data-real-full.ndjson
+packages/examples-sveltekit/static/data-real-full.json
+packages/examples-sveltekit/static/data-real-full.ndjson
+# The other three verticals (Angular's is a hard link). Listed alongside the targets in
+# `scripts/link-wine-corpus.mjs`, which is what creates them — an un-ignored link to a 116 MB
+# corpus is a commit nobody wants to review.
+packages/examples-vue/public/data-real-full.json
+packages/examples-vue/public/data-real-full.ndjson
+packages/examples-angular/public/data-real-full.json
+packages/examples-angular/public/data-real-full.ndjson
+packages/examples-vanilla/public/data-real-full.json
+packages/examples-vanilla/public/data-real-full.ndjson
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Benchmark results (auto-generated)
+# ─────────────────────────────────────────────────────────────────────────────
+benchmarks/results/
+# Note: benchmarks/vertical-sizes.json (written by `pnpm measure:verticals`) is committed, NOT ignored.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Local notes (never committed)
+# ─────────────────────────────────────────────────────────────────────────────
+docs/wine-app.md
+docs/wine-app-*.md
+docs/private/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Misc
+# ─────────────────────────────────────────────────────────────────────────────
+*.log
+.history/
+.cache/
+tmp/
+temp/
+
+# Throwaway scratch directory (spikes, one-off measurements) — never committed
+_to_delete/
+
+# Angular CLI build cache (examples-angular)
+.angular/
+
+# TypeDoc-generated API reference (built by `pnpm docs:api` into the standalone
+# docs site's static dir + served at /api/). A build artifact, never committed —
+# the core TSDoc is the single source of truth.
+packages/examples-docs/public/api/
+typedoc.tsbuildinfo
+
+# `pnpm pack` / `npm pack` output. Never committed — a tarball is a build artifact, and a
+# stale one in the tree is worse than none because it looks like evidence.
+#
+# 🔴 THE ROOT PACK IS THE DANGEROUS ONE, and this rule exists because of it. Running `pnpm pack`
+# at the repo root packs the WORKSPACE ROOT — every doc, script and test in the repo. The root
+# manifest has no `files` allow-list, so `private: true` is the only thing between that tarball and
+# npm. The engine repository's `scripts/pack-engine-tarballs.sh` packs per package instead.
+*.tgz
+*.tar.gz

@@ -1,0 +1,40 @@
+{
+  "name": "@filter-enginez/examples-docs",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — standalone documentation site. Mounts the shared `/docs` route (per-rule + per-algorithm reference, the live in-browser playground, the API index) as its own deployable Vite app, decoupled from the demo apps.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:fresh": "vite --force",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "dependencies": {
+    "@filter-enginez/brand": "workspace:*",
+    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/examples-shared": "workspace:*",
+    "@filter-enginez/mock-data": "0.0.1",
+    "@filter-enginez/react-signals": "0.0.1",
+    "@filter-enginez/react-ui": "workspace:*",
+    "@filter-enginez/reactive-signals": "0.0.1",
+    "@filter-enginez/ui-styles": "workspace:*",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router": "^8.3.0"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.1.5"
+  }
+}

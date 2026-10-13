@@ -1,0 +1,151 @@
+<!--
+	The panel's markup, in its own file rather than inline: at fourteen sections it earns the
+	separation many times over, and angular-eslint's template a11y rules lint an .html file directly.
+	Every class here comes from @filter-enginez/ui-styles, in its dataset-NEUTRAL spelling
+	(fe-filter-panel, never fe-books-panel) — this component authors no CSS beyond the host-geometry
+	rule in the .ts.
+-->
+<div class="fe-filter-panel">
+	<fe-panel-header />
+
+	<!--
+		--busy dims and blocks pointer events while the engine recomputes, so a burst of clicks cannot
+		outrun it. Deliberately NOT inert, which would blur whatever is focused inside: committing a
+		filter by keyboard would then drop the user back at the top of the document on every selection.
+		Mouse users never notice inert here; keyboard users lose their place every time.
+	-->
+	<div
+		class="fe-filter-panel__scroller fe-filter-panel__body"
+		[class.fe-filter-panel__body--busy]="isEngineBusy()"
+		[attr.aria-busy]="isEngineBusy()"
+	>
+		<!-- 1 · location → HierarchicalRule -->
+		<section>
+			<fe-section-header label="Location" />
+			<fe-hierarchical-picker
+				groupLabel="Location"
+				[counts]="locationCounts()"
+				[disabled]="locationDisabled()"
+				[maxHeight]="locationTreeMaxHeight"
+				[selected]="selectedLocations()"
+				[tree]="locationTree"
+				(selectionChange)="commitLocation($event)"
+			/>
+		</section>
+
+		<!--
+			2 · geo-proximity → GeoProximityRule. The only section that loads a mapping library, hence
+			the defer block: the other thirteen paint without waiting on it, and a visitor who never
+			enables the distance filter never downloads Leaflet at all (the map inside the section
+			imports Leaflet only once the filter is switched on).
+		-->
+		@defer (on immediate) {
+			<fe-geo-radius-section [isPanelVisible]="isPanelVisible()" />
+		}
+
+		<!-- 3 · school-district → InSetRule. A checklist, not chips: ~100 values would be a wall. -->
+		<section>
+			<fe-section-header label="School district" />
+			<fe-checkbox-list
+				[exclusion]="schoolDistrictExclusion()"
+				[maxHeight]="schoolDistrictListMaxHeight"
+				[options]="vocabularies.schoolDistricts"
+				[selected]="selectedSchoolDistricts()"
+				[shouldShowCount]="true"
+				(toggled)="toggleSchoolDistrict($event)"
+			/>
+		</section>
+
+		<!-- 4 · property-type → InSetRule -->
+		<section>
+			<fe-section-header label="Property type" />
+			<fe-chip-toggle-group
+				[exclusion]="propertyTypeExclusion()"
+				[formatLabel]="humanizeLabel"
+				[options]="vocabularies.propertyTypes"
+				[selected]="selectedPropertyTypes()"
+				(toggled)="togglePropertyType($event)"
+			/>
+		</section>
+
+		<!-- 5 · status → InSetRule -->
+		<section>
+			<fe-section-header label="Status" />
+			<fe-chip-toggle-group
+				[exclusion]="statusExclusion()"
+				[formatLabel]="humanizeLabel"
+				[options]="vocabularies.statuses"
+				[selected]="selectedStatuses()"
+				(toggled)="toggleStatus($event)"
+			/>
+		</section>
+
+		<!--
+			6-11 · price / square-feet / bedrooms / bathrooms / year-built / lot-size → RangeRule.
+			Six sliders, one control, one table. The static half of each row comes from RANGE_FACETS and
+			the live half from one computed keyed by rule id, so the template does no per-row work.
+		-->
+		@for (facet of rangeFacets; track facet.ruleId) {
+			@let state = rangeFacetStates()[facet.ruleId];
+
+			<section>
+				<fe-range-slider
+					[label]="facet.label"
+					[ariaLabel]="facet.sliderLabel"
+					[available]="state.available"
+					[baseline]="state.baseline"
+					[format]="facet.format"
+					[histogram]="state.histogram"
+					[parse]="facet.parse"
+					[step]="state.step"
+					[valueMax]="state.valueMax"
+					[valueMin]="state.valueMin"
+					(rangeChange)="commitRange(facet, $event)"
+				/>
+			</section>
+		}
+
+		<!-- 12 · must-have-features → ContainsAllRule -->
+		<section>
+			<fe-section-header label="Must-have features" />
+			<!--
+				The one CONJUNCTIVE facet in the panel, and the distinction matters here and nowhere else:
+				every other facet WIDENS when you click it, so the engine drops its rule while projecting.
+				This one NARROWS, so its rule stays active and each candidate is projected on top of what
+				is already checked — otherwise "solar" would look available while "garage" is checked,
+				even though no listing has both.
+			-->
+			<fe-chip-toggle-group
+				[exclusion]="featureExclusion()"
+				[formatLabel]="humanizeLabel"
+				[options]="vocabularies.features"
+				[selected]="selectedFeatures()"
+				(toggled)="toggleFeature($event)"
+			/>
+		</section>
+
+		<!-- 13 · listed-date → DateRangeRule. Single-select with a real "off" option. -->
+		<section>
+			<fe-section-header label="Listed within" />
+			<fe-date-preset-group
+				anyLabel="Any time"
+				groupLabel="Listed within"
+				[presets]="datePresets"
+				[selected]="selectedDatePreset()"
+				(presetSelected)="commitDatePreset($event)"
+			/>
+		</section>
+
+		<!-- 14 · text-search → TextSearchRule. Commits on blur / Enter, never per keystroke. -->
+		<section>
+			<fe-section-header label="Description search" />
+			<fe-search-input
+				ariaLabel="Search listing descriptions"
+				placeholder="waterfront, remodeled, cul-de-sac…"
+				[value]="descriptionText()"
+				(valueChange)="descriptionText.set($event)"
+				(commit)="commitDescription($event)"
+			/>
+		</section>
+	</div>
+</div>

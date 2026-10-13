@@ -1,0 +1,256 @@
+/**
+ * `<BooksConfigApp />` — the JSON-driven-config showcase (RTK app).
+ *
+ * @remarks
+ * The headline demonstration of the engine thesis — *"the filter UI is a function of the data, not
+ * the code."* Unlike `<BooksApp />`, whose filter sidebar is hand-authored section by section, this
+ * shell boots its engine from `booksFilterConfig` (via `loadConfig`, in `bootBooksConfigEngine`) and
+ * renders the entire panel from that same declarative config through `<ConfigDrivenPanel />`. The raw
+ * config JSON sits side-by-side (a sticky column at `xl`, a collapsible banner below it) so the
+ * causal link — *this JSON generated those controls* — is legible at a glance. Both
+ * `<ConfigDrivenPanel />` and `<ConfigJsonView />` are reusable exports of `examples-shared/books`.
+ *
+ * @packageDocumentation
+ */
+
+import { Mark } from '@filter-enginez/brand';
+import {
+	BooksResultGrid,
+	captureCurrentVersion,
+	ConfigDrivenPanel,
+	ConfigJsonView,
+	markResolvedAtLeast,
+} from '@filter-enginez/examples-shared/books';
+import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
+import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
+import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
+import { booksFilterConfig } from '@filter-enginez/mock-data/books';
+import { useLastChange } from '@filter-enginez/react-signals';
+import { FilterDrawer } from '@filter-enginez/react-ui';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
+
+import { BooksResultsHeader } from './BooksResultsHeader.js';
+import { useBooksSelector } from './store.js';
+
+/**
+ * The config-driven books page shell.
+ */
+export const BooksConfigApp = (): React.ReactElement => {
+	// Mobile filter-drawer visibility — only meaningful below `lg`, where the sidebar collapses.
+	const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+	// Two-column breakpoint switch — `true` at ≥1024px (static sidebar), `false` below (drawer).
+	const isDesktop = useIsDesktop();
+	// Resolve the engine-busy tracker on every settle (books is main-thread + synchronous, so a settle
+	// is simply the next `lastChange` snapshot) — same rationale as `<BooksApp />`.
+	const lastChange = useLastChange();
+
+	useEffect(() => {
+		markResolvedAtLeast(captureCurrentVersion());
+	}, [lastChange]);
+
+	return (
+		<div className="min-h-screen flex flex-col">
+			<Header />
+			<div className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pt-3">
+				<ThesisNote />
+			</div>
+			{/* Below `xl`, the config is a full-width collapsible banner (open on desktop widths). */}
+			<details
+				className="xl:hidden max-w-[1600px] w-full mx-auto px-4 lg:px-6 pt-3"
+				open={isDesktop}
+			>
+				<summary
+					className="text-xs uppercase cursor-pointer"
+					style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', paddingBottom: '0.5rem' }}
+				>
+					Filter config (JSON) — the panel below is generated from this
+				</summary>
+				<ConfigJsonView config={booksFilterConfig} maxHeight="40vh" />
+			</details>
+			<main className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 px-4 py-3 lg:px-6 lg:py-4 max-w-[1600px] w-full mx-auto">
+				{/* Side-by-side config JSON — a sticky column at `xl` and up. */}
+				<aside
+					className="hidden xl:flex xl:flex-col w-96 shrink-0 sticky top-4 self-start"
+					style={{ maxHeight: 'calc(100vh - 2rem)' }}
+				>
+					<ConfigColumnLabel />
+					<ConfigJsonView config={booksFilterConfig} maxHeight="calc(100vh - 8rem)" />
+				</aside>
+				{isDesktop ? (
+					<aside
+						className="w-80 shrink-0 sticky top-4 self-start flex flex-col"
+						style={{
+							background: 'var(--gray-1)',
+							border: '1px solid var(--gray-3)',
+							borderRadius: 'var(--radius-lg)',
+							maxHeight: 'calc(100vh - 2rem)',
+						}}
+					>
+						<ConfigDrivenPanel config={booksFilterConfig} />
+					</aside>
+				) : (
+					<FilterDrawer
+						isOpen={isFilterDrawerOpen}
+						onClose={() => setIsFilterDrawerOpen(false)}
+						title="Filters"
+						ariaLabel="Book filters (config-generated)"
+						keepMounted
+					>
+						<ConfigDrivenPanel config={booksFilterConfig} isHeaderVisible={false} />
+					</FilterDrawer>
+				)}
+				<section className="flex-1 min-w-0 flex flex-col gap-4">
+					{!isDesktop ? <FiltersTrigger onOpen={() => setIsFilterDrawerOpen(true)} /> : null}
+					<BooksResultsHeader />
+					<BooksResultGrid />
+				</section>
+			</main>
+			<Footer />
+		</div>
+	);
+};
+
+/**
+ * Short caption framing the demo — the one-line thesis over the panel.
+ *
+ * @internal
+ */
+const ThesisNote = (): React.ReactElement => {
+	return (
+		<p
+			className="text-xs"
+			style={{ color: 'var(--gray-9)', fontFamily: 'var(--font-mono)', letterSpacing: '0.02em', lineHeight: 1.6, margin: 0 }}
+		>
+			The filter panel below is <span style={{ color: 'var(--accent)' }}>generated entirely from the JSON config</span> — the
+			engine is booted with <code style={{ color: 'var(--accent)' }}>loadConfig(booksFilterConfig)</code> and each control is
+			derived from a rule&rsquo;s type + field. No filter UI is hand-written. The filter UI is a function of the data.
+		</p>
+	);
+};
+
+/**
+ * Label above the side-by-side config column.
+ *
+ * @internal
+ */
+const ConfigColumnLabel = (): React.ReactElement => {
+	return (
+		<h2
+			className="text-xs uppercase"
+			style={{
+				color: 'var(--accent)',
+				fontFamily: 'var(--font-mono)',
+				letterSpacing: '0.14em',
+				margin: '0 0 0.5rem',
+			}}
+		>
+			FilterEngineConfig · JSON
+		</h2>
+	);
+};
+
+/**
+ * Mobile "Filters" trigger — a 44px-tall button that opens the off-canvas filter drawer. Rendered
+ * only below `lg` (where the static sidebar is hidden).
+ *
+ * @internal
+ */
+const FiltersTrigger = (props: { readonly onOpen: () => void }): React.ReactElement => {
+	return (
+		<button
+			type="button"
+			onClick={props.onOpen}
+			className="inline-flex items-center justify-center gap-2 self-start text-sm font-medium uppercase transition-colors"
+			style={{
+				background: 'var(--gray-1)',
+				border: '1px solid var(--gray-4)',
+				borderRadius: 'var(--radius-md)',
+				color: 'var(--gray-10)',
+				cursor: 'pointer',
+				fontFamily: 'var(--font-display)',
+				letterSpacing: '0.08em',
+				minHeight: '44px',
+				padding: '0 16px',
+			}}
+		>
+			<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+				<path d="M3 5h18M6 12h12M10 19h4" />
+			</svg>
+			Filters
+		</button>
+	);
+};
+
+/**
+ * Page header — brand identity (mark + wordmark), a link back to the dataset hub.
+ *
+ * @internal
+ */
+const Header = (): React.ReactElement => {
+	return (
+		<header
+			className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6 lg:py-4"
+			style={{ background: 'var(--gray-0)', borderBottom: '1px solid var(--gray-3)' }}
+		>
+			<Link
+				to="/"
+				className="flex items-center gap-3 min-w-0"
+				style={{ textDecoration: 'none' }}
+				aria-label="Filter EngineZ — back to the dataset hub"
+			>
+				<Mark size={36} animated />
+				<div className="hidden min-[360px]:flex flex-col leading-tight">
+					<span
+						className="text-base font-semibold tracking-wider uppercase"
+						style={{ color: 'var(--gray-11)', fontFamily: 'var(--font-display)', letterSpacing: '0.14em' }}
+					>
+						Filter EngineZ
+					</span>
+					<span
+						className="text-xs uppercase"
+						style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)', letterSpacing: '0.12em' }}
+					>
+						{verticalSubtitle('Books', 'react-rtk', 'config')}
+					</span>
+				</div>
+			</Link>
+			<div className="flex flex-wrap items-center justify-end gap-2">
+				<UrlFormatToggle />
+				<CopyLinkButton />
+				<CompareLinkButton dataset="books" verticalId="react-rtk" />
+			</div>
+		</header>
+	);
+};
+
+/**
+ * Footer — reads the engine mode from the Redux mirror (proving `state.filters.mode` is live +
+ * selector-readable even for a config-booted engine).
+ *
+ * @internal
+ */
+const Footer = (): React.ReactElement => {
+	const mode = useBooksSelector((state) => state.filters.mode);
+
+	return (
+		<footer
+			className="text-xs px-4 py-3 lg:px-6 mt-auto"
+			style={{
+				background: 'var(--gray-0)',
+				borderTop: '1px solid var(--gray-3)',
+				color: 'var(--gray-8)',
+				fontFamily: 'var(--font-mono)',
+				letterSpacing: '0.08em',
+			}}
+		>
+			<div className="max-w-[1600px] mx-auto flex flex-col gap-1 lg:flex-row lg:justify-between">
+				<span>filter-enginez · books demo · config-driven · main-thread engine</span>
+				<span>
+					engine mode <code style={{ color: 'var(--accent)' }}>{mode}</code>
+					{' '}· filters via <code style={{ color: 'var(--accent)' }}>loadConfig(booksFilterConfig)</code>
+				</span>
+			</div>
+		</footer>
+	);
+};

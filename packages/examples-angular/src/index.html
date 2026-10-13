@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!--
+			REQUIRED. Angular's PathLocationStrategy reads its base href from this element; with no
+			<base> and no APP_BASE_HREF, it falls back to `document.location.pathname`. Load the app at
+			/books and the base href therefore BECOMES "/books", the router strips it from the URL, sees
+			an empty path, and renders the landing page — so every deep link would silently "redirect" home.
+			The builder also emits a RELATIVE <script src="main.js">, which without a base resolves to
+			/books/main.js and 404s. The Angular CLI's own index.html template carries the same line.
+		-->
+		<base href="/" />
+		<!-- Favicons — the Filter EngineZ brand mark (assets in public/, byte-identical to the other verticals). -->
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+		<title>Filter EngineZ · Angular</title>
+	</head>
+	<body>
+		<fe-root></fe-root>
+	</body>
+</html>

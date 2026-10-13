@@ -1,0 +1,30 @@
+// The APPLICATION build program. `files` names only the bootstrap entry — every component, route and
+// workspace-package source reaches the program transitively through its imports, which is exactly what
+// the Angular compiler needs (a file it must compile but that no import reaches is the classic
+// "is missing from the TypeScript compilation" error).
+//
+// **`noEmit: false` is load-bearing, and its absence produces a spectacularly misleading error.**
+// `tsconfig.base.json` sets `noEmit: true` repo-wide, which is right for every other package (they emit
+// via a separate `tsconfig.build.json`, or not at all). But the Angular application builder compiles
+// through an emitting `NgtscProgram`: hand it a `noEmit` config and it silently produces a program that
+// contains nothing, then reports the entry point itself as missing —
+//
+//     ✘ [ERROR] File 'src/main.ts' not found in TypeScript compilation. [plugin angular-compiler]
+//
+// — which reads like a `files`/`include` problem and is not one. Note that `ngc` (the `typecheck`
+// script) builds an ordinary TS program and passes happily either way, so typecheck alone will NOT
+// catch this. `ng build` is the real gate.
+//
+// Tests are excluded here and picked up by `tsconfig.spec.json` instead.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./dist/out-tsc/app",
+    "types": []
+  },
+  "files": ["src/main.ts"],
+  "include": ["src/**/*.d.ts"],
+  "exclude": ["src/**/*.spec.ts"]
+}

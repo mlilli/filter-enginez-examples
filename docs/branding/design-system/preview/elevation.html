@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Elevation & Shadows</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 22px 28px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 22px; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .box { width: 100%; height: 60px; background: var(--gray-1); border: 1px solid var(--gray-4); border-radius: var(--radius-md); }
+  .b-sm   { box-shadow: var(--shadow-sm); }
+  .b-md   { box-shadow: var(--shadow-md); }
+  .b-lg   { box-shadow: var(--shadow-lg); }
+  .b-xl   { box-shadow: var(--shadow-xl); }
+  .b-glow { box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-haze); border-color: transparent; }
+  .name { font-family: var(--font-mono); font-size: 10px; color: var(--gray-8); }
+</style></head>
+<body>
+<div class="meta">elevation · used sparingly · glow is reserved for accent states</div>
+<div class="row">
+  <div class="item"><div class="box b-sm"></div><div class="name">shadow-sm</div></div>
+  <div class="item"><div class="box b-md"></div><div class="name">shadow-md</div></div>
+  <div class="item"><div class="box b-lg"></div><div class="name">shadow-lg</div></div>
+  <div class="item"><div class="box b-xl"></div><div class="name">shadow-xl</div></div>
+  <div class="item"><div class="box b-glow"></div><div class="name">shadow-glow</div></div>
+</div>
+</body></html>

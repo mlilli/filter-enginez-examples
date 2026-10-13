@@ -1,0 +1,16 @@
+/**
+ * App-wide styles. The whole visual system is REUSED, framework-agnostic:
+ *   - brand tokens (colors, type, spacing, motion) — the same custom properties the React apps use.
+ *   - ui-styles component CSS (semantic/BEM classes: `fe-chip`, `fe-result-count__*`, `fe-book-card`,
+ *     `fe-filter-chip`, …) built on those tokens — so Svelte markup that uses these classes is visually
+ *     identical to React with zero new CSS.
+ */
+@import '@filter-enginez/brand/tokens.css';
+@import '@filter-enginez/ui-styles/styles.css';
+
+body {
+	margin: 0;
+	background: var(--gray-0);
+	color: var(--gray-11);
+	font-family: var(--font-sans);
+}

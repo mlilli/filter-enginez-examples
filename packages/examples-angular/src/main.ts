@@ -1,0 +1,90 @@
+/**
+ * Angular app entry — bootstraps the standalone root component, **zoneless**.
+ *
+ * @remarks
+ * ### Why zoneless
+ *
+ * `zone.js` exists to notice that something *might* have changed by monkey-patching every async
+ * browser API. This app never needs that inference, because both of its read paths announce their own
+ * changes: the `async` pipe calls `markForCheck()` on every emission, and `toSignal` produces a real
+ * signal that the framework tracks directly. So the zone would be ~30KB of patched globals earning
+ * nothing — and dropping it removes a whole class of "why did change detection run 40 times" puzzles
+ * on the worker-backed wine route, where every read is a Comlink round trip.
+ *
+ * Note the absence of a `polyfills` entry in `angular.json` for the same reason: no `zone.js` import.
+ *
+ * ### Why the engine is NOT provided here
+ *
+ * Booting the books corpus takes real work (acceleration init + index build), and the landing page has
+ * no business waiting on it. So the engine is provided at the `/books` route instead, via a resolver —
+ * see `app.routes.ts`. This file stays synchronous and the first paint is immediate.
+ *
+ * @packageDocumentation
+ */
+
+import { isDevMode, provideZonelessChangeDetection } from '@angular/core';
+import { bootstrapApplication } from '@angular/platform-browser';
+import {
+	provideRouter,
+	withComponentInputBinding,
+	withNavigationErrorHandler,
+} from '@angular/router';
+
+import { AppComponent } from './app/app.component.js';
+import { routes } from './app/app.routes.js';
+
+/**
+ * Start MSW in dev before bootstrapping, so the books boot's corpus stream (`/api/books?...`) has an
+ * API to hit the moment the `/books` route resolver fires.
+ *
+ * @remarks
+ * The registration itself is shared across all six verticals
+ * (`@filter-enginez/examples-shared/mocks`); only this guard is per-app, because only the guard is
+ * framework-specific.
+ *
+ * **`isDevMode()`, not `import.meta.env.DEV`.** `@angular/build` does not define Vite's `import.meta.env`
+ * constants, so the other five verticals' guard simply isn't available here. The trade-off is real
+ * and worth stating: `isDevMode()` is a RUNTIME check, so the dynamic import below cannot be
+ * dead-code-eliminated the way a statically-false `import.meta.env.DEV` allows. Angular therefore
+ * emits an MSW chunk in production builds that is never fetched — a handful of unused KB on disk, not
+ * on the wire. Eliminating it outright would mean an `angular.json` `fileReplacements` shim, which
+ * costs more clarity than the bytes are worth for a demo app.
+ *
+ * Bootstrap is sequenced AFTER the await: `/books` boots its engine in a route resolver, and a
+ * corpus fetch that lands before the service worker controls the page falls through to the bundled
+ * fallback — silently, since that fallback is a supported path rather than an error. The shared
+ * starter never throws.
+ */
+async function enableMocking(): Promise<void> {
+	if (!isDevMode()) {
+		return;
+	}
+	const { startMockServiceWorker } = await import('@filter-enginez/examples-shared/mocks');
+
+	await startMockServiceWorker();
+}
+
+void enableMocking()
+	.then(async () =>
+		bootstrapApplication(AppComponent, {
+			providers: [
+				provideZonelessChangeDetection(),
+				provideRouter(
+					routes,
+					withComponentInputBinding(),
+					// A rejected resolver or a failed `loadComponent` CANCELS the navigation, and a cancelled
+					// navigation looks identical to a click that did nothing — you simply stay on the page you
+					// were on. That is a miserable thing to debug, so every navigation failure gets shouted at
+					// the console rather than swallowed.
+					withNavigationErrorHandler(({ error }: { error: unknown }) => {
+						console.error('[filter-enginez] navigation failed', error);
+					}),
+				),
+			],
+		}),
+	)
+	.catch((error: unknown) => {
+		// Bootstrap failure is unrecoverable; surfacing it beats a silently blank page. The mock-startup
+		// step shares this handler — it never throws on its own, but its dynamic import can.
+		console.error('[filter-enginez] Angular bootstrap failed', error);
+	});

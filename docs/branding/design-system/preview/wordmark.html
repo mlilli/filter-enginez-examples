@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Wordmark</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 22px 26px; background: var(--gray-0); display: flex; flex-direction: column; gap: 18px; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; }
+  .lockup { display: flex; align-items: center; gap: 16px; }
+  .mark { flex-shrink: 0; display: flex; align-items: center; }
+  .mark svg { display: block; }
+  .word { font-family: var(--font-display); font-weight: 800; font-size: 36px; letter-spacing: 0.12em; color: var(--gray-11); line-height: 1; }
+  .word .z {
+    color: var(--accent);
+    text-shadow: 0 0 6px rgba(103,232,249,0.55), 0 0 18px rgba(34,211,238,0.45);
+  }
+  .small .word { font-size: 22px; letter-spacing: 0.14em; }
+  .tag { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 6px; }
+</style></head>
+<body>
+<div class="meta">wordmark · orbitron 800 · canonical mark</div>
+
+<!-- Large lockup -->
+<div class="lockup">
+  <div class="mark">
+    <!-- Canonical mark @ 48px -->
+    <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- Three crescent arcs -->
+      <path d="M 71.00 13.63 A 42 42 0 0 1 29.00 86.37" fill="none" stroke="#605C53" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 64.50 75.11 A 29 29 0 0 1 35.50 24.89" fill="none" stroke="#605C53" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 50.00 34.00 A 16 16 0 0 1 50.00 66.00" fill="none" stroke="#7C7669" stroke-width="2"   stroke-linecap="round"/>
+      <!-- Z with translucent fill + cyan outline + drop-shadow neon -->
+      <g style="filter: drop-shadow(0 0 1.2px #67E8F9) drop-shadow(0 0 5px #0EA5C7)">
+        <path d="M 21 14 L 86 14 L 86 24 L 22 24 L 14 24 L 14 21 Z" fill="#22D3EE" opacity="0.7"/>
+        <path d="M 86 24 L 86 34 L 23 76 L 22 76 L 22 69 L 88 24 Z" fill="#22D3EE" opacity="0.7"/>
+        <path d="M 14 76 L 78 76 L 86 76 L 86 76 L 76 86 L 14 86 Z" fill="#22D3EE" opacity="0.7"/>
+        <path d="M 21 14 L 86 14 L 86 24 L 22 24 L 14 24 L 14 21 Z" fill="none" stroke="#22D3EE" stroke-width="1.6"/>
+        <path d="M 86 24 L 86 34 L 23 76 L 22 76 L 22 69 L 88 24 Z" fill="none" stroke="#22D3EE" stroke-width="1.6"/>
+        <path d="M 14 76 L 78 76 L 86 76 L 86 76 L 76 86 L 14 86 Z" fill="none" stroke="#22D3EE" stroke-width="1.6"/>
+      </g>
+      <!-- Synapse node -->
+      <g style="filter: drop-shadow(0 0 2px #67E8F9) drop-shadow(0 0 6px #67E8F9)">
+        <circle cx="50" cy="50" r="3.2" fill="#67E8F9"/>
+        <circle cx="50" cy="50" r="1.6" fill="#F1ECDF"/>
+      </g>
+    </svg>
+  </div>
+  <div>
+    <div class="word">FILTER ENGINE<span class="z">Z</span></div>
+    <div class="tag">predicates that propagate</div>
+  </div>
+</div>
+
+<!-- Compact lockup -->
+<div class="lockup small">
+  <div class="mark">
+    <svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 71.00 13.63 A 42 42 0 0 1 29.00 86.37" fill="none" stroke="#605C53" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 64.50 75.11 A 29 29 0 0 1 35.50 24.89" fill="none" stroke="#605C53" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 50.00 34.00 A 16 16 0 0 1 50.00 66.00" fill="none" stroke="#7C7669" stroke-width="2"   stroke-linecap="round"/>
+      <g style="filter: drop-shadow(0 0 1.2px #67E8F9) drop-shadow(0 0 5px #0EA5C7)">
+        <path d="M 21 14 L 86 14 L 86 24 L 22 24 L 14 24 L 14 21 Z" fill="#22D3EE" opacity="0.7"/>
+        <path d="M 86 24 L 86 34 L 23 76 L 22 76 L 22 69 L 88 24 Z" fill="#22D3EE" opacity="0.7"/>
+        <path d="M 14 76 L 78 76 L 86 76 L 86 76 L 76 86 L 14 86 Z" fill="#22D3EE" opacity="0.7"/>
+        <path d="M 21 14 L 86 14 L 86 24 L 22 24 L 14 24 L 14 21 Z" fill="none" stroke="#22D3EE" stroke-width="1.6"/>
+        <path d="M 86 24 L 86 34 L 23 76 L 22 76 L 22 69 L 88 24 Z" fill="none" stroke="#22D3EE" stroke-width="1.6"/>
+        <path d="M 14 76 L 78 76 L 86 76 L 86 76 L 76 86 L 14 86 Z" fill="none" stroke="#22D3EE" stroke-width="1.6"/>
+      </g>
+      <g style="filter: drop-shadow(0 0 2px #67E8F9) drop-shadow(0 0 6px #67E8F9)">
+        <circle cx="50" cy="50" r="3.2" fill="#67E8F9"/>
+        <circle cx="50" cy="50" r="1.6" fill="#F1ECDF"/>
+      </g>
+    </svg>
+  </div>
+  <div class="word">FILTER ENGINE<span class="z">Z</span></div>
+</div>
+</body></html>

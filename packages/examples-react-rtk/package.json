@@ -1,0 +1,70 @@
+{
+  "name": "@filter-enginez/examples-react-rtk",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — demo app: React + Redux Toolkit + react-signals + redux-bridge + url-state-router + worker-bridge. Three datasets.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:fresh": "vite --force",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build && node ../../scripts/strip-local-corpus.mjs dist",
+    "preview": "vite preview",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@filter-enginez/brand": "workspace:*",
+    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/examples-shared": "workspace:*",
+    "@filter-enginez/mock-data": "0.0.1",
+    "@filter-enginez/react-signals": "0.0.1",
+    "@filter-enginez/react-ui": "workspace:*",
+    "@filter-enginez/reactive-signals": "0.0.1",
+    "@filter-enginez/redux-bridge": "0.0.1",
+    "@filter-enginez/ui-styles": "workspace:*",
+    "@filter-enginez/url-state-router": "0.0.1",
+    "@filter-enginez/worker-bridge": "0.0.1",
+    "@radix-ui/react-toast": "^1.2.15",
+    "@reduxjs/toolkit": "^2.12.0",
+    "clsx": "^2.1.1",
+    "leaflet": "1.9.4",
+    "lucide-react": "^0.577.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.76.1",
+    "react-redux": "^9.3.0",
+    "react-router": "^8.3.0",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.1",
+    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "msw": "^2.14.6",
+    "postcss": "^8.5.19",
+    "tailwind-scrollbar": "^4.0.2",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.1.5"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

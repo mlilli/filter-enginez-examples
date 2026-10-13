@@ -1,0 +1,12 @@
+/* The shared visual system — brand design tokens + the framework-agnostic ui-styles component CSS
+   (the same fe-* classes every other vertical renders over, including the shared app-shell chrome).
+   Imported once at app entry; this app adds NO framework and no CSS of its own beyond this file. */
+@import '@filter-enginez/brand/tokens.css';
+@import '@filter-enginez/ui-styles/styles.css';
+
+body {
+	margin: 0;
+	background: var(--gray-0);
+	color: var(--gray-11);
+	font-family: var(--font-sans);
+}

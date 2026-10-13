@@ -1,0 +1,32 @@
+{
+	"name": "Filter EngineZ",
+	"short_name": "FilterEngineZ",
+	"description": "Rich, data-driven filtering UI engine",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#0B0A09",
+	"theme_color": "#22D3EE",
+	"icons": [
+		{
+			"src": "/branding/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "/branding/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		},
+		{
+			"src": "/branding/icon-512-maskable.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/branding/favicon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml"
+		}
+	]
+}

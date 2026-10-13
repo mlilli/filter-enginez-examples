@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* No `paths`. The engine repo maps `rbush` to core's hand-written declaration because core's
+     * `exports` there point at SOURCE, so anything importing core recompiles `SpatialIndex.ts`. Here
+     * core arrives as a packed tarball whose `exports` point at `dist/`, and its published `.d.ts`
+     * never mentions `rbush` — so nothing in this repo compiles that file or needs the mapping.
+     */
+    /* ── Language & Environment ─────────────────────────────────────────
+     * Strict ESNext target — all apps and packages inherit these defaults.
+     * Apps override `target`, `lib`, `module`, and emit settings as needed.
+     */
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    /* ── Module Interop ────────────────────────────────────────────────
+     * ESM-first with interop for CJS dependencies.
+     */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* ── Strict Type Checking ──────────────────────────────────────────
+     * All strict flags enabled. No shortcuts, no implicit anys.
+     * This is the project quality bar — inherited by every workspace.
+     */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": false,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+    /* ── Emit Defaults ─────────────────────────────────────────────────
+     * noEmit by default — apps that need emit (e.g., API) override this.
+     */
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noEmit": true,
+
+    /* ── Performance ───────────────────────────────────────────────────
+     * Skip type checking .d.ts files from node_modules.
+     */
+    "skipLibCheck": true
+  }
+}

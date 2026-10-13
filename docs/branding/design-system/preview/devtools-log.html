@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Devtools Log Entry</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 14px 18px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .panel { background: var(--gray-1); border: 1px solid var(--gray-4); border-radius: var(--radius-md); padding: 0; }
+  .head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--gray-4); }
+  .ttl { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--gray-11); letter-spacing: 0.08em; text-transform: uppercase; }
+  .ctrl { display: flex; gap: 4px; }
+  .ico { width: 14px; height: 14px; color: var(--gray-7); stroke: currentColor; fill: none; stroke-width: 1.75; }
+  .entry { display: grid; grid-template-columns: 70px 90px 1fr auto; gap: 10px; padding: 6px 12px; font-family: var(--font-mono); font-size: 11px; align-items: center; border-bottom: 1px solid var(--gray-3); }
+  .entry:hover { background: var(--gray-3); }
+  .entry:last-child { border-bottom: 0; }
+  .ts { color: var(--gray-7); }
+  .type { color: var(--accent); }
+  .args { color: var(--gray-9); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jump { color: var(--gray-7); cursor: pointer; }
+  .jump:hover { color: var(--accent); }
+  .entry.active { background: var(--accent-soft); }
+  .entry.active .ts, .entry.active .args, .entry.active .jump { color: var(--gray-11); }
+</style></head>
+<body>
+<div class="meta">devtools · action log · jetbrains mono</div>
+<div class="panel">
+  <div class="head">
+    <div class="ttl">ACTION LOG</div>
+    <div class="ctrl">
+      <svg class="ico" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </div>
+  <div class="entry"><span class="ts">14:32:01</span><span class="type">addRule</span><span class="args">InSetRule&lt;region&gt; { burgundy }</span><span class="jump">→</span></div>
+  <div class="entry"><span class="ts">14:32:04</span><span class="type">addRule</span><span class="args">InSetRule&lt;varietal&gt; { pinot_noir }</span><span class="jump">→</span></div>
+  <div class="entry active"><span class="ts">14:32:09</span><span class="type">addRule</span><span class="args">RangeRule&lt;vintage&gt; [2015, 2020]</span><span class="jump">●</span></div>
+  <div class="entry"><span class="ts">14:32:14</span><span class="type">removeRule</span><span class="args">InSetRule&lt;region&gt; { loire }</span><span class="jump">→</span></div>
+</div>
+</body></html>

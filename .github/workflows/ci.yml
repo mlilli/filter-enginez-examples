@@ -1,0 +1,141 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Continuous Integration — the gates for the six example apps and their shared
+# packages: typecheck, lint (ESLint + markdown), formatting, spelling, unit tests
+# with coverage, the framework component tests, a full production build, and the
+# brand bundle-size budgets.
+#
+# 🔴 THE ENGINE IS CHECKED OUT BESIDE THIS REPO, because the apps consume it as PACKED
+# TARBALLS from ../filter-enginez (see pnpm-workspace.yaml's override block). So the job
+# clones both, packs the engine, and only then installs here.
+#
+# 🔴 THE ENGINE CHECKOUT IS PINNED to the commit in `.github/engine-ref`. `--frozen-lockfile`
+# verifies each engine tarball's integrity hash, and those hashes change with every engine
+# commit — so checking out the engine's moving `main` would fail this install on the next
+# engine change, for reasons that have nothing to do with this repo. Re-packing the same
+# commit is byte-identical, so a pinned ref keeps the lockfile valid. To move it, run
+# `bash scripts/pin-engine-ref.sh` (it refuses a dirty engine tree), then pack and install so
+# the lockfile and the pin change together. `tests/tooling/engineRefPinned.test.ts` checks the
+# file's shape; the first step below refuses a placeholder.
+#
+# ⚠ NO E2E JOB. The wine suites assert against the real 130k-record corpus, which is
+# CC BY-NC-SA 4.0 data that never leaves a developer's machine (see NOTICE.md), so CI cannot
+# have it. `pnpm test:e2e` runs locally, where the corpus can be imported.
+# ─────────────────────────────────────────────────────────────────────────────
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: Gates (typecheck · lint · spell · test · build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+        with:
+          path: filter-enginez-examples
+
+      - name: Read the pinned engine commit
+        id: engine
+        working-directory: filter-enginez-examples
+        run: |
+          ref="$(tr -d '[:space:]' < .github/engine-ref)"
+          if ! printf '%s' "$ref" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error file=.github/engine-ref::expected a 40-character engine commit SHA, found '$ref'. Run scripts/pin-engine-ref.sh."
+            exit 1
+          fi
+          echo "sha=$ref" >> "$GITHUB_OUTPUT"
+
+      # A public repo, so no token. Its path must be the sibling the override block names.
+      - name: Checkout the engine beside it (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: mlilli/filter-enginez
+          ref: ${{ steps.engine.outputs.sha }}
+          path: filter-enginez
+
+      - name: Enable Corepack (pins pnpm from package.json packageManager)
+        run: corepack enable
+
+      - name: Set up Node (from .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: filter-enginez-examples/.nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            filter-enginez/pnpm-lock.yaml
+            filter-enginez-examples/pnpm-lock.yaml
+
+      - name: Install the engine (frozen lockfile)
+        working-directory: filter-enginez
+        run: pnpm install --frozen-lockfile
+
+      # Builds the 13 packages and packs them into filter-enginez/tmp/engine-tarballs,
+      # which is exactly where this repo's overrides look.
+      - name: Pack the engine tarballs
+        working-directory: filter-enginez
+        run: bash scripts/pack-engine-tarballs.sh
+
+      - name: Install (frozen lockfile)
+        working-directory: filter-enginez-examples
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: filter-enginez-examples
+        run: pnpm typecheck
+
+      - name: Lint (ESLint)
+        working-directory: filter-enginez-examples
+        run: pnpm lint
+
+      - name: Lint (Markdown)
+        working-directory: filter-enginez-examples
+        run: pnpm lint:markdown
+
+      # The whole-tree check. lint-staged runs `prettier --write` on STAGED files only, so a file
+      # changed by a rebase, a merge, or `git commit --no-verify` is seen only here. `.prettierignore`
+      # excludes the local `.pnpm-store`, generated `.svelte-kit` output, transient run artifacts and
+      # `pnpm-workspace.yaml`, so the run reports only files somebody can act on.
+      - name: Formatting (Prettier)
+        working-directory: filter-enginez-examples
+        run: pnpm prettier:check
+
+      - name: Spelling (cspell, en-US)
+        working-directory: filter-enginez-examples
+        run: pnpm cspell
+
+      - name: Unit tests + coverage (100% policy)
+        working-directory: filter-enginez-examples
+        run: pnpm test:coverage
+
+      # Vue, SvelteKit and Angular run their component tests under their own framework-aware runners
+      # (each package's Vitest config, and `ng test`), so the root Vitest projects above do not
+      # include them. This runs all three.
+      - name: Framework component tests (Vue, SvelteKit, Angular)
+        working-directory: filter-enginez-examples
+        run: pnpm test:frameworks
+
+      - name: Build all packages
+        working-directory: filter-enginez-examples
+        run: pnpm build
+
+      # MUST follow the build: size-limit measures `dist/`, not `src/`. Four budgets, all for
+      # `brand` — the mark, the wordmark and the three loaders — gzipped and MARGINAL, with React
+      # `ignore`d so the figure is the brand code rather than the framework. The engine packages'
+      # budgets live in the engine repository.
+      - name: Bundle-size budgets (size-limit)
+        working-directory: filter-enginez-examples
+        run: pnpm size

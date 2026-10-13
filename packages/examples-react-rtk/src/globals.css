@@ -1,0 +1,123 @@
+/**
+ * globals.css — the single CSS entry point for the app.
+ *
+ * Imports:
+ *   1. Brand tokens — colors, type, spacing, radii, motion. Source of truth for every
+ *      cyan/phosphor/gray decision in the app.
+ *   2. Tailwind v4 — the new `@import "tailwindcss"` form (no @tailwind directives in v4;
+ *      utilities are generated on-demand by the @tailwindcss/vite plugin).
+ *   3. `@filter-enginez/ui-styles` — the shared `fe-*` component styles.
+ *
+ * Custom rules below the imports are scoped to dual-accent semantic helpers and a couple of
+ * resets the design system depends on but doesn't ship explicitly (selection color, scrollbar
+ * styling, focus-visible default).
+ */
+
+@import '@filter-enginez/brand/tokens.css';
+@import 'tailwindcss';
+@import '@filter-enginez/ui-styles/styles.css';
+
+/* Tailwind v4 auto-detects source files from the project root and DELIBERATELY excludes
+ * `node_modules` — which is where pnpm symlinks the workspace packages. Without this `@source`, any
+ * utility used only in `@filter-enginez/examples-shared` is never generated, and the markup silently
+ * renders without it.
+ *
+ * `min-h-0` and `overflow-y-auto`, for example, appear in no file in this app, only under
+ * `examples-shared`. Both sit on the filter panel's scroll container; without them the panel does
+ * not scroll and everything below the fold is unreachable, for users and for Playwright alike.
+ *
+ * The failure mode is invisible: no build error, no console warning, just an absent CSS rule and a
+ * layout that looks plausible until you need to reach the bottom of it.
+ *
+ * NOTE the position: `@source` sits AFTER every `@import`. CSS requires `@import` to precede other
+ * at-rules, and putting this between the imports risks a parser dropping the `ui-styles` import —
+ * which would silently strip every `fe-*` component style. */
+@source '../../examples-shared/src';
+
+/* ─── Body baseline — uses brand tokens ──────────────────────────────────── */
+:root {
+	color-scheme: dark;
+	background: var(--gray-0);
+	color: var(--gray-11);
+}
+
+html,
+body,
+#root {
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: var(--font-sans);
+	font-feature-settings: 'ss01', 'cv01', 'cv02';
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Dual-accent semantic helpers ───────────────────────────────────────── */
+/* Brand contract: cyan = data / identity / what; phosphor = activity / computation / when. */
+/* These class helpers exist so component code can apply the correct accent without having to
+ * remember the token name — `.text-accent-data` is more searchable than `.text-cyan-400`. */
+
+.text-accent-data {
+	color: var(--accent);
+}
+
+.text-accent-activity {
+	color: var(--engine);
+}
+
+.bg-accent-data {
+	background: var(--accent);
+}
+
+.bg-accent-activity {
+	background: var(--engine);
+}
+
+.border-accent-data {
+	border-color: var(--accent);
+}
+
+.glow-data {
+	box-shadow:
+		0 0 12px rgba(34, 211, 238, 0.35),
+		0 0 24px rgba(14, 165, 199, 0.2);
+}
+
+.glow-activity {
+	box-shadow:
+		0 0 12px rgba(249, 115, 22, 0.35),
+		0 0 24px rgba(194, 65, 12, 0.2);
+}
+
+/* ─── Selection ──────────────────────────────────────────────────────────── */
+::selection {
+	background: rgba(34, 211, 238, 0.3);
+	color: var(--gray-11);
+}
+
+/* ─── Focus-visible default ─────────────────────────────────────────────── */
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+/* ─── Devtools panel focus rings ─────────────────────────────────────────── */
+/* The phosphor-tinted keyboard focus rings for the devtools action rows + scrub strip live with the
+ * panel in @filter-enginez/ui-styles (fe-devtools-row:focus-visible /
+ * fe-devtools-timeline__strip:focus-visible), beside <DevtoolsPanelView /> in react-ui. Nothing
+ * app-local styles the devtools panel. */
+
+/* ─── Active-filter chip breathing dot ───────────────────────────────────── */
+/* The `chipBreathe` keyframe + the `.fe-filter-chip__dot` that uses it live in
+ * @filter-enginez/ui-styles, beside <ResultsHeaderView /> in react-ui. Nothing app-local references
+ * it. */
+
+/* No custom scrollbar styling, deliberately. Styling `::-webkit-scrollbar` with a width turns the
+ * macOS overlay scrollbar into a CLASSIC one that consumes layout width, so this app's filter-panel
+ * sections would measure narrower than the other verticals', which leave the scrollbar native (0
+ * layout width on macOS). Leaving it native keeps every vertical's panel the same width. */

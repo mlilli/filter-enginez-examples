@@ -1,0 +1,60 @@
+// Angular workspace tsconfig for `@filter-enginez/examples-angular`.
+//
+// Two things here are deliberately DIFFERENT from every other app in this monorepo — both forced by
+// how the Angular build pipeline works, and both are improvements rather than concessions:
+//
+//  1. **No `references`.** The React, Vue and vanilla apps list the sibling packages' composite
+//     `tsconfig.build.json`, which makes TypeScript redirect `@filter-enginez/*` imports away from
+//     source and onto the built `dist/*.d.ts` (hence the familiar "TS6305: output file has not been
+//     built" dance after adding an export). Angular's compiler must see the *sources* of anything it
+//     compiles, and the workspace packages already publish `exports` pointing at `./src/index.ts`,
+//     so dropping `references` lets resolution land on real source. Consequence: this app typechecks
+//     against live source and needs no `turbo run build` beforehand.
+//
+//  2. **`moduleResolution: "bundler"`** (over the base's `NodeNext`), because the builder is a bundler.
+//     Bundler resolution honors the `exports` maps AND the repo's `./foo.js` → `foo.ts` ESM convention.
+//
+// `angularCompilerOptions` runs the compiler at its strictest: template type-checking is a real gate
+// here, not a formality — it is the Angular equivalent of the `.vue` / `.svelte` typecheck the other
+// verticals get from `vue-tsc` / `svelte-check`.
+//
+// Note there is NO `experimentalDecorators` and no `emitDecoratorMetadata`: modern Angular's AOT
+// compiler supplies its own transform, and enabling the legacy TS decorator flags actively breaks it.
+//
+// Also NO `outDir`, deliberately. This config is `noEmit`, so an `outDir` buys nothing — but its mere
+// presence makes TypeScript infer a `rootDir` of this package, and `ngc` then fails with TS6059 on the
+// workspace-package sources it compiles (`examples-shared`, `brand`), which live one directory up.
+// This config is what the `typecheck` script runs; `tsconfig.app.json` is what the
+// builder runs, and only that one emits.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    // ── no `paths` ───────────────────────────────────────────────────────────────────────────────
+    //
+    // The engine packages arrive as packed tarballs whose `exports` point at compiled `dist/`, so the
+    // angular-compiler plugin (which can only compile files inside its own program) has nothing to
+    // claim and no import needs remapping to source. `angular-rxjs` uses only functional DI (`inject`,
+    // `InjectionToken`, `runInInjectionContext`) — no decorators, so no AOT step — and its `dist/`
+    // carries no Ivy artifacts. Core's published `.d.ts` never mentions `rbush`, so that needs no
+    // mapping either.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": []
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true,
+    "typeCheckHostBindings": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

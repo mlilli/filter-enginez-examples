@@ -1,0 +1,31 @@
+// noEmit Vite app config. Built by `vite build`; type-checked via `tsc --noEmit`.
+// Includes test files (so they resolve to a real program for typed-lint) and
+// references sibling packages' composite build configs.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "composite": false,
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    {
+      "path": "../brand/tsconfig.build.json"
+    },
+    {
+      "path": "../examples-shared/tsconfig.build.json"
+    },
+    {
+      "path": "../react-ui/tsconfig.build.json"
+    }
+  ]
+}

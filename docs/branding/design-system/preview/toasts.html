@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Toasts</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 22px; background: var(--gray-0); display: flex; flex-direction: column; gap: 10px; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; }
+  .toast { display: flex; align-items: center; gap: 12px; background: var(--gray-2); border: 1px solid var(--gray-5); border-left: 3px solid var(--gray-5); border-radius: var(--radius-md); padding: 10px 14px; box-shadow: var(--shadow-md); }
+  .toast.success { border-left-color: var(--success); }
+  .toast.warn    { border-left-color: var(--warn); }
+  .toast.danger  { border-left-color: var(--danger); }
+  .toast.info    { border-left-color: var(--info); }
+  .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .success .icon { color: var(--success); }
+  .warn .icon    { color: var(--warn); }
+  .danger .icon  { color: var(--danger); }
+  .info .icon    { color: var(--info); }
+  .body { flex: 1; }
+  .title { font-family: var(--font-sans); font-size: 13px; color: var(--gray-11); font-weight: 500; }
+  .desc { font-family: var(--font-sans); font-size: 12px; color: var(--gray-8); margin-top: 1px; }
+  .action { font-family: var(--font-sans); font-size: 12px; color: var(--accent); cursor: pointer; }
+  .action:hover { color: var(--accent-glow); }
+</style></head>
+<body>
+<div class="meta">toasts · slide-in top-right · status-color left border</div>
+<div class="toast success">
+  <svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <div class="body"><div class="title">Filter preset saved</div><div class="desc">"Burgundy · 2015–2020" · 4 rules</div></div>
+  <span class="action">Undo</span>
+</div>
+<div class="toast warn">
+  <svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+  <div class="body"><div class="title">This filter combination yields 0 results</div><div class="desc">Try removing "Champagne" or expanding the year range.</div></div>
+</div>
+<div class="toast danger">
+  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+  <div class="body"><div class="title">Couldn't load data</div><div class="desc">Network request failed · ECONNRESET</div></div>
+  <span class="action">Retry</span>
+</div>
+</body></html>

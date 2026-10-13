@@ -1,0 +1,30 @@
+[
+  {
+    "name": "brand (mark + wordmark)",
+    "path": ["packages/brand/dist/Mark.js", "packages/brand/dist/Wordmark.js"],
+    "ignore": ["react"],
+    "limit": "6 kB",
+    "gzip": true
+  },
+  {
+    "name": "brand/loaders/synaptic-orbit",
+    "path": "packages/brand/dist/loaders/SynapticOrbit.js",
+    "ignore": ["react"],
+    "limit": "4 kB",
+    "gzip": true
+  },
+  {
+    "name": "brand/loaders/neural-cluster",
+    "path": "packages/brand/dist/loaders/NeuralCluster.js",
+    "ignore": ["react"],
+    "limit": "4 kB",
+    "gzip": true
+  },
+  {
+    "name": "brand/loaders/brain-synapse",
+    "path": "packages/brand/dist/loaders/BrainSynapse.js",
+    "ignore": ["react"],
+    "limit": "4 kB",
+    "gzip": true
+  }
+]

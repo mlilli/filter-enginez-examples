@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "genre",
+      "rule": {
+        "config": {
+          "set": ["fiction"]
+        },
+        "field": "genre",
+        "type": "InSetRule"
+      }
+    },
+    {
+      "id": "publication-year",
+      "rule": {
+        "config": {
+          "max": 2025,
+          "min": 2000
+        },
+        "field": "publicationYear",
+        "type": "RangeRule"
+      }
+    }
+  ],
+  "label": "fiction · published 2000–2025"
+}

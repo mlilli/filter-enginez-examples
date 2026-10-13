@@ -1,0 +1,34 @@
+{
+  "name": "@filter-enginez/examples-vanilla",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — framework-less demo app (Vite + plain TypeScript, hand-written DOM). Renders the books demo twice: once over @filter-enginez/reactive-signals (fine-grained signals) and once over the bare @filter-enginez/core engine (coarse subscribe), proving the engine needs neither a framework NOR a reactive-surface adapter. Also renders the fourteen-section real-estate panel — location hierarchy, geo-radius map, six sliders — and the wine panel over a Comlink worker and over HTTP, all on the same hand-built DOM. Browser-only.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node ../../scripts/strip-local-corpus.mjs dist",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "dependencies": {
+    "@filter-enginez/brand": "workspace:*",
+    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/examples-shared": "workspace:*",
+    "@filter-enginez/mock-data": "0.0.1",
+    "@filter-enginez/reactive-signals": "0.0.1",
+    "@filter-enginez/ui-styles": "workspace:*",
+    "@filter-enginez/url-state-router": "0.0.1",
+    "@preact/signals-core": "^1.14.2",
+    "leaflet": "1.9.4"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.1",
+    "vite": "^8.1.5"
+  }
+}

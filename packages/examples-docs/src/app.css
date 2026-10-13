@@ -1,0 +1,11 @@
+/**
+ * Global stylesheet for the standalone documentation site.
+ *
+ * The docs slice ships its OWN component styling as an injected `DOCS_CSS` string (in `DocsLayout`),
+ * so this file only has to provide the two foundations that live in the workspace CSS packages: the
+ * brand design tokens (the `--gray-*` / `--accent` / `--engine` custom properties + base element
+ * styling every `fe-doc-*` block reads) and the shared `ui-styles` component classes. No Tailwind —
+ * the docs use none.
+ */
+@import '@filter-enginez/brand/tokens.css';
+@import '@filter-enginez/ui-styles/styles.css';

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Accent Ramp</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 20px; background: var(--gray-0); }
+  .label { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .sw { border-radius: var(--radius-md); padding: 14px 12px; display: flex; flex-direction: column; gap: 4px; min-height: 84px; border: 1px solid rgba(255,255,255,0.04); position: relative; }
+  .sw .name { font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .sw .hex { font-family: var(--font-mono); font-size: 10px; opacity: 0.75; }
+  .glow { box-shadow: 0 0 18px var(--accent-haze), inset 0 0 0 1px rgba(34,211,238,0.4); }
+</style></head>
+<body>
+<div class="label">accent · electric cyan · the synapse glow</div>
+<div class="row">
+  <div class="sw" style="background:#0E4A57; color:#67E8F9"><div class="name">soft</div><div class="hex">0E4A57</div></div>
+  <div class="sw" style="background:#155E6E; color:#A5F3FC"><div class="name">dim</div><div class="hex">155E6E</div></div>
+  <div class="sw glow" style="background:#22D3EE; color:#0B0A09"><div class="name">accent</div><div class="hex">22D3EE</div></div>
+  <div class="sw" style="background:#06B6D4; color:#0B0A09"><div class="name">strong</div><div class="hex">06B6D4</div></div>
+  <div class="sw glow" style="background:#67E8F9; color:#0B0A09"><div class="name">glow</div><div class="hex">67E8F9</div></div>
+</div>
+</body></html>

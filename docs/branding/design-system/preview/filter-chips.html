@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Filter Chips</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 22px; background: var(--gray-0); display: flex; flex-direction: column; gap: 12px; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px 0 12px; background: var(--gray-2); border: 1px solid var(--gray-5); border-radius: 9999px; font-family: var(--font-sans); font-size: 13px; color: var(--gray-10); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent-haze); animation: breathe 2s var(--ease-in-out) infinite; }
+  @keyframes breathe { 0%,100% { opacity: 0.55 } 50% { opacity: 1 } }
+  .chip .x { color: var(--gray-7); cursor: pointer; display: inline-flex; }
+  .chip .x:hover { color: var(--gray-10); }
+  .chip .v { color: var(--gray-7); }
+  .chip .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--gray-11); }
+  .clear { font-family: var(--font-sans); font-size: 12px; color: var(--accent); margin-left: 4px; cursor: pointer; }
+  .clear:hover { color: var(--accent-glow); }
+  .count { font-family: var(--font-mono); font-size: 12px; color: var(--gray-8); margin-right: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .icon { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+</style></head>
+<body>
+<div class="meta">active filter chips · capsules · breathing accent dot · × to remove</div>
+<div class="row">
+  <span class="count">4 filters</span>
+  <div class="bar">
+    <div class="chip"><span class="dot"></span><span class="v">region</span><span>Burgundy</span><span class="x"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+    <div class="chip"><span class="dot"></span><span class="v">varietal</span><span>Pinot Noir</span><span class="x"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+    <div class="chip"><span class="dot"></span><span class="v">vintage</span><span class="num">2015–2020</span><span class="x"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+    <div class="chip"><span class="dot"></span><span class="v">body</span><span>Full</span><span class="x"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+    <span class="clear">Clear all</span>
+  </div>
+</div>
+</body></html>

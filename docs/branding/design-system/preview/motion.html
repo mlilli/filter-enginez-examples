@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Motion</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 22px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .col { border: 1px solid var(--gray-4); border-radius: var(--radius-md); padding: 12px 14px; }
+  .col h4 { font-family: var(--font-sans); font-size: 11px; color: var(--gray-9); margin-bottom: 8px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .row { display: flex; justify-content: space-between; padding: 4px 0; }
+  .key { font-family: var(--font-mono); font-size: 11px; color: var(--gray-8); }
+  .val { font-family: var(--font-mono); font-size: 11px; color: var(--gray-10); }
+  .curve { width: 56px; height: 56px; }
+  .curves { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; }
+  .curveBox { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .lbl { font-family: var(--font-mono); font-size: 9px; color: var(--gray-8); }
+</style></head>
+<body>
+<div class="meta">motion · only transform + opacity · respects reduced motion</div>
+<div class="grid">
+  <div class="col">
+    <h4>durations</h4>
+    <div class="row"><span class="key">--dur-fast</span><span class="val">150ms</span></div>
+    <div class="row"><span class="key">--dur-mid</span><span class="val">300ms</span></div>
+    <div class="row"><span class="key">--dur-slow</span><span class="val">600ms</span></div>
+    <div class="row"><span class="key">--dur-vslow</span><span class="val">800ms</span></div>
+  </div>
+  <div class="col">
+    <h4>easings</h4>
+    <div class="curves">
+      <div class="curveBox">
+        <svg class="curve" viewBox="0 0 56 56"><path d="M2 54 C 20 54, 31 30, 54 2" fill="none" stroke="#22D3EE" stroke-width="1.5"/></svg>
+        <div class="lbl">ease-out</div>
+      </div>
+      <div class="curveBox">
+        <svg class="curve" viewBox="0 0 56 56"><path d="M2 54 C 50 54, 6 2, 54 2" fill="none" stroke="#67E8F9" stroke-width="1.5"/></svg>
+        <div class="lbl">in-out</div>
+      </div>
+      <div class="curveBox">
+        <svg class="curve" viewBox="0 0 56 56"><path d="M2 54 C 22 54, 38 -8, 54 2" fill="none" stroke="#A5F3FC" stroke-width="1.5"/></svg>
+        <div class="lbl">spring</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

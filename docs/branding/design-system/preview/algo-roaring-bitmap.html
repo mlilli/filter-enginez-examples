@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Roaring Bitmap Hero</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 12px 16px; background: var(--gray-0); }
+  .meta { font-family: var(--font-mono); font-size: 9px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .stage { background: radial-gradient(ellipse at center, #151412, #0B0A09); border: 1px solid var(--gray-4); border-radius: var(--radius-lg); padding: 10px 14px; }
+  .ttl { font-family: var(--font-display); font-size: 10px; color: var(--gray-9); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .lbl { font-family: var(--font-mono); font-size: 9px; color: var(--gray-7); width: 88px; flex-shrink: 0; }
+  .bits { display: flex; gap: 1px; flex: 1; }
+  .b { width: 8px; height: 12px; background: var(--gray-3); border-radius: 1px; }
+  .b.on { background: var(--accent); box-shadow: 0 0 4px var(--accent-haze); }
+  .b.result { background: var(--gray-3); }
+  .b.result.on { background: var(--accent-glow); box-shadow: 0 0 6px var(--accent); }
+  .divider { height: 1px; background: var(--gray-4); margin: 6px 0; }
+  .anim-bit:nth-child(4n).on { animation: shimmer 4s var(--ease-in-out) infinite; }
+  @keyframes shimmer { 0%,100% { opacity: 0.7 } 50% { opacity: 1 } }
+</style></head>
+<body>
+<div class="meta">algorithm hero · roaring bitmaps · bitwise AND across compact bitmaps</div>
+<div class="stage">
+  <div class="ttl">ROARING BITMAPS · INTERSECTION</div>
+  <div class="row">
+    <div class="lbl">region</div>
+    <div class="bits">
+      <div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="lbl">varietal</div>
+    <div class="bits">
+      <div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="lbl">vintage ≥2015</div>
+    <div class="bits">
+      <div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div><div class="b anim-bit"></div><div class="b on anim-bit"></div><div class="b on anim-bit"></div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <div class="lbl">A ∩ B ∩ C</div>
+    <div class="bits">
+      <div class="b result on"></div><div class="b result"></div><div class="b result"></div><div class="b result on"></div><div class="b result"></div><div class="b result"></div><div class="b result on"></div><div class="b result on"></div><div class="b result on"></div><div class="b result"></div><div class="b result on"></div><div class="b result"></div><div class="b result"></div><div class="b result on"></div><div class="b result on"></div><div class="b result"></div><div class="b result"></div><div class="b result on"></div><div class="b result on"></div><div class="b result"></div><div class="b result on"></div><div class="b result on"></div><div class="b result"></div><div class="b result"></div><div class="b result on"></div><div class="b result"></div><div class="b result on"></div><div class="b result on"></div>
+    </div>
+  </div>
+</div>
+</body></html>

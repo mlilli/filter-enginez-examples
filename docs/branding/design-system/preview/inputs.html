@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 22px; background: var(--gray-0); display: flex; flex-direction: column; gap: 10px; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--gray-7); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label { font-family: var(--font-sans); font-size: 12px; color: var(--gray-8); }
+  .input { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; background: var(--gray-1); border: 1px solid var(--gray-5); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 14px; color: var(--gray-10); }
+  .input.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-haze); }
+  .input.invalid { border-color: var(--danger); }
+  .placeholder { color: var(--gray-7); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .icon { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; color: var(--gray-7); }
+  .x { color: var(--gray-8); cursor: pointer; }
+  .hint { font-family: var(--font-sans); font-size: 11px; color: var(--gray-7); }
+  .err { color: var(--danger); }
+</style></head>
+<body>
+<div class="meta">inputs · default · focused · invalid · with search affordance</div>
+<div class="grid">
+  <div class="field">
+    <label>Search listings</label>
+    <div class="input">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <span class="placeholder">e.g. burgundy 2015</span>
+    </div>
+  </div>
+  <div class="field">
+    <label>Region</label>
+    <div class="input focus">
+      <span>Burgundy</span>
+      <svg class="icon x" viewBox="0 0 24 24" style="margin-left:auto"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </div>
+  </div>
+  <div class="field">
+    <label>Min price</label>
+    <div class="input invalid">
+      <span class="t-mono" style="font-family:var(--font-mono); color:var(--gray-10)">$1,800,000</span>
+    </div>
+    <span class="hint err">value exceeds max price</span>
+  </div>
+  <div class="field">
+    <label>Max year built</label>
+    <div class="input">
+      <span class="t-mono" style="font-family:var(--font-mono); color:var(--gray-10)">2024</span>
+    </div>
+    <span class="hint">defaults to current year</span>
+  </div>
+</div>
+</body></html>

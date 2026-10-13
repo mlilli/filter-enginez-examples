@@ -1,0 +1,41 @@
+{
+  "name": "@filter-enginez/examples-vue",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — Vue 3 demo app (Vite + Vue Router) over @filter-enginez/vue-signals. Shows the framework-agnostic engine + reactive-surface binding in Vue. Browser-only.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build && node ../../scripts/strip-local-corpus.mjs dist",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "dependencies": {
+    "@filter-enginez/brand": "workspace:*",
+    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/examples-shared": "workspace:*",
+    "@filter-enginez/mock-data": "0.0.1",
+    "@filter-enginez/reactive-signals": "0.0.1",
+    "@filter-enginez/ui-styles": "workspace:*",
+    "@filter-enginez/url-state-router": "0.0.1",
+    "@filter-enginez/vue-signals": "0.0.1",
+    "leaflet": "1.9.4",
+    "vue": "^3.5.40",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.1",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.11",
+    "eslint-plugin-vue": "^10.9.2",
+    "vite": "^8.1.5",
+    "vue-eslint-parser": "^10.4.1",
+    "vue-tsc": "^3.3.7"
+  }
+}

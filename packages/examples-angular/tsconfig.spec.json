@@ -1,0 +1,18 @@
+// The UNIT-TEST program, driven by `@angular/build:unit-test` with the **Vitest** runner (`ng test`).
+//
+// Angular 22's test builder can run on Vitest, which is a happy accident for this repo: the root suite
+// is already Vitest 4, so the Angular vertical's component tests use the same assertion library,
+// mocking API and reporter as everything else — no Karma, no Jasmine, no second vocabulary. They still
+// run through the Angular builder rather than the root `vitest.config.ts`, because component tests need
+// the AOT template compile step first (the same reason `examples-vue` and `examples-sveltekit` self-test
+// through their own configs).
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./dist/out-tsc/spec",
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts"]
+}

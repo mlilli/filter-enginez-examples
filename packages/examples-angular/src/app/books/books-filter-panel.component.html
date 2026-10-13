@@ -1,0 +1,166 @@
+<!--
+	The panel's markup, in its own file rather than inline: at ~130 lines of template it earns the
+	separation, and `angular-eslint`'s template a11y rules lint an `.html` file directly (an inline
+	template goes through the `processInlineTemplates` processor instead). Every class here comes from
+	`@filter-enginez/ui-styles`; this app authors no panel CSS of its own.
+-->
+<div class="fe-books-panel">
+	@if (isHeaderVisible()) {
+		<div class="fe-books-panel__header">
+			<h2 class="fe-books-panel__title">Filters</h2>
+		</div>
+	}
+
+	<div
+		class="fe-filter-panel__scroller fe-books-panel__body"
+		[class.fe-books-panel__body--busy]="isEngineBusy()"
+		[attr.aria-busy]="isEngineBusy()"
+	>
+		<section>
+			<h3 class="fe-books-section-label">Genre</h3>
+			<fe-chip-toggle-group
+				[options]="genres"
+				[selected]="selectedGenres()"
+				[exclusion]="genreExclusion()"
+				[formatLabel]="formatLabel"
+				(toggled)="toggleChip('genre', 'genre', selectedGenres(), $event)"
+			/>
+		</section>
+
+		<section>
+			<h3 class="fe-books-section-label">Genre super-groups</h3>
+			<fe-chip-toggle-group
+				[options]="superGroupKeys"
+				[selected]="selectedGroupKeys()"
+				[exclusion]="groupExclusion()"
+				(toggled)="toggleSuperGroup($event)"
+			/>
+		</section>
+
+		<section>
+			<h3 class="fe-books-section-label">Format</h3>
+			<fe-chip-toggle-group
+				[options]="formats"
+				[selected]="selectedFormats()"
+				[exclusion]="formatExclusion()"
+				[formatLabel]="formatLabel"
+				(toggled)="toggleChip('format', 'format', selectedFormats(), $event)"
+			/>
+		</section>
+
+		<section>
+			<h3 class="fe-books-section-label">Language</h3>
+			<fe-chip-toggle-group
+				[options]="languages"
+				[selected]="selectedLanguages()"
+				[exclusion]="languageExclusion()"
+				(toggled)="toggleChip('language', 'language', selectedLanguages(), $event)"
+			/>
+		</section>
+
+		<fe-range-slider
+			label="Publication year"
+			ariaLabel="Publication-year range"
+			[baseline]="yearBaseline"
+			[available]="yearAvailable()"
+			[histogram]="yearHistogram()"
+			[step]="1"
+			[valueMin]="yearSelected().min"
+			[valueMax]="yearSelected().max"
+			[format]="formatYear"
+			[parse]="parseNumber"
+			(rangeChange)="commitRange('publication-year', 'publicationYear', $event)"
+		/>
+
+		<fe-range-slider
+			label="Rating"
+			ariaLabel="Average-rating range"
+			[baseline]="ratingBaseline"
+			[available]="ratingAvailable()"
+			[histogram]="ratingHistogram()"
+			[step]="0.1"
+			[valueMin]="ratingSelected().min"
+			[valueMax]="ratingSelected().max"
+			[format]="formatRating"
+			[parse]="parseRating"
+			(rangeChange)="commitRange('rating', 'averageRating', $event)"
+		/>
+
+		<fe-range-slider
+			label="Page count"
+			ariaLabel="Page-count range"
+			[baseline]="pageBaseline"
+			[available]="pageAvailable()"
+			[histogram]="pageHistogram()"
+			[step]="10"
+			[valueMin]="pageSelected().min"
+			[valueMax]="pageSelected().max"
+			[format]="formatPages"
+			[parse]="parsePages"
+			(rangeChange)="commitRange('page-count', 'pageCount', $event)"
+		/>
+
+		<section class="fe-books-toggles">
+			<fe-checkbox-control
+				label="In print only"
+				[isChecked]="isInPrintChecked()"
+				[isDisabled]="isInPrintDisabled()"
+				(toggled)="commitBoolean('in-print', 'isInPrint', $event)"
+			/>
+			<fe-checkbox-control
+				label="Has audiobook"
+				[isChecked]="isAudiobookChecked()"
+				[isDisabled]="isAudiobookDisabled()"
+				(toggled)="commitBoolean('has-audiobook', 'hasAudiobook', $event)"
+			/>
+			<fe-checkbox-control
+				label="Rated only"
+				[isChecked]="isRatedChecked()"
+				[isDisabled]="isRatedDisabled()"
+				(toggled)="commitRated($event)"
+			/>
+			<fe-checkbox-control
+				label="Editor's picks (top-rated)"
+				[isChecked]="isEditorsPicksChecked()"
+				[isDisabled]="isEditorsPicksDisabled()"
+				(toggled)="commitEditorsPicks($event)"
+			/>
+		</section>
+
+		<section>
+			<h3 class="fe-books-section-label">Description search</h3>
+			<fe-search-input
+				placeholder="dystopia, seafaring, coming of age..."
+				ariaLabel="Search descriptions"
+				[value]="descriptionText()"
+				(valueChange)="descriptionText.set($event)"
+				(commit)="commitDescription($event)"
+			/>
+		</section>
+
+		<section>
+			<h3 class="fe-books-section-label">Author (typo-tolerant)</h3>
+			<fe-search-input
+				placeholder="a surname or full name..."
+				ariaLabel="Search authors with typo tolerance"
+				[value]="authorText()"
+				(valueChange)="authorText.set($event)"
+				(commit)="commitAuthor($event)"
+			/>
+		</section>
+
+		<section>
+			<h3 class="fe-books-section-label">ISBN pattern (regex)</h3>
+			<fe-search-input
+				placeholder="e.g. ^9780"
+				ariaLabel="Filter by ISBN-13 pattern (regular expression)"
+				[value]="isbnText()"
+				(valueChange)="isbnText.set($event)"
+				(commit)="commitIsbn($event)"
+			/>
+			@if (isIsbnInvalid()) {
+				<p class="fe-books-regex-error" role="alert">Invalid regular expression</p>
+			}
+		</section>
+	</div>
+</div>

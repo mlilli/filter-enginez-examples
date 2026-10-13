@@ -1,0 +1,52 @@
+{
+  "name": "@filter-enginez/examples-react-plain",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — demo app: React + react-signals (+ url-state-router), no Redux. Consumes the same shared presentation (@filter-enginez/react-ui) + wine orchestration (@filter-enginez/examples-shared/wine) as the RTK app, proving the engine is state-library-agnostic.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:fresh": "vite --force",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build && node ../../scripts/strip-local-corpus.mjs dist",
+    "preview": "vite preview",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "dependencies": {
+    "@filter-enginez/brand": "workspace:*",
+    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/examples-shared": "workspace:*",
+    "@filter-enginez/mock-data": "0.0.1",
+    "@filter-enginez/react-signals": "0.0.1",
+    "@filter-enginez/react-ui": "workspace:*",
+    "@filter-enginez/reactive-signals": "0.0.1",
+    "@filter-enginez/ui-styles": "workspace:*",
+    "@filter-enginez/url-state-router": "0.0.1",
+    "leaflet": "1.9.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router": "^8.3.0"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.1",
+    "@tailwindcss/vite": "^4.3.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "msw": "^2.14.6",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.1.5"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

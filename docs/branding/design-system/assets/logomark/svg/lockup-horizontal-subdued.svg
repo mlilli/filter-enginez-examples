@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 120" width="700" height="120">
+  
+  <rect width="700" height="120" fill="transparent"></rect>
+  <text x="24" y="80" font-family="Orbitron, sans-serif" font-weight="800" font-size="64" letter-spacing="9" fill="#1D1B19">FILTER ENGINE</text>
+  <g transform="translate(620, 22) scale(0.56)"><path d="M 71.00 13.63 A 42 42 0 0 1 29.00 86.37" fill="none" stroke="#3A3731" stroke-width="1.8" stroke-linecap="round"></path>
+          <path d="M 64.50 75.11 A 29 29 0 0 1 35.50 24.89" fill="none" stroke="#3A3731" stroke-width="1.8" stroke-linecap="round"></path>
+          <path d="M 34.00 50.00 A 16 16 0 0 1 66.00 50.00" fill="none" stroke="#56524A" stroke-width="2" stroke-linecap="round"></path><g>
+    <path d="M 21 14 L 86 14 L 86 24 L 22 24 L 14 24 L 14 21 Z" fill="none" stroke="#56524A" stroke-width="1.8"></path>
+    <path d="M 86 24 L 86 34 L 23 76 L 22 76 L 22 69 L 88 24 Z" fill="none" stroke="#56524A" stroke-width="1.8"></path>
+    <path d="M 14 76 L 78 76 L 86 76 L 86 76 L 76 86 L 14 86 Z" fill="none" stroke="#56524A" stroke-width="1.8"></path>
+  </g><circle cx="50" cy="50" r="3.2" fill="none" stroke="#56524A" stroke-width="1.4"></circle></g>
+</svg>

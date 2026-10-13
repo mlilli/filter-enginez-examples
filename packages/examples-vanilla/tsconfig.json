@@ -1,0 +1,22 @@
+// noEmit Vite + plain-TypeScript app config, type-checked via `tsc --noEmit`. Bundler resolution (Vite
+// owns the build); references the sibling packages' composite build configs so cross-package imports
+// resolve to their built `.d.ts`. No `jsx` option and no framework plugin — this vertical is deliberately
+// framework-less, so the only "components" are functions that build DOM nodes.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "composite": false,
+    "noEmit": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*", "env.d.ts"],
+  "exclude": ["dist", "node_modules"],
+  "references": [{ "path": "../brand/tsconfig.build.json" }, { "path": "../examples-shared/tsconfig.build.json" }]
+}

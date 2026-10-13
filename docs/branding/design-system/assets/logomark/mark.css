@@ -1,0 +1,90 @@
+/* Canonical mark + lockup CSS — same vocabulary across the system */
+.fez-wordmark-text {
+	font-family: var(--font-display);
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	line-height: 1;
+}
+.fez-lockup-h {
+	display: inline-flex;
+	align-items: center;
+	font-family: var(--font-display);
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	line-height: 1;
+	color: var(--gray-11);
+}
+.fez-lockup-h .fez-wordmark-text {
+	color: inherit;
+}
+.fez-lockup-h.dark {
+	color: #1d1b19;
+}
+
+.fez-mark-slot {
+	display: inline-flex;
+	align-items: center;
+}
+
+.fez-lockup-beside {
+	display: inline-flex;
+	align-items: center;
+	gap: 16px;
+	color: var(--gray-11);
+}
+.fez-lockup-beside.dark {
+	color: #1d1b19;
+}
+
+.fez-lockup-stacked {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	color: var(--gray-11);
+}
+.fez-lockup-stacked.dark {
+	color: #1d1b19;
+}
+
+/* Primary/subdued Z when used as a text glyph in the beside lockup */
+.fez-z-primary {
+	color: var(--accent);
+	text-shadow:
+		0 0 4px rgba(103, 232, 249, 0.5),
+		0 0 14px rgba(34, 211, 238, 0.45);
+}
+.fez-z-subdued {
+	color: #56524a;
+	text-shadow: none;
+}
+
+.fez-mark-circle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	overflow: hidden;
+}
+
+/* The locked breathing animation, exported for use anywhere */
+.fez-synapse-breathe {
+	animation: fezBreathe 2.4s ease-in-out infinite;
+	transform-origin: 50px 50px;
+}
+@keyframes fezBreathe {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
+	50% {
+		transform: scale(1.25);
+		opacity: 1;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.fez-synapse-breathe {
+		animation: none;
+		opacity: 0.85;
+	}
+}

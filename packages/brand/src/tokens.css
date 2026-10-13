@@ -1,0 +1,358 @@
+/* ============================================================================
+   Filter Engine — Design Tokens
+   Single source of truth: grayscale ramp, accent ramp, status colors,
+   type scale, spacing, radii, motion. Dark-mode only.
+   ============================================================================ */
+
+/* ---- Fonts — self-hosted variable TTFs in fonts/ ---- */
+@font-face {
+	font-family: 'Inter';
+	src: url('fonts/inter/Inter-VariableFont.ttf') format('truetype-variations');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('fonts/jetbrains-mono/JetBrainsMono-VariableFont.ttf') format('truetype-variations');
+	font-weight: 100 800;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Orbitron';
+	src: url('fonts/orbitron/Orbitron-VariableFont_wght.ttf') format('truetype-variations');
+	font-weight: 400 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+:root {
+	/* ========================================================================
+     COLOR — Grayscale ramp (warm/clay variant)
+     Subtle hue 35° @ ~3% chroma. Warm-leaning so cyan accent gets
+     temperature contrast. Perceptually uniform (OKLCH).
+     ======================================================================== */
+	--gray-0: #0b0a09; /* App background — deepest surface */
+	--gray-1: #151412; /* Primary surface — panels, cards */
+	--gray-2: #1d1b19; /* Elevated surface — modals, popovers */
+	--gray-3: #26241f; /* Hover surface, alt row bg */
+	--gray-4: #312e29; /* Subtle borders, dividers */
+	--gray-5: #413e37; /* Default borders, disabled bg */
+	--gray-6: #56524a; /* Disabled text, very-secondary */
+	--gray-7: #747066; /* Tertiary text, placeholders */
+	--gray-8: #969085; /* Secondary text, icons */
+	--gray-9: #bcb6aa; /* Primary text on dark surfaces */
+	--gray-10: #dcd7cb; /* High-emphasis text, headings */
+	--gray-11: #f1ecdf; /* Hero text, brand elements */
+
+	/* ========================================================================
+     COLOR — Accent (Electric Cyan, the synapse glow)
+     ======================================================================== */
+	--accent-soft: #0e4a57; /* Backgrounds, subtle tints */
+	--accent-dim: #155e6e; /* Muted accent states */
+	--accent: #22d3ee; /* PRIMARY — links, focus, selected, CTAs */
+	--accent-strong: #06b6d4; /* Pressed states */
+	--accent-glow: #67e8f9; /* Hover, focus rings, halos */
+	--accent-haze: rgba(34, 211, 238, 0.18); /* For glow filters */
+
+	/* ========================================================================
+     COLOR — Engine accent (paired-accent role · phosphor amber-orange)
+     The cyan/phosphor pairing — cyan = DATA / IDENTITY / WHAT;
+     phosphor = ACTIVITY / COMPUTATION / WHEN. Use phosphor for
+     engine-state moments: time-travel cursor, computing indicators,
+     freshly-fired badges, undo/redo press feedback, "the engine is doing
+     work right now" signals. Never for data references or primary CTAs.
+     ======================================================================== */
+	--engine-soft: #321f11; /* Backgrounds, subtle tints */
+	--engine-dim: #7c2d12; /* Muted engine states */
+	--engine: #f97316; /* PRIMARY engine accent */
+	--engine-strong: #ea580c; /* Pressed/active states */
+	--engine-glow: #fed7aa; /* Glow halo */
+	--engine-burnt: #c2410c; /* Deep states */
+	--engine-haze: rgba(249, 115, 22, 0.18);
+
+	/* ========================================================================
+     COLOR — Status (used semantically only)
+     ======================================================================== */
+	--danger-soft: #4a1220;
+	--danger: #f43f5e;
+	--danger-strong: #e11d48;
+
+	--warn-soft: #4a2e08;
+	--warn: #f59e0b;
+	--warn-strong: #d97706;
+
+	--success-soft: #07382a;
+	--success: #10b981;
+	--success-strong: #059669;
+
+	--info-soft: #0b3a52;
+	--info: #0ea5e9;
+	--info-strong: #0284c7;
+
+	/* ========================================================================
+     TYPOGRAPHY
+     ======================================================================== */
+	--font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+	--font-display: 'Orbitron', 'Inter', sans-serif;
+
+	--text-xs: 12px;
+	--text-sm: 14px;
+	--text-base: 16px;
+	--text-lg: 18px;
+	--text-xl: 22px;
+	--text-2xl: 28px;
+	--text-3xl: 38px;
+	--text-4xl: 56px;
+
+	--leading-tight: 1.12;
+	--leading-snug: 1.25;
+	--leading-normal: 1.5;
+	--leading-relaxed: 1.6;
+
+	--tracking-tight: -0.02em;
+	--tracking-normal: 0;
+	--tracking-wide: 0.04em;
+	--tracking-display: 0.08em; /* Orbitron */
+
+	/* ========================================================================
+     SPACING — 4px base
+     ======================================================================== */
+	--space-0: 0;
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-8: 32px;
+	--space-10: 40px;
+	--space-12: 48px;
+	--space-16: 64px;
+	--space-20: 80px;
+	--space-24: 96px;
+
+	/* ========================================================================
+     RADII
+     ======================================================================== */
+	--radius-xs: 2px;
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 10px;
+	--radius-xl: 14px;
+	--radius-2xl: 20px;
+	--radius-full: 9999px;
+
+	/* ========================================================================
+     ELEVATION — shadows tuned for dark UI
+     ======================================================================== */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.5);
+	--shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.75), 0 4px 12px rgba(0, 0, 0, 0.55);
+	--shadow-glow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-haze);
+	--shadow-focus-ring: 0 0 0 2px var(--gray-0), 0 0 0 4px var(--accent-glow);
+
+	/* ========================================================================
+     MOTION
+     ======================================================================== */
+	--ease-out: cubic-bezier(0.32, 0.72, 0, 1); /* default — Apple-ish */
+	--ease-in-out: cubic-bezier(0.85, 0, 0.15, 1); /* both-ends-at-rest */
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot */
+
+	--dur-fast: 150ms; /* hover, focus, color */
+	--dur-mid: 300ms; /* state transitions */
+	--dur-slow: 600ms; /* narrative moments */
+	--dur-vslow: 800ms;
+
+	/* ========================================================================
+     LAYOUT
+     ======================================================================== */
+	--container-max: 1440px;
+	--sidebar-w: 320px;
+	--devtools-w: 400px;
+	--header-h: 56px;
+}
+
+/* ============================================================================
+   SEMANTIC ELEMENT STYLES
+   ============================================================================
+
+   Layered, and the layer is load-bearing — these are DEFAULTS, and a default
+   that cannot be overridden by a utility class is not a default.
+
+   Unlayered, these rules would beat every Tailwind utility in the two React
+   apps, no matter how specific the class: per CSS Cascade 5, unlayered author
+   styles outrank every cascade layer, and Tailwind emits its utilities into
+   `@layer utilities`. So `h3 { font-size: var(--text-lg) }` here would silently
+   win over `<h3 className="text-xs">` there, rendering every React
+   filter-section header at 18px against the 12px the design system specifies.
+   The four non-Tailwind verticals would be unaffected, because they label those
+   headings with `.fe-*` CLASSES, which outrank a bare element selector on
+   specificity — so the symptom looks like a sizing issue in the React apps
+   rather than a brand-sheet issue.
+
+   Only the element defaults belong in here. The `:root` token block above and
+   the `.t-*` utility classes below stay unlayered on purpose: tokens are custom
+   properties competing only with each other, and the `.t-*` classes are opt-in
+   overrides that should keep beating these defaults.
+   ============================================================================ */
+@layer base {
+	html,
+	body {
+		background: var(--gray-0);
+		color: var(--gray-9);
+		/* Tells the UA to render NATIVE controls dark: checkbox and radio chrome, scrollbars, select
+		 * dropdowns, spinners, the caret. Without it a checkbox sits on a white box in an otherwise
+		 * dark panel — the accent color applies only to the CHECKED state, because the unchecked
+		 * background is UA chrome and the UA would still treat the page as light.
+		 *
+		 * It belongs here rather than in any one app's stylesheet: it is a property of the dark brand
+		 * surface, so every vertical gets dark form controls from this one declaration. */
+		color-scheme: dark;
+		font-family: var(--font-sans);
+		font-size: var(--text-base);
+		line-height: var(--leading-normal);
+		font-feature-settings: 'ss01', 'cv11'; /* Inter stylistic */
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		color: var(--gray-10);
+		font-weight: 600;
+		line-height: var(--leading-tight);
+		letter-spacing: var(--tracking-tight);
+		margin: 0;
+	}
+	h1 {
+		font-size: var(--text-2xl);
+	}
+	h2 {
+		font-size: var(--text-xl);
+	}
+	h3 {
+		font-size: var(--text-lg);
+	}
+	h4 {
+		font-size: var(--text-base);
+		font-weight: 600;
+	}
+}
+
+.t-display {
+	font-family: var(--font-display);
+	font-weight: 700;
+	letter-spacing: var(--tracking-display);
+	text-transform: uppercase;
+}
+.t-hero {
+	font-family: var(--font-display);
+	font-size: var(--text-3xl);
+	font-weight: 700;
+	letter-spacing: var(--tracking-display);
+	color: var(--gray-11);
+}
+.t-wordmark {
+	font-family: var(--font-display);
+	font-size: var(--text-4xl);
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	color: var(--gray-11);
+}
+.t-mono {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+.t-xs {
+	font-size: var(--text-xs);
+}
+.t-sm {
+	font-size: var(--text-sm);
+}
+.t-base {
+	font-size: var(--text-base);
+}
+.t-lg {
+	font-size: var(--text-lg);
+}
+.t-muted {
+	color: var(--gray-8);
+}
+.t-dim {
+	color: var(--gray-7);
+}
+
+a {
+	color: var(--accent);
+	text-decoration: none;
+}
+a:hover {
+	color: var(--accent-glow);
+}
+
+code,
+pre {
+	font-family: var(--font-mono);
+	font-size: 0.92em;
+	background: var(--gray-2);
+	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+	color: var(--gray-10);
+}
+
+::selection {
+	background: var(--accent-haze);
+	color: var(--gray-11);
+}
+
+/* Checkboxes and radios are clickable, so they get the cursor that says so.
+ *
+ * Every one of them in this repo sits inside a `<label>` that already sets `cursor: pointer` — and it
+ * does not reach the control, because the UA stylesheet puts `cursor: default` on form elements and a
+ * UA rule on the element itself beats an inherited value. Without this rule a filter row's LABEL
+ * offers a pointer and its BOX an arrow, which reads as "the text is the control and the box is
+ * decoration" — the exact opposite of the truth.
+ *
+ * Here rather than in `ui-styles` because it is a normalization, not a component: it belongs beside
+ * the `:focus-visible` ring and the link colors, which are global affordances for the same reason.
+ * Element selectors, so a control gets it without opting in — a per-component `cursor` line is a line
+ * the next component will forget. */
+input[type='checkbox'],
+input[type='radio'] {
+	cursor: pointer;
+}
+
+/* Disabled beats clickable. Predictive disable turns filter checkboxes off routinely, and a pointer
+ * over a control that cannot be pressed is a promise the UI does not keep. */
+input[type='checkbox']:disabled,
+input[type='radio']:disabled {
+	cursor: not-allowed;
+}
+
+:focus-visible {
+	outline: none;
+	box-shadow: var(--shadow-focus-ring);
+	border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
+}

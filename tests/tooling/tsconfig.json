@@ -1,0 +1,17 @@
+{
+  // Mirrors `tests/e2e/tsconfig.json`: the repo's convention is that each root-level
+  // test directory owns its program, so ESLint's `projectService` can resolve these
+  // files and typed lint rules actually run on them.
+  //
+  // `types: ["node"]` is the whole point of a separate config. These tests read the
+  // filesystem to assert build-configuration invariants, which is exactly why they
+  // cannot live inside the package they describe — `examples-shared` is browser-only,
+  // and granting it Node types to host one test would silently license `node:fs`
+  // imports throughout browser source.
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}

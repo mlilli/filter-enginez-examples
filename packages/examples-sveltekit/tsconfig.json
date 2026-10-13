@@ -1,0 +1,15 @@
+{
+  "//": "SvelteKit apps extend the generated .svelte-kit/tsconfig.json (paths, rootDirs, $lib alias). Run `svelte-kit sync` (the `prepare` script) once before typecheck so it exists. Unlike the library packages (nodenext + composite), a SvelteKit app uses bundler resolution and svelte-check for typechecking.",
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true
+  }
+}
