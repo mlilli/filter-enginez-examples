@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type ApplyConfigResult } from './applyConfig.js';
+import { datasetIds, getDataset } from './datasets.js';
 import { handleRequest } from './requestHandler.js';
 
 /** POST body for a books filter with no rules (matches all). */
@@ -49,21 +50,49 @@ describe('handleRequest', () => {
 		expect(body.matched).toBe(body.total);
 	});
 
-	it('ships the full corpus on GET /corpus/:dataset', async () => {
-		const response = await handleRequest('GET', '/corpus/books', undefined);
-		const body = response.body as { dataset: string; records: readonly unknown[] };
+	it.each(datasetIds())('ships the full %s corpus on GET /corpus/<dataset>.json', async (datasetId) => {
+		const response = await handleRequest('GET', `/corpus/${datasetId}.json`, undefined);
+		const body = response.body as { dataset: string; label: string; records: readonly unknown[] };
 
 		expect(response.status).toBe(200);
-		expect(body.dataset).toBe('books');
-		expect(body.records.length).toBeGreaterThan(0);
+		expect(body.dataset).toBe(datasetId);
+		expect(body.label).toBe(getDataset(datasetId).label);
+		expect(body.records).toBe(getDataset(datasetId).sourceData);
 	});
 
-	it('returns 404 on GET /corpus/:dataset for an unknown dataset', async () => {
-		const response = await handleRequest('GET', '/corpus/nope', undefined);
+	it('returns 404 with the registered ids on GET /corpus/<dataset>.json for an unknown dataset', async () => {
+		const response = await handleRequest('GET', '/corpus/nope.json', undefined);
 		const body = response.body as { availableIds: readonly string[] };
 
 		expect(response.status).toBe(404);
-		expect(body.availableIds.length).toBeGreaterThan(0);
+		expect(body.availableIds).toEqual(datasetIds());
+	});
+
+	it('decodes a percent-encoded dataset id in the corpus path', async () => {
+		const response = await handleRequest('GET', '/corpus/%62%6F%6F%6B%73.json', undefined);
+
+		expect(response.status).toBe(200);
+		expect(response.body).toMatchObject({ dataset: 'books' });
+	});
+
+	it.each([
+		['the extension is missing', '/corpus/books'],
+		['the extension is another one', '/corpus/books.csv'],
+		['the dataset id is empty', '/corpus/.json'],
+	])('has no corpus route when %s', async (_label, path) => {
+		// One URL shape: the deployed corpus is a static FILE named `<dataset>.json`, so a path the
+		// static assets could not answer must not answer here either.
+		const response = await handleRequest('GET', path, undefined);
+
+		expect(response.status).toBe(404);
+		expect(response.body).toEqual({ error: `No route for GET ${path}` });
+	});
+
+	it('does not serve the corpus to a POST', async () => {
+		const response = await handleRequest('POST', '/corpus/books.json', undefined);
+
+		expect(response.status).toBe(404);
+		expect(response.body).toEqual({ error: 'No route for POST /corpus/books.json' });
 	});
 
 	it('returns full result indices on POST /query', async () => {

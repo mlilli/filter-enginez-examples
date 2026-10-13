@@ -6,7 +6,8 @@
  * The package's primary shape is still a runnable Node app (the `tsx src/server.ts` HTTP endpoint +
  * the `tsx src/cli.ts` shell). This barrel additionally exposes the *pure* filtering brains so another
  * Node host can reuse them in-process — specifically the SvelteKit vertical, whose `+server.ts`
- * endpoints run `applyConfigQuery` / `getDataset` directly rather than proxying to a separate process.
+ * endpoints run `applyConfigQuery` / `getDataset` directly rather than proxying to a separate process,
+ * and whose prerendered corpus routes send the same `corpusDocument` this package's API sends.
  * Everything here is Node-safe: the mock-data corpora are pulled through their per-dataset subpaths
  * (no MSW / `localStorage`), so importing this barrel never drags a browser global.
  *
@@ -22,6 +23,14 @@ export {
 	type QueryFieldMeta,
 	type QueryResult,
 } from './applyQuery.js';
+export {
+	CORPUS_FILE_EXTENSION,
+	CORPUS_PATH_PREFIX,
+	corpusDocument,
+	type CorpusDocument,
+	corpusFileName,
+	corpusPath,
+} from './corpusDocument.js';
 export {
 	type DatasetDescriptor,
 	datasetIds,

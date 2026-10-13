@@ -14,7 +14,11 @@
     "binding": "ASSETS",
     // Client-side routing (React Router's browser history): any other path gets index.html.
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    // The Worker answers `/api/*`, except `/api/corpus/*`: each dataset's corpus is a static file there
+    // (`<dataset>.json`, written by the deploy job from examples-server's own route), so serving it
+    // costs no Worker CPU. The Workers Free plan allows 10 ms per request, less than serializing a
+    // corpus takes.
+    "run_worker_first": ["/api/*", "!/api/corpus/*"]
   },
   "routes": [{ "pattern": "react-rtk.filterenginez.com", "custom_domain": true }],
   // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.

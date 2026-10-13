@@ -8,8 +8,8 @@
  *
  * `asyncEngine` being present is the load-bearing assertion — every predictive-disable read in the
  * shared wine bundle branches on it. And unlike books, wine defaults its own `dataset`, so a dedicated
- * assertion pins that the corpus fetch targets `/corpus/wine`: a boot that dropped the default would
- * silently request the books corpus and filter wine rules against book records.
+ * assertion pins that the corpus fetch targets `/corpus/wine.json`: a boot that dropped the default
+ * would silently request the books corpus and filter wine rules against book records.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -48,7 +48,7 @@ describe('bootWineServerEngine', () => {
 		expect(engine.asyncEngine).toBeDefined();
 	});
 
-	it('defaults the dataset to wine (fetches /corpus/wine)', async () => {
+	it('defaults the dataset to wine (fetches /corpus/wine.json)', async () => {
 		// The one thing that differs from the books boot: `bootWineServerEngine` pre-sets `dataset: 'wine'`
 		// so a caller only supplies `baseUrl`. A regression that dropped the default would fetch the wrong
 		// corpus and only fail deep inside the panel.
@@ -56,7 +56,7 @@ describe('bootWineServerEngine', () => {
 
 		const calls = vi.mocked(globalThis.fetch).mock.calls.map(([url]) => url as string);
 
-		expect(calls.some((url) => url.includes('/corpus/wine'))).toBe(true);
+		expect(calls).toContain('/wine-server/corpus/wine.json');
 		expect(calls.every((url) => url.startsWith('/wine-server'))).toBe(true);
 	});
 
@@ -67,6 +67,6 @@ describe('bootWineServerEngine', () => {
 
 		const calls = vi.mocked(globalThis.fetch).mock.calls.map(([url]) => url as string);
 
-		expect(calls.some((url) => url.includes('/corpus/books'))).toBe(true);
+		expect(calls).toContain('/wine-server/corpus/books.json');
 	});
 });

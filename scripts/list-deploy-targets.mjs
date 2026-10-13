@@ -9,7 +9,9 @@
  * The `gates` job in `.github/workflows/ci.yml` runs this on every event, so a malformed config fails
  * a pull request rather than the deploy after it merges; the `deploy` job reads the output as its
  * matrix. Each entry carries only what a deploy step needs — the package to build, the config to
- * deploy, the directory to check for the local-only corpus, and the hosts for the job's name.
+ * deploy, the directory to check for the local-only corpus, the hosts for the job's name, and, for a
+ * site whose `/api` is examples-server's Worker, the directory to write the corpus files into
+ * (`apiCorpus`; an empty string for every other site, which the step reads as "nothing to write").
  *
  * Fails when it finds no targets: an empty matrix would make the deploy job a silent no-op.
  *
@@ -21,6 +23,7 @@ import { appendFileSync } from 'node:fs';
 import { listDeployTargets } from './lib/deploy-targets.mjs';
 
 const targets = listDeployTargets().map((target) => ({
+	apiCorpus: target.apiCorpusDirectory ?? '',
 	assets: target.assetsDirectory,
 	config: target.configPath,
 	hosts: target.hosts.join(', '),

@@ -28,6 +28,11 @@ export interface WranglerConfig {
 
 /** One deployable package. */
 export interface DeployTarget {
+	/**
+	 * For a target whose `main` is {@link EXAMPLES_SERVER_WORKER_ENTRY}: the directory, relative to the
+	 * repository root, the deploy job writes the corpus files into. `null` for every other target.
+	 */
+	readonly apiCorpusDirectory: string | null;
 	/** The static-assets directory, relative to the repository root. */
 	readonly assetsDirectory: string;
 	/** The parsed config. */
@@ -44,6 +49,12 @@ export interface DeployTarget {
 
 /** The Wrangler configuration file a deployable package carries, at its root. */
 export const WRANGLER_CONFIG_FILE: 'wrangler.jsonc';
+
+/** The examples-server Worker script, relative to the repository root. */
+export const EXAMPLES_SERVER_WORKER_ENTRY: 'packages/examples-server/src/cloudflareWorker.ts';
+
+/** Where, inside an API-Worker target's assets directory, the deploy job writes the corpus files. */
+export const API_CORPUS_ASSETS_SUBDIRECTORY: 'api/corpus';
 
 /**
  * Parse JSON with comments and trailing commas.

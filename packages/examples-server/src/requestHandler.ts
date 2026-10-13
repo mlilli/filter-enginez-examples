@@ -9,7 +9,8 @@ import { type FilterBundleQuery, type FilterEngineConfig } from '@filter-enginez
 
 import { applyConfig } from './applyConfig.js';
 import { applyConfigQuery } from './applyQuery.js';
-import { getDataset, listDatasets, UnknownDatasetError } from './datasets.js';
+import { corpusDocument, datasetIdFromCorpusPath } from './corpusDocument.js';
+import { listDatasets, UnknownDatasetError } from './datasets.js';
 
 /** A framework-agnostic response: an HTTP status + a JSON-serializable body. */
 export interface HandlerResponse {
@@ -60,20 +61,19 @@ export async function handleRequest(method: string, path: string, body: string |
 	if (method === 'GET' && path === '/datasets') {
 		return { body: { datasets: listDatasets() }, status: 200 };
 	}
-	// `/corpus/:dataset` ships the full corpus once, so a server-backed browser engine can hold a
+	// `/corpus/<dataset>.json` ships the full corpus once, so a server-backed browser engine can hold a
 	// resident copy (for slider baselines, chip vocabularies, and index→record joins) exactly as the
 	// worker tier ships its corpus to the main thread at boot. The server stays the filtering
-	// authority — this is the data, not the decisions.
-	if (method === 'GET' && path.startsWith('/corpus/')) {
-		const datasetId = decodeURIComponent(path.slice('/corpus/'.length));
+	// authority — this is the data, not the decisions. Deployed, the same path is a static file
+	// written from this route's body (`corpusFiles.ts`), so the Worker never serializes a corpus.
+	const corpusDatasetId = method === 'GET' ? datasetIdFromCorpusPath(path) : null;
 
+	if (corpusDatasetId !== null) {
 		try {
-			const dataset = getDataset(datasetId);
-
-			return { body: { dataset: dataset.id, label: dataset.label, records: dataset.sourceData }, status: 200 };
+			return { body: corpusDocument(corpusDatasetId), status: 200 };
 		} catch (error) {
 			/* v8 ignore start -- defensive: on this route the only call inside the `try` is the
-			   synchronous registry lookup `getDataset`, which throws UnknownDatasetError or nothing, so
+			   synchronous `corpusDocument`, whose registry lookup throws UnknownDatasetError or nothing, so
 			   this guard is unreachable. It is kept so any change to that try body cannot turn an
 			   unexpected throw into an unhandled rejection. The `/filter` route's identical-looking arm
 			   IS reachable (a bad config makes the engine throw) and is covered by test.

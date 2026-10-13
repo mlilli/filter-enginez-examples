@@ -53,12 +53,14 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	// WHY EXCLUDED (whole-file exception): `cli.ts`
 	// and `server.ts` invoke `main()` / `start()` at module top level and touch
 	// `process.argv` / stdout / a bound `node:http` port, so importing them runs the
-	// program (side effects) rather than testing it; `gen-sample.ts` writes a file on
-	// import. Their substantive logic lives in the pure, fully-unit-tested modules
-	// (`applyConfig`, `requestHandler`, `cliArgs`, `format`) — the shells are just wiring.
+	// program (side effects) rather than testing it; `gen-sample.ts` and `write-corpus.ts`
+	// write files on import. Their substantive logic lives in the pure, fully-unit-tested
+	// modules (`applyConfig`, `requestHandler`, `cliArgs`, `format`, `corpusFiles`) — the
+	// shells are just wiring.
 	'**/examples-server/src/cli.ts',
 	'**/examples-server/src/server.ts',
 	'**/examples-server/src/gen-sample.ts',
+	'**/examples-server/src/write-corpus.ts',
 	// Same category, browser side: `wine.worker.ts` calls `exposeFilterEngineWorker` at module
 	// load, so importing it registers a Comlink endpoint and needs a real worker `self`. It
 	// qualifies for the exception on the same terms as the shells above — because its

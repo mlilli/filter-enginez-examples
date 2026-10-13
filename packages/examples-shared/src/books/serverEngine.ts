@@ -20,10 +20,12 @@
  * mutation round-trips to the server's real engine, which owns the config → results decision.
  *
  * **The corpus copy.** Like the worker tier (which ships its corpus to the main thread once at boot),
- * this fetches the corpus once from `GET {baseUrl}/corpus/:dataset` so the resident mirror can turn
- * server-returned result INDICES back into records, and so the shared filter panel can derive slider
- * baselines + chip vocabularies. The server remains the filtering authority — this is the data, not
- * the decisions.
+ * this fetches the corpus once from `GET {baseUrl}/corpus/<dataset>.json` so the resident mirror can
+ * turn server-returned result INDICES back into records, and so the shared filter panel can derive
+ * slider baselines + chip vocabularies. The server remains the filtering authority — this is the data,
+ * not the decisions. Deployed, that URL is a static file in each app's build rather than a server
+ * response (the Workers Free plan allows 10 ms of CPU per request, far less than serializing a corpus
+ * takes); in development the same path is answered dynamically.
  *
  * **Two round-trips per settled filter change.** A mutation invalidates the mirror sync (one
  * `POST {baseUrl}/query` with an empty facet query → result indices only) and the books bundle
@@ -97,8 +99,8 @@ const EMPTY_DEVTOOLS: WireDevtoolsState = { canRedo: false, canUndo: false, curr
  * Generic over the record type, defaulting to `Book` so every existing books call site is unchanged.
  * The transport is structurally identical for any dataset — records are only ever indexed into and
  * handed back — so `/wine-server` boots the very same function with `<Wine>` + `dataset: 'wine'`. The
- * only per-dataset inputs are the `dataset` option (drives `/corpus/:dataset` + the `/query` body) and
- * that type parameter.
+ * only per-dataset inputs are the `dataset` option (drives `/corpus/<dataset>.json` + the `/query`
+ * body) and that type parameter.
  *
  * @typeParam T - The corpus record type (defaults to `Book`).
  * @param options - Transport configuration (base URL, dataset, debounce window).
@@ -181,7 +183,7 @@ export function createHttpFilterEngine<T = Book>(options: HttpFilterEngineOption
 
 	// Fetch (once) + return the resident corpus copy.
 	const ensureCorpus = async (): Promise<readonly T[]> => {
-		sourceData ??= (await getJson<{ records: readonly T[] }>(`/corpus/${dataset}`)).records;
+		sourceData ??= (await getJson<{ records: readonly T[] }>(`/corpus/${dataset}.json`)).records;
 
 		return sourceData;
 	};

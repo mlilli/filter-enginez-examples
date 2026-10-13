@@ -2,8 +2,9 @@
 	/**
 	 * `/wine-server` — the server-backed wine route: **visual + functional parity with `/wine`**, but the
 	 * browser never runs a filter. Every mutation round-trips to this app's own SvelteKit server tier
-	 * (`/wine-server/query` + `/wine-server/corpus/:dataset`), which runs the isomorphic engine
-	 * in-process — no separate `serve:api` process, no proxy.
+	 * (`/wine-server/query`), which runs the isomorphic engine in-process — no separate `serve:api`
+	 * process, no proxy. The corpus copy the client boots from, `/wine-server/corpus/wine.json`, is a
+	 * file prerendered at build time.
 	 *
 	 * Progressive enhancement in two layers, exactly as `/books-server`:
 	 *   1. The server `load` (`+page.server.ts`) filters in-process for the SSR first paint, and

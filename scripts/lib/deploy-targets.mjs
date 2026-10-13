@@ -25,6 +25,23 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const WRANGLER_CONFIG_FILE = 'wrangler.jsonc';
 
 /**
+ * The Worker script that answers an app's same-origin `/api/*` with examples-server's request handler,
+ * relative to the repository root. A target whose `main` resolves here is an API-Worker target.
+ */
+export const EXAMPLES_SERVER_WORKER_ENTRY = 'packages/examples-server/src/cloudflareWorker.ts';
+
+/**
+ * Where, inside an API-Worker target's assets directory, the deploy job writes the corpus files, so
+ * that `/api/corpus/<dataset>.json` is a static asset rather than a Worker response.
+ *
+ * @remarks
+ * Those sites run on the Workers Free plan, which allows 10 ms of CPU per request, and serializing a
+ * corpus of several megabytes takes several times that. Each such `wrangler.jsonc` excludes
+ * `/api/corpus/*` from `run_worker_first`, so the assets answer these paths before the Worker runs.
+ */
+export const API_CORPUS_ASSETS_SUBDIRECTORY = 'api/corpus';
+
+/**
  * Parse JSON with comments — the subset Wrangler's `.jsonc` files use: `//` and `/* *\/` comments and
  * trailing commas.
  *
@@ -93,6 +110,10 @@ export function parseJsonc(text) {
  * @property {string} configPath - The Wrangler config, relative to the repository root (POSIX separators).
  * @property {string} assetsDirectory - The static-assets directory, relative to the repository root.
  * @property {string[]} hosts - Every custom-domain host the Worker is served on.
+ * @property {string | null} apiCorpusDirectory - For a target whose `main` is
+ *   {@link EXAMPLES_SERVER_WORKER_ENTRY}: the directory, relative to the repository root, the deploy
+ *   job writes the corpus files into ({@link API_CORPUS_ASSETS_SUBDIRECTORY} inside the assets
+ *   directory). `null` for every other target.
  * @property {WranglerConfig} config - The parsed config.
  */
 
@@ -121,8 +142,13 @@ export function listDeployTargets(repoRoot = REPO_ROOT) {
 				throw new Error(`packages/${packageDirectory}/${WRANGLER_CONFIG_FILE} has no assets.directory`);
 			}
 
+			const assetsDirectory = toPosix(relative(repoRoot, join(packagePath, assets)));
+			const isApiWorker = config.main !== undefined
+				&& toPosix(relative(repoRoot, join(packagePath, config.main))) === EXAMPLES_SERVER_WORKER_ENTRY;
+
 			return {
-				assetsDirectory: toPosix(relative(repoRoot, join(packagePath, assets))),
+				apiCorpusDirectory: isApiWorker ? posix.join(assetsDirectory, API_CORPUS_ASSETS_SUBDIRECTORY) : null,
+				assetsDirectory,
 				config,
 				configPath: toPosix(relative(repoRoot, configFile)),
 				hosts: (config.routes ?? []).filter((route) => route.custom_domain === true).map((route) => route.pattern),

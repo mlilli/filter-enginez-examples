@@ -30,7 +30,8 @@
  */
 
 import { type FilterBundleQuery, type FilterEngineConfig, initializeBitmapAcceleration } from '@filter-enginez/core';
-import { applyConfigQuery, getDataset, type QueryResult } from '@filter-enginez/examples-server';
+import { applyConfigQuery, corpusDocument, getDataset, type QueryResult } from '@filter-enginez/examples-server';
+import { error, json } from '@sveltejs/kit';
 
 /** Memoized roaring-init attempt — the first query awaits it; subsequent queries resolve instantly. */
 let accelerationAttempt: Promise<void> | null = null;
@@ -42,8 +43,8 @@ let accelerationAttempt: Promise<void> | null = null;
  *   filters on its predicate path instead.
  */
 async function ensureAcceleration(): Promise<void> {
-	accelerationAttempt ??= initializeBitmapAcceleration().catch((error: unknown) => {
-		console.warn('[datasetFilterService] bitmap acceleration is unavailable on this runtime; filtering without it.', error);
+	accelerationAttempt ??= initializeBitmapAcceleration().catch((initializationError: unknown) => {
+		console.warn('[datasetFilterService] bitmap acceleration is unavailable on this runtime; filtering without it.', initializationError);
 	});
 
 	return accelerationAttempt;
@@ -75,8 +76,8 @@ export async function runDatasetQuery(input: RunQueryInput): Promise<QueryResult
 }
 
 /**
- * Return a dataset's full corpus (the resident copy the browser transport fetches once at boot, and
- * the source the no-JS SSR grid materializes from).
+ * Return a dataset's full corpus (the records the no-JS form's vocabularies are derived from; the
+ * browser's resident copy is the same array, sent by {@link corpusDocumentResponse}).
  *
  * @param dataset - Dataset id.
  * @returns The corpus records.
@@ -84,4 +85,25 @@ export async function runDatasetQuery(input: RunQueryInput): Promise<QueryResult
  */
 export function loadDatasetCorpus(dataset: string): readonly unknown[] {
 	return getDataset(dataset).sourceData;
+}
+
+/**
+ * Answer a corpus route (`…/corpus/<dataset>.json`) with the dataset's corpus document.
+ *
+ * @remarks
+ * The body is examples-server's own {@link corpusDocument}, serialized by SvelteKit's `json` (plain
+ * `JSON.stringify`), so the file this app prerenders is byte-identical to what examples-server's API
+ * sends for the same path. The corpus routes are prerendered, so in a production build this runs once
+ * per dataset at build time; under `pnpm dev` it answers every request.
+ *
+ * @param dataset - Dataset id, from the route's `[dataset]` param.
+ * @returns A JSON response holding `{ dataset, label, records }`.
+ * @throws A SvelteKit 404 `HttpError` when `dataset` is not registered.
+ */
+export function corpusDocumentResponse(dataset: string): Response {
+	try {
+		return json(corpusDocument(dataset));
+	} catch (caught) {
+		error(404, caught instanceof Error ? caught.message : `Unknown dataset "${dataset}".`);
+	}
 }

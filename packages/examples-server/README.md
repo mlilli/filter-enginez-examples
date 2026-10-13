@@ -28,7 +28,7 @@ pnpm --filter @filter-enginez/examples-server serve:api   # the same, from anywh
 
 ```bash
 curl localhost:8787/datasets
-curl localhost:8787/corpus/books        # the full corpus (for a server-backed browser engine)
+curl localhost:8787/corpus/books.json   # the full corpus (for a server-backed browser engine)
 curl -X POST localhost:8787/filter \
   -H 'content-type: application/json' \
   -d '{ "dataset": "books", "config": { "version": 1, "rules": [] }, "limit": 3 }'
@@ -38,12 +38,14 @@ curl -X POST localhost:8787/query \
   -d '{ "dataset": "books", "config": { "version": 1, "rules": [] }, "limit": 3 }'
 ```
 
-Routes: `GET /health`, `GET /datasets`, `GET /corpus/:dataset`, `POST /filter { dataset, config, limit? }`, and
+Routes: `GET /health`, `GET /datasets`, `GET /corpus/<dataset>.json`, `POST /filter { dataset, config, limit? }`, and
 `POST /query { dataset, config, limit?, query? }`.
 
-- **`GET /corpus/:dataset`** ships the full corpus once, so a server-backed browser engine can hold a resident copy (for
-  slider baselines, chip vocabularies, and index→record joins) exactly as the worker tier ships its corpus to the main
-  thread at boot. The server stays the filtering authority — this is the data, not the decisions.
+- **`GET /corpus/<dataset>.json`** ships the full corpus once, as `{ dataset, label, records }`, so a server-backed
+  browser engine can hold a resident copy (for slider baselines, chip vocabularies, and index→record joins) exactly as
+  the worker tier ships its corpus to the main thread at boot. The server stays the filtering authority — this is the
+  data, not the decisions. The path ends in `.json` because, deployed, it is a static file rather than a response (see
+  below).
 - **`POST /query`** additionally returns the FULL `resultIndices` (a `number[]`, not sliced by `limit`) + the
   **predictive-disable facet metadata** — per-chip exclusion counts + per-slider bounds/histograms — so a server-backed
   UI reaches parity with the in-browser apps. The engine's `TypedArray` histograms are serialized to plain `number[]`,
@@ -62,8 +64,25 @@ own server tier instead.)
 
 Deployed, the same four apps have no Node process to proxy to. Each is a Cloudflare Worker with static assets, and its
 `wrangler.jsonc` names [`src/cloudflareWorker.ts`](./src/cloudflareWorker.ts) as the Worker script with
-`run_worker_first: ["/api/*"]`. So the browser sends exactly the requests it sends in development, and the Worker
-answers them with the same `handleRequest` — the isomorphic core on a third runtime, after the browser and Node.
+`run_worker_first: ["/api/*", "!/api/corpus/*"]`. So the browser sends exactly the requests it sends in development, and
+the Worker answers them with the same `handleRequest` — the isomorphic core on a third runtime, after the browser and
+Node.
+
+**The corpus is the exception: a static file, not a Worker response.** The sites run on the Workers Free plan, which
+allows 10 ms of CPU per request, and serializing a corpus of several megabytes takes several times that; a Worker that
+keeps exceeding the limit is stopped, and every `/api` route with it. So before `wrangler deploy`, the deploy job writes
+each registered dataset's corpus into the app's assets as `api/corpus/<dataset>.json`, and the negated
+`run_worker_first` pattern lets the assets answer those paths before the Worker runs:
+
+```bash
+pnpm --filter @filter-enginez/examples-server corpus:write <assets directory>/api/corpus   # write every dataset's file
+pnpm --filter @filter-enginez/examples-server corpus:check <assets directory>/api/corpus   # fail if one is missing or stale
+```
+
+Each file is `JSON.stringify` of the `GET /corpus/<dataset>.json` response body, taken from `handleRequest` itself
+([`src/corpusFiles.ts`](./src/corpusFiles.ts)), so the file and the route send the same bytes. A relative directory
+resolves against the directory pnpm was started from. To try a deployed build of one of these apps under `wrangler dev`,
+build it and run `corpus:write` into its assets first.
 
 - [`src/workerRequestHandler.ts`](./src/workerRequestHandler.ts) strips the `/api` prefix (as the dev proxies do), calls
   `handleRequest`, and hands every other path to the static assets.
@@ -83,6 +102,8 @@ answers them with the same `handleRequest` — the isomorphic core on a third ru
   [`src/cloudflareWorker.ts`](./src/cloudflareWorker.ts) the same for Workers.
 - [`src/requestHandler.ts`](./src/requestHandler.ts) — the pure router (no `node:http` coupling), so it unit-tests
   without binding a port.
+- [`src/corpusDocument.ts`](./src/corpusDocument.ts) — the corpus document and its URL, shared with the SvelteKit app's
+  prerendered corpus routes; [`src/write-corpus.ts`](./src/write-corpus.ts) writes it to files for the deploy job.
 - [`sample-configs/books.json`](./sample-configs/books.json) — a committed, valid config (regenerate with
   `pnpm --filter @filter-enginez/examples-server gen:sample`).
 

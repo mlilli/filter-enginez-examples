@@ -53,7 +53,7 @@ async function start(): Promise<void> {
 		process.stdout.write(
 			`@filter-enginez/examples-server listening on http://localhost:${PORT}\n`
 			+ '  GET  /datasets\n'
-			+ '  GET  /corpus/:dataset  full corpus (for a server-backed browser engine)\n'
+			+ '  GET  /corpus/<dataset>.json  full corpus (for a server-backed browser engine)\n'
 			+ '  POST /filter   { "dataset": "books", "config": { ... }, "limit"?: 10 }\n'
 			+ '  POST /query    same body (+ optional "query") — also returns result indices\n'
 			+ '                 + predictive-disable facet metadata\n',

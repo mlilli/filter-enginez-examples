@@ -62,6 +62,8 @@ describe('createHttpFilterEngine', () => {
 		const corpusCalls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.filter(([url]) => String(url).includes('/corpus/'));
 
 		expect(corpusCalls).toHaveLength(1);
+		// The `.json` file name is the contract: deployed, this URL is a static file in the app's assets.
+		expect(String(corpusCalls[0]?.[0])).toBe('/api/corpus/books.json');
 	});
 
 	it('targets the configured baseUrl (the SvelteKit in-process endpoints)', async () => {
@@ -72,7 +74,7 @@ describe('createHttpFilterEngine', () => {
 		const calls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls as readonly (readonly unknown[])[];
 		const corpusCall = calls.find((call) => String(call[0]).includes('/corpus/'));
 
-		expect(String(corpusCall?.[0])).toBe('/books-server/corpus/books');
+		expect(String(corpusCall?.[0])).toBe('/books-server/corpus/books.json');
 	});
 
 	it('derives result count + indices from a single memoized /query round-trip', async () => {
@@ -425,7 +427,7 @@ describe('read-side accessors', () => {
 
 		const engine = createHttpFilterEngine({ dataset: 'books' });
 
-		await expect(engine.getSourceData()).rejects.toThrow(/responded 503 for GET \/corpus\/books/);
+		await expect(engine.getSourceData()).rejects.toThrow(/responded 503 for GET \/corpus\/books\.json/);
 	});
 });
 

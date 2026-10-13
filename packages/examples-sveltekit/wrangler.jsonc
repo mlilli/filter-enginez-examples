@@ -15,8 +15,11 @@
   "main": "./build/cloudflare/_worker.js",
   "assets": {
     "directory": "./build/cloudflare",
-    // The Worker serves every route itself (server rendering, the `/books-server` and `/wine-server`
-    // endpoints), reaching the prebuilt client files through this binding.
+    // A request for a file in this directory is answered before the Worker runs: the client bundle, and
+    // the corpus files prerendered at build time (`/books-server/corpus/books.json`,
+    // `/wine-server/corpus/wine.json`), which the Workers Free plan's 10 ms CPU limit per request could
+    // not afford to serialize on demand. The Worker serves every other route (server rendering, the
+    // `/books-server/query` and `/wine-server/query` endpoints), reaching the files through this binding.
     "binding": "ASSETS"
   },
   "routes": [{ "pattern": "svelte.filterenginez.com", "custom_domain": true }],

@@ -7,10 +7,18 @@
  * server's same-origin `/api` proxy (`vite.config.ts`, or Angular's `proxy.config.json`), which strips
  * the prefix and forwards to `server.ts` on port 8787. Deployed, there is no Node process to forward
  * to: each of those apps is a Worker with static assets, and its `wrangler.jsonc` names
- * `cloudflareWorker.ts` as the Worker script with `run_worker_first: ["/api/*"]`. So the browser makes
- * exactly the requests it makes in development — same origin, same `/api` prefix, same bodies — and
- * the isomorphic core answers them from the Worker, the third runtime it runs on unchanged (after the
- * browser and Node).
+ * `cloudflareWorker.ts` as the Worker script with `run_worker_first: ["/api/*", "!/api/corpus/*"]`. So
+ * the browser makes exactly the requests it makes in development — same origin, same `/api` prefix,
+ * same bodies — and the isomorphic core answers them from the Worker, the third runtime it runs on
+ * unchanged (after the browser and Node).
+ *
+ * **Except the corpus.** `GET /api/corpus/<dataset>.json` is a static file in the deployed assets,
+ * written by the deploy job from {@link handleRequest}'s own response (`corpusFiles.ts`), and the
+ * negated `run_worker_first` pattern sends every `/api/corpus/*` request straight to the assets, so
+ * this Worker never runs for one. The sites are on the Workers Free plan, which allows 10 ms of CPU per
+ * request; serializing a multi-megabyte corpus takes several times that, and a Worker that keeps
+ * exceeding the limit is stopped, taking every `/api` route down with it. (The route stays in
+ * `handleRequest`: the Node server answers it in development, and the files are written from it.)
  *
  * Like `server.ts`, this is a thin adapter: it strips `/api`, reads the body, calls
  * {@link handleRequest}, and writes the JSON. Anything outside `/api` is handed to the static-assets

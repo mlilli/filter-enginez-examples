@@ -35,6 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { type DeployTarget, listDeployTargets, parseJsonc } from '../../scripts/lib/deploy-targets.mjs';
+import { workerRunsFirstFor } from './support/workersRouting.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -173,22 +174,6 @@ function siteBuiltPagePaths(): readonly string[] {
 		.map((name) => `/${name}`);
 }
 
-/**
- * Whether a Workers `run_worker_first` setting sends a path to the Worker, where `_redirects` is never
- * applied.
- *
- * @param runWorkerFirst - The setting.
- * @param path - A request path.
- * @returns `true` when the Worker answers the path before the assets do.
- */
-function workerRunsFirstFor(runWorkerFirst: boolean | undefined | readonly string[], path: string): boolean {
-	if (typeof runWorkerFirst === 'boolean') {
-		return runWorkerFirst;
-	}
-
-	return (runWorkerFirst ?? []).some((pattern) => new RegExp(`^${pattern.replaceAll('*', '.*')}$`, 'u').test(path));
-}
-
 const PRODUCTION_ORIGINS = registryProductionOrigins();
 const SITE_TARGET = TARGETS.find((target) => target.packageDirectory === SITE_PACKAGE);
 const SUBDOMAIN_HOSTS = TARGETS.filter((target) => target !== SITE_TARGET).flatMap((target) => target.hosts);
@@ -278,9 +263,11 @@ describe('deploy targets', () => {
 					return;
 				}
 				if (proxiesApi(target.packageDirectory)) {
+					// `run_worker_first` itself, including the corpus files it leaves to the assets, is
+					// checked in `staticCorpusAssets.test.ts`.
 					expect(target.config.main).toBe(API_WORKER_ENTRY);
 					expect(target.config.assets?.binding).toBe('ASSETS');
-					expect(target.config.assets?.run_worker_first).toEqual(['/api/*']);
+					expect(workerRunsFirstFor(target.config.assets?.run_worker_first, '/api/query'), 'the Worker must answer /api/*').toBe(true);
 				} else {
 					// No server-backed route, so no Worker script: a request is never a billed invocation.
 					expect(target.config.main).toBeUndefined();
@@ -403,6 +390,15 @@ describe('every app’s /about', () => {
 	it('reads run_worker_first the way Workers does, so the case above can fail', () => {
 		expect(workerRunsFirstFor(['/api/*'], '/about')).toBe(false);
 		expect(workerRunsFirstFor(['/api/*'], '/api/query')).toBe(true);
+		expect(workerRunsFirstFor(['/api/*', '!/api/corpus/*'], '/api/query')).toBe(true);
+		// A negative pattern wins over a positive one, whatever their order.
+		expect(workerRunsFirstFor(['/api/*', '!/api/corpus/*'], '/api/corpus/wine.json')).toBe(false);
+		expect(workerRunsFirstFor(['!/api/corpus/*', '/api/*'], '/api/corpus/wine.json')).toBe(false);
+		// `*` matches across `/`, and every other character is literal.
+		expect(workerRunsFirstFor(['/api/*'], '/api/a/b')).toBe(true);
+		expect(workerRunsFirstFor(['/api.json'], '/api-json')).toBe(false);
+		// A negative pattern alone sends nothing to the Worker.
+		expect(workerRunsFirstFor(['!/api/corpus/*'], '/about')).toBe(false);
 		expect(workerRunsFirstFor(true, '/about')).toBe(true);
 		expect(workerRunsFirstFor(undefined, '/about')).toBe(false);
 	});

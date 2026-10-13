@@ -140,11 +140,17 @@ package is deployed if and only if it has one.
 
 On every push to `main`, after the CI gates pass, the `deploy` job builds each of those packages for production and runs
 `wrangler deploy` with it, one job per site, so one failure leaves the other sites deploying. Before uploading, it
-checks that none of the local-only wine corpus is in the output and adds the bundled fonts' licenses.
+checks that none of the local-only wine corpus is in the output, writes the corpus files the API Worker sites serve (and
+fails if one is missing), and adds the bundled fonts' licenses.
 
 - The single-page apps fall back to `index.html` for client-side routes. The four with a server-filtered route answer
   their same-origin `/api/*` with [`examples-server`'s Worker entry](./packages/examples-server/README.md), the deployed
   counterpart of the dev-server proxy.
+- Every server-filtered route boots by fetching its whole corpus once, from `…/corpus/<dataset>.json`, and that file is
+  always a static asset: the account is on the Workers Free plan, which allows 10 ms of CPU per request, and serializing
+  a corpus takes several times that. The four `/api` apps exclude `/api/corpus/*` from `run_worker_first` and the deploy
+  job writes the files (`corpus:write` in `examples-server`); SvelteKit prerenders its two corpus routes at build time.
+  In development the same paths are answered dynamically.
 - SvelteKit builds with `adapter-node` by default; `SVELTEKIT_ADAPTER=cloudflare` switches it to `adapter-cloudflare`,
   which is what the deploy job sets.
 - `/compare`, and every link to the how-it-works page, resolves to the production origins on a deployed host and to the
@@ -154,7 +160,10 @@ checks that none of the local-only wine corpus is in the output and adds the bun
   from a `_redirects` file in their `public/` directory, SvelteKit from a route.
 
 To try a deployed build locally, build the package and run
-`pnpm exec wrangler dev --config packages/<name>/wrangler.jsonc` from the repository root.
+`pnpm exec wrangler dev --config packages/<name>/wrangler.jsonc` from the repository root. For one of the four `/api`
+apps, write its corpus files into the build first:
+`pnpm --filter @filter-enginez/examples-server corpus:write packages/<name>/dist/api/corpus` (Angular's assets are in
+`dist/browser`).
 
 ## Local-only data
 

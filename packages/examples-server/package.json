@@ -12,6 +12,8 @@
     "cli": "tsx src/cli.ts",
     "serve:api": "tsx src/server.ts",
     "gen:sample": "tsx src/gen-sample.ts",
+    "corpus:write": "tsx src/write-corpus.ts",
+    "corpus:check": "tsx src/write-corpus.ts --check",
     "typecheck": "tsc --noEmit",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",

@@ -2,8 +2,9 @@
 	/**
 	 * `/books-server` — the server-backed books route: **visual + functional parity with `/books`**, but
 	 * the browser never runs a filter. Every mutation round-trips to this app's own SvelteKit server tier
-	 * (`/books-server/query` + `/books-server/corpus/:dataset`), which runs the isomorphic engine
-	 * in-process — no separate `serve:api` process, no proxy.
+	 * (`/books-server/query`), which runs the isomorphic engine in-process — no separate `serve:api`
+	 * process, no proxy. The corpus copy the client boots from, `/books-server/corpus/books.json`, is a
+	 * file prerendered at build time.
 	 *
 	 * Progressive enhancement in two layers:
 	 *   1. The server `load` (`+page.server.ts`) filters in-process for the SSR first paint, and

@@ -29,7 +29,7 @@ function fakeEnvironment(): { readonly assetsFetch: ReturnType<typeof vi.fn>; re
 }
 
 describe('isApiPath', () => {
-	it.each(['/api', '/api/', '/api/query', '/api/corpus/books'])('claims %s', (pathname) => {
+	it.each(['/api', '/api/', '/api/query', '/api/corpus/books.json'])('claims %s', (pathname) => {
 		expect(isApiPath(pathname)).toBe(true);
 	});
 
