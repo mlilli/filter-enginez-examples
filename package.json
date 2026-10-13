@@ -5,7 +5,7 @@
   "description": "Filter EngineZ examples — six demo apps (React + RTK, React, SvelteKit, Vue, Angular, framework-free) over three datasets. Not published.",
   "author": "Michael Lilli",
   "license": "Apache-2.0",
-  "homepage": "https://filter-enginez.com",
+  "homepage": "https://filterenginez.com",
   "keywords": [
     "data filtering",
     "filter engine",

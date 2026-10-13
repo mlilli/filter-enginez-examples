@@ -9,7 +9,7 @@
 | **Author**   | Michael Lilli                                                                             |
 | **Packages** | Private demonstrations — none are published to npm                                        |
 | **License**  | Apache-2.0 — see [`LICENSE.md`](./LICENSE.md) and [`NOTICE.md`](./NOTICE.md)              |
-| **Home**     | [filter-enginez.com](https://filter-enginez.com)                                          |
+| **Home**     | [filterenginez.com](https://filterenginez.com)                                            |
 | **Engine**   | [`mlilli/filter-enginez`](https://github.com/mlilli/filter-enginez) — the 13 npm packages |
 
 ## What it is

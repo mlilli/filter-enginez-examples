@@ -19,7 +19,7 @@ Report privately instead:
   engine: <https://github.com/mlilli/filter-enginez/security/advisories/new>.
 - **If it is confined to this repository** — use the "Report a vulnerability" button under this repository's
   **Security** tab, or <https://github.com/mlilli/filter-enginez-examples/security/advisories/new>.
-- **Email** — [security@filter-enginez.com](mailto:security@filter-enginez.com), or the author address in
+- **Email** — [security@filterenginez.com](mailto:security@filterenginez.com), or the author address in
   [`README.md`](./README.md) if that alias does not answer.
 
 If you are not sure which repository the bug lives in, report it to either one and I will take it from there. Please

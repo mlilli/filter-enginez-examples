@@ -50,7 +50,7 @@ const MODIFIED_CLICKS: readonly { init: MouseEventInit; label: string }[] = [
 /** Every href shape the router must hand back to the browser, one per term in the second guard. */
 const BROWSER_OWNED_LINKS: readonly { attrs: Readonly<Record<string, string>>; label: string }[] = [
 	{ attrs: { href: '#results' }, label: 'a hash link' },
-	{ attrs: { href: 'https://filter-enginez.com/wine' }, label: 'an absolute URL' },
+	{ attrs: { href: 'https://filterenginez.com/wine' }, label: 'an absolute URL' },
 	{ attrs: { download: '', href: '/wine' }, label: 'a download' },
 	{ attrs: { href: '/wine', target: '_blank' }, label: 'an explicit target' },
 ];
