@@ -1,15 +1,15 @@
 {
   "name": "@filter-enginez/site",
   "version": "0.0.1",
-  "description": "Filter EngineZ — the filterenginez.com landing page: what the engine is, how to install it, and a link to every live demo. Static HTML and CSS on the brand tokens, plus a small Cloudflare Worker that sends www to the apex.",
+  "description": "Filter EngineZ — filterenginez.com: the landing page (what the engine is, how to install it, a link to every live demo) and the \"How the engine works\" page (eight animated algorithm figures and a live benchmark, rendered into static HTML at build time and enhanced in the browser). Built with Vite on the brand tokens, plus a small Cloudflare Worker that sends www to the apex and each page to its one canonical URL.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/how-it-works",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",
     "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
@@ -17,7 +17,10 @@
     "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
   },
   "dependencies": {
-    "@filter-enginez/brand": "workspace:*"
+    "@filter-enginez/brand": "workspace:*",
+    "@filter-enginez/examples-shared": "workspace:*",
+    "@filter-enginez/mock-data": "0.0.2",
+    "@filter-enginez/ui-styles": "workspace:*"
   },
   "devDependencies": {
     "@filter-enginez/eslint": "0.0.2",

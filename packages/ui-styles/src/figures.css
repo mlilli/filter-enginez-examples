@@ -1,0 +1,1186 @@
+/**
+ * @filter-enginez/ui-styles/figures.css — the eight animated algorithm figures (`fe-fig-*`).
+ *
+ * Two consumers render the same figures over these classes: the documentation's React illustrations
+ * (`examples-shared/src/docs/illustrations`, served by the docs site and by the `/docs` route of both
+ * React apps, each of which imports this file after `styles.css`) and the framework-free figures on
+ * the landing site's how-it-works page (`packages/site`, which imports this file alone). The SvelteKit,
+ * Vue, Angular and framework-free apps draw no figures and do not import it. One copy, so the figures
+ * animate identically everywhere they appear.
+ *
+ * Dual-accent contract: DATA (bits, results, counts, chips, links) is CYAN; the ENGINE DOING WORK
+ * (scanlines, sparks, probes, pulses) is PHOSPHOR and strictly transient. Every figure's BASE
+ * (un-animated) state is the completed, legible frame — motion is added only under
+ * `prefers-reduced-motion: no-preference` while the figure carries `.is-playing`, which each
+ * renderer's in-view gate sets while the figure is on screen.
+ *
+ * Built on the brand tokens (`@filter-enginez/brand/tokens.css`), which every consumer loads first.
+ */
+
+/* ── Figure base (shared by all 8 illustrations) ── */
+/* The generic svg class every figure's markup carries — the React figures use `fe-fig__svg`, the
+   framework-free ones `fe-fig__svg fe-fig-<name>__svg`. Sizing lives here so both render identically
+   responsive. */
+.fe-fig__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+/* ── Figure 01 · Roaring bitmaps (id: roaring) ── */
+.fe-fig-roaring__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-roaring__label {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: end;
+	dominant-baseline: middle;
+}
+.fe-fig-roaring__label.is-and {
+	fill: var(--gray-9);
+	font-weight: 600;
+}
+.fe-fig-roaring__bit {
+	fill: transparent;
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-roaring__bit.is-lit {
+	fill: var(--accent);
+	stroke: none;
+	filter: drop-shadow(0 0 3px var(--accent-haze));
+}
+.fe-fig-roaring__divider {
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-roaring__result {
+	fill: transparent;
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+/* Base = completed: result cells are lit. Motion overrides into the ignite loop. */
+.fe-fig-roaring__result.is-hit {
+	fill: var(--accent);
+	stroke: none;
+	transform-box: fill-box;
+	transform-origin: center;
+	filter: drop-shadow(0 0 5px var(--accent-glow));
+}
+.fe-fig-roaring__scan {
+	fill: var(--engine);
+	opacity: 0;
+	filter: drop-shadow(0 0 6px var(--engine-haze));
+}
+.fe-fig-roaring__count {
+	fill: var(--accent);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+.fe-fig-roaring__time {
+	fill: var(--engine);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-roaring.is-playing .fe-fig-roaring__scan {
+		animation: fe-roaring-scan 5200ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-roaring.is-playing .fe-fig-roaring__result.is-hit {
+		animation: fe-roaring-ignite 5200ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-roaring.is-playing .fe-fig-roaring__count,
+	.fe-fig-roaring.is-playing .fe-fig-roaring__time {
+		animation: fe-roaring-caption 5200ms var(--ease-in-out) infinite;
+	}
+}
+
+@keyframes fe-roaring-scan {
+	0% {
+		transform: translateX(0);
+		opacity: 0;
+	}
+	3% {
+		opacity: 0.92;
+	}
+	40% {
+		transform: translateX(360px);
+		opacity: 0.92;
+	}
+	46% {
+		transform: translateX(360px);
+		opacity: 0;
+	}
+	100% {
+		transform: translateX(360px);
+		opacity: 0;
+	}
+}
+@keyframes fe-roaring-ignite {
+	0% {
+		opacity: 0;
+		transform: scale(0.55);
+	}
+	4% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	88% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	95% {
+		opacity: 0;
+		transform: scale(0.7);
+	}
+	100% {
+		opacity: 0;
+		transform: scale(0.55);
+	}
+}
+@keyframes fe-roaring-caption {
+	0%,
+	40% {
+		opacity: 0;
+	}
+	48% {
+		opacity: 1;
+	}
+	90% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+/* ── Figure 02 · Mutual-exclusion graph (id: exclusion) ── */
+.fe-fig-excl__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-excl__edge {
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-excl__edge.is-compat {
+	stroke: var(--gray-5);
+	stroke-width: 1.25;
+}
+.fe-fig-excl__edge.is-exclusion {
+	stroke: var(--gray-6);
+	stroke-width: 1.25;
+	stroke-dasharray: 4 4;
+}
+
+.fe-fig-excl__void-ring {
+	fill: var(--gray-1);
+	stroke: var(--gray-7);
+	stroke-width: 1.25;
+}
+.fe-fig-excl__void-slash {
+	stroke: var(--gray-7);
+	stroke-width: 1.5;
+	stroke-linecap: round;
+}
+
+.fe-fig-excl__chip {
+	fill: var(--gray-1);
+	stroke: var(--gray-5);
+	stroke-width: 1;
+}
+.fe-fig-excl__chip-label {
+	fill: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+/* Resting states (completed frame). */
+.fe-fig-excl__node.is-lit .fe-fig-excl__chip {
+	stroke: var(--accent);
+	filter: drop-shadow(0 0 5px var(--accent-haze));
+}
+.fe-fig-excl__node.is-lit .fe-fig-excl__chip-label {
+	fill: var(--accent-glow);
+}
+.fe-fig-excl__node.is-dim {
+	opacity: 0.4;
+}
+.fe-fig-excl__node.is-dim .fe-fig-excl__chip {
+	stroke: var(--gray-5);
+}
+.fe-fig-excl__node.is-dim .fe-fig-excl__chip-label {
+	fill: var(--gray-6);
+}
+
+.fe-fig-excl__spark {
+	fill: var(--engine);
+	opacity: 0;
+	filter: drop-shadow(0 0 5px var(--engine-haze));
+}
+
+.fe-fig-excl__caption {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	text-anchor: middle;
+}
+.fe-fig-excl__caption-void {
+	fill: var(--engine);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-excl.is-playing .fe-fig-excl__spark.is-compat {
+		animation: fe-excl-spark-compat 4600ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-excl.is-playing .fe-fig-excl__spark.is-excl {
+		animation: fe-excl-spark-excl 4600ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-excl.is-playing .fe-fig-excl__node.is-dim {
+		animation: fe-excl-dismiss 4600ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-excl.is-playing .fe-fig-excl__node.is-lit .fe-fig-excl__chip {
+		animation: fe-excl-settle 4600ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-excl.is-playing .fe-fig-excl__void {
+		animation: fe-excl-void-flash 4600ms var(--ease-in-out) infinite;
+	}
+}
+
+@keyframes fe-excl-spark-compat {
+	0% {
+		transform: translate(0, 0);
+		opacity: 0;
+	}
+	6% {
+		opacity: 1;
+	}
+	40% {
+		transform: translate(var(--dx), var(--dy));
+		opacity: 1;
+	}
+	48% {
+		transform: translate(var(--dx), var(--dy));
+		opacity: 0;
+	}
+	100% {
+		transform: translate(var(--dx), var(--dy));
+		opacity: 0;
+	}
+}
+@keyframes fe-excl-spark-excl {
+	0% {
+		transform: translate(0, 0);
+		opacity: 0;
+	}
+	6% {
+		opacity: 1;
+	}
+	38% {
+		transform: translate(var(--dx), var(--dy));
+		opacity: 1;
+	}
+	44% {
+		transform: translate(var(--dx), var(--dy));
+		opacity: 0;
+	}
+	100% {
+		transform: translate(var(--dx), var(--dy));
+		opacity: 0;
+	}
+}
+/* The excluded target: resolved(dim) → briefly reconsidered → dismissed back to dim. */
+@keyframes fe-excl-dismiss {
+	0% {
+		opacity: 0.4;
+	}
+	14% {
+		opacity: 0.9;
+	}
+	40% {
+		opacity: 0.9;
+	}
+	52% {
+		opacity: 0.4;
+	}
+	100% {
+		opacity: 0.4;
+	}
+}
+/* The compatible chips: a gentle confirmation glow as the spark lands. */
+@keyframes fe-excl-settle {
+	0%,
+	30% {
+		filter: drop-shadow(0 0 5px var(--accent-haze));
+	}
+	44% {
+		filter: drop-shadow(0 0 9px var(--accent-glow));
+	}
+	60%,
+	100% {
+		filter: drop-shadow(0 0 5px var(--accent-haze));
+	}
+}
+@keyframes fe-excl-void-flash {
+	0%,
+	36% {
+		opacity: 0.9;
+	}
+	42% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0.9;
+	}
+}
+
+/* ── Figure 03 · Memoized simulation (id: memoization) ── */
+.fe-fig-memo__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-memo__track {
+	stroke: var(--gray-4);
+	stroke-width: 1;
+	stroke-dasharray: 2 4;
+}
+.fe-fig-memo__tag {
+	fill: var(--gray-7);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+.fe-fig-memo__card {
+	fill: var(--gray-1);
+	stroke: var(--gray-5);
+	stroke-width: 1;
+}
+.fe-fig-memo__card-label {
+	fill: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-memo__answer {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 1;
+}
+.fe-fig-memo__answer-label {
+	fill: var(--accent-glow);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-memo__time {
+	fill: var(--gray-7);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	font-variant-numeric: tabular-nums;
+	text-anchor: middle;
+}
+.fe-fig-memo__module-label {
+	fill: var(--gray-7);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-anchor: middle;
+}
+.fe-fig-memo__shelf-box {
+	fill: var(--gray-1);
+	stroke: var(--gray-5);
+	stroke-width: 1;
+}
+.fe-fig-memo__shelf-slot {
+	fill: var(--gray-3);
+}
+.fe-fig-memo__shelf-slot.is-active {
+	fill: var(--accent);
+	filter: drop-shadow(0 0 3px var(--accent-haze));
+}
+.fe-fig-memo__engine-link {
+	stroke: var(--gray-5);
+	stroke-width: 1;
+}
+.fe-fig-memo__engine-node {
+	fill: var(--gray-2);
+	stroke: var(--gray-6);
+	stroke-width: 1.25;
+}
+.fe-fig-memo__token {
+	fill: var(--accent);
+	opacity: 0;
+	filter: drop-shadow(0 0 4px var(--accent-haze));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-memo.is-playing .fe-fig-memo__token.is-hit {
+		animation: fe-memo-hit 4400ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-memo.is-playing .fe-fig-memo__token.is-miss {
+		animation: fe-memo-miss 4400ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-memo.is-playing .fe-fig-memo__shelf-slot.is-active {
+		animation: fe-memo-shelf-flash 4400ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-memo.is-playing .fe-fig-memo__engine-node {
+		animation: fe-memo-engine-fire 4400ms var(--ease-in-out) infinite;
+	}
+}
+
+/* Hit lane: fast, straight through — reaches the answer well before the miss lane. */
+@keyframes fe-memo-hit {
+	0% {
+		transform: translateX(0);
+		opacity: 0;
+	}
+	6% {
+		opacity: 1;
+	}
+	30% {
+		transform: translateX(var(--dx));
+		opacity: 1;
+	}
+	36% {
+		transform: translateX(var(--dx));
+		opacity: 0;
+	}
+	100% {
+		transform: translateX(var(--dx));
+		opacity: 0;
+	}
+}
+/* Miss lane: slower, and dwells at the engine block (~40%) while it computes. */
+@keyframes fe-memo-miss {
+	0% {
+		transform: translateX(0);
+		opacity: 0;
+	}
+	6% {
+		opacity: 1;
+	}
+	34% {
+		transform: translateX(82px);
+	}
+	52% {
+		transform: translateX(94px);
+	}
+	78% {
+		transform: translateX(var(--dx));
+		opacity: 1;
+	}
+	86% {
+		transform: translateX(var(--dx));
+		opacity: 0;
+	}
+	100% {
+		transform: translateX(var(--dx));
+		opacity: 0;
+	}
+}
+@keyframes fe-memo-shelf-flash {
+	0%,
+	18% {
+		fill: var(--accent);
+		filter: drop-shadow(0 0 3px var(--accent-haze));
+	}
+	26% {
+		fill: var(--accent-glow);
+		filter: drop-shadow(0 0 7px var(--accent-glow));
+	}
+	40%,
+	100% {
+		fill: var(--accent);
+		filter: drop-shadow(0 0 3px var(--accent-haze));
+	}
+}
+@keyframes fe-memo-engine-fire {
+	0%,
+	40% {
+		fill: var(--gray-2);
+		stroke: var(--gray-6);
+	}
+	52% {
+		fill: var(--engine-soft);
+		stroke: var(--engine);
+	}
+	66% {
+		fill: var(--engine-soft);
+		stroke: var(--engine);
+	}
+	80%,
+	100% {
+		fill: var(--gray-2);
+		stroke: var(--gray-6);
+	}
+}
+
+/* ── Figure 04 · R-tree spatial index (id: rtree) ── */
+.fe-fig-rtree__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-rtree__panel {
+	fill: var(--gray-0);
+	stroke: var(--gray-3);
+	stroke-width: 1;
+}
+.fe-fig-rtree__box-rect {
+	fill: transparent;
+	stroke: var(--gray-5);
+	stroke-width: 1;
+}
+.fe-fig-rtree__box.is-child .fe-fig-rtree__box-rect {
+	stroke: var(--gray-4);
+}
+/* Pruned boxes rest dimmed (completed frame). */
+.fe-fig-rtree__box.is-pruned {
+	opacity: 0.32;
+}
+
+.fe-fig-rtree__dot {
+	fill: var(--gray-7);
+}
+.fe-fig-rtree__dot.is-neutral {
+	fill: var(--gray-7);
+}
+.fe-fig-rtree__dot.is-pruned {
+	fill: var(--gray-6);
+}
+/* Result dots rest lit cyan (completed frame). */
+.fe-fig-rtree__dot.is-result {
+	fill: var(--accent);
+	transform-box: fill-box;
+	transform-origin: center;
+	filter: drop-shadow(0 0 4px var(--accent-glow));
+}
+.fe-fig-rtree__circle {
+	fill: var(--accent-haze);
+	stroke: var(--accent);
+	stroke-width: 1.25;
+	stroke-dasharray: 5 4;
+}
+.fe-fig-rtree__circle-label {
+	fill: var(--accent);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	text-anchor: middle;
+	dominant-baseline: middle;
+	opacity: 0.75;
+}
+.fe-fig-rtree__count {
+	fill: var(--accent);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.fe-fig-rtree__pruned {
+	fill: var(--engine);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-rtree.is-playing .fe-fig-rtree__box.is-pruned {
+		animation: fe-rtree-prune 6000ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-rtree.is-playing .fe-fig-rtree__box.is-visited .fe-fig-rtree__box-rect {
+		animation: fe-rtree-visit 6000ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-rtree.is-playing .fe-fig-rtree__box.is-child .fe-fig-rtree__box-rect {
+		animation: fe-rtree-visit-child 6000ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-rtree.is-playing .fe-fig-rtree__dot.is-result {
+		animation: fe-rtree-ignite 6000ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-rtree.is-playing .fe-fig-rtree__pruned {
+		animation: fe-rtree-count 6000ms var(--ease-in-out) infinite;
+	}
+}
+
+/* Pruned box: resolved(dim) → reset visible → phosphor test flash → sink to dim. */
+@keyframes fe-rtree-prune {
+	0% {
+		opacity: 0.32;
+	}
+	8% {
+		opacity: 1;
+	}
+	18% {
+		opacity: 1;
+	}
+	38% {
+		opacity: 0.32;
+	}
+	100% {
+		opacity: 0.32;
+	}
+}
+@keyframes fe-rtree-visit {
+	0%,
+	24% {
+		stroke: var(--gray-5);
+	}
+	30% {
+		stroke: var(--engine);
+	}
+	44% {
+		stroke: var(--gray-5);
+	}
+	100% {
+		stroke: var(--gray-5);
+	}
+}
+@keyframes fe-rtree-visit-child {
+	0%,
+	44% {
+		stroke: var(--gray-4);
+	}
+	52% {
+		stroke: var(--engine);
+	}
+	66% {
+		stroke: var(--gray-4);
+	}
+	100% {
+		stroke: var(--gray-4);
+	}
+}
+@keyframes fe-rtree-ignite {
+	0% {
+		fill: var(--accent);
+		transform: scale(1);
+		filter: drop-shadow(0 0 4px var(--accent-glow));
+	}
+	10% {
+		fill: var(--gray-7);
+		transform: scale(0.8);
+		filter: drop-shadow(0 0 0 transparent);
+	}
+	58% {
+		fill: var(--gray-7);
+		transform: scale(0.8);
+	}
+	68% {
+		fill: var(--accent);
+		transform: scale(1.25);
+		filter: drop-shadow(0 0 6px var(--accent-glow));
+	}
+	78% {
+		transform: scale(1);
+	}
+	100% {
+		fill: var(--accent);
+		transform: scale(1);
+		filter: drop-shadow(0 0 4px var(--accent-glow));
+	}
+}
+@keyframes fe-rtree-count {
+	0%,
+	40% {
+		opacity: 0;
+	}
+	50% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+/* ── Figure 05 · Bayesian suggestions (id: bayesian) ── */
+.fe-fig-bayes__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-bayes__eyebrow {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+.fe-fig-bayes__chip.is-selected {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 1;
+}
+.fe-fig-bayes__chip-label {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-bayes__chip-label.is-selected {
+	fill: var(--accent-glow);
+}
+.fe-fig-bayes__connector {
+	stroke: var(--gray-5);
+	stroke-width: 1;
+	stroke-dasharray: 3 3;
+}
+.fe-fig-bayes__pulse {
+	fill: var(--engine);
+	opacity: 0;
+	filter: drop-shadow(0 0 5px var(--engine-haze));
+}
+.fe-fig-bayes__row-label {
+	fill: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: end;
+	dominant-baseline: middle;
+}
+.fe-fig-bayes__row.is-top .fe-fig-bayes__row-label {
+	fill: var(--gray-11);
+}
+.fe-fig-bayes__bar-track {
+	fill: var(--gray-2);
+}
+.fe-fig-bayes__bar {
+	fill: var(--accent-dim);
+	transform-box: fill-box;
+	transform-origin: left center;
+}
+.fe-fig-bayes__row.is-top .fe-fig-bayes__bar {
+	fill: var(--accent);
+	filter: drop-shadow(0 0 4px var(--accent-haze));
+}
+.fe-fig-bayes__pct {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	dominant-baseline: middle;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-bayes.is-playing .fe-fig-bayes__pulse {
+		animation: fe-bayes-pulse 4200ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-bayes.is-playing .fe-fig-bayes__bar {
+		animation: fe-bayes-grow 4200ms var(--ease-out) infinite;
+	}
+}
+
+@keyframes fe-bayes-pulse {
+	0% {
+		transform: translateY(0);
+		opacity: 0;
+	}
+	4% {
+		opacity: 1;
+	}
+	12% {
+		transform: translateY(34px);
+		opacity: 1;
+	}
+	18% {
+		transform: translateY(34px);
+		opacity: 0;
+	}
+	100% {
+		transform: translateY(34px);
+		opacity: 0;
+	}
+}
+/* Base = full (scaleX 1). Loop resets to 0 then grows back — a staggered tally. */
+@keyframes fe-bayes-grow {
+	0% {
+		transform: scaleX(1);
+	}
+	6% {
+		transform: scaleX(0);
+	}
+	40% {
+		transform: scaleX(1);
+	}
+	100% {
+		transform: scaleX(1);
+	}
+}
+
+/* ── Figure 06 · MinHash + LSH similarity (id: similarity) ── */
+.fe-fig-sim__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-sim__eyebrow {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+.fe-fig-sim__eyebrow.is-centered {
+	text-anchor: middle;
+}
+.fe-fig-sim__query {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 1;
+}
+.fe-fig-sim__query-label {
+	fill: var(--accent-glow);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-sim__cell {
+	fill: var(--accent-soft);
+	stroke: var(--accent-dim);
+	stroke-width: 1;
+}
+.fe-fig-sim__cell-value {
+	fill: var(--accent-glow);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-sim__scan {
+	fill: var(--engine);
+	opacity: 0;
+	filter: drop-shadow(0 0 6px var(--engine-haze));
+}
+.fe-fig-sim__bucket {
+	fill: var(--gray-1);
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-sim__neighbor-box {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 1;
+}
+.fe-fig-sim__neighbor-label {
+	fill: var(--accent-glow);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	dominant-baseline: central;
+}
+.fe-fig-sim__neighbor-score {
+	fill: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	text-anchor: end;
+	dominant-baseline: central;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-sim.is-playing .fe-fig-sim__scan {
+		animation: fe-sim-scan 4400ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-sim.is-playing .fe-fig-sim__neighbor {
+		animation: fe-sim-surface 4400ms var(--ease-out) infinite;
+	}
+}
+
+@keyframes fe-sim-scan {
+	0% {
+		transform: translateX(0);
+		opacity: 0;
+	}
+	4% {
+		opacity: 0.9;
+	}
+	26% {
+		transform: translateX(150px);
+		opacity: 0.9;
+	}
+	32% {
+		transform: translateX(150px);
+		opacity: 0;
+	}
+	100% {
+		transform: translateX(150px);
+		opacity: 0;
+	}
+}
+/* Base = surfaced (opacity 1). Loop hides then re-surfaces the neighbors. */
+@keyframes fe-sim-surface {
+	0% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	8% {
+		opacity: 0;
+		transform: translateX(10px);
+	}
+	40% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	100% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* ── Figure 07 · Bloom membership (id: bloom) ── */
+.fe-fig-bloom__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-bloom__query {
+	fill: var(--gray-1);
+	stroke: var(--gray-5);
+	stroke-width: 1;
+}
+.fe-fig-bloom__query-label {
+	fill: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-bloom__bit {
+	fill: transparent;
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-bloom__bit.is-set {
+	fill: var(--accent);
+	stroke: none;
+	filter: drop-shadow(0 0 3px var(--accent-haze));
+}
+.fe-fig-bloom__bit.is-miss {
+	fill: transparent;
+	stroke: var(--gray-7);
+	stroke-width: 1.5;
+	stroke-dasharray: 3 2;
+}
+.fe-fig-bloom__probe {
+	stroke: var(--gray-6);
+	stroke-width: 1.25;
+	opacity: 0.5;
+}
+.fe-fig-bloom__verdict {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	dominant-baseline: central;
+}
+.fe-fig-bloom__lane.is-yes .fe-fig-bloom__verdict {
+	fill: var(--accent);
+}
+.fe-fig-bloom__lane.is-no .fe-fig-bloom__verdict {
+	fill: var(--gray-8);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-bloom.is-playing .fe-fig-bloom__probe {
+		animation: fe-bloom-probe 4000ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-bloom.is-playing .fe-fig-bloom__verdict {
+		animation: fe-bloom-verdict 4000ms var(--ease-out) infinite;
+	}
+}
+
+@keyframes fe-bloom-probe {
+	0%,
+	4% {
+		stroke: var(--gray-6);
+		opacity: 0.4;
+		filter: none;
+	}
+	12% {
+		stroke: var(--engine);
+		opacity: 1;
+		filter: drop-shadow(0 0 3px var(--engine-haze));
+	}
+	40% {
+		stroke: var(--gray-6);
+		opacity: 0.5;
+		filter: none;
+	}
+	100% {
+		stroke: var(--gray-6);
+		opacity: 0.5;
+		filter: none;
+	}
+}
+@keyframes fe-bloom-verdict {
+	0% {
+		opacity: 1;
+	}
+	10% {
+		opacity: 0;
+	}
+	48% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+
+/* ── Figure 08 · Inverted text index (id: textindex) ── */
+.fe-fig-text__svg {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+.fe-fig-text__eyebrow {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+.fe-fig-text__eyebrow.is-centered {
+	text-anchor: middle;
+}
+.fe-fig-text__search {
+	fill: var(--gray-1);
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-text__glass {
+	fill: none;
+	stroke: var(--gray-7);
+	stroke-width: 1.5;
+}
+.fe-fig-text__glass-handle {
+	stroke: var(--gray-7);
+	stroke-width: 1.5;
+	stroke-linecap: round;
+}
+.fe-fig-text__search-text {
+	fill: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	dominant-baseline: central;
+}
+.fe-fig-text__word {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 1;
+}
+.fe-fig-text__word-label {
+	fill: var(--accent-glow);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-text__post-box {
+	fill: transparent;
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-text__post-id {
+	fill: var(--gray-7);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-text__post.is-match .fe-fig-text__post-box {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+}
+.fe-fig-text__post.is-match .fe-fig-text__post-id {
+	fill: var(--accent-glow);
+}
+.fe-fig-text__cap {
+	fill: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 18px;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+.fe-fig-text__pulse {
+	fill: var(--engine);
+	opacity: 0;
+	filter: drop-shadow(0 0 5px var(--engine-haze));
+}
+.fe-fig-text__result {
+	fill: var(--gray-1);
+	stroke: var(--gray-4);
+	stroke-width: 1;
+}
+.fe-fig-text__match-box {
+	fill: var(--accent-soft);
+	stroke: var(--accent);
+	stroke-width: 1;
+}
+.fe-fig-text__match-id {
+	fill: var(--accent-glow);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.fe-fig-text.is-playing .fe-fig-text__post.is-match {
+		animation: fe-text-match 4400ms var(--ease-out) infinite;
+	}
+	.fe-fig-text.is-playing .fe-fig-text__pulse {
+		animation: fe-text-pulse 4400ms var(--ease-in-out) infinite;
+	}
+	.fe-fig-text.is-playing .fe-fig-text__match {
+		animation: fe-text-match 4400ms var(--ease-out) infinite;
+	}
+}
+
+@keyframes fe-text-match {
+	0% {
+		opacity: 1;
+	}
+	8% {
+		opacity: 0.25;
+	}
+	52% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+@keyframes fe-text-pulse {
+	0%,
+	34% {
+		opacity: 0;
+		transform: scale(0.6);
+	}
+	42% {
+		opacity: 1;
+		transform: scale(1.3);
+	}
+	54% {
+		opacity: 0;
+		transform: scale(1);
+	}
+	100% {
+		opacity: 0;
+		transform: scale(1);
+	}
+}

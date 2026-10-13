@@ -182,36 +182,3 @@ test.describe('React plain · /lab', () => {
 	});
 });
 
-test.describe('React plain · /about links at the lab', () => {
-	test('links the three demonstrated capabilities, and only those', async ({ page }) => {
-		// 🔴 The guard for the decision that keeps this off the other five verticals. `ABOUT_SECTIONS`
-		// is shared; the links are supplied per app. Three sections have a demo, five do not, and a
-		// regression that moved the links into the content array would show up here as a count.
-		await page.goto(reactPlainUrl('/about'));
-
-		const demoLinks = page.locator('.fe-about__demo-link');
-
-		await expect(demoLinks.first()).toBeVisible({ timeout: BOOT_TIMEOUT_MS });
-		await expect(demoLinks).toHaveCount(3);
-
-		for (const section of ['memoization', 'similarity', 'bayesian']) {
-			await expect(page.locator(`#${section} .fe-about__demo-link`)).toHaveCount(1);
-		}
-		// The acceleration internals have no pane, so a demo link there would claim a demo that does not
-		// exist.
-		for (const section of ['roaring', 'exclusion', 'rtree', 'bloom', 'textindex']) {
-			await expect(page.locator(`#${section} .fe-about__demo-link`)).toHaveCount(0);
-		}
-	});
-
-	test('actually navigates to the lab', async ({ page }) => {
-		await page.goto(reactPlainUrl('/about'));
-
-		const link = page.locator('#similarity .fe-about__demo-link');
-
-		await expect(link).toBeVisible({ timeout: BOOT_TIMEOUT_MS });
-		await link.click();
-
-		await waitForLab(page);
-	});
-});

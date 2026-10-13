@@ -4,10 +4,17 @@
  * brand-forward hero over an ambient glow + drifting grid, then a grid of dataset cards. The
  * `fe-landing__*` rules live in `@filter-enginez/ui-styles` (imported app-wide via `app.css`). One
  * card per dataset route this app serves, each linking to it.
+ *
+ * "How the engine works" is a plain anchor, not a `<RouterLink>`: the page lives on the landing site,
+ * another origin, resolved from this page's location so a local run reaches the local site server.
  */
+import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
 import { RouterLink } from 'vue-router';
 
 import { landingDatasets } from '../landing.js';
+
+/** The how-it-works page on the landing site, for this deployment layout. */
+const howItWorksHref = howItWorksUrl(window.location);
 </script>
 
 <template>
@@ -20,7 +27,7 @@ import { landingDatasets } from '../landing.js';
 					A generic, isomorphic, framework-agnostic TypeScript filter engine: arbitrarily complex filters over
 					arbitrarily shaped data, computed client-side. This is the Vue vertical.
 				</p>
-				<RouterLink to="/about" class="fe-landing__about">How the engine works →</RouterLink>
+				<a :href="howItWorksHref" class="fe-landing__about">How the engine works →</a>
 				<!-- Second in the stack, matching every other vertical: what the engine does, then that it
 				     does it everywhere. Cyan because the page is about WHICH state and WHICH stack — data
 				     and identity — never about the engine computing. -->

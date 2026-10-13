@@ -30,9 +30,9 @@
  * @packageDocumentation
  */
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import { describe, expect, it } from 'vitest';
 
-import { el } from '../dom.js';
 import { type DesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
 import { type AppShell, createAppShell } from './appShell.js';
 

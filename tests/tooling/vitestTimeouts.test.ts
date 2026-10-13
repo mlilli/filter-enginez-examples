@@ -8,7 +8,7 @@
  *
  * ### The failure this pins
  *
- * `about/benchmark/benchmarkWorkload.test.ts`'s "resolves the bundled wine corpus" calls
+ * `how-it-works/benchmark/benchmarkWorkload.test.ts`'s "resolves the bundled wine corpus" calls
  * `loadWineCorpus()` — a dynamic import of the 8.6 MB default tier — from inside the test body, so
  * its cost counts against the per-test budget. In isolation that takes around two seconds, a thin
  * margin against the 5s default. A full parallel run competing for CPU closes that gap, producing an

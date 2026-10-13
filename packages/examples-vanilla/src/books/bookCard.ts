@@ -15,7 +15,7 @@
 
 import type { Book } from '@filter-enginez/mock-data/books';
 
-import { el } from '../dom.js';
+import { el } from '@filter-enginez/examples-shared/dom';
 
 /**
  * One book card.

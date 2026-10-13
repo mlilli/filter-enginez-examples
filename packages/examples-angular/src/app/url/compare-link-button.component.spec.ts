@@ -3,8 +3,8 @@
  *
  * @remarks
  * A render test. This component sits in the header of every Angular dataset route, so a throw at
- * render fails each of those routes' e2e suites while `/about`, `/compare`, the landing hub and the
- * 404 stay green — and `ng build` and `ngc` stay clean, because neither RENDERS it. This does.
+ * render fails each of those routes' e2e suites while `/compare`, the landing hub and the 404 stay
+ * green — and `ng build` and `ngc` stay clean, because neither RENDERS it. This does.
  *
  * The point generalizes past this component: a standalone component with no spec is invisible to
  * every gate short of the e2e suite, so its first execution is in front of a browser that

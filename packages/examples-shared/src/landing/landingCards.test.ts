@@ -18,11 +18,11 @@ import { landingCards } from './landingCards.js';
 describe('landingCards', () => {
 	it('gives every vertical a card for every dataset route it serves', () => {
 		// The assertion that catches a missing card. Non-dataset routes are excluded by
-		// subtraction rather than by name, so a new `/about`-like route added to the catalog's ignore
+		// subtraction rather than by name, so a new `/compare`-like route added to the catalog's ignore
 		// list cannot quietly satisfy this.
 		for (const { id, routes } of VERTICALS) {
 			const hrefs = landingCards(id).map((card) => card.href);
-			const datasetRoutes = routes.filter((route) => !['/about', '/compare', '/docs'].includes(route));
+			const datasetRoutes = routes.filter((route) => !['/compare', '/docs'].includes(route));
 
 			expect([...hrefs].sort(), `${id} landing cards`).toEqual([...datasetRoutes].sort());
 		}

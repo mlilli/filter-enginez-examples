@@ -55,6 +55,7 @@ import {
 	type GeoProximityRule,
 	type RuleId,
 } from '@filter-enginez/core';
+import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import {
 	describeMapCoords,
 	extractListingCoords,
@@ -68,7 +69,6 @@ import {
 import { createCheckboxControl } from '../controls/controls.js';
 import { section } from '../controls/sections.js';
 import { createSelectMenu } from '../controls/selectMenu.js';
-import { el, setHidden } from '../dom.js';
 import { createRadiusMap } from './radiusMap.js';
 
 /**

@@ -14,7 +14,7 @@
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { el } from '../dom.js';
+import { el } from '@filter-enginez/examples-shared/dom';
 
 /**
  * Swatch fills, matching every other vertical's card.

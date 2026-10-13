@@ -61,12 +61,12 @@ import {
 	SUPER_GROUP_KEYS,
 	uniqueSorted,
 } from '@filter-enginez/examples-shared/books-domain';
+import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
 
 import { type Control, createCheckboxControl, createChipToggleGroup, createSearchInput } from '../controls/controls.js';
 import { createRangeSlider, type RangeSliderState } from '../controls/rangeSlider.js';
 import { section } from '../controls/sections.js';
-import { el, setHidden } from '../dom.js';
 
 /** The engine snapshot the panel renders from. */
 export interface PanelState {

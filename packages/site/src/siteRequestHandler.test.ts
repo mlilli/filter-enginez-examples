@@ -1,12 +1,13 @@
 /**
- * Unit tests for the `filterenginez.com` Worker: the `www.` redirect and the hand-off to the assets.
+ * Unit tests for the `filterenginez.com` Worker: the `www.` redirect, the canonical page paths and the
+ * hand-off to the assets.
  *
  * @packageDocumentation
  */
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { CANONICAL_HOST, handleSiteRequest, type SiteWorkerEnvironment, WWW_HOST } from './siteRequestHandler.js';
+import { CANONICAL_HOST, handleSiteRequest, PAGE_PATHS, type SiteWorkerEnvironment, WWW_HOST } from './siteRequestHandler.js';
 import worker from './worker.js';
 
 /**
@@ -53,6 +54,54 @@ describe('handleSiteRequest', () => {
 		await handleSiteRequest(new Request('http://127.0.0.1:8787/sitemap.xml'), environment);
 
 		expect(assetsFetch).toHaveBeenCalledOnce();
+	});
+});
+
+describe('canonical page paths', () => {
+	it('lists the how-it-works page, so the cases below are not vacuous', () => {
+		expect(PAGE_PATHS).toEqual(['/how-it-works']);
+	});
+
+	it.each(['/how-it-works.html', '/how-it-works/'])('permanently redirects %s to /how-it-works, keeping the query', async (path) => {
+		const { assetsFetch, environment } = fakeEnvironment();
+		const response = await handleSiteRequest(new Request(`https://${CANONICAL_HOST}${path}?ref=x#benchmark`), environment);
+
+		expect(response.status).toBe(301);
+		expect(response.headers.get('location')).toBe(`https://${CANONICAL_HOST}/how-it-works?ref=x`);
+		expect(assetsFetch).not.toHaveBeenCalled();
+	});
+
+	it('stays on the request host, so a local wrangler dev redirects to itself', async () => {
+		const { environment } = fakeEnvironment();
+		const response = await handleSiteRequest(new Request('http://127.0.0.1:8787/how-it-works.html'), environment);
+
+		expect(response.headers.get('location')).toBe('http://127.0.0.1:8787/how-it-works');
+	});
+
+	it('takes www to the apex AND the canonical path in one hop', async () => {
+		const { environment } = fakeEnvironment();
+		const response = await handleSiteRequest(new Request(`https://${WWW_HOST}/how-it-works/`), environment);
+
+		expect(response.status).toBe(301);
+		expect(response.headers.get('location')).toBe(`https://${CANONICAL_HOST}/how-it-works`);
+	});
+
+	it('leaves a path that only resembles a page to the assets (and their 404)', async () => {
+		const { assetsFetch, environment } = fakeEnvironment();
+
+		await handleSiteRequest(new Request(`https://${CANONICAL_HOST}/how-it-works.htm`), environment);
+		await handleSiteRequest(new Request(`https://${CANONICAL_HOST}/how-it-works/extra`), environment);
+
+		expect(assetsFetch).toHaveBeenCalledTimes(2);
+	});
+
+	it('serves the canonical path itself from the assets', async () => {
+		const { assetsFetch, environment } = fakeEnvironment();
+		const request = new Request(`https://${CANONICAL_HOST}/how-it-works`);
+
+		await handleSiteRequest(request, environment);
+
+		expect(assetsFetch).toHaveBeenCalledExactlyOnceWith(request);
 	});
 });
 

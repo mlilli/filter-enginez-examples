@@ -43,12 +43,12 @@
  * @packageDocumentation
  */
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { bootWineServerEngine } from '@filter-enginez/examples-shared/wine-server-core';
 
 import type { RouteTeardown } from '../router.js';
 
-import { el } from '../dom.js';
 import { createWineBootScreen } from '../wine/bootScreen.js';
 import { mountWineRoute } from './winePageShell.js';
 

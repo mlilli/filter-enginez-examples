@@ -20,8 +20,8 @@ import {
 	compareTargetHref,
 	hasComparableState,
 } from '@filter-enginez/examples-shared/compare-core';
+import { el, svg } from '@filter-enginez/examples-shared/dom';
 
-import { el, svg } from '../dom.js';
 import {
 	cycleUrlFormat,
 	getSerializedFilterState,

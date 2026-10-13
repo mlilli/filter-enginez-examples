@@ -27,13 +27,13 @@ import {
 	safeApplyBundle,
 } from '@filter-enginez/examples-shared/books-domain';
 import { bootCaptionParts, bootCaptionText } from '@filter-enginez/examples-shared/boot-caption';
+import { el } from '@filter-enginez/examples-shared/dom';
 import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 
 import type { RouteTeardown } from '../router.js';
 
 import { createBooksView } from '../books/view.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
-import { el } from '../dom.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 

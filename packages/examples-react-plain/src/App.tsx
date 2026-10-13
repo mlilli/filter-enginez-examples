@@ -17,16 +17,15 @@
  * @packageDocumentation
  */
 
-import { AboutPage } from '@filter-enginez/examples-shared/about';
 import { compareRoute } from '@filter-enginez/examples-shared/compare';
 import { docsRoute } from '@filter-enginez/examples-shared/docs';
+import { LAB_ROUTE_PATH } from '@filter-enginez/examples-shared/how-it-works';
 import { NotFoundPage, notFoundRoute } from '@filter-enginez/examples-shared/notfound';
 import { createBrowserRouter, useParams } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
 import { BooksServerRoute } from './books/BooksServerRoute.js';
 import { findDataset } from './datasets.js';
-import { LAB_ABOUT_LINKS, LAB_ROUTE_PATH } from './lab/labAboutLinks.js';
 import { LabRoute } from './lab/LabRoute.js';
 import { DatasetRoute } from './routes/DatasetRoute.js';
 import { LandingPage } from './routes/LandingPage.js';
@@ -50,16 +49,14 @@ const DatasetRouteResolver = (): React.ReactElement => {
 
 const router = createBrowserRouter([
 	{ element: <LandingPage />, path: '/' },
-	// This app has a `/lab`, so it opts its `/about` into linking there. The other five verticals
-	// render the same shared page with no `demoLinks` and are unchanged — see `labAboutLinks.ts`.
-	{ element: <AboutPage demoLinks={LAB_ABOUT_LINKS} />, path: '/about' },
 	{ element: <BooksServerRoute />, path: '/books-server' },
 	docsRoute,
 	// Before `/:datasetId`, for the same reason `docsRoute` is: a bare `/compare` would otherwise be
 	// a candidate for the dataset resolver, which would answer it with the 404 for an unknown id.
 	compareRoute,
 	// Same reason again, and the failure mode is why it is worth restating rather than trusting the
-	// router's ranking: `/lab` losing to `/:datasetId` does not error, it renders a plausible 404.
+	// router's ranking: `/lab` losing to `/:datasetId` does not error, it renders a plausible 404. The
+	// path is the one the how-it-works page on filterenginez.com links to, read from the same constant.
 	{ element: <LabRoute />, path: LAB_ROUTE_PATH },
 	{ element: <DatasetRouteResolver />, path: '/:datasetId' },
 	notFoundRoute,

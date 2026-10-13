@@ -55,7 +55,7 @@ export interface DatasetCard {
  * does not recognize as an error. An allowlist of what to ignore fails loudly on a new dataset; a
  * denylist of what to include fails silently.
  */
-const NON_DATASET_ROUTES: ReadonlySet<string> = new Set(['/about', '/compare', '/docs']);
+const NON_DATASET_ROUTES: ReadonlySet<string> = new Set(['/compare', '/docs']);
 
 /**
  * Every dataset route any vertical serves, in the order the hub presents them.

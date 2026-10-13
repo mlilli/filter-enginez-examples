@@ -27,18 +27,20 @@ Both repositories were developed privately from May 2026; their public history b
 
 Every app runs on its own subdomain, built from `main` and running on synthetic data:
 
-| Site                                                               | What it is                                                                 |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| [filterenginez.com](https://filterenginez.com)                     | The landing page: what the engine is, how to install it, links to the rest |
-| [react-rtk.filterenginez.com](https://react-rtk.filterenginez.com) | React + Redux Toolkit                                                      |
-| [react.filterenginez.com](https://react.filterenginez.com)         | React, no Redux                                                            |
-| [svelte.filterenginez.com](https://svelte.filterenginez.com)       | SvelteKit, with server-side rendering and server-filtered routes           |
-| [vue.filterenginez.com](https://vue.filterenginez.com)             | Vue 3                                                                      |
-| [angular.filterenginez.com](https://angular.filterenginez.com)     | Angular                                                                    |
-| [vanilla.filterenginez.com](https://vanilla.filterenginez.com)     | Plain TypeScript, no framework                                             |
-| [docs.filterenginez.com](https://docs.filterenginez.com)           | The documentation site                                                     |
+| Site                                                                     | What it is                                                                      |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| [filterenginez.com](https://filterenginez.com)                           | The landing page: what the engine is, how to install it, links to the rest      |
+| [filterenginez.com/how-it-works](https://filterenginez.com/how-it-works) | How the engine works: eight animated algorithms and a live in-browser benchmark |
+| [react-rtk.filterenginez.com](https://react-rtk.filterenginez.com)       | React + Redux Toolkit                                                           |
+| [react.filterenginez.com](https://react.filterenginez.com)               | React, no Redux                                                                 |
+| [svelte.filterenginez.com](https://svelte.filterenginez.com)             | SvelteKit, with server-side rendering and server-filtered routes                |
+| [vue.filterenginez.com](https://vue.filterenginez.com)                   | Vue 3                                                                           |
+| [angular.filterenginez.com](https://angular.filterenginez.com)           | Angular                                                                         |
+| [vanilla.filterenginez.com](https://vanilla.filterenginez.com)           | Plain TypeScript, no framework                                                  |
+| [docs.filterenginez.com](https://docs.filterenginez.com)                 | The documentation site                                                          |
 
-The `/compare` page in any of the six opens your current filter state in all of them.
+The `/compare` page in any of the six opens your current filter state in all of them, and each one's landing hub links
+to the one "How the engine works" page on the landing site.
 
 ## Apps
 
@@ -52,11 +54,10 @@ The `/compare` page in any of the six opens your current filter state in all of 
 | `examples-vanilla`                                                  | Plain TypeScript and hand-written DOM, over `reactive-signals` and the bare core        | `pnpm dev:vanilla` | 5179 |
 | [`examples-server`](./packages/examples-server/README.md)           | Node CLI plus a small `node:http` endpoint: the same engine and JSON config, no browser | `pnpm dev:api`     | 8787 |
 | `examples-docs`                                                     | Standalone documentation site: rule and algorithm reference, live playground            | `pnpm dev:docs`    | 5180 |
-| `site`                                                              | The `filterenginez.com` landing page: static HTML and CSS on the brand tokens           | `pnpm dev:site`    | 5181 |
+| `site`                                                              | `filterenginez.com`: the landing page, and the how-it-works page rendered at build time | `pnpm dev:site`    | 5181 |
 
 `pnpm dev` starts every app except the API server, which `pnpm dev:api` runs. Every dev server pins its port, so a
-collision fails loudly; the canonical port map for the apps the end-to-end suite drives is in
-[`playwright.config.ts`](./playwright.config.ts).
+collision fails loudly; the canonical port map is in [`playwright.config.ts`](./playwright.config.ts).
 
 ## Shared packages
 
@@ -146,9 +147,11 @@ checks that none of the local-only wine corpus is in the output and adds the bun
   counterpart of the dev-server proxy.
 - SvelteKit builds with `adapter-node` by default; `SVELTEKIT_ADAPTER=cloudflare` switches it to `adapter-cloudflare`,
   which is what the deploy job sets.
-- `/compare` links each app to the others' production origins on a deployed host and to their dev servers on a loopback
-  one, so a local production preview stays local.
-- `www.filterenginez.com` redirects to the apex.
+- `/compare`, and every link to the how-it-works page, resolves to the production origins on a deployed host and to the
+  dev servers on a loopback one, so a local production preview stays local.
+- `www.filterenginez.com` redirects to the apex, and `/how-it-works.html` and `/how-it-works/` to `/how-it-works`.
+- Every demo app answers `/about` with a permanent redirect to `https://filterenginez.com/how-it-works`: the static ones
+  from a `_redirects` file in their `public/` directory, SvelteKit from a route.
 
 To try a deployed build locally, build the package and run
 `pnpm exec wrangler dev --config packages/<name>/wrangler.jsonc` from the repository root.

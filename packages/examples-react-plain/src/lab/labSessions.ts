@@ -16,15 +16,16 @@
  *
  * So the lab **seeds a labeled corpus and says so**. Seeding SILENTLY is ruled out, and the reason
  * is worth keeping next to the data: it would make the demo lie about where its numbers come from,
- * which is the same failure as `/about` advertising a feature with no button — one level down. {@link SYNTHETIC_SESSION_COUNT} is
+ * which is the same failure as the how-it-works page advertising a feature with no button — one level
+ * down. {@link SYNTHETIC_SESSION_COUNT} is
  * exported so the pane can state the number rather than gesture at it.
  *
  * ### The seed is over LAB ids, and live recording is over the ENGINE's ids
  *
  * The books panel registers one rule per FACET — `genre`, `rating`, `publication-year` — so
  * co-occurrence over those ids answers "people who used the genre filter also used the rating
- * filter". True, and dull. The lab's own candidates are per-VALUE, which is the claim `/about`
- * actually makes ("narrowing to Napa and Cabernet surfaces 90+ points"), and each one already has a
+ * filter". True, and dull. The lab's own candidates are per-VALUE, which is the claim the how-it-works
+ * page actually makes ("narrowing to Napa and Cabernet surfaces 90+ points"), and each one already has a
  * button in the projections pane — so a suggestion is something the visitor can act on rather than
  * read.
  *

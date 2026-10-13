@@ -12,13 +12,14 @@
  */
 
 import { Mark } from '@filter-enginez/brand';
+import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
+// The route path is written in exactly one place. A link that hardcoded '/lab' would survive a
+// rename as a plausible 404 rather than a build error — the same failure the how-it-works content
+// test pins for the links that page makes to the lab.
+import { LAB_ROUTE_PATH } from '@filter-enginez/examples-shared/how-it-works';
 import { Link } from 'react-router';
 
 import { type DatasetEntry, datasets } from '../datasets.js';
-// The route path is written in exactly one place. A link that hardcoded '/lab' would survive a
-// rename as a plausible 404 rather than a build error — the same failure `labAboutLinks.test.ts`
-// pins for the /about links.
-import { LAB_ROUTE_PATH } from '../lab/labAboutLinks.js';
 
 /** Scoped landing styles — keyframes + hover states inline styles can't express. */
 const LANDING_CSS = `
@@ -324,9 +325,11 @@ export const LandingPage = (): React.ReactElement => {
 						A generic, isomorphic, framework-agnostic TypeScript filter engine — arbitrarily complex
 						filters over arbitrarily shaped data, computed client-side. This is the React vertical.
 					</p>
-					<Link to="/about" className="fe-landing__about">
+					{/* A plain anchor, not a router `<Link>`: the page lives on the landing site, another origin,
+					    resolved from this page's location so a local run reaches the local site server. */}
+					<a href={howItWorksUrl(window.location)} className="fe-landing__about">
 						How the engine works →
-					</Link>
+					</a>
 					<Link to={LAB_ROUTE_PATH} className="fe-landing__lab">
 						Watch it project, find and suggest →
 					</Link>

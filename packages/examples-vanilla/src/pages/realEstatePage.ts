@@ -30,6 +30,7 @@
 import type { FilterBundle, FilterRule, RuleId } from '@filter-enginez/core';
 
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	bootRealEstateEngine,
 	getRealEstateBootProgressSnapshot,
@@ -47,7 +48,6 @@ import type { RouteTeardown } from '../router.js';
 
 import { bootCaptionValue } from '../brand/indicators.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
-import { el } from '../dom.js';
 import { createRealEstateView } from '../real-estate/view.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';

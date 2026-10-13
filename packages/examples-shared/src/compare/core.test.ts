@@ -1,5 +1,6 @@
 /**
- * Coverage for the `/compare` core — origins, links, presets, and the portability round-trip.
+ * Coverage for the `/compare` core — origins (the verticals' and the landing site's), links, presets, and
+ * the portability round-trip.
  *
  * @remarks
  * Everything on the `core.js` barrel except the header button's URL construction, which has its own
@@ -24,7 +25,7 @@ import { wines } from '@filter-enginez/mock-data/wine';
 import { createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
 import { describe, expect, it } from 'vitest';
 
-import { type VerticalId, VERTICALS } from '../verticals/verticals.js';
+import { HOW_IT_WORKS_PATH, SITE, type VerticalId, VERTICALS } from '../verticals/verticals.js';
 import {
 	COMPARE_DATASETS,
 	COMPARE_PRESETS,
@@ -34,8 +35,10 @@ import {
 	deploymentLayout,
 	findPreset,
 	hasComparableState,
+	howItWorksUrl,
 	readCompareDataset,
 	resolveCompareState,
+	resolveSiteOrigin,
 	resolveVerticalOrigin,
 	URL_STATE_PARAM,
 } from './core.js';
@@ -113,6 +116,30 @@ describe('deploymentLayout', () => {
 		// layout a build-time constant, those links would leave for the deployed sites and the local
 		// e2e run would be testing someone else's servers.
 		expect(deploymentLayout({ hostname: 'localhost', origin: 'http://localhost:8787' })).toBe('dev');
+	});
+});
+
+describe('resolveSiteOrigin and howItWorksUrl', () => {
+	it('resolves the landing site from the page location, like a vertical', () => {
+		expect(resolveSiteOrigin(DEV_LOCATION)).toBe(SITE.devOrigin);
+		expect(resolveSiteOrigin(PROD_LOCATION)).toBe(SITE.productionOrigin);
+		expect(resolveSiteOrigin(PROD_LOCATION, 'dev')).toBe(SITE.devOrigin);
+	});
+
+	it('puts the how-it-works page at the apex when deployed and on the local site server in development', () => {
+		// Literals, not the constants restated: the deployed URL is what the sitemap, the canonical link
+		// and every app's `_redirects` name, so a change here must be a deliberate one.
+		expect(howItWorksUrl(PROD_LOCATION)).toBe('https://filterenginez.com/how-it-works');
+		expect(howItWorksUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5181/how-it-works');
+		expect(howItWorksUrl(DEV_LOCATION, 'production')).toBe(`${SITE.productionOrigin}${HOW_IT_WORKS_PATH}`);
+	});
+
+	it('gives the site an origin no vertical uses', () => {
+		for (const layout of ['dev', 'production'] as const) {
+			const verticalOrigins = VERTICALS.map((descriptor) => resolveVerticalOrigin(descriptor.id, PROD_LOCATION, layout));
+
+			expect(verticalOrigins).not.toContain(resolveSiteOrigin(PROD_LOCATION, layout));
+		}
 	});
 });
 

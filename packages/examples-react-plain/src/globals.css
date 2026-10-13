@@ -7,6 +7,8 @@
  *   2. Tailwind v4 — the new `@import "tailwindcss"` form (no @tailwind directives in v4;
  *      utilities are generated on-demand by the @tailwindcss/vite plugin).
  *   3. `@filter-enginez/ui-styles` — the shared `fe-*` component styles.
+ *   4. `@filter-enginez/ui-styles/figures.css` — the eight animated algorithm figures (`fe-fig-*`),
+ *      drawn by the documentation pages this app serves under `/docs`.
  *
  * Custom rules below the imports are scoped to dual-accent semantic helpers and a couple of
  * resets the design system depends on but doesn't ship explicitly (selection color, scrollbar
@@ -16,6 +18,7 @@
 @import '@filter-enginez/brand/tokens.css';
 @import 'tailwindcss';
 @import '@filter-enginez/ui-styles/styles.css';
+@import '@filter-enginez/ui-styles/figures.css';
 
 /* Tailwind v4 auto-detects source files from the project root and DELIBERATELY excludes
  * `node_modules` — which is where pnpm symlinks the workspace packages. Without this `@source`, any

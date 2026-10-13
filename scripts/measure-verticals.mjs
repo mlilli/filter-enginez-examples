@@ -14,9 +14,9 @@
  * counting; "Angular is more verbose than Svelte" is not, and this file does not say it.
  *
  * **The two React rows are small for a reason that is not about React, and the table must say so.**
- * The shared slice is WRITTEN in React: `examples-shared` and `react-ui` are ~10,800 lines of code
- * that the React apps consume directly and the other four cannot. So React RTK's ~2,000 lines are not
- * "what React needed" — they are what remains once everything shareable lives in a React library. The
+ * The shared slice is WRITTEN in React: `examples-shared` and `react-ui` are thousands of lines of
+ * code (the report's `note` states the current count) that the React apps consume directly and the
+ * other four cannot. So React RTK's ~2,000 lines are not "what React needed" — they are what remains once everything shareable lives in a React library. The
  * non-React verticals re-express that same surface in their own idiom, and their larger numbers are
  * mostly THAT, not framework verbosity. Anyone quoting these six figures without the `shared` block
  * beside them is quoting a fabrication; that is why `shared` is in the same file rather than a
@@ -206,11 +206,28 @@ const SHARED = [
 	{ id: 'ui-styles', path: 'packages/ui-styles/src' },
 ];
 
+/** The {@link SHARED} trees written in React, which only the two React verticals consume as-is. */
+const REACT_WRITTEN_SHARED_IDS = new Set(['examples-shared', 'react-ui']);
+
+/** {@link SHARED}, measured, in the same order. */
+const sharedMeasurements = SHARED.map(({ id, path }) => ({ counts: measure(path), id }));
+
+/**
+ * Lines of code in the React-written part of the shared slice, rounded to the nearest hundred for the
+ * note. Computed from this run rather than written into the note, so the note cannot fall behind the
+ * counts beside it.
+ */
+const reactWrittenSharedCode =
+	Math.round(
+		sharedMeasurements
+			.filter(({ id }) => REACT_WRITTEN_SHARED_IDS.has(id))
+			.reduce((sum, { counts }) => sum + counts.code, 0) / 100,
+	) * 100;
+
 const report = {
 	generatedAt: new Date().toISOString(),
-	note:
-		'Counts each vertical’s OWN src only; tests, vendored mockServiceWorker.js and generated output are excluded. Quote `code`; `comment` is reported so its exclusion is visible rather than assumed. READ WITH `shared`: that slice is written in React, so the two React verticals consume ~10,800 lines the other four had to re-express in their own idiom. These figures are NOT a framework-verbosity comparison.',
-	shared: Object.fromEntries(SHARED.map(({ id, path }) => [id, measure(path)])),
+	note: `Counts each vertical’s OWN src only; tests, vendored mockServiceWorker.js and generated output are excluded. Quote \`code\`; \`comment\` is reported so its exclusion is visible rather than assumed. READ WITH \`shared\`: that slice is written in React, so the two React verticals consume ~${reactWrittenSharedCode.toLocaleString('en-US')} lines the other four had to re-express in their own idiom. These figures are NOT a framework-verbosity comparison.`,
+	shared: Object.fromEntries(sharedMeasurements.map(({ counts, id }) => [id, counts])),
 	verticals: Object.fromEntries(TREES.map(({ id, path }) => [id, measure(path)])),
 };
 

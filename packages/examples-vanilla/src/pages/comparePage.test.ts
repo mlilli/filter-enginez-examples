@@ -7,10 +7,6 @@
  * module's suite grows six-fold across a fan-out. What is left is the seam — did THIS shell wire the
  * shared module up, and does it put the same things on screen as the others.
  *
- * Its own file rather than an addition to `pages.test.ts`: that file mocks `about-core`'s benchmark
- * workload at module scope so mounting the About page never loads the wine corpus, and this page has
- * no relationship to any of that.
- *
  * ### It reads `window.location` directly, so the test navigates jsdom rather than mocking
  *
  * `renderComparePage` takes only a container — the framework-less router gives it nothing else — so

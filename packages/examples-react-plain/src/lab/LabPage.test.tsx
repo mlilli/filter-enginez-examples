@@ -52,8 +52,8 @@ describe('LabPage', () => {
 	it('composes all three panes, in escalating order', () => {
 		// The order is a decision, not an accident: projections first because it needs no attach step
 		// and no corpus, then similarity, then suggestions — which is the only one that has to explain
-		// where its numbers came from. Same "escalating in cleverness" shape `/about` uses for its
-		// bands. Asserting mere PRESENCE would pass against any permutation.
+		// where its numbers came from. Same "escalating in cleverness" shape the how-it-works page
+		// uses for its bands. Asserting mere PRESENCE would pass against any permutation.
 		mountPage();
 
 		const panes = screen.getAllByText(/^(projections|neighbors|suggestions)$/u).map((node) => node.textContent);

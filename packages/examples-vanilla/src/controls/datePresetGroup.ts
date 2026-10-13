@@ -30,9 +30,9 @@
  * @packageDocumentation
  */
 
-import type { Control } from './controls.js';
+import { el } from '@filter-enginez/examples-shared/dom';
 
-import { el } from '../dom.js';
+import type { Control } from './controls.js';
 
 /** One selectable preset. */
 export interface DatePreset<V extends string> {

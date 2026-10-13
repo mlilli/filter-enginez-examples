@@ -38,6 +38,7 @@
 
 import type { CompositeRule } from '@filter-enginez/core';
 
+import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import {
 	buildSmartFilterExpression,
 	clearAllFacetRules,
@@ -50,7 +51,6 @@ import {
 
 import { createChipToggleGroup } from '../controls/controls.js';
 import { section } from '../controls/sections.js';
-import { el, setHidden } from '../dom.js';
 import { createFacetAdopter } from './facetState.js';
 
 /** The mounted preset strip. */

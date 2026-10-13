@@ -38,12 +38,11 @@
 import type { RadiusMapController } from '@filter-enginez/examples-shared/real-estate-map';
 
 import { prefersReducedMotion } from '@filter-enginez/brand/motion';
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	type MapCoords,
 	METERS_PER_KM,
 } from '@filter-enginez/examples-shared/real-estate-domain';
-
-import { el } from '../dom.js';
 
 /**
  * Accessible name for the map region.

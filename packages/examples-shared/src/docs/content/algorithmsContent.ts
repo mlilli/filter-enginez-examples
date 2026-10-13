@@ -1,8 +1,8 @@
 /**
  * The algorithm catalog as documentation data — the acceleration stack + the "beyond filtering"
- * capabilities. Each entry drives one `/docs/algorithms/:id` page and REUSES the animated
- * illustration already built for the `/about` page (`about/illustrations`), so there is one source of
- * truth for each figure.
+ * capabilities. Each entry drives one `/docs/algorithms/:id` page and renders the animated
+ * illustration from `docs/illustrations` — drawn over the same `fe-fig-*` classes as the framework-free
+ * figure on filterenginez.com/how-it-works, so each figure looks and moves the same in both places.
  *
  * @packageDocumentation
  */
@@ -16,7 +16,7 @@ import {
 	RTreeFigure,
 	SimilarityFigure,
 	TextIndexFigure,
-} from '../../about/illustrations/index.js';
+} from '../illustrations/index.js';
 import { type AlgorithmDoc } from './types.js';
 
 /** Every documented algorithm, in sidebar order (the four acceleration layers, then "beyond"). */

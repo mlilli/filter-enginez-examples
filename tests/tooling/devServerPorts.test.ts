@@ -23,13 +23,21 @@ import { e2ePortsFromConfig } from '../../scripts/e2e-ports.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** Vite-based verticals: package directory → the port it must hold. */
+/**
+ * Vite-based dev servers: package directory → the port it must hold.
+ *
+ * @remarks
+ * The five Vite verticals, plus the landing site: every app's landing page links to the site's
+ * how-it-works page in development, so its port is a cross-app origin exactly like a vertical's, and
+ * is held to the same assertions.
+ */
 const VITE_PORTS: Readonly<Record<string, number>> = {
 	'examples-react-plain': 5176,
 	'examples-react-rtk': 5174,
 	'examples-sveltekit': 5175,
 	'examples-vanilla': 5179,
 	'examples-vue': 5178,
+	site: 5181,
 };
 
 /** Angular declares its port in `angular.json` rather than a Vite config. */
@@ -135,7 +143,8 @@ describe('dev-server ports', () => {
 
 	it('matches the origins the apps put in their own headers', () => {
 		// A THIRD copy of the port map exists, deliberately: `examples-shared/verticals` is what a
-		// header reads to print `Books · Angular`, and what `/compare` reads to link across the six.
+		// header reads to print `Books · Angular`, and what `/compare` reads to link across the six —
+		// and its `SITE` entry is what every landing page's "How the engine works" link resolves to.
 		// Data duplicated on purpose has to be pinned, or the comparison page links to a port nothing
 		// serves — in a page whose entire point is showing that the six agree.
 		//
@@ -202,6 +211,25 @@ describe('dev-server ports', () => {
 		}
 
 		expect(mismatches).toEqual([]);
+	});
+
+	it('keeps the landing site’s e2e origin helper on the registry’s SITE origin', () => {
+		// The same FOURTH-copy check for the one origin that is not a vertical: the how-it-works spec
+		// navigates to `siteBase.ts`'s origin, and the apps' landing pages link to `SITE.devOrigin`. Both
+		// must be the port the site's dev server holds, or the spec tests one server while the links
+		// point at another.
+		const registry = readFileSync(
+			resolve(REPO_ROOT, 'packages/examples-shared/src/verticals/verticals.ts'),
+			'utf8',
+		);
+		const canonical = registry.match(/export const SITE[^}]*?devOrigin: 'http:\/\/127\.0\.0\.1:(\d{2,5})'/u)?.[1];
+		const declared = readFileSync(resolve(REPO_ROOT, 'tests/e2e/siteBase.ts'), 'utf8')
+			.match(/'http:\/\/127\.0\.0\.1:(\d{2,5})'/u)?.[1];
+
+		expect(canonical, 'no SITE.devOrigin parsed out of the registry').toBeDefined();
+		expect(declared, 'no origin parsed out of tests/e2e/siteBase.ts').toBeDefined();
+		expect(Number(declared)).toBe(VITE_PORTS['site']);
+		expect(Number(canonical)).toBe(VITE_PORTS['site']);
 	});
 
 	it('has the e2e preflight LABELLING every port it probes', () => {

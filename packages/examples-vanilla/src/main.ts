@@ -12,7 +12,6 @@
 
 import './app.css';
 
-import { renderAboutPage } from './pages/aboutPage.js';
 import { renderBooksPage } from './pages/booksPage.js';
 import { renderBooksRawPage } from './pages/booksRawPage.js';
 import { renderComparePage } from './pages/comparePage.js';
@@ -26,8 +25,7 @@ import { type Route, startRouter } from './router.js';
 /**
  * The route table. `/books` and `/books-raw` render the SAME view over the two reactive surfaces —
  * fine-grained signals vs one coarse subscribe. `/real-estate` is the second dataset and the widest
- * panel here — fourteen sections, including a lazily-loaded Leaflet map. `/about` is the shared
- * narrative, and the trailing `'*'` catch-all renders the shared "filtered to zero" 404.
+ * panel here — fourteen sections, including a lazily-loaded Leaflet map. The trailing `'*'` catch-all renders the shared "filtered to zero" 404.
  */
 const routes: readonly Route[] = [
 	{ path: '/', render: renderLandingPage },
@@ -39,7 +37,6 @@ const routes: readonly Route[] = [
 	// `examples-server`, where SvelteKit's equivalent runs the core in its own Node tier. Between the
 	// two, the repo shows both server-tier arrangements of one engine rather than one twice.
 	{ path: '/wine-server', render: renderWineServerPage },
-	{ path: '/about', render: renderAboutPage },
 	// Before the catch-all. No engine and no corpus — it renders links, not results.
 	{ path: '/compare', render: renderComparePage },
 	{ path: '*', render: renderNotFoundPage },

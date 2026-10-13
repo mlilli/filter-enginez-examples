@@ -902,6 +902,15 @@ importers:
       '@filter-enginez/brand':
         specifier: workspace:*
         version: link:../brand
+      '@filter-enginez/examples-shared':
+        specifier: workspace:*
+        version: link:../examples-shared
+      '@filter-enginez/mock-data':
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+      '@filter-enginez/ui-styles':
+        specifier: workspace:*
+        version: link:../ui-styles
     devDependencies:
       '@filter-enginez/eslint':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz

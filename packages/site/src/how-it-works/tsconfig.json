@@ -1,0 +1,20 @@
+// Type-checks the how-it-works page's code (`tsc --noEmit -p src/how-it-works`, part of the package's
+// `typecheck`) and serves ESLint's typed lint for it. Browser code, so the DOM library; bundler
+// resolution, because Vite owns the build. References the sibling packages' composite build configs so
+// cross-package imports resolve to their built `.d.ts`, as in the framework-free demo app.
+//
+// `prerender.ts` is here too: it builds strings, touches no DOM and runs under Node inside the Vite
+// config, but it reads the same content model as the browser half and is tested beside it.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": []
+  },
+  "include": ["**/*"],
+  "exclude": [],
+  "references": [{ "path": "../../../examples-shared/tsconfig.build.json" }]
+}

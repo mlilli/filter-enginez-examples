@@ -1,5 +1,7 @@
 /* ============================================================================
-   filterenginez.com — the landing page.
+   filterenginez.com — the landing page, and the chrome every page of the site
+   shares (header, footer, skip link, buttons). The how-it-works page's sheet,
+   `how-it-works/howItWorks.css`, imports this one and builds on it.
 
    Built on the brand tokens and element defaults in `@filter-enginez/brand`
    (colors, type scale, spacing, the focus ring, reduced motion), so this file
@@ -76,6 +78,9 @@ body {
 }
 .site-header__nav ul {
 	display: flex;
+	/* Four links can outgrow the narrowest phones beside the brand; wrapping keeps every one a full
+	   44px target instead of squeezing them. */
+	flex-wrap: wrap;
 	gap: var(--space-1);
 	margin: 0;
 	padding: 0;
@@ -92,6 +97,10 @@ body {
 .site-header__nav a:hover {
 	background: var(--gray-2);
 	color: var(--gray-11);
+}
+/* The page being read: cyan, the brand's color for where you are. */
+.site-header__nav a[aria-current='page'] {
+	color: var(--accent);
 }
 
 /* ---- Main column ----------------------------------------------------------- */
@@ -230,6 +239,26 @@ main:focus {
 	margin: var(--space-2) 0 0;
 	font-size: var(--text-sm);
 	color: var(--gray-9);
+}
+
+/* A section's closing link onward, such as "What it does" to the how-it-works page. */
+.section__more {
+	margin: var(--space-6) 0 0;
+}
+.section__more a {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--touch-target);
+	font-weight: 600;
+}
+.section__more a::after {
+	content: ' →';
+	white-space: pre;
+}
+.section__more-detail {
+	display: block;
+	font-size: var(--text-sm);
+	color: var(--gray-8);
 }
 
 /* ---- Demo cards: the whole card is the link -------------------------------- */

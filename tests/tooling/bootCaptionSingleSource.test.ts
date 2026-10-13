@@ -31,7 +31,7 @@
  *   - a class **declared nowhere** — an `fe-` prefix on a class no `fe-*` stylesheet declares — so
  *     the caption renders unstyled while the other verticals style theirs;
  *   - a class declared **twice, byte for byte**, in two scoped blocks — inert until one of them
- *     changes, which is the `.fe-lab` / `.fe-about` shape;
+ *     changes, and then the two copies drift;
  *   - a borrowed class (a panel section heading) or an inline style bag, which is the hardest of all
  *     to compare against the other sites.
  *

@@ -16,7 +16,7 @@
 
 import type { ExclusionMap } from '@filter-enginez/examples-shared/books-domain';
 
-import { el, setHidden, svg } from '../dom.js';
+import { el, setHidden, svg } from '@filter-enginez/examples-shared/dom';
 
 /** A mounted control: a stable root element plus an in-place state updater. */
 export interface Control<State> {

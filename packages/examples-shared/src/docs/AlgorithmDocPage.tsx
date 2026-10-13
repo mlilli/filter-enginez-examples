@@ -1,13 +1,14 @@
 /**
  * `<AlgorithmDocPage />` — renders one `AlgorithmDoc` (`/docs/algorithms/:algoId`): the simple →
- * advanced explanation and the animated illustration reused from the `/about` page. Pure template
- * over the `ALGORITHM_DOCS` catalog.
+ * advanced explanation and the animated illustration, the same figure the how-it-works page on
+ * filterenginez.com animates. Pure template over the `ALGORITHM_DOCS` catalog.
  *
  * @packageDocumentation
  */
 
 import { Link, Navigate, useParams } from 'react-router';
 
+import { howItWorksUrl } from '../compare/origins.js';
 import { ALGORITHM_DOCS, findAlgorithmDoc } from './content/algorithmsContent.js';
 
 /**
@@ -47,7 +48,7 @@ export const AlgorithmDocPage = (): React.ReactElement => {
 			<p className="fe-doc-p">{algorithm.advanced}</p>
 
 			<p className="fe-doc-p">
-				See it animated in context on the <Link to="/about">how-the-engine-works page</Link>, where you can also
+				See it animated in context on the <a href={howItWorksUrl(window.location)}>how-the-engine-works page</a>, where you can also
 				benchmark the acceleration stack live.
 			</p>
 

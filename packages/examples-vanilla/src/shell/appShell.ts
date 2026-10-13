@@ -31,7 +31,8 @@
  * @packageDocumentation
  */
 
-import { el, svg } from '../dom.js';
+import { el, svg } from '@filter-enginez/examples-shared/dom';
+
 import { type DesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
 
 /** Which main-column layout the route wants. */

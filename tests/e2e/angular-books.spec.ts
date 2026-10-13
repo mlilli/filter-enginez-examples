@@ -86,12 +86,6 @@ test.describe('Angular app — routing', () => {
 		expect(new URL(page.url()).pathname).toBe('/books');
 	});
 
-	test('a direct deep link to /about renders About', async ({ page }) => {
-		await page.goto(angularUrl('/about'));
-
-		await expect(page.getByRole('heading', { name: 'Beyond filtering' })).toBeVisible();
-	});
-
 	test('an unknown path renders the 404, not a redirect home', async ({ page }) => {
 		await page.goto(angularUrl('/no-such-route'));
 

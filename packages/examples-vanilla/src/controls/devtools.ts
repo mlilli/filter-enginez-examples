@@ -35,8 +35,7 @@ import {
 	normalizeEntry,
 	scrubIndexForKey,
 } from '@filter-enginez/examples-shared/devtools-core';
-
-import { el, setHidden, svg } from '../dom.js';
+import { el, setHidden, svg } from '@filter-enginez/examples-shared/dom';
 
 /**
  * The slice of core's devtools this file drives.

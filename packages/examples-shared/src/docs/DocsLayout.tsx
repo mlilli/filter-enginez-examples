@@ -5,7 +5,7 @@
  *
  * @remarks
  * Lives in the shared `examples-shared/docs` slice and is mounted as a layout route (`/docs`) in each
- * React app — the docs are part of the same site as `/about` and the dataset demos, sharing the brand.
+ * React app and as the standalone documentation site — sharing the brand with the dataset demos.
  *
  * @packageDocumentation
  */

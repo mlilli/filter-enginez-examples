@@ -213,6 +213,7 @@ favicon set, OG card, and animated SVG are pre-built.
 - **Fonts are self-hosted** variable TTFs in `fonts/` — Inter, JetBrains Mono and Orbitron — each shipped alongside its
   SIL Open Font License (`OFL.txt`).
 - **Icons** follow [Lucide](https://lucide.dev) and are inlined as SVG paths; no icon set is vendored or loaded here.
-- **Algorithm illustrations** ship as standalone HTML previews in `preview/algo-*.html`; the demo apps' About page
-  renders eight algorithm figures in the same vocabulary. They are SVG and CSS animation only — no canvas, no
-  `requestAnimationFrame` loops — which keeps the payload small and makes the reduced-motion fallback trivial.
+- **Algorithm illustrations** ship as standalone HTML previews in `preview/algo-*.html`; the
+  [how-it-works page](https://filterenginez.com/how-it-works) and the documentation site render eight algorithm figures
+  in the same vocabulary. They are SVG and CSS animation only — no canvas, no `requestAnimationFrame` loops — which
+  keeps the payload small and makes the reduced-motion fallback trivial.

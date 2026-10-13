@@ -33,8 +33,9 @@
  * @packageDocumentation
  */
 
+import { el } from '@filter-enginez/examples-shared/dom';
+
 import { createBootLoader } from '../brand/indicators.js';
-import { el } from '../dom.js';
 
 /** The cold-boot screen plus the handle its route uses to narrate progress. */
 export interface WineBootScreen {

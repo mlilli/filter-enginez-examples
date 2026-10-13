@@ -36,10 +36,9 @@ import {
 	type HistogramBucket,
 	type NumericBounds,
 } from '@filter-enginez/examples-shared/bounds';
+import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 
 import type { Control } from './controls.js';
-
-import { el, setHidden } from '../dom.js';
 
 /** State the slider renders from. */
 export interface RangeSliderState {

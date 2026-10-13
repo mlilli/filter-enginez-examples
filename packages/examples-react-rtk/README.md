@@ -15,8 +15,11 @@ calls. Dev server: `http://127.0.0.1:5174`. Live at [react-rtk.filterenginez.com
 | `/books-server` | The books UI over an HTTP engine; every filter round-trips to `examples-server` (run `pnpm dev:api` first)   |
 | `/real-estate`  | Property listings: geo-radius search on a map, a metro-to-neighborhood hierarchy and must-have features      |
 | `/compare`      | One filter state, linked across every app that serves the dataset                                            |
-| `/about`        | How the engine works: eight algorithm illustrations and a live benchmark                                     |
 | `/docs`         | The shared documentation pages: rule and algorithm reference, playground and API index                       |
+
+The landing hub's "How the engine works" link leads to
+[filterenginez.com/how-it-works](https://filterenginez.com/how-it-works), the one page all six demos share; this app's
+`/about` redirects there.
 
 Every dataset route keeps its filter state in a shareable URL (`url-state-router`, with a format toggle and copy-link
 button) and mirrors its engine into its own Redux store, which the result count reads. Every dataset route except

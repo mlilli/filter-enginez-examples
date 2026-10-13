@@ -182,12 +182,6 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	// The devtools time-travel panel — 450 lines, the largest untested module here, and dense
 	// DOM reconciliation over engine state that is itself fully tested.
 	'**/examples-vanilla/src/controls/devtools.ts',
-	// The About shell and its live benchmark widget. The widget runs a real timed workload
-	// against the wine corpus, so covering it means either running that workload in the suite
-	// or mocking the thing under test. Its arithmetic lives in examples-shared's
-	// `benchmarkTiming` / `benchmarkWorkload`, both at 100%.
-	'**/examples-vanilla/src/about/benchmarkWidget.ts',
-	'**/examples-vanilla/src/pages/aboutPage.ts',
 	// ── Reading this list ───────────────────────────────────────────────────────────
 	//
 	// `main.ts` and the five route shells at the top are reached by no test. The list
@@ -204,5 +198,18 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	// "what is covered", with an answer indistinguishable from the real one. **A proxy for
 	// coverage is not coverage.** Only the measurement settles it.
 	'**/examples-vue/**',
+	// ─── site: the how-it-works page's two shells ─────────────────────────────────────
+	// The landing site is measured like a library: its Worker, the page's build-time render
+	// (`prerender.ts`), its enhancement (`howItWorksPage.ts`) and the eight figures are all
+	// in scope, tested in `src/how-it-works/*.test.ts`. Two modules are named out:
+	//   - `main.ts` is the module script's one call, run against the real `document` and
+	//     `window.location` at import — the same whole-file exception as examples-server's
+	//     `cli.ts`; what it calls is `howItWorksPage.ts`, covered.
+	//   - `benchmarkWidget.ts` runs a real timed workload against the wine corpus, so covering
+	//     its live path means either running that workload in the suite or mocking the thing
+	//     under test. Its arithmetic lives in examples-shared's `benchmarkTiming` /
+	//     `benchmarkWorkload`, both at 100%, and the page test drives its markup and switches.
+	'**/site/src/how-it-works/main.ts',
+	'**/site/src/how-it-works/benchmarkWidget.ts',
 	'node_modules/**',
 ];

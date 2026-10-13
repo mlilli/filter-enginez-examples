@@ -1,6 +1,6 @@
 /**
- * Playwright configuration — end-to-end tests for the six demo apps, the documentation site and the
- * server-backed routes.
+ * Playwright configuration — end-to-end tests for the six demo apps, the documentation site, the
+ * landing site's how-it-works page and the server-backed routes.
  *
  * @remarks
  * Playwright's single `baseURL` is the React RTK app; every other vertical's specs import their
@@ -33,6 +33,7 @@
  * | Vue                 | 5178 |
  * | vanilla             | 5179 |
  * | Documentation site  | 5180 |
+ * | Landing site        | 5181 |
  *
  * Every dev server pins `strictPort`, so two apps declaring the same port fail loudly when the suite
  * boots them together; `tests/tooling/devServerPorts.test.ts` checks each app's declared port against
@@ -89,6 +90,13 @@ const ANGULAR_BASE_URL = 'http://127.0.0.1:4200';
 const DOCS_BASE_URL = 'http://127.0.0.1:5180';
 
 /**
+ * The landing site's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5181`, `strictPort`). The
+ * how-it-works spec (`how-it-works.spec.ts`) imports this from `tests/e2e/siteBase.ts`, and every app's
+ * landing page links here in development — `SITE.devOrigin` in examples-shared's verticals registry.
+ */
+const SITE_BASE_URL = 'http://127.0.0.1:5181';
+
+/**
  * CI-specific toggles are pushed to CLI flags rather than read from `process.env` here (a root
  * config file lints under the typeless default TS project, so `process` can't be typed cleanly).
  * In a CI environment, run: `playwright test --forbid-only --retries=1`.
@@ -121,9 +129,9 @@ export default defineConfig({
 		baseURL: BASE_URL,
 		trace: 'on-first-retry',
 	},
-	// Eight servers: the Node filter API (proxied at `/api` — required by the React and Angular
-	// `/books-server` routes and vanilla's `/wine-server`), one dev server per demo app, and the
-	// documentation site. Booting them all at once also proves every port can be held together.
+	// Nine servers: the Node filter API (proxied at `/api` — required by the React and Angular
+	// `/books-server` routes and vanilla's `/wine-server`), one dev server per demo app, the
+	// documentation site and the landing site. Booting them all at once also proves every port can be held together.
 	// **`reuseExistingServer` is `false` on every entry, deliberately.** `true` reads as a
 	// convenience and hides a real failure mode: the suite silently tests whatever an
 	// already-running server happens to be serving, which is not necessarily the working tree. A dev
@@ -205,6 +213,15 @@ export default defineConfig({
 			reuseExistingServer: false,
 			timeout: 180_000,
 			url: DOCS_BASE_URL,
+		},
+		{
+			command: 'pnpm --filter @filter-enginez/site dev',
+			// The landing site pins `strictPort` on 5181. Its spec (`how-it-works.spec.ts`) targets this
+			// origin via `SITE_BASE_URL` (see `tests/e2e/siteBase.ts`), and the six landing hubs' "How the
+			// engine works" links resolve to it in development.
+			reuseExistingServer: false,
+			timeout: 180_000,
+			url: SITE_BASE_URL,
 		},
 	],
 	/**

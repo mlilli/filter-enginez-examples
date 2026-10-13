@@ -7,6 +7,7 @@
 
 import { Link } from 'react-router';
 
+import { howItWorksUrl } from '../compare/origins.js';
 import { CodeBlock } from './CodeBlock.js';
 import { ALGORITHM_DOCS } from './content/algorithmsContent.js';
 import { RULE_DOCS } from './content/rulesContent.js';
@@ -79,7 +80,7 @@ export const DocsHomePage = (): React.ReactElement => {
 
 			<h2 className="fe-doc-h2">See it running</h2>
 			<p className="fe-doc-p">
-				Prefer to watch it work first? The <Link to="/about">how-the-engine-works page</Link> animates the
+				Prefer to watch it work first? The <a href={howItWorksUrl(window.location)}>how-the-engine-works page</a> animates the
 				algorithms and lets you benchmark the acceleration stack live, and the dataset demos (
 				<Link to="/wine">wine</Link>, <Link to="/books">books</Link>, <Link to="/real-estate">real estate</Link>)
 				exercise the whole catalog against real corpora.

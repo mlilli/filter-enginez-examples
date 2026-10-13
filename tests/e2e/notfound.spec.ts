@@ -3,7 +3,7 @@
  *
  * @remarks
  * The 404 markup + behavior are unit-tested per stack (`examples-shared/src/notfound`,
- * `examples-vue/src/pages/NotFoundPage.test.ts`, `examples-vanilla/src/pages/pages.test.ts`); these
+ * `examples-vue/src/pages/NotFoundPage.test.ts`, `examples-vanilla/src/pages/notFoundPage.test.ts`); these
  * specs verify the *wiring*: that an unmatched path actually reaches the shared page. Four stacks:
  *
  *   - **React** — two paths reach the same 404: the `notFoundRoute` (`path: '*'`) catch-all for deep

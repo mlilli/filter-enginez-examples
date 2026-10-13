@@ -9,7 +9,7 @@
     "dev": "vite",
     "dev:fresh": "vite --force",
     "typecheck": "tsc --noEmit",
-    "build": "vite build",
+    "build": "vite build && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",

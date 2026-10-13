@@ -30,9 +30,9 @@ import type { FilterEngine, FilterRule, RuleId } from '@filter-enginez/core';
 import type { FilterSummary } from '@filter-enginez/examples-shared/books-domain';
 
 import { prefersReducedMotion } from '@filter-enginez/brand/motion';
+import { el, setHidden, svg } from '@filter-enginez/examples-shared/dom';
 
 import { createComputingIndicator } from '../brand/indicators.js';
-import { el, setHidden, svg } from '../dom.js';
 
 /** How many cards render initially, and per "load more" batch. */
 const BATCH_SIZE = 60;

@@ -104,7 +104,7 @@ function formatChipLabel(value: string): string {
 
 /**
  * The default registry — one renderer per rule type the books config declares. Consumers can spread
- * this into a new `Map` and override/extend entries (e.g. a `HierarchicalRule` control on `/about`).
+ * this into a new `Map` and override/extend entries (e.g. a `HierarchicalRule` control on another route).
  */
 export const defaultControlRegistry: ControlRegistry = new Map<string, ControlRenderer>([
 	[

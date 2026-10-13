@@ -267,8 +267,7 @@ export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () => {
 
 /**
  * The app routes. Every real page is lazy (`loadComponent`), so the landing bundle carries neither the
- * books corpus nor the engine, nor the eight About-page SVG figures and the wine corpus its live
- * benchmark loads.
+ * books corpus nor the engine.
  *
  * The catch-all renders the shared "filtered to zero" 404 rather than redirecting home. That is partly
  * parity with the other verticals and partly diagnostics: a redirecting catch-all makes an unmatched
@@ -281,10 +280,6 @@ export const routes: Routes = [
 			(await import('./pages/landing-page.component.js')).LandingPageComponent,
 		path: '',
 		pathMatch: 'full',
-	},
-	{
-		loadComponent: async () => (await import('./pages/about-page.component.js')).AboutPageComponent,
-		path: 'about',
 	},
 	{
 		loadComponent: async () => (await import('./pages/books-page.component.js')).BooksPageComponent,

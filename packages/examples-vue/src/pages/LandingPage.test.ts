@@ -4,6 +4,7 @@
  * over a test router.
  */
 
+import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
@@ -42,6 +43,16 @@ describe('Vue LandingPage', () => {
 		expect(wrapper.find('.fe-landing__wordmark').text()).toBe('Filter EngineZ');
 		expect(wrapper.text()).toContain('This is the Vue vertical.');
 		expect(wrapper.find('.fe-landing__about').text()).toContain('How the engine works');
+	});
+
+	it('links "How the engine works" to the landing site, resolved for this deployment layout', async () => {
+		const wrapper = await mountLanding();
+
+		await flushPromises();
+
+		// jsdom serves from a loopback host, so this is the development layout: the local site server.
+		expect(wrapper.find('.fe-landing__about').attributes('href')).toBe(howItWorksUrl(window.location, 'dev'));
+		expect(wrapper.find('.fe-landing__about').attributes('href')).toBe('http://127.0.0.1:5181/how-it-works');
 	});
 
 	it('renders one linked card per dataset route the app serves', async () => {

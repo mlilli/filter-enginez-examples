@@ -46,10 +46,10 @@ import {
 	resolveCompareState,
 	URL_STATE_PARAM,
 } from '@filter-enginez/examples-shared/compare-core';
+import { el } from '@filter-enginez/examples-shared/dom';
 
 import type { RouteRenderResult } from '../router.js';
 
-import { el } from '../dom.js';
 import { getUrlFormat } from '../url/urlState.js';
 
 /** This route's own path, used to build absolute toggle hrefs the router will intercept. */

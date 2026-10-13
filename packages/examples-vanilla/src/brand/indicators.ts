@@ -33,8 +33,7 @@ import {
 	brainSynapseStageStyle,
 	buildBrainSynapseCss,
 } from '@filter-enginez/brand/loaders/brain-synapse-geometry';
-
-import { el, setHidden, svg } from '../dom.js';
+import { el, setHidden, svg } from '@filter-enginez/examples-shared/dom';
 
 /**
  * Loader render size in px. Matches the other verticals' books header (30), where the fire + edge

@@ -5,9 +5,9 @@
  * Rendered by `<DatasetRoute>` inside `<FilterEngineProvider>`, so every pane below has a booted
  * books engine in context and none of them boots anything themselves.
  *
- * The topbar follows `/about`'s shape rather than the books app chrome, because `/lab` is a route
- * SURFACE (like `/about`, `/compare` and the 404) rather than a dataset view — same reason its CSS
- * block is `fe-lab*` and not a dataset-prefixed name.
+ * The topbar is its own rather than the books app chrome, because `/lab` is a route SURFACE (like
+ * `/compare` and the 404) rather than a dataset view — same reason its CSS block is `fe-lab*` and not
+ * a dataset-prefixed name.
  *
  * ⚠ **The three panes are written out** rather than mapped over a config, because the three differ in every way that would matter to a shared container — one owns
  * a picker, one owns a recording effect, one owns a row-per-candidate list — and the only thing they

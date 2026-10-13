@@ -43,9 +43,9 @@ import type { FilterSummary } from '@filter-enginez/examples-shared/books-domain
 
 import { REDUCED_MOTION_QUERY } from '@filter-enginez/brand/motion';
 import { createFilterEngine, type FilterRule, type RuleId } from '@filter-enginez/core';
+import { el } from '@filter-enginez/examples-shared/dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { el } from '../dom.js';
 import { installMatchMedia } from '../test-support/matchMedia.js';
 import { createResultsView, type ResultsView } from './resultsView.js';
 

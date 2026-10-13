@@ -8,7 +8,7 @@
  * Framework-free and DOM-free by construction — {@link CompareLocation} is structural, so nothing
  * here reads a global.
  *
- * The split follows `notfound/core.ts` and `about/aboutCore.ts`: the two React apps consume the
+ * The split follows `notfound/core.ts`: the two React apps consume the
  * component from `../compare`, and the four non-React verticals build their own shells over exactly
  * this module. That is the only shape that reaches all six — `docsRoute` and `notFoundRoute` are
  * `RouteObject`s, which only react-router can mount.

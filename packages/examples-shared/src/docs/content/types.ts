@@ -61,11 +61,11 @@ export interface RuleDoc {
 	readonly tagline: string;
 }
 
-/** A documented algorithm — reuses one of the `/about` illustrations. */
+/** A documented algorithm, with one of the eight algorithm illustrations. */
 export interface AlgorithmDoc {
 	/** The deeper explanation. */
 	readonly advanced: string;
-	/** The animated illustration component (from `about/illustrations`). */
+	/** The animated illustration component (from `docs/illustrations`). */
 	readonly Figure: React.ComponentType;
 	/** Route id + anchor, e.g. `roaring-bitmaps`. */
 	readonly id: string;

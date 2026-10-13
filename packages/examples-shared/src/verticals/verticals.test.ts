@@ -20,6 +20,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	HOW_IT_WORKS_PATH,
+	SITE,
 	stackLabel,
 	vertical,
 	type VerticalId,
@@ -57,13 +59,26 @@ describe('VERTICALS', () => {
 		}
 	});
 
-	it('lists /books and /about everywhere', () => {
+	it('lists /books and /compare everywhere', () => {
 		// The two routes every vertical has. `/compare` uses books as its shared-state dataset for
 		// exactly this reason, so if one vertical ever drops it, the comparison page loses its subject.
 		for (const entry of VERTICALS) {
 			expect(entry.routes, `${entry.id} should serve /books`).toContain('/books');
-			expect(entry.routes, `${entry.id} should serve /about`).toContain('/about');
+			expect(entry.routes, `${entry.id} should serve /compare`).toContain('/compare');
 		}
+	});
+
+	it('lists no /about: "How the engine works" is one page on the landing site, not a route per app', () => {
+		for (const entry of VERTICALS) {
+			expect(entry.routes, entry.id).not.toContain('/about');
+		}
+	});
+
+	it('places the landing site at the apex and on its own dev port', () => {
+		expect(SITE.productionOrigin).toBe('https://filterenginez.com');
+		expect(SITE.devOrigin).toMatch(/^http:\/\/127\.0\.0\.1:\d{4,5}$/u);
+		expect(VERTICALS.map((entry) => entry.devOrigin)).not.toContain(SITE.devOrigin);
+		expect(HOW_IT_WORKS_PATH).toBe('/how-it-works');
 	});
 
 	it('starts every route with a slash and lists none twice', () => {

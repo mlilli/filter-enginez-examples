@@ -4,7 +4,6 @@
  * @remarks
  * Routes:
  *   - `/`             → `<LandingPage>` (the dataset hub).
- *   - `/about`        → `<AboutPage>` (how the engine works).
  *   - `/books-server` → `<BooksServerRoute>` (the SAME `<BooksApp>` as `/books`, but filtering runs
  *                       on the Node `examples-server` via an HTTP-backed engine; no in-browser filter).
  *   - `/:datasetId`   → `<DatasetRoute>` for a registered dataset (unknown ids → the 404).
@@ -16,7 +15,6 @@
  * @packageDocumentation
  */
 
-import { AboutPage } from '@filter-enginez/examples-shared/about';
 import { compareRoute } from '@filter-enginez/examples-shared/compare';
 import { docsRoute } from '@filter-enginez/examples-shared/docs';
 import { NotFoundPage, notFoundRoute } from '@filter-enginez/examples-shared/notfound';
@@ -47,7 +45,6 @@ const DatasetRouteResolver = (): React.ReactElement => {
 
 const router = createBrowserRouter([
 	{ element: <LandingPage />, path: '/' },
-	{ element: <AboutPage />, path: '/about' },
 	{ element: <BooksServerRoute />, path: '/books-server' },
 	docsRoute,
 	// Before `/:datasetId`, for the same reason `docsRoute` is: a bare `/compare` would otherwise be

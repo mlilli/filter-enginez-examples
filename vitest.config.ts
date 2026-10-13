@@ -9,9 +9,10 @@
  * Vitest 4 removed the `vitest.workspace.*` file in favor of `test.projects`.
  * We define two projects, partitioned by the package's runtime target:
  *
- *   - **node**  — the Node API server. No DOM.
+ *   - **node**  — the Node API server and the landing site's Worker. No DOM.
  *   - **jsdom** — the browser-only packages (brand, react-ui, examples-shared and
- *                 the React and vanilla apps).
+ *                 the React and vanilla apps), plus the landing site's
+ *                 how-it-works page.
  *
  * Each project `extends: true` so it inherits the root-level test options
  * (coverage, `clearMocks`, `passWithNoTests`) defined below.
@@ -46,13 +47,13 @@
  * parse it as text; see its own header before renaming it.
  */
 
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 import { COVERAGE_EXCLUDE } from './vitest.coverage.config.js';
 
 /**
  * Isomorphic + Node-tooling packages — tests run under the plain Node runtime. `site` is here for its
- * Cloudflare Worker, whose runtime has no DOM either.
+ * Cloudflare Worker, whose runtime has no DOM either; its browser half is {@link SITE_BROWSER_TESTS}.
  */
 const NODE_TEST_PACKAGES: readonly string[] = [
 	'examples-server',
@@ -74,6 +75,13 @@ const BROWSER_TEST_PACKAGES: readonly string[] = [
 	'examples-vanilla',
 	'react-ui',
 ];
+
+/**
+ * The landing site's browser code — the how-it-works page — which builds DOM and so runs under jsdom,
+ * while the rest of `site` (its Worker) runs under Node. One glob, used as the jsdom project's extra
+ * `include` and the node project's `exclude`, so each test file runs in exactly one environment.
+ */
+const SITE_BROWSER_TESTS = 'packages/site/src/how-it-works/**/*.test.ts';
 
 /**
  * Build a Vitest `include` glob that scopes to the `*.test.{ts,tsx}` files under
@@ -129,6 +137,7 @@ export default defineConfig({
 				extends: true,
 				test: {
 					environment: 'node',
+					exclude: [...configDefaults.exclude, SITE_BROWSER_TESTS],
 					include: [buildPackageTestGlob(NODE_TEST_PACKAGES)],
 					name: 'node',
 				},
@@ -137,7 +146,7 @@ export default defineConfig({
 				extends: true,
 				test: {
 					environment: 'jsdom',
-					include: [buildPackageTestGlob(BROWSER_TEST_PACKAGES)],
+					include: [buildPackageTestGlob(BROWSER_TEST_PACKAGES), SITE_BROWSER_TESTS],
 					name: 'jsdom',
 				},
 			},
@@ -168,7 +177,7 @@ export default defineConfig({
 		 * @remarks
 		 * ### The flake this exists to kill
 		 *
-		 * `about/benchmark/benchmarkWorkload.test.ts`'s "resolves the bundled wine corpus" times out
+		 * `how-it-works/benchmark/benchmarkWorkload.test.ts`'s "resolves the bundled wine corpus" times out
 		 * intermittently under a full-suite run. It calls `loadWineCorpus()`, which is a DYNAMIC
 		 * `import('@filter-enginez/mock-data/wine')` — and that barrel pulls
 		 * `wine/data-real-default.json`, **8.6 MB**. Measured: ~2.1s in isolation, ~1.9s with the corpus

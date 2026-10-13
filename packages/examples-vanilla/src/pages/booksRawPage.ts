@@ -26,6 +26,7 @@
 import { initializeBitmapAcceleration, type RuleId } from '@filter-enginez/core';
 import { buildBooksEngine } from '@filter-enginez/examples-shared/books-core';
 import { safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
+import { el } from '@filter-enginez/examples-shared/dom';
 import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { books as defaultBooks } from '@filter-enginez/mock-data/books';
 
@@ -33,7 +34,6 @@ import type { RouteTeardown } from '../router.js';
 
 import { createBooksView } from '../books/view.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
-import { el } from '../dom.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 

@@ -105,7 +105,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'react-rtk',
 		name: 'React RTK',
 		productionOrigin: 'https://react-rtk.filterenginez.com',
-		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/about', '/compare'],
+		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/compare'],
 		surface: 'signals',
 	},
 	{
@@ -116,7 +116,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'react-plain',
 		name: 'React plain',
 		productionOrigin: 'https://react.filterenginez.com',
-		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/about', '/compare'],
+		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/compare'],
 		surface: 'signals',
 	},
 	{
@@ -127,7 +127,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'sveltekit',
 		name: 'SvelteKit',
 		productionOrigin: 'https://svelte.filterenginez.com',
-		routes: ['/books', '/books-server', '/wine', '/wine-server', '/real-estate', '/about', '/compare'],
+		routes: ['/books', '/books-server', '/wine', '/wine-server', '/real-estate', '/compare'],
 		surface: 'signals',
 	},
 	{
@@ -138,7 +138,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'vue',
 		name: 'Vue',
 		productionOrigin: 'https://vue.filterenginez.com',
-		routes: ['/books', '/wine', '/real-estate', '/about', '/compare'],
+		routes: ['/books', '/wine', '/real-estate', '/compare'],
 		surface: 'signals',
 	},
 	{
@@ -152,7 +152,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		// Must match `app.routes.ts`: `compareLinks` filters on this array, so a route missing here
 		// would silently drop Angular from that dataset's `/compare` table. `/wine` is pinned by
 		// `tests/tooling/winePanelFacetParity.test.ts`.
-		routes: ['/books', '/books-server', '/wine', '/real-estate', '/about', '/compare'],
+		routes: ['/books', '/books-server', '/wine', '/real-estate', '/compare'],
 		surface: 'rxjs',
 	},
 	{
@@ -163,10 +163,39 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'vanilla',
 		name: 'Vanilla',
 		productionOrigin: 'https://vanilla.filterenginez.com',
-		routes: ['/books', '/books-raw', '/wine', '/wine-server', '/real-estate', '/about', '/compare'],
+		routes: ['/books', '/books-raw', '/wine', '/wine-server', '/real-estate', '/compare'],
 		surface: 'none',
 	},
 ];
+
+/**
+ * The landing site at the apex, `filterenginez.com` — not a vertical, but a page the verticals link to.
+ *
+ * @remarks
+ * It hosts the one "How the engine works" page every app's landing hub, the documentation and the
+ * lab link to, so it needs the same two origins a vertical has, for the same reason: a developer
+ * running everything locally must land on the local site, and a visitor on the deployed one. Declared
+ * here beside {@link VERTICALS} so one file states every origin a cross-app link can resolve to;
+ * `../compare/origins.ts` resolves between the two exactly as it does for a vertical.
+ *
+ * `devOrigin` is pinned against `playwright.config.ts` by `tests/tooling/devServerPorts.test.ts`, and
+ * `productionOrigin` against the custom domain in `packages/site/wrangler.jsonc` by
+ * `tests/tooling/cloudflareDeploy.test.ts`.
+ */
+export const SITE: Readonly<Pick<VerticalDescriptor, 'devOrigin' | 'productionOrigin'>> = {
+	devOrigin: 'http://127.0.0.1:5181',
+	productionOrigin: 'https://filterenginez.com',
+};
+
+/**
+ * The path of the "How the engine works" page on {@link SITE}.
+ *
+ * @remarks
+ * Extensionless and without a trailing slash, the one canonical form: Cloudflare's static assets
+ * serve `how-it-works.html` at it, the site's Worker redirects the `.html` and trailing-slash forms
+ * to it, and Vite's dev server answers it too, so a link built from this path works in every layout.
+ */
+export const HOW_IT_WORKS_PATH = '/how-it-works';
 
 /** Lookup by id. @internal */
 const BY_ID = new Map(VERTICALS.map((entry) => [entry.id, entry]));

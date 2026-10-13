@@ -15,11 +15,11 @@
  * @packageDocumentation
  */
 
+import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
+import { el } from '@filter-enginez/examples-shared/dom';
 import { type DatasetCard, landingCards } from '@filter-enginez/examples-shared/landing';
 
 import type { RouteRenderResult } from '../router.js';
-
-import { el } from '../dom.js';
 
 /**
  * Render the landing hub.
@@ -49,8 +49,11 @@ export function renderLandingPage(container: HTMLElement): RouteRenderResult {
 										+ 'filters over arbitrarily shaped data, computed client-side. This is the vanilla '
 										+ 'vertical — no framework, no reactive-surface adapter, just hand-written DOM.',
 								}),
+								// The one page on the landing site — another origin, resolved from this page's location
+								// so a local run reaches the local site server. An absolute URL, so the router's
+								// same-origin click interception leaves it to the browser.
 								el('a', {
-									attrs: { href: '/about' },
+									attrs: { href: howItWorksUrl(window.location) },
 									className: 'fe-landing__about',
 									text: 'How the engine works →',
 								}),

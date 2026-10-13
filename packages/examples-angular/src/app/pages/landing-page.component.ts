@@ -10,11 +10,15 @@
  * The `fe-landing__server` CTA is phosphor rather than cyan on purpose: it is about where the ENGINE
  * fires, not about the data. Its rules live in `ui-styles` beside the rest of the landing styles.
  *
+ * "How the engine works" is a plain `href`, not a `routerLink`: the page lives on the landing site,
+ * another origin, resolved from this page's location so a local run reaches the local site server.
+ *
  * @packageDocumentation
  */
 
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
 
 import { type DatasetCard, landingDatasets } from '../landing.js';
 
@@ -38,7 +42,7 @@ import { type DatasetCard, landingDatasets } from '../landing.js';
 						A generic, isomorphic, framework-agnostic TypeScript filter engine: arbitrarily complex
 						filters over arbitrarily shaped data, computed client-side. This is the Angular vertical.
 					</p>
-					<a class="fe-landing__about" routerLink="/about">How the engine works →</a>
+					<a class="fe-landing__about" [href]="howItWorksHref">How the engine works →</a>
 					<!-- Second in the stack, matching every other vertical: what the engine does, then that
 					     it does it everywhere. Cyan because the page is about WHICH state and WHICH stack —
 					     data and identity — never about the engine computing, which is what the phosphor
@@ -79,4 +83,7 @@ import { type DatasetCard, landingDatasets } from '../landing.js';
 export class LandingPageComponent {
 	/** The dataset tiles, in display order. */
 	protected readonly datasets: readonly DatasetCard[] = landingDatasets;
+
+	/** The how-it-works page on the landing site, for this deployment layout. */
+	protected readonly howItWorksHref: string = howItWorksUrl(window.location);
 }

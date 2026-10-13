@@ -1,10 +1,21 @@
 /**
- * Vite configuration for `@filter-enginez/site` — the static `filterenginez.com` landing page.
+ * Vite configuration for `@filter-enginez/site` — `filterenginez.com`: the landing page and the
+ * "How the engine works" page.
  *
  * @remarks
- * Two HTML entry points and no JavaScript in either: Vite's job here is to bundle `src/styles.css`
- * (which pulls the brand tokens and the self-hosted fonts out of `@filter-enginez/brand`, hashed for
- * long-lived caching) and to copy `public/` (`robots.txt`, `sitemap.xml`) as-is.
+ * Three HTML entry points. `index.html` and `404.html` ship no JavaScript: for them Vite bundles
+ * `src/styles.css` (which pulls the brand tokens and the self-hosted fonts out of
+ * `@filter-enginez/brand`, hashed for long-lived caching) and copies `public/` (`robots.txt`,
+ * `sitemap.xml`) as-is.
+ *
+ * ### `how-it-works.html` is rendered at build time, then enhanced
+ *
+ * Its text — the eight algorithm bands, the act-two divider, the table of contents and the
+ * benchmark's reference numbers — is written into the HTML by {@link howItWorksPrerender} from the
+ * shared content model, so the page reads in full without JavaScript. Its one module script,
+ * `src/how-it-works/main.ts`, then mounts the animated figures and the live benchmark into the
+ * placeholders that markup leaves. The hook runs in the dev server too, so `pnpm dev` serves exactly
+ * the markup the build ships, at `/how-it-works`.
  *
  * ### Brand images come from their canonical files, at build time
  *
@@ -20,7 +31,9 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Plugin, runnerImport } from 'vite';
+
+import type * as HowItWorksPrerender from './src/how-it-works/prerender.js';
 
 const require = createRequire(import.meta.url);
 
@@ -69,7 +82,7 @@ function brandImages(): Plugin {
 					return;
 				}
 
-				response.setHeader('content-type', CONTENT_TYPES.get(extname(fileName)) ??'application/octet-stream');
+				response.setHeader('content-type', CONTENT_TYPES.get(extname(fileName)) ?? 'application/octet-stream');
 				response.end(readFileSync(source));
 			});
 		},
@@ -82,25 +95,74 @@ function brandImages(): Plugin {
 	};
 }
 
+/** This package's directory, the root the prerender module is loaded against. */
+const PACKAGE_ROOT = fileURLToPath(new URL('.', import.meta.url));
+
+/** The how-it-works page's HTML entry, the one file {@link howItWorksPrerender} transforms. */
+const HOW_IT_WORKS_ENTRY = fileURLToPath(new URL('how-it-works.html', import.meta.url));
+
+/** The module that renders the page's text (`prerender.ts`), loaded by {@link howItWorksPrerender}. */
+const PRERENDER_MODULE = fileURLToPath(new URL('src/how-it-works/prerender.ts', import.meta.url));
+
+/**
+ * Render the how-it-works page's text into `how-it-works.html`, in the build and in the dev server.
+ *
+ * @remarks
+ * `order: 'pre'` runs it before Vite's own HTML processing, so the generated markup is treated exactly
+ * like hand-written markup. Every other entry passes through untouched. A missing or duplicated slot
+ * marker throws (see `prerender.ts`), failing the build rather than shipping a page with no text.
+ *
+ * ### Why `runnerImport` rather than an `import` at the top of this file
+ *
+ * `prerender.ts` reads the content model from `@filter-enginez/examples-shared`, a workspace package
+ * whose exports point at TypeScript source. Vite loads this config with every bare import left to
+ * Node, which cannot resolve that source's `.js`-suffixed relative imports. `runnerImport` loads the
+ * module through Vite's own module runner instead — the resolver every app's dev server already uses
+ * for that package — at the moment the page is rendered. In the dev server that also means an edit to
+ * the content shows on the next reload, with no restart.
+ *
+ * @returns The Vite plugin.
+ */
+function howItWorksPrerender(): Plugin {
+	return {
+		name: 'filter-enginez-how-it-works-prerender',
+		transformIndexHtml: {
+			handler: async (html, context) => {
+				if (context.filename !== HOW_IT_WORKS_ENTRY) {
+					return html;
+				}
+
+				const { module } = await runnerImport<typeof HowItWorksPrerender>(PRERENDER_MODULE, { root: PACKAGE_ROOT });
+
+				return module.prerenderHowItWorks(html);
+			},
+			order: 'pre',
+		},
+	};
+}
+
 export default defineConfig({
 	build: {
 		rolldownOptions: {
 			input: {
+				howItWorks: HOW_IT_WORKS_ENTRY,
 				index: fileURLToPath(new URL('index.html', import.meta.url)),
 				notFound: fileURLToPath(new URL('404.html', import.meta.url)),
 			},
 		},
 		target: 'es2022',
 	},
-	plugins: [brandImages()],
+	plugins: [brandImages(), howItWorksPrerender()],
 	server: {
 		fs: {
 			// The brand fonts referenced by `tokens.css` live in a sibling package.
 			allow: ['../..'],
 		},
 		host: '127.0.0.1',
-		// 5181 — the next free slot after the documentation site's 5180. Not in the Playwright port map:
-		// the end-to-end suite does not drive this page. `strictPort` so a collision fails loudly.
+		// 5181 — the next free slot after the documentation site's 5180. In the Playwright port map, because
+		// the how-it-works spec drives this server and every app's landing page links to it in
+		// development (`SITE.devOrigin` in examples-shared's verticals registry). `strictPort` so a
+		// collision fails loudly.
 		port: 5181,
 		strictPort: true,
 	},

@@ -18,7 +18,10 @@
  *   local-only wine corpus could ship.
  * - **A public address nobody chose.** `workers_dev` and preview URLs default ON for a Worker without
  *   routes, and each is a second, unlisted copy of the site.
- * - **A sitemap or landing page that forgets a site,** or lists one that is not deployed.
+ * - **A sitemap or landing page that forgets a site,** or lists one that is not deployed — or lists a
+ *   page on the apex that the site's build does not produce.
+ * - **An app's `/about` that stops answering.** "How the engine works" is one page on the apex, and a
+ *   link to any app's `/about` must land there.
  *
  * Read as TEXT where the subject is a file humans edit; the registry is parsed rather than imported,
  * because this project resolves no workspace packages (see `devServerPorts.test.ts`).
@@ -46,6 +49,12 @@ const API_WORKER_ENTRY = '../examples-server/src/cloudflareWorker.ts';
 
 /** The build step every corpus-linked app ends with (see `buildsStripLocalCorpus.test.ts`). */
 const STRIP_COMMAND = 'node ../../scripts/strip-local-corpus.mjs';
+
+/** Where every app's `/about` must send a visitor. */
+const HOW_IT_WORKS_URL = `https://${APEX_HOST}/how-it-works`;
+
+/** The `_redirects` rule each static-asset app carries for `/about`. */
+const ABOUT_REDIRECT_RULE = `/about ${HOW_IT_WORKS_URL} 301`;
 
 const TARGETS = listDeployTargets();
 
@@ -135,6 +144,49 @@ function packageRelativeAssets(target: DeployTarget): string {
  */
 function deployJobBlock(): string {
 	return /^ {2}deploy:\n[\s\S]*?(?=^ {2}\S|(?![\s\S]))/mu.exec(readRepoFile('.github/workflows/ci.yml'))?.[0] ?? '';
+}
+
+/**
+ * The site's pages other than the home page, as the Worker lists them (`PAGE_PATHS` in
+ * `siteRequestHandler.ts`), read as text.
+ *
+ * @returns Canonical paths, e.g. `/how-it-works`.
+ */
+function sitePagePaths(): readonly string[] {
+	const list = /export const PAGE_PATHS: readonly string\[\] = \[([^\]]*)\];/u.exec(readRepoFile('packages/site/src/siteRequestHandler.ts'))?.[1] ?? '';
+
+	return [...list.matchAll(/'([^']+)'/gu)].map(([, path]) => path ?? '');
+}
+
+/**
+ * The HTML entries the site's Vite build renders, other than `index.html` and `404.html`, as page
+ * paths (`how-it-works.html` → `/how-it-works`).
+ *
+ * @returns Canonical paths.
+ */
+function siteBuiltPagePaths(): readonly string[] {
+	const config = readRepoFile('packages/site/vite.config.ts');
+
+	return [...config.matchAll(/new URL\('([a-z0-9-]+)\.html', import\.meta\.url\)/gu)]
+		.map(([, name]) => name ?? '')
+		.filter((name) => name !== 'index' && name !== '404')
+		.map((name) => `/${name}`);
+}
+
+/**
+ * Whether a Workers `run_worker_first` setting sends a path to the Worker, where `_redirects` is never
+ * applied.
+ *
+ * @param runWorkerFirst - The setting.
+ * @param path - A request path.
+ * @returns `true` when the Worker answers the path before the assets do.
+ */
+function workerRunsFirstFor(runWorkerFirst: boolean | undefined | readonly string[], path: string): boolean {
+	if (typeof runWorkerFirst === 'boolean') {
+		return runWorkerFirst;
+	}
+
+	return (runWorkerFirst ?? []).some((pattern) => new RegExp(`^${pattern.replaceAll('*', '.*')}$`, 'u').test(path));
 }
 
 const PRODUCTION_ORIGINS = registryProductionOrigins();
@@ -260,12 +312,35 @@ describe('the landing page', () => {
 		expect(SITE_TARGET?.config.main).toBe('./src/worker.ts');
 	});
 
-	it('lists the root of every deployed site in sitemap.xml, and nothing else', () => {
+	it('lists the root of every deployed site and every page of the apex in sitemap.xml, and nothing else', () => {
 		const sitemap = readRepoFile('packages/site/public/sitemap.xml');
 		const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/gu)].map(([, url]) => url ?? '');
-		const expected = [`https://${APEX_HOST}/`, ...SUBDOMAIN_HOSTS.map((host) => `https://${host}/`)];
+		const expected = [
+			`https://${APEX_HOST}/`,
+			...SUBDOMAIN_HOSTS.map((host) => `https://${host}/`),
+			...siteBuiltPagePaths().map((path) => `https://${APEX_HOST}${path}`),
+		];
 
 		expect(listed.slice().sort()).toEqual(expected.slice().sort());
+	});
+
+	it('builds every page the sitemap lists on the apex, and serves it at the listed path', () => {
+		// A path on the apex is allowed in the sitemap only if it is a page: an HTML entry the site's
+		// Vite build renders, at the canonical path the Worker redirects that page's other spellings to,
+		// and naming that same URL as its own canonical.
+		const apexPages = [...readRepoFile('packages/site/public/sitemap.xml').matchAll(/<loc>https:\/\/filterenginez\.com(\/[^<]+)<\/loc>/gu)]
+			.map(([, path]) => path ?? '')
+			.filter((path) => path !== '/');
+
+		expect(apexPages, 'the sitemap lists no page on the apex besides its root').not.toEqual([]);
+		expect(siteBuiltPagePaths().slice().sort()).toEqual(apexPages.slice().sort());
+		expect(sitePagePaths().slice().sort()).toEqual(apexPages.slice().sort());
+		for (const path of apexPages) {
+			const entry = `packages/site${path}.html`;
+
+			expect(existsSync(resolve(REPO_ROOT, entry)), `${entry} is missing`).toBe(true);
+			expect(readRepoFile(entry)).toContain(`<link rel="canonical" href="https://${APEX_HOST}${path}" />`);
+		}
 	});
 
 	it('points robots.txt at the sitemap', () => {
@@ -276,6 +351,7 @@ describe('the landing page', () => {
 		const page = readRepoFile('packages/site/index.html');
 		const required = [
 			...SUBDOMAIN_HOSTS.map((host) => `https://${host}/`),
+			'/how-it-works',
 			'https://www.npmjs.com/org/filter-enginez',
 			'https://github.com/mlilli/filter-enginez',
 			'https://github.com/mlilli/filter-enginez-examples',
@@ -291,6 +367,44 @@ describe('the landing page', () => {
 		expect(page).toContain(`<link rel="canonical" href="https://${APEX_HOST}/" />`);
 		expect(page).toContain(`<meta property="og:image" content="https://${APEX_HOST}/og-card.png" />`);
 		expect(JSON.parse(structuredData)).toMatchObject({ '@context': 'https://schema.org', '@type': 'SoftwareSourceCode' });
+	});
+});
+
+describe('every app’s /about', () => {
+	const verticals = TARGETS.filter((target) => PRODUCTION_ORIGINS.has(target.packageDirectory.replace(/^examples-/u, '')));
+
+	it('covers all six deployed verticals, so the cases below are not vacuous', () => {
+		expect(verticals).toHaveLength(6);
+	});
+
+	for (const target of verticals) {
+		const directory = `packages/${target.packageDirectory}`;
+
+		it(`${target.packageDirectory} answers /about with a 301 to ${HOW_IT_WORKS_URL}`, () => {
+			if (existsSync(resolve(REPO_ROOT, directory, 'svelte.config.js'))) {
+				// Served by SvelteKit's own Worker, which `_redirects` never sees: the route redirects.
+				const route = readRepoFile(`${directory}/src/routes/about/+server.ts`);
+
+				expect(route).toMatch(/export const GET: RequestHandler = \(\{ url \}\) => redirect\(301, howItWorksUrl\(url\)\);/u);
+
+				return;
+			}
+
+			// A static-asset app: Workers static assets apply `public/_redirects` (copied into the build
+			// output), but never to a request the Worker answers first.
+			const redirects = `${directory}/public/_redirects`;
+
+			expect(existsSync(resolve(REPO_ROOT, redirects)), `${redirects} is missing`).toBe(true);
+			expect(readRepoFile(redirects).split('\n')).toContain(ABOUT_REDIRECT_RULE);
+			expect(workerRunsFirstFor(target.config.assets?.run_worker_first, '/about'), 'the Worker runs first for /about').toBe(false);
+		});
+	}
+
+	it('reads run_worker_first the way Workers does, so the case above can fail', () => {
+		expect(workerRunsFirstFor(['/api/*'], '/about')).toBe(false);
+		expect(workerRunsFirstFor(['/api/*'], '/api/query')).toBe(true);
+		expect(workerRunsFirstFor(true, '/about')).toBe(true);
+		expect(workerRunsFirstFor(undefined, '/about')).toBe(false);
 	});
 });
 

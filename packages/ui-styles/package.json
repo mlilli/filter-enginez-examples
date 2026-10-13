@@ -1,11 +1,12 @@
 {
   "name": "@filter-enginez/ui-styles",
   "version": "0.0.1",
-  "description": "Filter EngineZ — framework-agnostic component CSS (semantic/BEM classes built on @filter-enginez/brand tokens). Consumed by the react-ui presentational components and directly by every demo app. Ships plain CSS; no build, no runtime deps.",
+  "description": "Filter EngineZ — framework-agnostic component CSS (semantic/BEM classes built on @filter-enginez/brand tokens). Consumed by the react-ui presentational components and directly by every demo app; its algorithm figures (./figures.css) only where they are drawn: the documentation (docs site and both React apps' /docs) and the landing site's how-it-works page. Ships plain CSS; no build, no runtime deps.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {
+    "./figures.css": "./src/figures.css",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {

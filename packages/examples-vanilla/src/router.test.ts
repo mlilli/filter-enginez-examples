@@ -24,9 +24,9 @@
  * @packageDocumentation
  */
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { el } from './dom.js';
 import { type Route, type RouterHandle, startRouter } from './router.js';
 
 /** Handles mounted by a test, disposed in `afterEach` so no listener leaks between cases. */

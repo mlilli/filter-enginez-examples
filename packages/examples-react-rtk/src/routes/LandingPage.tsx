@@ -12,6 +12,7 @@
  */
 
 import { Mark } from '@filter-enginez/brand';
+import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
 import { Link } from 'react-router';
 
 import { type DatasetEntry, datasets } from '../datasets.js';
@@ -306,9 +307,11 @@ export const LandingPage = (): React.ReactElement => {
 						A generic, isomorphic, framework-agnostic TypeScript filter engine — arbitrarily complex
 						filters over arbitrarily shaped data, computed client-side. This is the React Redux Toolkit vertical.
 					</p>
-					<Link to="/about" className="fe-landing__about">
+					{/* A plain anchor, not a router `<Link>`: the page lives on the landing site, another origin,
+					    resolved from this page's location so a local run reaches the local site server. */}
+					<a href={howItWorksUrl(window.location)} className="fe-landing__about">
 						How the engine works →
-					</Link>
+					</a>
 					<Link to="/compare" className="fe-landing__compare">
 						See one filter state in all six stacks →
 					</Link>

@@ -1,0 +1,5 @@
+# Workers static-assets redirects (https://developers.cloudflare.com/workers/static-assets/redirects/).
+# "How the engine works" is one page on the landing site, and this app answers /about with a permanent
+# redirect to it. tests/tooling/cloudflareDeploy.test.ts checks every deployed app does.
+/about https://filterenginez.com/how-it-works 301
+/about/ https://filterenginez.com/how-it-works 301

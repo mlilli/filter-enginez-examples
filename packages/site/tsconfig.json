@@ -1,6 +1,10 @@
-// Type-checks the landing page's Cloudflare Worker (`src/`) for `tsc --noEmit` and ESLint's typed lint. The
-// page itself is HTML and CSS; Vite builds it. The Worker runs on the Workers runtime, whose `Request`,
-// `Response` and `URL` are the standard ones Node's types describe, which is also where its tests run.
+// Type-checks the site's Cloudflare Worker (`src/*.ts`) for `tsc --noEmit` and ESLint's typed lint.
+// The Worker runs on the Workers runtime, whose `Request`, `Response` and `URL` are the standard ones
+// Node's types describe, which is also where its tests run — so no DOM library here.
+//
+// The how-it-works page's browser code (`src/how-it-works/`) has its own `tsconfig.json`, with the DOM
+// library, and is excluded below: ESLint's project service picks the nearest `tsconfig.json`, so each
+// file is type-checked against the runtime it actually runs in.
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
@@ -9,6 +13,6 @@
     "types": ["node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules", "src/how-it-works"],
   "references": []
 }

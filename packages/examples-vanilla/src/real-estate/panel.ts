@@ -48,6 +48,7 @@ import {
 	text,
 	type TextSearchRule,
 } from '@filter-enginez/core';
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
@@ -70,7 +71,6 @@ import { createChipToggleGroup, createSearchInput } from '../controls/controls.j
 import { createDatePresetGroup } from '../controls/datePresetGroup.js';
 import { createHierarchicalPicker } from '../controls/hierarchicalPicker.js';
 import { panelHeader, section } from '../controls/sections.js';
-import { el } from '../dom.js';
 import { createGeoSection } from './geoSection.js';
 import { createSliderFacets, deriveSliderBaselines } from './panelSections.js';
 

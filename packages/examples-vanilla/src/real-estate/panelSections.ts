@@ -31,6 +31,7 @@ import {
 	type RangeRule,
 	type RuleId,
 } from '@filter-enginez/core';
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	deriveBaselineBounds,
 	fieldBounds,
@@ -47,7 +48,6 @@ import {
 import type { FacetCommit } from './geoSection.js';
 
 import { createRangeSlider } from '../controls/rangeSlider.js';
-import { el } from '../dom.js';
 
 /** Per-slider full-corpus track extents, keyed by rule id. */
 export type SliderBaselines = Record<RealEstateSliderFieldId, NumericBounds>;

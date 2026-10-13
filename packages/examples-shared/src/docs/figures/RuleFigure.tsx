@@ -5,7 +5,7 @@
  * A filter rule is fundamentally "does this record match this predicate?" — so a single parameterized
  * figure covers all fifteen. It shows the rule's predicate over a short column of sample records; a
  * phosphor evaluation cursor sweeps down, and each record resolves cyan (pass, with a ✓) or gray
- * (fail). Same brand contract as the `/about` figures: cyan = data, phosphor = the evaluation
+ * (fail). Same brand contract as the algorithm figures: cyan = data, phosphor = the evaluation
  * happening. The base (un-animated) state is the resolved frame, so `prefers-reduced-motion` and the
  * off-screen idle both show a legible static result; motion is added only under `no-preference` while
  * on-screen.
@@ -15,8 +15,8 @@
 
 import { useRef } from 'react';
 
-import { useInView } from '../../about/useInView.js';
 import { type RuleFigureSpec } from '../content/types.js';
+import { useInView } from '../useInView.js';
 
 /** Props for {@link RuleFigure}. */
 export interface RuleFigureProps {

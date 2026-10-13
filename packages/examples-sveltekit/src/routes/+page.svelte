@@ -4,8 +4,16 @@
 	// `@filter-enginez/ui-styles` (imported app-wide via `app.css`); they're global rather than a
 	// component `<style>` block because the ambient pseudo-element gradients + `mask-image` trip
 	// Svelte's stricter component-CSS parser. One card per dataset route this app serves.
+	//
+	// "How the engine works" leads to the one page on the landing site, another origin, resolved from
+	// `$page.url` like every cross-app link — so it is right in the server-rendered HTML too, the
+	// deployed page from a deployed host and the local site server from a loopback one.
 
+	import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
+	import { page } from '$app/stores';
 	import { landingDatasets } from '$lib/landing.js';
+
+	const howItWorksHref = $derived(howItWorksUrl($page.url));
 </script>
 
 <div class="fe-landing">
@@ -17,7 +25,7 @@
 				A generic, isomorphic, framework-agnostic TypeScript filter engine: arbitrarily complex
 				filters over arbitrarily shaped data, computed client-side. This is the Svelte vertical.
 			</p>
-			<a href="/about" class="fe-landing__about">How the engine works →</a>
+			<a href={howItWorksHref} class="fe-landing__about">How the engine works →</a>
 			<!-- Second in the stack, matching both React landings: what the engine does, then that it
 			     does it everywhere. Cyan (`.fe-landing__compare`, in ui-styles) because the page is
 			     about WHICH state and WHICH stack — data and identity — never about the engine

@@ -71,6 +71,7 @@ const PORT_LABELS = {
 	5178: ['Vue', 'pnpm dev:vue'],
 	5179: ['vanilla', 'pnpm dev:vanilla'],
 	5180: ['Docs site', 'pnpm --filter @filter-enginez/examples-docs dev'],
+	5181: ['Landing site', 'pnpm dev:site'],
 	8787: ['examples-server API', 'pnpm dev:api'],
 };
 

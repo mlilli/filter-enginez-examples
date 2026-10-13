@@ -16,12 +16,11 @@
 
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	formatListingPrice,
 	humanizeVocabularyValue,
 } from '@filter-enginez/examples-shared/real-estate-domain';
-
-import { el } from '../dom.js';
 
 /**
  * Feature chips shown before the list is cut off.

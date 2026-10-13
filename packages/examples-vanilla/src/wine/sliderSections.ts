@@ -33,6 +33,7 @@ import {
 	type RangeRule,
 	type RuleId,
 } from '@filter-enginez/core';
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	clearRule,
 	commitRule,
@@ -50,7 +51,6 @@ import { createNumberField } from '../controls/numberField.js';
 import { createRangeSlider } from '../controls/rangeSlider.js';
 import { section } from '../controls/sections.js';
 import { createSelectMenu } from '../controls/selectMenu.js';
-import { el } from '../dom.js';
 import { createFacetAdopter, sameSpan } from './facetState.js';
 
 /** Per-slider drag granularity. NOT `SLIDER_STEPS` — see the module docblock. */

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#0B0A09" />
+		<title>How the engine works — Filter EngineZ</title>
+		<meta
+			name="description"
+			content="How Filter EngineZ filters without checking every record: Roaring bitmaps, a mutual-exclusion graph, memoized simulation and an R-tree, then suggestions, similarity, Bloom membership and text search — animated, with a live benchmark in your browser."
+		/>
+		<link rel="canonical" href="https://filterenginez.com/how-it-works" />
+
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+		<meta property="og:type" content="article" />
+		<meta property="og:site_name" content="Filter EngineZ" />
+		<meta property="og:url" content="https://filterenginez.com/how-it-works" />
+		<meta property="og:title" content="How the engine works — Filter EngineZ" />
+		<meta
+			property="og:description"
+			content="Eight algorithms, animated: how Filter EngineZ answers a filter by doing as little work as possible. Then flip the acceleration layers off and time the difference in your browser."
+		/>
+		<meta property="og:image" content="https://filterenginez.com/og-card.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="The Filter EngineZ logomark and wordmark on a dark background" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="How the engine works — Filter EngineZ" />
+		<meta
+			name="twitter:description"
+			content="Eight algorithms, animated: how Filter EngineZ answers a filter by doing as little work as possible, with a live benchmark."
+		/>
+		<meta name="twitter:image" content="https://filterenginez.com/og-card.png" />
+		<meta name="twitter:image:alt" content="The Filter EngineZ logomark and wordmark on a dark background" />
+
+		<link rel="stylesheet" href="/src/how-it-works/howItWorks.css" />
+		<!-- Without JavaScript there are no figures to mount, so the bands give their figure column to the
+		     text rather than show eight empty frames. -->
+		<noscript>
+			<style>
+				.fe-about__figure {
+					display: none;
+				}
+				.fe-about__band {
+					grid-template-columns: 1fr;
+				}
+			</style>
+		</noscript>
+		<script type="module" src="/src/how-it-works/main.ts"></script>
+	</head>
+	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<header class="site-header">
+			<a class="site-header__brand" href="/" aria-label="Filter EngineZ, home">
+				<img class="site-header__mark" src="/mark.svg" alt="" width="40" height="40" />
+				<span class="site-header__wordmark" aria-hidden="true">Filter EngineZ</span>
+			</a>
+			<nav class="site-header__nav" aria-label="Project">
+				<ul>
+					<li><a href="/how-it-works" aria-current="page">How it works</a></li>
+					<li><a href="https://docs.filterenginez.com/">Docs</a></li>
+					<li><a href="https://github.com/mlilli/filter-enginez">GitHub</a></li>
+					<li><a href="https://www.npmjs.com/org/filter-enginez">npm</a></li>
+				</ul>
+			</nav>
+		</header>
+
+		<main id="main" class="fe-about" tabindex="-1">
+			<section class="fe-about__hero" aria-labelledby="how-it-works-title">
+				<p class="fe-about__eyebrow">the engine</p>
+				<h1 id="how-it-works-title" class="fe-about__hero-title">How the engine works</h1>
+				<p class="fe-about__hero-lead">
+					Most filter engines answer your question by checking every record. Filter EngineZ answers it by doing as
+					little as possible — stacking four classic data-structure tricks so the same results come back in a fraction
+					of the work.
+				</p>
+			</section>
+
+			<nav class="fe-about__toc" aria-label="On this page">
+				<!--how-it-works:toc-->
+			</nav>
+
+			<div class="fe-about__bands">
+				<!--how-it-works:bands-->
+
+				<section id="benchmark" class="fe-about__payoff" aria-labelledby="benchmark-title">
+					<p class="fe-about__eyebrow">now stack all of it</p>
+					<h2 id="benchmark-title" class="fe-about__band-title">Try the optimizations live</h2>
+					<p class="fe-about__body fe-about__payoff-lead">
+						This runs the real predictive-disable workload — simulating every option across a facet — on 10,000 wines,
+						in your browser, right now. Flip the layers off and watch the same answer take longer to compute.
+					</p>
+					<div data-benchmark>
+						<!--how-it-works:benchmark-reference-->
+					</div>
+				</section>
+
+				<section class="fe-about__cta" aria-labelledby="cta-title">
+					<h2 id="cta-title" class="fe-about__band-title">See it holding real weight</h2>
+					<div class="fe-about__cta-grid">
+						<a class="fe-about__cta-card" href="/#demos">
+							<span class="fe-about__cta-eyebrow">six stacks, one engine</span>
+							<span class="fe-about__cta-title">Filter in your browser</span>
+							<span class="fe-about__cta-body">
+								Books, wine reviews and real estate under React, SvelteKit, Vue, Angular and plain TypeScript — every
+								layer above, running on real corpora.
+							</span>
+							<span class="fe-about__cta-go">Pick a live demo →</span>
+						</a>
+						<a class="fe-about__cta-card" href="https://docs.filterenginez.com/">
+							<span class="fe-about__cta-eyebrow">the reference</span>
+							<span class="fe-about__cta-title">Every rule and algorithm</span>
+							<span class="fe-about__cta-body">
+								Each built-in rule and acceleration layer explained, a live playground, and the API reference.
+							</span>
+							<span class="fe-about__cta-go">Read the docs →</span>
+						</a>
+					</div>
+				</section>
+			</div>
+		</main>
+
+		<footer class="site-footer">
+			<p>
+				Filter EngineZ is open source under the
+				<a href="https://github.com/mlilli/filter-enginez/blob/main/LICENSE.md">Apache License 2.0</a>. The demos run
+				on synthetic data.
+			</p>
+		</footer>
+	</body>
+</html>

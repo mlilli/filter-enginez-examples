@@ -12,6 +12,7 @@
  * @packageDocumentation
  */
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	NOT_FOUND_CHIPS,
 	NOT_FOUND_COPY,
@@ -22,7 +23,6 @@ import {
 import type { RouteRenderResult } from '../router.js';
 
 import { createNotFoundLoader } from '../brand/indicators.js';
-import { el } from '../dom.js';
 
 /**
  * Render the 404 page.

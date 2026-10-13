@@ -3,7 +3,7 @@
  *
  * @remarks
  * The failure this guards is a typographic lookalike of the mark in the slot reserved for the mark:
- * `<span class="fe-about__brand-mark" aria-hidden="true">Z</span>`, a literal letter that `ui-styles`
+ * `<span class="fe-lab__brand-mark" aria-hidden="true">Z</span>`, a literal letter that `ui-styles`
  * styles into a 28x28 bordered box in Orbitron. It reads as a logo at a glance.
  *
  * No other gate sees it. `tests/tooling/brandAssets.test.ts` pins the asset BYTES and has nothing to
@@ -52,7 +52,6 @@ const MARK_CLASS_PATTERN = /fe-[a-z0-9-]+__(?:brand-)?mark\b/gu;
  * which is why this file measures proximity rather than parsing five markup dialects.
  */
 const BRAND_MARK_CLASSES = [
-	'fe-about__brand-mark',
 	'fe-books-app__mark',
 	'fe-docs__brand-mark',
 	'fe-lab__brand-mark',
@@ -217,24 +216,24 @@ function allSlots(): readonly LocatedBrandMarkSlot[] {
 	});
 }
 
-/** An About-page header with a text glyph in the brand-mark slot — the impersonation this file rejects. */
+/** A lab-page header with a text glyph in the brand-mark slot — the impersonation this file rejects. */
 const IMPERSONATION_FIXTURE = `
-	<header className="fe-about__topbar">
-		<a className="fe-about__brand" href="/">
-			<span className="fe-about__brand-mark" aria-hidden="true">Z</span>
-			<span className="fe-about__brand-word">Filter EngineZ</span>
+	<header className="fe-lab__topbar">
+		<a className="fe-lab__brand" href="/">
+			<span className="fe-lab__brand-mark" aria-hidden="true">Z</span>
+			<span className="fe-lab__brand-word">Filter EngineZ</span>
 		</a>
 	</header>
 `;
 
 /** The same markup with a real mark, so the control is two-sided rather than merely pessimistic. */
 const CORRECTED_FIXTURE = `
-	<header className="fe-about__topbar">
-		<a className="fe-about__brand" href="/">
-			<span className="fe-about__brand-mark" aria-hidden="true">
+	<header className="fe-lab__topbar">
+		<a className="fe-lab__brand" href="/">
+			<span className="fe-lab__brand-mark" aria-hidden="true">
 				<Mark size={28} />
 			</span>
-			<span className="fe-about__brand-word">Filter EngineZ</span>
+			<span className="fe-lab__brand-word">Filter EngineZ</span>
 		</a>
 	</header>
 `;

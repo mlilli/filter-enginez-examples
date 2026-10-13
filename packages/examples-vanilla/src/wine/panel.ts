@@ -46,6 +46,7 @@
 import type { CompositeRule, FilterBundle, FilterEngine, FilterRule, RuleId } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	buildWineBundleQuery,
 	commitExpression,
@@ -54,7 +55,6 @@ import {
 } from '@filter-enginez/examples-shared/wine-domain';
 
 import { panelHeader } from '../controls/sections.js';
-import { el } from '../dom.js';
 import {
 	createChipSection,
 	createOriginSection,

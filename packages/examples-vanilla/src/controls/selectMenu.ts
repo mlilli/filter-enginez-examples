@@ -24,9 +24,9 @@
  * @packageDocumentation
  */
 
-import type { Control } from './controls.js';
+import { el, svg } from '@filter-enginez/examples-shared/dom';
 
-import { el, svg } from '../dom.js';
+import type { Control } from './controls.js';
 
 /** One entry in the menu. Structural, so call sites can pass their own readonly literals. */
 export interface SelectMenuOption {

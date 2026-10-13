@@ -2,8 +2,9 @@
  * Where each vertical lives, resolved at runtime rather than baked in at build time.
  *
  * @remarks
- * `/compare` is the only page in the repo that has to name an origin it is not currently served
- * from, so it is the only place this question arises. Three constraints shaped the answer:
+ * `/compare` names an origin per vertical, and every app links to the one "How the engine works"
+ * page on the landing site at the apex, so both have to name an origin they are not currently served
+ * from. Three constraints shaped the answer:
  *
  * 1. **Angular cannot read `import.meta.env`.** `@angular/build` does not define Vite's constants —
  *    `examples-angular/src/main.ts` says so in as many words, and pays for it with a runtime
@@ -27,7 +28,7 @@
  * @packageDocumentation
  */
 
-import { vertical, type VerticalDescriptor, type VerticalId } from '../verticals/verticals.js';
+import { HOW_IT_WORKS_PATH, SITE, vertical, type VerticalDescriptor, type VerticalId } from '../verticals/verticals.js';
 
 /**
  * The parts of `window.location` this module reads.
@@ -94,4 +95,41 @@ export function resolveVerticalOrigin(
 	const descriptor: VerticalDescriptor = vertical(id);
 
 	return layout === 'dev' ? descriptor.devOrigin : descriptor.productionOrigin;
+}
+
+/**
+ * The origin serving the landing site at the apex ({@link SITE}).
+ *
+ * @remarks
+ * The same decision as {@link resolveVerticalOrigin}, over the site's two origins instead of a
+ * vertical's: its local dev server on a loopback host, `https://filterenginez.com` anywhere else.
+ *
+ * @param location - The current location.
+ * @param layout - Override the detected layout; production callers should omit it.
+ * @returns An absolute origin with no trailing slash.
+ */
+export function resolveSiteOrigin(location: CompareLocation, layout: DeploymentLayout = deploymentLayout(location)): string {
+	return layout === 'dev' ? SITE.devOrigin : SITE.productionOrigin;
+}
+
+/**
+ * The absolute URL of the "How the engine works" page, for a link from any app.
+ *
+ * @remarks
+ * Every app's landing hub, the documentation and the lab link to one page on the landing site rather
+ * than each carrying its own copy, so the link always leaves the current origin. Resolved from the
+ * page's location like every other cross-app link, so a developer on `pnpm dev` reaches the local site
+ * server and a visitor reaches `https://filterenginez.com/how-it-works`.
+ *
+ * @param location - The current location.
+ * @param layout - Override the detected layout; production callers should omit it.
+ * @returns The page's absolute URL, e.g. `https://filterenginez.com/how-it-works`.
+ *
+ * @example
+ * ```ts
+ * link.href = howItWorksUrl(window.location);
+ * ```
+ */
+export function howItWorksUrl(location: CompareLocation, layout: DeploymentLayout = deploymentLayout(location)): string {
+	return `${resolveSiteOrigin(location, layout)}${HOW_IT_WORKS_PATH}`;
 }

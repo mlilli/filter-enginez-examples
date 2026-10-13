@@ -2,7 +2,7 @@
  * React entry point. Mounts `<App />` into the `#root` element from `index.html`.
  *
  * @remarks
- * Vite + React 19 + StrictMode. `<App />` is a react-router browser router (landing page, `/about`,
+ * Vite + React 19 + StrictMode. `<App />` is a react-router browser router (landing page, `/lab`,
  * `/compare`, the dataset routes and the 404); each dataset route syncs its filter state to the URL
  * through url-state-router's `<FilterEngineUrlSync>`.
  */

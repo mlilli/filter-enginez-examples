@@ -26,7 +26,7 @@
  * @packageDocumentation
  */
 
-import { el } from '../dom.js';
+import { el } from '@filter-enginez/examples-shared/dom';
 
 /** The panel title used by every vertical, so most call sites pass nothing. */
 const DEFAULT_PANEL_LABEL = 'Filters';

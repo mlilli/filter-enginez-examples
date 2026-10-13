@@ -5,7 +5,9 @@
  * so this file only has to provide the two foundations that live in the workspace CSS packages: the
  * brand design tokens (the `--gray-*` / `--accent` / `--engine` custom properties + base element
  * styling every `fe-doc-*` block reads) and the shared `ui-styles` component classes. No Tailwind —
- * the docs use none.
+ * the docs use none. The algorithm pages render the eight animated figures, whose `fe-fig-*` classes
+ * are a separate sheet, imported only where figures are drawn (see `ui-styles/src/figures.css`).
  */
 @import '@filter-enginez/brand/tokens.css';
 @import '@filter-enginez/ui-styles/styles.css';
+@import '@filter-enginez/ui-styles/figures.css';

@@ -4,7 +4,7 @@
  * Demo app: React 19 + Redux Toolkit + react-signals + redux-bridge +
  * url-state-router + worker-bridge. Three datasets (`/wine`, `/books`, `/real-estate`), plus
  * `/books-config` (books driven by a JSON config), `/books-server` (books filtered on the
- * Node `examples-server`), an `/about` page explaining how the engine works, and `/compare`.
+ * Node `examples-server`), and `/compare`.
  *
  * @remarks
  * **Entry point.** The actual Vite entry is `src/main.tsx`, which mounts `<App />`

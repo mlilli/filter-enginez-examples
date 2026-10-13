@@ -45,6 +45,7 @@
  * @packageDocumentation
  */
 
+import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	ariaCheckedFor,
 	hasChildren,
@@ -58,8 +59,6 @@ import {
 } from '@filter-enginez/examples-shared/picker';
 
 import type { Control } from './controls.js';
-
-import { el } from '../dom.js';
 
 /** Indent applied per level of depth, in `rem`. Matches the other four verticals exactly. */
 const INDENT_REM_PER_LEVEL = 0.875;

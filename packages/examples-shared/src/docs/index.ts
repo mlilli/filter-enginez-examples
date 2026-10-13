@@ -3,8 +3,8 @@
  *
  * @remarks
  * A data-driven docs section (shell + rule/algorithm pages + playground + API reference) mounted as a
- * `/docs` layout route in each React app, so the docs are part of the same site as `/about` and the
- * dataset demos. All content lives in `./content/*`; the pages are pure templates. Browser-only.
+ * `/docs` layout route in each React app (and as the standalone documentation site), so the docs are
+ * part of the same site as the dataset demos. All content lives in `./content/*`; the pages are pure templates. Browser-only.
  *
  * @packageDocumentation
  */

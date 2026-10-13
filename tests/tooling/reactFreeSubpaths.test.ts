@@ -42,7 +42,6 @@ const SHARED_ROOT = resolve(REPO_ROOT, 'packages/examples-shared');
  * the guarantee from its suffix.
  */
 const REACT_FREE_SUBPATHS = [
-	'./about-core',
 	'./books-boot-core',
 	'./books-core',
 	'./books-domain',
@@ -55,6 +54,12 @@ const REACT_FREE_SUBPATHS = [
 	'./bounds',
 	'./bundle-readers',
 	'./devtools-core',
+	// The hand-built-DOM helpers the framework-free app and the landing site's how-it-works page share.
+	// Import-free, like `./boot-caption`.
+	'./dom',
+	// The how-it-works page's content and benchmark workload. The landing site renders it at build time
+	// in Node and in the browser with no framework at all, so React reaching it would break both.
+	'./how-it-works',
 	'./notfound-core',
 	'./picker',
 	'./real-estate-boot-core',
