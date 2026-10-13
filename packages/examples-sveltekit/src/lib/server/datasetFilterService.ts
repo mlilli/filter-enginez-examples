@@ -4,9 +4,10 @@
  *
  * @remarks
  * This is what makes the server-backed routes a genuinely SvelteKit-native server-filtering story
- * rather than a proxy: the SvelteKit Node server runs the isomorphic Filter EngineZ core *itself*, in
- * its own process, reusing the exact pure functions the standalone `@filter-enginez/examples-server`
- * exposes (`applyConfigQuery` + `getDataset`). No separate `serve:api` process, no HTTP proxy, no CORS
+ * rather than a proxy: the SvelteKit server — Node locally, a Cloudflare Worker when deployed — runs
+ * the isomorphic Filter EngineZ core *itself*, reusing the exact pure functions the standalone
+ * `@filter-enginez/examples-server` exposes (`applyConfigQuery` + `getDataset`). No separate
+ * `serve:api` process, no HTTP proxy, no CORS
  * — the `+server.ts` endpoints and the `+page.server.ts` `load`s all call straight through here.
  *
  * Dataset-agnostic by construction: every function takes a `dataset` id and `getDataset` resolves it,
@@ -19,20 +20,33 @@
  * every query on `ensureAcceleration()` costs nothing after the first call and mirrors what the
  * standalone server does before it binds its port.
  *
+ * **Acceleration is an optimization, never a precondition.** The deployed build runs on Cloudflare
+ * Workers, which refuse to compile WebAssembly from bytes at runtime — exactly what `roaring-wasm`
+ * does — so there the init rejects. The engine's predicate path returns identical results, so a
+ * failed init is logged once and every query proceeds without bitmaps, rather than turning each
+ * request into a 500.
+ *
  * @packageDocumentation
  */
 
 import { type FilterBundleQuery, type FilterEngineConfig, initializeBitmapAcceleration } from '@filter-enginez/core';
 import { applyConfigQuery, getDataset, type QueryResult } from '@filter-enginez/examples-server';
 
-/** Memoized roaring-init promise — the first query awaits it; subsequent queries resolve instantly. */
-let accelerationReady: Promise<void> | null = null;
+/** Memoized roaring-init attempt — the first query awaits it; subsequent queries resolve instantly. */
+let accelerationAttempt: Promise<void> | null = null;
 
-/** Ensure roaring-bitmap acceleration is initialized before the first `createFilterEngine`. */
+/**
+ * Try to initialize roaring-bitmap acceleration before the first `createFilterEngine`.
+ *
+ * @returns A promise that always resolves: on a runtime that cannot load the WASM module, the engine
+ *   filters on its predicate path instead.
+ */
 async function ensureAcceleration(): Promise<void> {
-	accelerationReady ??= initializeBitmapAcceleration();
+	accelerationAttempt ??= initializeBitmapAcceleration().catch((error: unknown) => {
+		console.warn('[datasetFilterService] bitmap acceleration is unavailable on this runtime; filtering without it.', error);
+	});
 
-	return accelerationReady;
+	return accelerationAttempt;
 }
 
 /** Input to {@link runDatasetQuery} — the transport / SSR payload. */

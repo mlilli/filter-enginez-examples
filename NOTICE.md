@@ -51,7 +51,9 @@ ever be correct for one of the three and would silently misattribute the other t
 Three conditions of the OFL are worth stating plainly, because they are easy to breach by accident:
 
 1. **The license text must travel with the fonts.** Any redistribution — including an npm tarball or a deployed build
-   that serves the `.ttf` files — must carry the corresponding `OFL.txt`.
+   that serves the `.ttf` files — must carry the corresponding `OFL.txt`. Every site deployed from this repository
+   serves each font's license at `/licenses/fonts/<font>/OFL.txt`; the deploy job in `.github/workflows/ci.yml` adds
+   them.
 2. **The fonts may not be sold on their own.** They may be bundled and sold as part of a larger work; they may not be
    the product.
 3. **A modified font may not keep its Reserved Font Name.** If a font here is ever subsetted, re-hinted or otherwise

@@ -1,0 +1,28 @@
+// Cloudflare Workers deployment of the landing page, served at https://filterenginez.com, with
+// https://www.filterenginez.com redirecting to it. The `deploy` job in .github/workflows/ci.yml builds this
+// package and runs `wrangler deploy` with this file on every push to `main` that passes the gates. See
+// "Deployment" in the repository README.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "filter-enginez-site",
+  "compatibility_date": "2026-10-01",
+  // Sends the www host to the apex with a 301 (src/siteRequestHandler.ts); every other request is a static
+  // asset.
+  "main": "./src/worker.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Unknown paths get dist/404.html with a 404 status.
+    "not_found_handling": "404-page",
+    // Every request reaches the Worker first; otherwise the assets would answer www directly and it would
+    // never redirect.
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "filterenginez.com", "custom_domain": true },
+    { "pattern": "www.filterenginez.com", "custom_domain": true }
+  ],
+  // The custom domains are the only public addresses: no *.workers.dev URL, no per-version preview URLs.
+  "workers_dev": false,
+  "preview_urls": false
+}

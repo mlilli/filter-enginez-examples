@@ -134,6 +134,10 @@ _to_delete/
 # Angular CLI build cache (examples-angular)
 .angular/
 
+# Wrangler's local state and bundles (`wrangler dev` / `wrangler deploy --dry-run` against a
+# package's wrangler.jsonc)
+.wrangler/
+
 # TypeDoc-generated API reference (built by `pnpm docs:api` into the standalone
 # docs site's static dir + served at /api/). A build artifact, never committed —
 # the core TSDoc is the single source of truth.

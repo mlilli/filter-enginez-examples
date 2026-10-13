@@ -19,7 +19,7 @@ import tseslint from 'typescript-eslint';
 
 export default [
 	{
-		ignores: ['dist/**', 'vite.config.ts', 'vitest.config.ts', 'env.d.ts'],
+		ignores: ['.wrangler/**', 'dist/**', 'vite.config.ts', 'vitest.config.ts', 'env.d.ts'],
 	},
 	...base,
 	...vue.configs['flat/recommended'],

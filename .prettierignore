@@ -78,6 +78,9 @@ test-results/
 # Angular CLI build cache
 **/.angular/
 
+# Wrangler's local bundles and state (`wrangler dev` against a package's wrangler.jsonc)
+**/.wrangler/
+
 # Verbatim license texts — legal instruments that must match their canonical upstream form
 # byte for byte. Never reformat these.
 #

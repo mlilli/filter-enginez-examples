@@ -3,8 +3,9 @@
  * filtering server, instead of Comlink over a Web Worker. The **shared** server-backed transport,
  * consumed across verticals AND datasets (generic over the record type, `Book` by default):
  *
- *   - **React `/books-server`** points it at the standalone `@filter-enginez/examples-server` Node
- *     process via the Vite `/api` proxy (the default `baseUrl`).
+ *   - **React `/books-server`** points it at `@filter-enginez/examples-server` through the same-origin
+ *     `/api` (the default `baseUrl`): the Vite dev proxy to its Node process locally, the app's own
+ *     Cloudflare Worker when deployed.
  *   - **SvelteKit `/books-server`** points it at that app's own in-process `+server.ts` endpoints
  *     (`baseUrl: '/books-server'`) — SvelteKit's server tier running the isomorphic core directly, no
  *     separate process.

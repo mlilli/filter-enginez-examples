@@ -3,8 +3,8 @@
  *
  * @remarks
  * One registry of the six verticals: the stack each one demonstrates, the binding package it proves,
- * the reactive surface underneath, its dev origin, and which routes it actually has. Framework-free
- * data, no engine import, no DOM.
+ * the reactive surface underneath, its dev and production origins, and which routes it actually has.
+ * Framework-free data, no engine import, no DOM.
  *
  * ### Why this exists as shared data rather than six string literals
  *
@@ -73,6 +73,16 @@ export interface VerticalDescriptor {
 	 * `tests/tooling/devServerPorts.test.ts` asserts this against so the two cannot drift.
 	 */
 	readonly devOrigin: string;
+	/**
+	 * The deployed origin: the vertical's own subdomain of `filterenginez.com`, no trailing slash.
+	 *
+	 * @remarks
+	 * Each vertical is its own site on its own host, so no app needs a base path, a router basename or
+	 * a scoped service worker. The host is canonically declared as the custom domain in the app's
+	 * `wrangler.jsonc` — `tests/tooling/cloudflareDeploy.test.ts` asserts this value against it, so the
+	 * cross-app links and the deployment cannot point at different hosts.
+	 */
+	readonly productionOrigin: string;
 	/** Routes this vertical actually serves. Not aspirational — `/compare` links only to these. */
 	readonly routes: readonly string[];
 	/** One line for the comparison table, naming what is distinctive rather than repeating the name. */
@@ -94,6 +104,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'React 19',
 		id: 'react-rtk',
 		name: 'React RTK',
+		productionOrigin: 'https://react-rtk.filterenginez.com',
 		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/about', '/compare'],
 		surface: 'signals',
 	},
@@ -104,6 +115,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'React 19',
 		id: 'react-plain',
 		name: 'React plain',
+		productionOrigin: 'https://react.filterenginez.com',
 		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/about', '/compare'],
 		surface: 'signals',
 	},
@@ -114,6 +126,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'SvelteKit 5',
 		id: 'sveltekit',
 		name: 'SvelteKit',
+		productionOrigin: 'https://svelte.filterenginez.com',
 		routes: ['/books', '/books-server', '/wine', '/wine-server', '/real-estate', '/about', '/compare'],
 		surface: 'signals',
 	},
@@ -124,6 +137,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'Vue 3',
 		id: 'vue',
 		name: 'Vue',
+		productionOrigin: 'https://vue.filterenginez.com',
 		routes: ['/books', '/wine', '/real-estate', '/about', '/compare'],
 		surface: 'signals',
 	},
@@ -134,6 +148,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'Angular 22',
 		id: 'angular',
 		name: 'Angular',
+		productionOrigin: 'https://angular.filterenginez.com',
 		// Must match `app.routes.ts`: `compareLinks` filters on this array, so a route missing here
 		// would silently drop Angular from that dataset's `/compare` table. `/wine` is pinned by
 		// `tests/tooling/winePanelFacetParity.test.ts`.
@@ -147,6 +162,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'None',
 		id: 'vanilla',
 		name: 'Vanilla',
+		productionOrigin: 'https://vanilla.filterenginez.com',
 		routes: ['/books', '/books-raw', '/wine', '/wine-server', '/real-estate', '/about', '/compare'],
 		surface: 'none',
 	},

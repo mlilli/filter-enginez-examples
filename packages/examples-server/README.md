@@ -58,6 +58,20 @@ Routes: `GET /health`, `GET /datasets`, `GET /corpus/:dataset`, `POST /filter { 
 filter; every mutation round-trips here. (SvelteKit's `/books-server` and `/wine-server` run the engine in SvelteKit's
 own server tier instead.)
 
+## On Cloudflare Workers
+
+Deployed, the same four apps have no Node process to proxy to. Each is a Cloudflare Worker with static assets, and its
+`wrangler.jsonc` names [`src/cloudflareWorker.ts`](./src/cloudflareWorker.ts) as the Worker script with
+`run_worker_first: ["/api/*"]`. So the browser sends exactly the requests it sends in development, and the Worker
+answers them with the same `handleRequest` — the isomorphic core on a third runtime, after the browser and Node.
+
+- [`src/workerRequestHandler.ts`](./src/workerRequestHandler.ts) strips the `/api` prefix (as the dev proxies do), calls
+  `handleRequest`, and hands every other path to the static assets.
+- The entry module exports only its default handler: the Workers runtime treats every named export of the main module as
+  an entry point.
+- Workers do not compile WebAssembly from bytes at runtime, so the Roaring-Bitmap acceleration stays off there; the
+  engine's predicate path returns the same results.
+
 ## How it works
 
 - [`src/applyConfig.ts`](./src/applyConfig.ts) — the whole isomorphic proof: boot the engine over a corpus, apply a
@@ -65,10 +79,12 @@ own server tier instead.)
 - [`src/datasets.ts`](./src/datasets.ts) — loads `books` / `wine` from `@filter-enginez/mock-data`'s **Node-safe
   subpaths** (never the root barrel or `/handlers`, which drag MSW → `localStorage` and throw in Node). The server
   registers the two datasets its server-backed routes query; real estate is served by the browser apps only.
-- [`src/cli.ts`](./src/cli.ts) / [`src/server.ts`](./src/server.ts) — thin shells over `applyConfig`.
+- [`src/cli.ts`](./src/cli.ts) / [`src/server.ts`](./src/server.ts) — thin shells over `applyConfig`, and
+  [`src/cloudflareWorker.ts`](./src/cloudflareWorker.ts) the same for Workers.
 - [`src/requestHandler.ts`](./src/requestHandler.ts) — the pure router (no `node:http` coupling), so it unit-tests
   without binding a port.
 - [`sample-configs/books.json`](./sample-configs/books.json) — a committed, valid config (regenerate with
   `pnpm --filter @filter-enginez/examples-server gen:sample`).
 
-This package is private and never published — it's a demonstration, run through `tsx` rather than compiled.
+This package is private and never published — it's a demonstration, run through `tsx` rather than compiled (and, for
+Workers, bundled by Wrangler at deploy time).

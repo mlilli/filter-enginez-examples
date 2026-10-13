@@ -34,7 +34,6 @@ import {
 	deploymentLayout,
 	findPreset,
 	hasComparableState,
-	PRODUCTION_LAYOUT,
 	readCompareDataset,
 	resolveCompareState,
 	resolveVerticalOrigin,
@@ -48,7 +47,7 @@ const SAMPLE_STATE = 'h~{"version":1,"rules":[]}';
 const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5174' };
 
 /** Stand-in for the deployed site. */
-const PROD_LOCATION = { hostname: 'filterenginez.innov8.io', origin: 'https://filterenginez.innov8.io' };
+const PROD_LOCATION = { hostname: 'vue.filterenginez.com', origin: 'https://vue.filterenginez.com' };
 
 /** The corpus each dataset's presets are validated against. */
 const CORPORA: Readonly<Record<CompareDataset, readonly unknown[]>> = {
@@ -105,8 +104,15 @@ describe('deploymentLayout', () => {
 		},
 	);
 
-	it('treats a real hostname as the configured production layout', () => {
-		expect(deploymentLayout(PROD_LOCATION)).toBe(PRODUCTION_LAYOUT);
+	it('treats a deployed hostname as production', () => {
+		expect(deploymentLayout(PROD_LOCATION)).toBe('production');
+	});
+
+	it('treats a LOCAL preview of a production build as dev, so its links stay on this machine', () => {
+		// `vite preview` and `wrangler dev` serve the production bundle on a loopback host. Were the
+		// layout a build-time constant, those links would leave for the deployed sites and the local
+		// e2e run would be testing someone else's servers.
+		expect(deploymentLayout({ hostname: 'localhost', origin: 'http://localhost:8787' })).toBe('dev');
 	});
 });
 
@@ -117,20 +123,21 @@ describe('resolveVerticalOrigin', () => {
 		}
 	});
 
-	it('builds a same-origin path per vertical under the paths layout', () => {
-		expect(resolveVerticalOrigin('vanilla', PROD_LOCATION, 'paths')).toBe(
-			'https://filterenginez.innov8.io/vanilla',
-		);
+	it('returns the registry productionOrigin in production, for every vertical', () => {
+		for (const descriptor of VERTICALS) {
+			expect(resolveVerticalOrigin(descriptor.id, PROD_LOCATION, 'production')).toBe(descriptor.productionOrigin);
+		}
 	});
 
-	it('builds a sibling subdomain per vertical under the subdomains layout', () => {
-		expect(resolveVerticalOrigin('vanilla', PROD_LOCATION, 'subdomains')).toBe(
-			'https://fe-vanilla.innov8.io',
-		);
+	it('sends a deployed page to the other verticals’ OWN subdomains, not its own host', () => {
+		// The regression this pins: resolving relative to the CURRENT origin (a base-path layout) would
+		// keep a visitor on `vue.filterenginez.com` for every row of the table.
+		expect(resolveVerticalOrigin('vanilla', PROD_LOCATION)).toBe('https://vanilla.filterenginez.com');
+		expect(resolveVerticalOrigin('sveltekit', PROD_LOCATION)).toBe('https://svelte.filterenginez.com');
 	});
 
 	it('gives every vertical a distinct origin under every layout', () => {
-		for (const layout of ['dev', 'paths', 'subdomains'] as const) {
+		for (const layout of ['dev', 'production'] as const) {
 			const origins = VERTICALS.map((d) => resolveVerticalOrigin(d.id, PROD_LOCATION, layout));
 
 			expect(new Set(origins).size, `${layout} collides`).toBe(VERTICALS.length);
@@ -185,6 +192,16 @@ describe('compareLinks', () => {
 		});
 
 		expect(links.filter((link) => link.isCurrent).map((link) => link.vertical.id)).toEqual(['vue']);
+	});
+
+	it('links every row to that vertical’s deployed subdomain when the page is deployed', () => {
+		// No `layout` passed: this is the production call shape, detected from the host alone.
+		const links = compareLinks({ dataset: 'books', location: PROD_LOCATION, serialized: SAMPLE_STATE });
+
+		expect(links.map((link) => new URL(link.href).origin)).toEqual(
+			links.map((link) => link.vertical.productionOrigin),
+		);
+		expect(links.map((link) => new URL(link.href).pathname)).toEqual(links.map(() => '/books'));
 	});
 
 	// There is deliberately no "preserves the registry presentation order" case comparing

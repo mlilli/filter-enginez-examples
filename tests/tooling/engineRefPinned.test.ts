@@ -35,10 +35,14 @@ describe('the engine checkout in CI is pinned', () => {
 		expect(WORKFLOW).toContain("grep -Eq '^[0-9a-f]{40}$'");
 	});
 
-	it('checks the engine out at the pinned ref', () => {
-		const engineCheckout = /repository: mlilli\/filter-enginez\n(?: {10}.*\n)*/u.exec(WORKFLOW)?.[0] ?? '';
+	it('checks the engine out at the pinned ref, in every job that checks it out', () => {
+		// `gates` and `deploy` each clone the engine; a second checkout added unpinned would build the
+		// deployed sites against whatever the engine's `main` happens to be.
+		const engineCheckouts = [...WORKFLOW.matchAll(/repository: mlilli\/filter-enginez\n(?: {10}.*\n)*/gu)].map(([step]) => step);
 
-		expect(engineCheckout, 'no engine checkout step found in ci.yml').not.toBe('');
-		expect(engineCheckout, 'the engine checkout has no pinned ref').toContain('ref: ${{ steps.engine.outputs.sha }}');
+		expect(engineCheckouts.length, 'no engine checkout step found in ci.yml').toBeGreaterThanOrEqual(1);
+		for (const engineCheckout of engineCheckouts) {
+			expect(engineCheckout, 'an engine checkout has no pinned ref').toContain('ref: ${{ steps.engine.outputs.sha }}');
+		}
 	});
 });

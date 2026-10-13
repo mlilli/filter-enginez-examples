@@ -50,9 +50,13 @@ import { defineConfig } from 'vitest/config';
 
 import { COVERAGE_EXCLUDE } from './vitest.coverage.config.js';
 
-/** Isomorphic + Node-tooling packages — tests run under the plain Node runtime. */
+/**
+ * Isomorphic + Node-tooling packages — tests run under the plain Node runtime. `site` is here for its
+ * Cloudflare Worker, whose runtime has no DOM either.
+ */
 const NODE_TEST_PACKAGES: readonly string[] = [
 	'examples-server',
+	'site',
 ];
 
 /**
@@ -80,7 +84,7 @@ const BROWSER_TEST_PACKAGES: readonly string[] = [
  * picomatch — the matcher behind Vitest's `include` — treats a brace group without a comma as literal
  * text, and Vitest only complains when EVERY project finds no files. So a project whose list shrank to
  * one entry would run zero tests and report success. That is not hypothetical: this repo's `node`
- * project holds exactly one package. Verified against picomatch directly — `{examples-server}` false, `{examples-server,x}` true.
+ * project holds two packages, one deletion away from the trap. Verified against picomatch directly — `{examples-server}` false, `{examples-server,x}` true.
  *
  * @param packageNames - Unscoped package directory names under `packages/`
  * @returns One glob covering those packages' test files

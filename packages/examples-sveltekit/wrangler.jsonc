@@ -1,0 +1,26 @@
+// Cloudflare Workers deployment of the SvelteKit demo, served at https://svelte.filterenginez.com.
+// The `deploy` job in .github/workflows/ci.yml builds this package with SVELTEKIT_ADAPTER=cloudflare and runs
+// `wrangler deploy` with this file on every push to `main` that passes the gates. See "Deployment" in the
+// repository README.
+//
+// `@sveltejs/adapter-cloudflare` reads this file too: it writes the Worker to `main` and the client assets to
+// `assets.directory`. Both sit under `build/`, the directory the package's `build` script strips the local
+// wine corpus from, whichever adapter ran.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "filter-enginez-sveltekit",
+  "compatibility_date": "2026-10-01",
+  // SvelteKit's and Svelte's server runtimes import `node:async_hooks` for `AsyncLocalStorage`.
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./build/cloudflare/_worker.js",
+  "assets": {
+    "directory": "./build/cloudflare",
+    // The Worker serves every route itself (server rendering, the `/books-server` and `/wine-server`
+    // endpoints), reaching the prebuilt client files through this binding.
+    "binding": "ASSETS"
+  },
+  "routes": [{ "pattern": "svelte.filterenginez.com", "custom_domain": true }],
+  // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.
+  "workers_dev": false,
+  "preview_urls": false
+}

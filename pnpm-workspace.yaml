@@ -28,6 +28,11 @@ allowBuilds:
   # weight. Approving keeps that committed `public/mockServiceWorker.js` in sync with the installed msw
   # version on every install.
   msw: true
+  # Cloudflare's Workers runtime, pulled in by `wrangler` (the deploy CLI, and a peer of
+  # `@sveltejs/adapter-cloudflare`). Same fallback-only story as esbuild: the binary arrives as a
+  # platform optional dep (`@cloudflare/workerd-darwin-arm64`, …) and the postinstall only validates it.
+  # `wrangler deploy` never runs it; `wrangler dev` does.
+  workerd: true
 
 # ─── Supply-chain policy exceptions ────────────────────────────────────────────
 # 🟢 **pnpm 12 REPORTS an unrecognized setting in this file instead of ignoring it.** A misspelled
@@ -149,8 +154,9 @@ overrides:
   'brace-expansion@^5.0.0': '>=5.0.8 <6.0.0'
   # ─── The engine, consumed as PACKED TARBALLS from the sibling repo ──────────────────────────────
   # 🔴 The 12 engine packages these apps use are not workspace members here — they live in
-  # ../filter-enginez — so every manifest names them at their real version (`0.0.1`) and this block points
-  # each at the tarball `bash scripts/pack-engine-tarballs.sh` writes in the engine repo.
+  # ../filter-enginez — so every manifest names them at their real version (kept in step by
+  # `scripts/sync-engine-versions.mjs`) and this block points each at the tarball
+  # `bash scripts/pack-engine-tarballs.sh` writes in the engine repo.
   #
   # 🔴 WHY TARBALLS AND NOT `link:../filter-enginez/packages/*`, which would be faster: a linked package
   # resolves its PEER dependencies — React, RxJS, Svelte, Vue, Angular — from the ENGINE repo's
@@ -160,18 +166,18 @@ overrides:
   # tree and resolves its peers here. It also exercises the real publish surface — `dist/`, the `files`
   # allow-list, `publishConfig.exports` — rather than raw source.
   #
-  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.1.tgz'
-  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.1.tgz'
-  '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.1.tgz'
-  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.1.tgz'
-  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.1.tgz'
-  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.1.tgz'
-  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.1.tgz'
-  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.1.tgz'
-  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.1.tgz'
-  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.1.tgz'
-  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.1.tgz'
-  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.1.tgz'
+  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz'
+  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz'
+  '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz'
+  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz'
+  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz'
+  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz'
+  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz'
+  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz'
+  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz'
+  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz'
+  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz'
+  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz'
 
 # ─── Accepted / false-positive advisories (kept out of `pnpm audit` noise) ─────────────────────────
 # `auditConfig.ignoreGhsas` (pnpm 11+) suppresses the specific GHSA IDs below from `pnpm audit`. Each is

@@ -37,6 +37,7 @@
     "dev:rtk:default": "VITE_WINE_TIER=default turbo run dev --filter=@filter-enginez/examples-react-rtk",
     "dev:rtk:default:fresh": "VITE_WINE_TIER=default turbo run dev --filter=@filter-enginez/examples-react-rtk -- --force",
     "dev:rtk:fresh": "turbo run dev --filter=@filter-enginez/examples-react-rtk -- --force",
+    "dev:site": "pnpm --filter @filter-enginez/site dev",
     "dev:svelte": "turbo run dev --filter=@filter-enginez/examples-sveltekit",
     "dev:vanilla": "turbo run dev --filter @filter-enginez/examples-vanilla",
     "dev:vue": "turbo run dev --filter=@filter-enginez/examples-vue",
@@ -74,7 +75,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/config-helpers": "^0.7.0",
-    "@filter-enginez/eslint": "0.0.1",
+    "@filter-enginez/eslint": "0.0.2",
     "@playwright/test": "^1.63.0",
     "@size-limit/preset-small-lib": "^13.1.1",
     "@stylistic/eslint-plugin": "^5.10.0",
@@ -96,7 +97,8 @@
     "turbo": "^2.11.7",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.1",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.149.0"
   },
   "browserslist": [
     "defaults and fully supports es6-module",

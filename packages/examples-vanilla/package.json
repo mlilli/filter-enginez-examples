@@ -18,17 +18,17 @@
   },
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
-    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/core": "0.0.2",
     "@filter-enginez/examples-shared": "workspace:*",
-    "@filter-enginez/mock-data": "0.0.1",
-    "@filter-enginez/reactive-signals": "0.0.1",
+    "@filter-enginez/mock-data": "0.0.2",
+    "@filter-enginez/reactive-signals": "0.0.2",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.1",
+    "@filter-enginez/url-state-router": "0.0.2",
     "@preact/signals-core": "^1.14.2",
     "leaflet": "1.9.4"
   },
   "devDependencies": {
-    "@filter-enginez/eslint": "0.0.1",
+    "@filter-enginez/eslint": "0.0.2",
     "vite": "^8.1.5"
   }
 }

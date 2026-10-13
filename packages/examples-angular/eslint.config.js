@@ -49,7 +49,7 @@ const typescriptScopedBase = base.map((config) =>
 
 export default [
 	{
-		ignores: ['dist/**', '.angular/**'],
+		ignores: ['dist/**', '.angular/**', '.wrangler/**'],
 	},
 	...typescriptScopedBase,
 	{

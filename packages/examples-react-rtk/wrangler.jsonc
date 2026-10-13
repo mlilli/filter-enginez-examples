@@ -1,0 +1,23 @@
+// Cloudflare Workers deployment of the React + Redux Toolkit demo, served at https://react-rtk.filterenginez.com.
+// The `deploy` job in .github/workflows/ci.yml builds this package and runs `wrangler deploy` with this file
+// on every push to `main` that passes the gates. See "Deployment" in the repository README.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "filter-enginez-react-rtk",
+  "compatibility_date": "2026-10-01",
+  // The `/books-server` route calls same-origin `/api/*`, which the dev server proxies to examples-server on
+  // port 8787. Deployed, examples-server's own Worker entry answers those requests instead; everything else
+  // is a static asset.
+  "main": "../examples-server/src/cloudflareWorker.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Client-side routing (React Router's browser history): any other path gets index.html.
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "routes": [{ "pattern": "react-rtk.filterenginez.com", "custom_domain": true }],
+  // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.
+  "workers_dev": false,
+  "preview_urls": false
+}

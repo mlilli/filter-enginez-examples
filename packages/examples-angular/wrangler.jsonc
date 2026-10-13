@@ -1,0 +1,24 @@
+// Cloudflare Workers deployment of the Angular demo, served at https://angular.filterenginez.com.
+// The `deploy` job in .github/workflows/ci.yml builds this package and runs `wrangler deploy` with this file
+// on every push to `main` that passes the gates. See "Deployment" in the repository README.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "filter-enginez-angular",
+  "compatibility_date": "2026-10-01",
+  // The `/books-server` route calls same-origin `/api/*`, which `ng serve` proxies to examples-server on port
+  // 8787 (proxy.config.json). Deployed, examples-server's own Worker entry answers those requests instead;
+  // everything else is a static asset.
+  "main": "../examples-server/src/cloudflareWorker.ts",
+  "assets": {
+    // `@angular/build:application` writes the browser bundle under `<outputPath>/browser` (angular.json).
+    "directory": "./dist/browser",
+    "binding": "ASSETS",
+    // Client-side routing (the Angular router's path location strategy): any other path gets index.html.
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "routes": [{ "pattern": "angular.filterenginez.com", "custom_domain": true }],
+  // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.
+  "workers_dev": false,
+  "preview_urls": false
+}

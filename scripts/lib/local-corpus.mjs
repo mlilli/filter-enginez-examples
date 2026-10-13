@@ -3,8 +3,8 @@
  *
  * @remarks
  * Shared by the `strip-local-corpus.mjs` CLI (the last step of every app build) and the SvelteKit
- * app's adapter wrapper, which strips the corpus BEFORE `adapter-node` copies and precompresses the
- * client assets. See `strip-local-corpus.mjs` for why the corpus must never ship.
+ * app's adapter wrapper, which strips the corpus BEFORE `adapter-node` or `adapter-cloudflare` copies
+ * the client assets. See `strip-local-corpus.mjs` for why the corpus must never ship.
  *
  * @packageDocumentation
  */

@@ -14,7 +14,7 @@ import globals from 'globals';
 
 export default [
 	{
-		ignores: ['dist/**', 'vite.config.ts', 'env.d.ts'],
+		ignores: ['.wrangler/**', 'dist/**', 'vite.config.ts', 'env.d.ts'],
 	},
 	...base,
 	{

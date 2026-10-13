@@ -77,11 +77,11 @@ const DATASET_ROUTES: readonly DatasetCard[] = [
 		recordNoun: 'books',
 	},
 	{
-		// Phrased for every vertical that serves this route. React RTK, React plain and Angular reach a
-		// separate Node process (`createHttpFilterEngine` over a Vite `/api` proxy to `examples-server`)
-		// as client-rendered SPAs; only SvelteKit runs the core in its own server tier and ships the
-		// zero-JavaScript `BooksServerFallback`. A property only one stack has belongs in that stack's
-		// own copy, not in a catalog every stack shares.
+		// Phrased for every vertical that serves this route. React RTK, React plain and Angular reach
+		// `examples-server` over a same-origin `/api` (`createHttpFilterEngine`; a dev-server proxy
+		// locally, the app's own Worker when deployed) as client-rendered SPAs; only SvelteKit runs the
+		// core in its own server tier and ships the zero-JavaScript `BooksServerFallback`. A property
+		// only one stack has belongs in that stack's own copy, not in a catalog every stack shares.
 		blurb:
 			'The exact same books app, but the browser never filters — every mutation round-trips to a server running the isomorphic engine.',
 		href: '/books-server',

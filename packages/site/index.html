@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#0B0A09" />
+		<title>Filter EngineZ — the isomorphic TypeScript data filter engine</title>
+		<meta
+			name="description"
+			content="Filter EngineZ is a generic, isomorphic, framework-agnostic TypeScript data filter engine. One engine in the browser, in Node or in a Web Worker, with bindings for React, Svelte, Vue and Angular."
+		/>
+		<link rel="canonical" href="https://filterenginez.com/" />
+
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Filter EngineZ" />
+		<meta property="og:url" content="https://filterenginez.com/" />
+		<meta property="og:title" content="Filter EngineZ — the isomorphic TypeScript data filter engine" />
+		<meta
+			property="og:description"
+			content="One filter engine in the browser, in Node or in a Web Worker, with bindings for React, Svelte, Vue and Angular. Six live demos, one engine."
+		/>
+		<meta property="og:image" content="https://filterenginez.com/og-card.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="The Filter EngineZ logomark and wordmark on a dark background" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="Filter EngineZ — the isomorphic TypeScript data filter engine" />
+		<meta
+			name="twitter:description"
+			content="One filter engine in the browser, in Node or in a Web Worker, with bindings for React, Svelte, Vue and Angular."
+		/>
+		<meta name="twitter:image" content="https://filterenginez.com/og-card.png" />
+		<meta name="twitter:image:alt" content="The Filter EngineZ logomark and wordmark on a dark background" />
+
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "SoftwareSourceCode",
+				"name": "Filter EngineZ",
+				"description": "A generic, isomorphic, framework-agnostic TypeScript data filter engine, for filtering arbitrarily-complex data on arbitrarily-shaped datasets, anywhere JavaScript runs.",
+				"url": "https://filterenginez.com/",
+				"codeRepository": "https://github.com/mlilli/filter-enginez",
+				"programmingLanguage": "TypeScript",
+				"runtimePlatform": ["Web browser", "Node.js", "Web Worker"],
+				"license": "https://www.apache.org/licenses/LICENSE-2.0",
+				"author": { "@type": "Person", "name": "Michael Lilli", "url": "https://github.com/mlilli" },
+				"sameAs": ["https://www.npmjs.com/org/filter-enginez", "https://github.com/mlilli/filter-enginez-examples"]
+			}
+		</script>
+
+		<link rel="stylesheet" href="/src/styles.css" />
+	</head>
+	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<header class="site-header">
+			<a class="site-header__brand" href="/" aria-label="Filter EngineZ, home">
+				<img class="site-header__mark" src="/mark.svg" alt="" width="40" height="40" />
+				<span class="site-header__wordmark" aria-hidden="true">Filter EngineZ</span>
+			</a>
+			<nav class="site-header__nav" aria-label="Project">
+				<ul>
+					<li><a href="https://docs.filterenginez.com/">Docs</a></li>
+					<li><a href="https://github.com/mlilli/filter-enginez">GitHub</a></li>
+					<li><a href="https://www.npmjs.com/org/filter-enginez">npm</a></li>
+				</ul>
+			</nav>
+		</header>
+
+		<main id="main" tabindex="-1">
+			<section class="hero" aria-labelledby="hero-title">
+				<h1 id="hero-title" class="hero__title">Filter EngineZ</h1>
+				<p class="hero__lede">
+					A generic, isomorphic, framework-agnostic TypeScript data filter engine — for filtering arbitrarily-complex data
+					on arbitrarily-shaped datasets, anywhere JavaScript runs.
+				</p>
+				<div class="install">
+					<p class="install__label">Install the core</p>
+					<pre class="install__command"><code>pnpm add @filter-enginez/core</code></pre>
+					<p class="install__note">
+						Then add the binding for your stack, such as <code>@filter-enginez/react-signals</code> or
+						<code>@filter-enginez/angular-rxjs</code>.
+					</p>
+				</div>
+				<ul class="hero__actions">
+					<li><a class="button button--primary" href="#demos">See it running</a></li>
+					<li><a class="button" href="https://docs.filterenginez.com/">Read the docs</a></li>
+				</ul>
+			</section>
+
+			<section class="section" aria-labelledby="features-title">
+				<h2 id="features-title" class="section__title">What it does</h2>
+				<p class="section__intro">
+					You describe filters as rules, in code or as JSON, and the engine evaluates them over your data, returns what
+					passes, and tells subscribers when that changes. The core has no framework and no browser dependency, so the
+					same engine runs in a browser, in Node, or in a Web Worker.
+				</p>
+				<ul class="features">
+					<li class="feature">
+						<h3 class="feature__title">Built-in rules</h3>
+						<p>
+							Range, set membership, numeric comparison, date range, text and fuzzy search, regex, geo proximity,
+							hierarchy and more, plus a contract for writing your own.
+						</p>
+					</li>
+					<li class="feature">
+						<h3 class="feature__title">Boolean composition</h3>
+						<p>And, or and not, arbitrarily nested; or flat rules grouped into “any of these” facets.</p>
+					</li>
+					<li class="feature">
+						<h3 class="feature__title">Filters as data</h3>
+						<p>Round-trip a whole filter panel through validated JSON with <code>loadConfig</code> and <code>exportConfig</code>.</p>
+					</li>
+					<li class="feature">
+						<h3 class="feature__title">Acceleration</h3>
+						<p>
+							Roaring Bitmaps for rule intersection, an R-tree for geo queries, Bayesian co-occurrence for suggested
+							filters, and MinHash with LSH for “find similar items”.
+						</p>
+					</li>
+					<li class="feature">
+						<h3 class="feature__title">Exclusion-aware panels</h3>
+						<p>Disable the options that would lead to zero results, before anyone selects them.</p>
+					</li>
+					<li class="feature">
+						<h3 class="feature__title">Devtools</h3>
+						<p>Action log, time travel, state diffing, replay, and a Redux DevTools bridge.</p>
+					</li>
+				</ul>
+			</section>
+
+			<section id="demos" class="section" aria-labelledby="demos-title">
+				<h2 id="demos-title" class="section__title">Live demos</h2>
+				<p class="section__intro">
+					The same engine over the same three datasets — books, wine reviews and real estate — under six front-end
+					stacks. Each demo is its own site; the comparison page in any of them opens your current filters in all six.
+				</p>
+				<ul class="demos">
+					<li>
+						<a class="demo" href="https://react-rtk.filterenginez.com/">
+							<span class="demo__name">React + Redux Toolkit</span>
+							<span class="demo__detail">The optional Redux mirror, with the engine as the source of truth</span>
+							<span class="demo__host">react-rtk.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="demo" href="https://react.filterenginez.com/">
+							<span class="demo__name">React</span>
+							<span class="demo__detail">The same app with no store library at all</span>
+							<span class="demo__host">react.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="demo" href="https://svelte.filterenginez.com/">
+							<span class="demo__name">SvelteKit</span>
+							<span class="demo__detail">The engine in SvelteKit’s own server tier, with server rendering</span>
+							<span class="demo__host">svelte.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="demo" href="https://vue.filterenginez.com/">
+							<span class="demo__name">Vue</span>
+							<span class="demo__detail">Vue 3 and Vue Router over the signals binding</span>
+							<span class="demo__host">vue.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="demo" href="https://angular.filterenginez.com/">
+							<span class="demo__name">Angular</span>
+							<span class="demo__detail">Zoneless and standalone, consuming the engine’s Observables</span>
+							<span class="demo__host">angular.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="demo" href="https://vanilla.filterenginez.com/">
+							<span class="demo__name">Vanilla TypeScript</span>
+							<span class="demo__detail">No framework: hand-written DOM over the signals facade and the bare core</span>
+							<span class="demo__host">vanilla.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="demo demo--docs" href="https://docs.filterenginez.com/">
+							<span class="demo__name">Documentation</span>
+							<span class="demo__detail">Every rule and algorithm, a live playground, and the API reference</span>
+							<span class="demo__host">docs.filterenginez.com</span>
+						</a>
+					</li>
+				</ul>
+			</section>
+
+			<section class="section" aria-labelledby="source-title">
+				<h2 id="source-title" class="section__title">Source and packages</h2>
+				<ul class="links">
+					<li>
+						<a href="https://www.npmjs.com/org/filter-enginez">@filter-enginez on npm</a>
+						<span class="links__detail">The core, the reactive facades and a binding per framework</span>
+					</li>
+					<li>
+						<a href="https://github.com/mlilli/filter-enginez">mlilli/filter-enginez</a>
+						<span class="links__detail">The engine, its guides and its architecture notes</span>
+					</li>
+					<li>
+						<a href="https://github.com/mlilli/filter-enginez-examples">mlilli/filter-enginez-examples</a>
+						<span class="links__detail">The six demo apps, the docs site and the design system</span>
+					</li>
+				</ul>
+			</section>
+		</main>
+
+		<footer class="site-footer">
+			<p>
+				Filter EngineZ is open source under the
+				<a href="https://github.com/mlilli/filter-enginez/blob/main/LICENSE.md">Apache License 2.0</a>. The demos run
+				on synthetic data.
+			</p>
+		</footer>
+	</body>
+</html>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The root of every site under filterenginez.com: this landing page, the documentation site and the six
+  demo apps. tests/tooling/cloudflareDeploy.test.ts checks this list against the custom domains in the
+  packages' wrangler.jsonc files, so a site cannot be deployed without being listed here, or listed
+  without being deployed.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://filterenginez.com/</loc></url>
+	<url><loc>https://docs.filterenginez.com/</loc></url>
+	<url><loc>https://react-rtk.filterenginez.com/</loc></url>
+	<url><loc>https://react.filterenginez.com/</loc></url>
+	<url><loc>https://svelte.filterenginez.com/</loc></url>
+	<url><loc>https://vue.filterenginez.com/</loc></url>
+	<url><loc>https://angular.filterenginez.com/</loc></url>
+	<url><loc>https://vanilla.filterenginez.com/</loc></url>
+</urlset>

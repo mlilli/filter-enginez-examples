@@ -23,6 +23,23 @@ there; this repository is for the demos and the UI they share.
 
 Both repositories were developed privately from May 2026; their public history begins with the first commit.
 
+## Live demos
+
+Every app runs on its own subdomain, built from `main` and running on synthetic data:
+
+| Site                                                               | What it is                                                                 |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [filterenginez.com](https://filterenginez.com)                     | The landing page: what the engine is, how to install it, links to the rest |
+| [react-rtk.filterenginez.com](https://react-rtk.filterenginez.com) | React + Redux Toolkit                                                      |
+| [react.filterenginez.com](https://react.filterenginez.com)         | React, no Redux                                                            |
+| [svelte.filterenginez.com](https://svelte.filterenginez.com)       | SvelteKit, with server-side rendering and server-filtered routes           |
+| [vue.filterenginez.com](https://vue.filterenginez.com)             | Vue 3                                                                      |
+| [angular.filterenginez.com](https://angular.filterenginez.com)     | Angular                                                                    |
+| [vanilla.filterenginez.com](https://vanilla.filterenginez.com)     | Plain TypeScript, no framework                                             |
+| [docs.filterenginez.com](https://docs.filterenginez.com)           | The documentation site                                                     |
+
+The `/compare` page in any of the six opens your current filter state in all of them.
+
 ## Apps
 
 | Package                                                             | What it is                                                                              | Run with           | Port |
@@ -35,9 +52,11 @@ Both repositories were developed privately from May 2026; their public history b
 | `examples-vanilla`                                                  | Plain TypeScript and hand-written DOM, over `reactive-signals` and the bare core        | `pnpm dev:vanilla` | 5179 |
 | [`examples-server`](./packages/examples-server/README.md)           | Node CLI plus a small `node:http` endpoint: the same engine and JSON config, no browser | `pnpm dev:api`     | 8787 |
 | `examples-docs`                                                     | Standalone documentation site: rule and algorithm reference, live playground            | `pnpm dev:docs`    | 5180 |
+| `site`                                                              | The `filterenginez.com` landing page: static HTML and CSS on the brand tokens           | `pnpm dev:site`    | 5181 |
 
 `pnpm dev` starts every app except the API server, which `pnpm dev:api` runs. Every dev server pins its port, so a
-collision fails loudly; the canonical port map is in [`playwright.config.ts`](./playwright.config.ts).
+collision fails loudly; the canonical port map for the apps the end-to-end suite drives is in
+[`playwright.config.ts`](./playwright.config.ts).
 
 ## Shared packages
 
@@ -111,6 +130,28 @@ pnpm test:e2e         # Playwright across the apps (local only; see below)
 CI ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) runs everything above except `test:e2e`. The end-to-end
 suite needs the real wine corpus, which CI does not have, so it runs locally. Before the first run, install the browser
 with `pnpm exec playwright install chromium` and stop any running dev servers.
+
+### Deployment
+
+Each site is a [Cloudflare Worker with static assets](https://developers.cloudflare.com/workers/static-assets/), and
+each package that deploys carries a `wrangler.jsonc` naming its Worker, its build output, and its custom domain. A
+package is deployed if and only if it has one.
+
+On every push to `main`, after the CI gates pass, the `deploy` job builds each of those packages for production and runs
+`wrangler deploy` with it, one job per site, so one failure leaves the other sites deploying. Before uploading, it
+checks that none of the local-only wine corpus is in the output and adds the bundled fonts' licenses.
+
+- The single-page apps fall back to `index.html` for client-side routes. The four with a server-filtered route answer
+  their same-origin `/api/*` with [`examples-server`'s Worker entry](./packages/examples-server/README.md), the deployed
+  counterpart of the dev-server proxy.
+- SvelteKit builds with `adapter-node` by default; `SVELTEKIT_ADAPTER=cloudflare` switches it to `adapter-cloudflare`,
+  which is what the deploy job sets.
+- `/compare` links each app to the others' production origins on a deployed host and to their dev servers on a loopback
+  one, so a local production preview stays local.
+- `www.filterenginez.com` redirects to the apex.
+
+To try a deployed build locally, build the package and run
+`pnpm exec wrangler dev --config packages/<name>/wrangler.jsonc` from the repository root.
 
 ## Local-only data
 

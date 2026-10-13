@@ -6,15 +6,16 @@
  *
  * ## What this route proves, and it is not what SvelteKit's proves
  *
- * SvelteKit's `/wine-server` runs the isomorphic core **in its own Node tier**, in-process, with a
+ * SvelteKit's `/wine-server` runs the isomorphic core **in its own server tier**, in-process, with a
  * zero-JS SSR fallback. **That story is unavailable here, by design:** vanilla is a static Vite SPA
- * with no server tier in development or production. A `configureServer` middleware would fake one
- * that exists only under `vite dev`, which is precisely the kind of claim a demo about honest costs
- * should not make.
+ * with no server rendering. A `configureServer` middleware would fake one that exists only under
+ * `vite dev`, which is precisely the kind of claim a demo about honest costs should not make.
  *
- * So this takes React `/books-server`'s shape instead — a same-origin `/api` proxy forwarding to the
- * standalone `@filter-enginez/examples-server` process. Between the two verticals the repo shows
- * both server-tier arrangements of one engine, which is more interesting than showing one twice.
+ * So this takes React `/books-server`'s shape instead — a same-origin `/api` served by
+ * `@filter-enginez/examples-server`: in development the dev server proxies it to that package's Node
+ * process, and deployed, the app's own Cloudflare Worker answers it with the same request handler.
+ * Between the two verticals the repo shows both server-tier arrangements of one engine, which is more
+ * interesting than showing one twice.
  *
  * ## The only thing that differs from `/wine` is how the engine is obtained
  *
@@ -55,10 +56,10 @@ import { mountWineRoute } from './winePageShell.js';
  * The base URL the transport hangs off.
  *
  * @remarks
- * Same-origin by design: `vite.config.ts` proxies `/api` to `http://localhost:8787`, so the browser
- * never makes a cross-origin request and there is no CORS to configure. The base URL stays a
- * dev-server concern rather than something baked into a bundle — the identical arrangement React
- * RTK's `/books-server` uses.
+ * Same-origin by design: `vite.config.ts` proxies `/api` to `http://localhost:8787`, and the deployed
+ * Worker answers `/api/*` itself (`wrangler.jsonc`), so the browser never makes a cross-origin request
+ * and there is no CORS to configure. The base URL is the same everywhere rather than something baked
+ * into a bundle per environment — the identical arrangement React RTK's `/books-server` uses.
  */
 const API_BASE_URL = '/api';
 

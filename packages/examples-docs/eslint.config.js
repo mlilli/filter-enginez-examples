@@ -12,6 +12,10 @@
 import { react } from '@filter-enginez/eslint/config';
 
 export default [
+	{
+		// Wrangler's local bundles and state (`wrangler dev` against this package's wrangler.jsonc).
+		ignores: ['.wrangler/**'],
+	},
 	...react,
 	{
 		languageOptions: {

@@ -10,11 +10,11 @@
  *
  * ### It is NOT a root-relative `/compare`
  *
- * The obvious implementation — `href="/compare?f=…"` — works in development and breaks in
- * production, which is the worst arrangement available. Under the `paths` layout (`PRODUCTION_LAYOUT`
- * in `origins.ts`) each vertical is served under `${origin}/${id}`, so a root-relative link leaves
- * the app entirely and 404s. Going through {@link resolveVerticalOrigin} costs one call and makes the two
- * layouts a decision made once, in one place, rather than a bug waiting in every production deploy.
+ * The obvious implementation — `href="/compare?f=…"` — works only because every vertical is served
+ * from the root of its own origin, in development and deployed alike. It would break the moment any
+ * vertical moved under a base path, and nothing in development would show it.
+ * Going through {@link resolveVerticalOrigin} costs one call and makes "where does this vertical live"
+ * a decision made once, in `origins.ts`, rather than an assumption repeated at sixteen call sites.
  *
  * ### The state comes from the URL WRITER, not from a re-read of the address bar
  *

@@ -19,7 +19,7 @@ import tseslint from 'typescript-eslint';
 
 export default [
 	{
-		ignores: ['.svelte-kit/**', 'build/**', 'static/**', 'svelte.config.js', 'vite.config.ts', 'vitest.config.ts'],
+		ignores: ['.svelte-kit/**', '.wrangler/**', 'build/**', 'static/**', 'svelte.config.js', 'vite.config.ts', 'vitest.config.ts'],
 	},
 	...base,
 	...svelte.configs.recommended,

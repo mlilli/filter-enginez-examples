@@ -2,7 +2,7 @@
 
 The React + Redux Toolkit demo app. It runs the engine through `react-signals` and mirrors each dataset's engine state
 into a read-only Redux slice with `redux-bridge`, so components can read filter metadata with ordinary `useSelector`
-calls. Dev server: `http://127.0.0.1:5174`.
+calls. Dev server: `http://127.0.0.1:5174`. Live at [react-rtk.filterenginez.com](https://react-rtk.filterenginez.com).
 
 ## Routes
 

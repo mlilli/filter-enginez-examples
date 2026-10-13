@@ -3,7 +3,7 @@
 The Angular demo app — the consumer of the engine's **RxJS reactive surface**.
 
 Angular 22 · Angular CLI (`@angular/build`) · **zoneless** · standalone components · dev server on
-**`http://127.0.0.1:4200`**.
+**`http://127.0.0.1:4200`** · live at [angular.filterenginez.com](https://angular.filterenginez.com).
 
 ---
 

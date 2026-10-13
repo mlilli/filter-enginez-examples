@@ -6,9 +6,9 @@
  * presets, state — so both files stay well under the 500-line cap. `hasComparableState` is tested
  * there, beside the other `links.ts` exports it belongs to.
  *
- * The two assertions that earn their keep are the layout ones. A root-relative `/compare` passes
- * every dev-hosted check and 404s in production, because the `paths` layout serves each vertical
- * under `${origin}/${id}` — a failure whose entire tell is which layout you tested under.
+ * The assertions that earn their keep are the layout ones. A link built for the wrong layout passes
+ * every dev-hosted check and sends a deployed visitor to a loopback port (or the reverse) — a failure
+ * whose entire tell is which layout you tested under.
  *
  * @packageDocumentation
  */
@@ -32,7 +32,7 @@ const SAMPLE_STATE = 'h~{"version":1,"rules":[]}';
 const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5174' };
 
 /** Stand-in for the deployed site. */
-const PROD_LOCATION = { hostname: 'filterenginez.innov8.io', origin: 'https://filterenginez.innov8.io' };
+const PROD_LOCATION = { hostname: 'react.filterenginez.com', origin: 'https://react.filterenginez.com' };
 
 describe('compareTargetHref', () => {
 	it('points every vertical at its OWN /compare, not another app’s', () => {
@@ -127,31 +127,16 @@ describe('compareTargetHref', () => {
 		expect(search.indexOf(DATASET_PARAM)).toBeLessThan(search.indexOf(`${URL_STATE_PARAM}=`));
 	});
 
-	it('stays inside the vertical’s base path under the paths layout', () => {
-		// The bug this test exists for: a root-relative `/compare` works in dev and 404s in production,
-		// because each app is served under `${origin}/${id}` there. Dev-only verification would have
-		// reported that as green.
+	it('uses the vertical’s own deployed subdomain in production', () => {
 		const href = compareTargetHref({
 			currentVerticalId: 'vanilla',
 			dataset: 'books',
-			layout: 'paths',
+			layout: 'production',
 			location: PROD_LOCATION,
 			serialized: SAMPLE_STATE,
 		});
 
-		expect(new URL(href).pathname).toBe(`/vanilla${COMPARE_ROUTE}`);
-	});
-
-	it('uses the vertical’s own subdomain under the subdomains layout', () => {
-		const href = compareTargetHref({
-			currentVerticalId: 'vanilla',
-			dataset: 'books',
-			layout: 'subdomains',
-			location: PROD_LOCATION,
-			serialized: SAMPLE_STATE,
-		});
-
-		expect(href.startsWith('https://fe-vanilla.innov8.io/compare')).toBe(true);
+		expect(href.startsWith(`https://vanilla.filterenginez.com${COMPARE_ROUTE}?`)).toBe(true);
 	});
 
 	it('detects the layout when none is supplied', () => {
@@ -165,5 +150,18 @@ describe('compareTargetHref', () => {
 		});
 
 		expect(new URL(href).origin).toBe(new URL(vertical('react-plain').devOrigin).origin);
+	});
+
+	it('detects production from a deployed host and stays on the vertical’s own subdomain', () => {
+		// The deployed call shape: no `layout`, a real host. The button must open THIS app's
+		// `/compare`, so the origin is the one the page is already on.
+		const href = compareTargetHref({
+			currentVerticalId: 'react-plain',
+			dataset: 'books',
+			location: PROD_LOCATION,
+			serialized: null,
+		});
+
+		expect(new URL(href).origin).toBe(PROD_LOCATION.origin);
 	});
 });

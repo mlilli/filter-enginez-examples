@@ -2,7 +2,7 @@
 # Continuous Integration — the gates for the six example apps and their shared
 # packages: typecheck, lint (ESLint + markdown), formatting, spelling, unit tests
 # with coverage, the framework component tests, a full production build, and the
-# brand bundle-size budgets.
+# brand bundle-size budgets — and, on `main`, the deployment of every site.
 #
 # 🔴 THE ENGINE IS CHECKED OUT BESIDE THIS REPO, because the apps consume it as PACKED
 # TARBALLS from ../filter-enginez (see pnpm-workspace.yaml's override block). So the job
@@ -20,6 +20,14 @@
 # ⚠ NO E2E JOB. The wine suites assert against the real 130k-record corpus, which is
 # CC BY-NC-SA 4.0 data that never leaves a developer's machine (see NOTICE.md), so CI cannot
 # have it. `pnpm test:e2e` runs locally, where the corpus can be imported.
+#
+# 🟢 DEPLOYMENT. On a push to `main`, once `gates` is green, the `deploy` job ships every package
+# that has a `wrangler.jsonc` to Cloudflare Workers — one matrix entry per site, listed by
+# `scripts/list-deploy-targets.mjs`, so the matrix cannot drift from the configs. Each entry builds
+# its package for production, refuses to continue if the local-only wine corpus is anywhere in the
+# output, adds the bundled fonts' licenses, and runs `wrangler deploy` with the repository secrets
+# `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. `fail-fast: false`: one site failing does not
+# stop the others, and the run still ends red. Pull requests never deploy.
 # ─────────────────────────────────────────────────────────────────────────────
 name: CI
 
@@ -30,10 +38,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+# One run per ref at a time. A pull request cancels its superseded run (rapid pushes to a PR). A run
+# on `main` is never cancelled, because it deploys, and a deploy stopped halfway would leave some
+# sites on the previous commit: instead the next `main` run waits, and a newer push replaces any run
+# still waiting. So deploys never interleave, and never land out of order.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -48,6 +59,8 @@ jobs:
   gates:
     name: Gates (typecheck · lint · spell · test · build)
     runs-on: ubuntu-latest
+    outputs:
+      deploy-targets: ${{ steps.deploy-targets.outputs.targets }}
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v7
@@ -84,6 +97,13 @@ jobs:
           cache-dependency-path: |
             filter-enginez/pnpm-lock.yaml
             filter-enginez-examples/pnpm-lock.yaml
+
+      # The deploy job's matrix (one entry per `wrangler.jsonc`). Listed on every run, pull requests
+      # included, so a config that does not parse fails here rather than in the deploy after the merge.
+      - name: List the deploy targets
+        id: deploy-targets
+        working-directory: filter-enginez-examples
+        run: node scripts/list-deploy-targets.mjs --github-output
 
       - name: Install the engine (frozen lockfile)
         working-directory: filter-enginez
@@ -145,3 +165,117 @@ jobs:
       - name: Bundle-size budgets (size-limit)
         working-directory: filter-enginez-examples
         run: pnpm size
+
+  deploy:
+    name: Deploy ${{ matrix.target.hosts }}
+    needs: gates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      # Every site deploys independently: one failing does not cancel the rest, and the run still ends
+      # red, with the failed site named in its job title.
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.gates.outputs.deploy-targets) }}
+    # Belt and braces with the workflow-level group: never two deploys of one Worker at once.
+    concurrency:
+      group: deploy-${{ matrix.target.package }}
+      cancel-in-progress: false
+    env:
+      # Selects adapter-cloudflare in examples-sveltekit/svelte.config.js; every other package ignores it.
+      SVELTEKIT_ADAPTER: cloudflare
+      # Passed through `env` rather than interpolated into the scripts below.
+      TARGET_PACKAGE: ${{ matrix.target.package }}
+      TARGET_CONFIG: ${{ matrix.target.config }}
+      TARGET_ASSETS: ${{ matrix.target.assets }}
+    steps:
+      # The same workspace as `gates`: this repo, the engine beside it at the pinned commit, packed.
+      - name: Checkout this repo
+        uses: actions/checkout@v7
+        with:
+          path: filter-enginez-examples
+
+      - name: Read the pinned engine commit
+        id: engine
+        working-directory: filter-enginez-examples
+        run: |
+          ref="$(tr -d '[:space:]' < .github/engine-ref)"
+          if ! printf '%s' "$ref" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error file=.github/engine-ref::expected a 40-character engine commit SHA, found '$ref'. Run scripts/pin-engine-ref.sh."
+            exit 1
+          fi
+          echo "sha=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the engine beside it (pinned)
+        uses: actions/checkout@v7
+        with:
+          repository: mlilli/filter-enginez
+          ref: ${{ steps.engine.outputs.sha }}
+          path: filter-enginez
+
+      - name: Enable Corepack (pins pnpm from package.json packageManager)
+        run: corepack enable
+
+      - name: Set up Node (from .nvmrc)
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: filter-enginez-examples/.nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            filter-enginez/pnpm-lock.yaml
+            filter-enginez-examples/pnpm-lock.yaml
+
+      - name: Install the engine (frozen lockfile)
+        working-directory: filter-enginez
+        run: pnpm install --frozen-lockfile
+
+      - name: Pack the engine tarballs
+        working-directory: filter-enginez
+        run: bash scripts/pack-engine-tarballs.sh
+
+      - name: Install (frozen lockfile)
+        working-directory: filter-enginez-examples
+        run: pnpm install --frozen-lockfile
+
+      # turbo builds the package's workspace dependencies first (`^build`). Every app's `build` script
+      # ends by stripping the local-only wine corpus (tests/tooling/buildsStripLocalCorpus.test.ts).
+      - name: Build for production
+        working-directory: filter-enginez-examples
+        run: pnpm turbo run build --filter="$TARGET_PACKAGE"
+
+      # The corpus is CC BY-NC-SA 4.0 and never ships. CI has no copy to leak, so this is the last line
+      # of defense rather than the first: it fails the deploy if any such file reached the upload.
+      - name: Refuse to deploy the local-only wine corpus
+        working-directory: filter-enginez-examples
+        run: |
+          if [ ! -d "$TARGET_ASSETS" ]; then
+            echo "::error file=$TARGET_CONFIG::assets.directory '$TARGET_ASSETS' does not exist after the build."
+            exit 1
+          fi
+          found="$(find "$TARGET_ASSETS" \( -name 'data-real-*' -o -name 'winemag-data*' \) -print)"
+          if [ -n "$found" ]; then
+            echo "::error::the local-only wine corpus is in the deploy output:"
+            echo "$found"
+            exit 1
+          fi
+
+      # Every site serves the brand's bundled fonts, and the SIL Open Font License requires its text to
+      # travel with them (NOTICE.md). Each font's own OFL.txt, from the directory the font comes from.
+      - name: Ship the font licenses with the fonts
+        working-directory: filter-enginez-examples
+        run: |
+          for license in packages/brand/src/fonts/*/OFL.txt; do
+            font="$(basename "$(dirname "$license")")"
+            mkdir -p "$TARGET_ASSETS/licenses/fonts/$font"
+            cp "$license" "$TARGET_ASSETS/licenses/fonts/$font/OFL.txt"
+          done
+
+      - name: Deploy to Cloudflare Workers
+        working-directory: filter-enginez-examples
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+        # The Wrangler pinned in pnpm-lock.yaml (a root devDependency, and the peer adapter-cloudflare
+        # builds with), so the deploy uses the same version that was tested.
+        run: pnpm exec wrangler deploy --config "$TARGET_CONFIG"

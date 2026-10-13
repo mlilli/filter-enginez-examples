@@ -14,6 +14,8 @@ ignorePaths:
   - "**/dist/**"
   # SvelteKit's adapter writes to `build/`, not `dist/` (minified output, hashed names).
   - "**/build/**"
+  # Wrangler's local bundles and state (`wrangler dev` against a package's wrangler.jsonc).
+  - "**/.wrangler/**"
   - "**/tmp/**"
   - "**/coverage/**"
   - .coverage-probe/**

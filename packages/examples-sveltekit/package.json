@@ -1,7 +1,7 @@
 {
   "name": "@filter-enginez/examples-sveltekit",
   "version": "0.0.1",
-  "description": "Filter EngineZ — SvelteKit demo app over @filter-enginez/svelte-signals. Shows the framework-agnostic engine + reactive-surface binding outside React. Browser + Node (SSR).",
+  "description": "Filter EngineZ — SvelteKit demo app over @filter-enginez/svelte-signals. Shows the framework-agnostic engine + reactive-surface binding outside React. Browser + server (SSR on Node or Cloudflare Workers).",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -19,19 +19,20 @@
   },
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
-    "@filter-enginez/core": "0.0.1",
+    "@filter-enginez/core": "0.0.2",
     "@filter-enginez/examples-server": "workspace:*",
     "@filter-enginez/examples-shared": "workspace:*",
-    "@filter-enginez/mock-data": "0.0.1",
-    "@filter-enginez/reactive-signals": "0.0.1",
-    "@filter-enginez/svelte-signals": "0.0.1",
+    "@filter-enginez/mock-data": "0.0.2",
+    "@filter-enginez/reactive-signals": "0.0.2",
+    "@filter-enginez/svelte-signals": "0.0.2",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.1",
+    "@filter-enginez/url-state-router": "0.0.2",
     "leaflet": "1.9.4",
     "roaring-wasm": "^1.1.0"
   },
   "devDependencies": {
-    "@filter-enginez/eslint": "0.0.1",
+    "@filter-enginez/eslint": "0.0.2",
+    "@sveltejs/adapter-cloudflare": "^7.2.9",
     "@sveltejs/adapter-node": "^5.5.7",
     "@sveltejs/kit": "^2.69.3",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
@@ -41,6 +42,7 @@
     "svelte-check": "^4.7.2",
     "svelte-eslint-parser": "^1.8.0",
     "typescript-eslint": "^8.59.4",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "wrangler": "^4.149.0"
   }
 }

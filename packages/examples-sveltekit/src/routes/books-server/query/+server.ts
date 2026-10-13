@@ -3,7 +3,7 @@
  *
  * @remarks
  * This is the server tier the browser transport (`createHttpFilterEngine`, `baseUrl: '/books-server'`)
- * talks to. It runs the isomorphic Filter EngineZ core **in the SvelteKit Node process** via
+ * talks to. It runs the isomorphic Filter EngineZ core **in the SvelteKit server itself** via
  * {@link runDatasetQuery} — the whole point of Approach A: no separate `serve:api` process, no proxy.
  * The request/response contract mirrors the standalone `@filter-enginez/examples-server`'s `POST
  * /query` (so the shared transport is byte-for-byte reusable): body `{ config, dataset, limit, query }`

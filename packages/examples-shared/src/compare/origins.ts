@@ -11,55 +11,45 @@
  *    Angular alone, permanently.
  * 2. **Six env configs are six copies of one contract.** Nothing would keep six `VITE_FE_ORIGIN_*`
  *    files in step.
- * 3. **Two production layouts are supported.** `paths` serves every app under its own base on one
- *    origin; `subdomains` gives each app its own host. Both branches are implemented and tested.
+ * 3. **A production build is also served locally.** `vite preview`, `ng serve --configuration
+ *    production` and `wrangler dev` all run the production bundle on a loopback host, where the
+ *    links must still reach the other local servers rather than the deployed sites.
  *
  * So this is a **pure function of `(id, location, layout)`**. It behaves identically in all six
- * verticals because it touches no build constants, it is unit-testable without a browser, and
- * switching layouts means editing {@link PRODUCTION_LAYOUT} rather than six configurations.
+ * verticals because it touches no build constants, it is unit-testable without a browser, and the
+ * question "am I deployed?" is answered by the one input that actually knows: the host serving the
+ * page.
+ *
+ * Deployed, every vertical is its own site on its own subdomain (`react-rtk.filterenginez.com`,
+ * `svelte.filterenginez.com`, …), so the production origin is a registry lookup — see
+ * {@link VerticalDescriptor.productionOrigin}.
  *
  * @packageDocumentation
  */
 
-import { vertical, type VerticalId } from '../verticals/verticals.js';
+import { vertical, type VerticalDescriptor, type VerticalId } from '../verticals/verticals.js';
 
 /**
  * The parts of `window.location` this module reads.
  *
  * @remarks
  * Structural rather than `Location`, for the same reason `attachSimilarity` takes a structural
- * engine target: it keeps the module testable without a DOM, and makes the two inputs it actually
+ * engine target: it keeps the module testable without a DOM, and makes the input it actually
  * depends on visible in the signature instead of hidden inside a global.
  */
 export interface CompareLocation {
 	/** Host without port — the dev check. */
 	readonly hostname: string;
-	/** Scheme + host + port — the base for the `paths` layout. */
+	/** Scheme + host + port. */
 	readonly origin: string;
 }
 
-/** How the six verticals are addressed. */
-export type DeploymentLayout = 'dev' | 'paths' | 'subdomains';
-
 /**
- * The production layout: how a deployed (non-loopback) page addresses the six verticals.
- *
- * @remarks
- * `paths` — one origin with each app under a `base`, so `/compare`'s links stay same-origin and the
- * shareable `?f=` round-trip needs no CORS story. `subdomains` is the alternative for a deployment
- * that hosts each app separately; its branch is implemented and tested too.
- *
- * This is deliberately NOT read from an environment variable. See the module docblock.
+ * How the six verticals are addressed: their local dev servers, or their deployed subdomains.
  */
-export const PRODUCTION_LAYOUT: Exclude<DeploymentLayout, 'dev'> = 'paths';
+export type DeploymentLayout = 'dev' | 'production';
 
-/** The apex the `subdomains` layout hangs off. */
-const SUBDOMAIN_APEX = 'innov8.io';
-
-/** Prefix distinguishing a vertical's subdomain from anything else on the apex. */
-const SUBDOMAIN_PREFIX = 'fe-';
-
-/** Hostnames that mean "a developer is running `pnpm dev` right now". */
+/** Hostnames that mean "a developer is running the app on this machine right now". */
 const DEV_HOSTNAMES = new Set(['0.0.0.0', '127.0.0.1', '::1', 'localhost']);
 
 /**
@@ -67,43 +57,41 @@ const DEV_HOSTNAMES = new Set(['0.0.0.0', '127.0.0.1', '::1', 'localhost']);
  *
  * @remarks
  * Runtime detection rather than configuration, because the alternative is asking every vertical to
- * declare its own mode and then keeping six declarations honest. A developer on `pnpm dev` and a
- * visitor on the deployed site are distinguishable from `hostname` alone.
+ * declare its own mode and then keeping six declarations honest. A developer on `pnpm dev` (or a
+ * local preview of a production build) and a visitor on the deployed site are distinguishable from
+ * `hostname` alone.
  *
  * @param location - The current location; only `hostname` is read.
- * @returns `'dev'` on a loopback host, otherwise {@link PRODUCTION_LAYOUT}.
+ * @returns `'dev'` on a loopback host, otherwise `'production'`.
  */
 export function deploymentLayout(location: CompareLocation): DeploymentLayout {
 	return DEV_HOSTNAMES.has(location.hostname) || location.hostname.endsWith('.localhost')
 		? 'dev'
-		: PRODUCTION_LAYOUT;
+		: 'production';
 }
 
 /**
  * The origin serving a given vertical.
  *
  * @remarks
- * In `dev` this is the registry's `devOrigin`, which `tests/tooling/devServerPorts.test.ts` already
- * pins against `playwright.config.ts` — so the ports cannot drift out from under this without a
- * gate failing.
+ * In `dev` this is the registry's `devOrigin`, which `tests/tooling/devServerPorts.test.ts` pins
+ * against `playwright.config.ts`; in `production` it is the registry's `productionOrigin`, which
+ * `tests/tooling/cloudflareDeploy.test.ts` pins against the app's own `wrangler.jsonc`. Neither
+ * origin can drift out from under this without a gate failing.
  *
  * @param id - Which vertical to locate.
  * @param location - The current location.
  * @param layout - Override the detected layout. Present for tests and for rendering a preview of
  *   the other deployment shape; production callers should omit it.
- * @returns An absolute origin with no trailing slash, e.g. `http://127.0.0.1:5174`.
+ * @returns An absolute origin with no trailing slash, e.g. `http://127.0.0.1:5174` or
+ *   `https://react-rtk.filterenginez.com`.
  */
 export function resolveVerticalOrigin(
 	id: VerticalId,
 	location: CompareLocation,
 	layout: DeploymentLayout = deploymentLayout(location),
 ): string {
-	switch (layout) {
-		case 'dev':
-			return vertical(id).devOrigin;
-		case 'paths':
-			return `${location.origin}/${id}`;
-		case 'subdomains':
-			return `https://${SUBDOMAIN_PREFIX}${id}.${SUBDOMAIN_APEX}`;
-	}
+	const descriptor: VerticalDescriptor = vertical(id);
+
+	return layout === 'dev' ? descriptor.devOrigin : descriptor.productionOrigin;
 }

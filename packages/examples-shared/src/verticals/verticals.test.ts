@@ -8,8 +8,9 @@
  * from `routes`, so an entry that lies produces a 404 in a page whose entire purpose is showing that
  * the six agree.
  *
- * The dev ORIGINS are pinned elsewhere, in `tests/tooling/devServerPorts.test.ts`, and deliberately
- * so: that check needs to read `playwright.config.ts` off disk, and this package is browser-only —
+ * The dev ORIGINS are pinned elsewhere, in `tests/tooling/devServerPorts.test.ts`, and the production
+ * hosts in `tests/tooling/cloudflareDeploy.test.ts` (against each app's `wrangler.jsonc`), deliberately
+ * so: those checks need to read files off disk, and this package is browser-only —
  * its tsconfig has no `node` types, so `node:fs` does not resolve here. The tooling project reads
  * this file as TEXT rather than importing it, which also keeps its no-workspace-imports boundary.
  *
@@ -40,6 +41,20 @@ describe('VERTICALS', () => {
 		const origins = VERTICALS.map((entry) => entry.devOrigin);
 
 		expect(new Set(origins).size).toBe(origins.length);
+	});
+
+	it('gives every vertical its own HTTPS subdomain of filterenginez.com, as a bare origin', () => {
+		// Each app is a separate site, so two entries on one host would make two rows of `/compare`
+		// open the same app. "Bare origin" is the part a typo breaks quietly: a trailing slash or a path
+		// here doubles up with the route `/compare` appends (`…com//books`), and `new URL(...).origin`
+		// round-trips only a value with neither.
+		const origins = VERTICALS.map((entry) => entry.productionOrigin);
+
+		expect(new Set(origins).size).toBe(origins.length);
+		for (const origin of origins) {
+			expect(origin, origin).toMatch(/^https:\/\/[a-z][a-z-]*\.filterenginez\.com$/u);
+			expect(new URL(origin).origin).toBe(origin);
+		}
 	});
 
 	it('lists /books and /about everywhere', () => {

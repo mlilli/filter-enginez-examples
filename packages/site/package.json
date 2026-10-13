@@ -1,0 +1,26 @@
+{
+  "name": "@filter-enginez/site",
+  "version": "0.0.1",
+  "description": "Filter EngineZ — the filterenginez.com landing page: what the engine is, how to install it, and a link to every live demo. Static HTML and CSS on the brand tokens, plus a small Cloudflare Worker that sends www to the apex.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest --watch=false --passWithNoTests",
+    "lint": "eslint --color --no-error-on-unmatched-pattern .",
+    "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
+    "eslint:fix": "eslint --color --no-error-on-unmatched-pattern --fix --max-warnings=0 .",
+    "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
+  },
+  "dependencies": {
+    "@filter-enginez/brand": "workspace:*"
+  },
+  "devDependencies": {
+    "@filter-enginez/eslint": "0.0.2",
+    "vite": "^8.1.5"
+  }
+}

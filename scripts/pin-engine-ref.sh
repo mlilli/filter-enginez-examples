@@ -10,7 +10,7 @@
 # lockfile therefore have to move together:
 #
 #   1. commit the engine change in ../filter-enginez
-#   2. bash scripts/pin-engine-ref.sh                       ← this script
+#   2. bash scripts/pin-engine-ref.sh                       ← this script (also runs sync-engine-versions.mjs)
 #   3. (in ../filter-enginez) bash scripts/pack-engine-tarballs.sh
 #   4. pnpm install here, so the lockfile picks up the new tarball hashes
 #   5. commit `.github/engine-ref` and `pnpm-lock.yaml` together
@@ -40,4 +40,7 @@ sha="$(git -C "$ENGINE_ROOT" rev-parse HEAD)"
 printf '%s\n' "$sha" >"$REF_FILE"
 
 printf '✓ pinned the engine at %s\n' "$sha"
+
+# The tarballs are named for each package's version, so the manifests and overrides must name it too.
+node "$REPO_ROOT/scripts/sync-engine-versions.mjs"
 printf '  Next: pack the engine tarballs, run pnpm install here, then commit .github/engine-ref with pnpm-lock.yaml.\n'
