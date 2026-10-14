@@ -1,8 +1,8 @@
 /**
  * Content model for the "How the engine works" page (filterenginez.com/how-it-works) — the copy, the
- * code snippets, and the id of the illustration bound to each algorithm band. Framework-free data with
- * no imports beyond a type, so the landing site's build can render every word of it into static HTML
- * and its browser script can mount a figure per band by id.
+ * code snippets, and the id of the illustration bound to each algorithm band. Framework-free data whose
+ * only imports are two path constants and a type from `verticals`, so the landing site's build can
+ * render every word of it into static HTML and its browser script can mount a figure per band by id.
  *
  * @remarks
  * Ordered as escalating cleverness — how a filter *runs* (bitmaps), how it *avoids running* (exclusion
@@ -13,7 +13,7 @@
  * @packageDocumentation
  */
 
-import type { VerticalId } from '../verticals/verticals.js';
+import { LAB_ROUTE_PATH, LAB_VERTICAL_ID, type VerticalId } from '../verticals/verticals.js';
 
 /**
  * Which act a band belongs to: `core` = the four acceleration layers (the speed story); `beyond` =
@@ -130,18 +130,11 @@ export const HOW_IT_WORKS_ACT_TWO = {
 	title: 'Beyond filtering',
 } as const;
 
-/**
- * The plain-React app's lab route.
- *
- * @remarks
- * Declared here, beside the links that point at it, so the app's router, its landing page and the
- * how-it-works page all read one string: a `/lab` that became `/laboratory` in one of three places
- * would be a 404 nobody could reproduce from the page that links to it.
- */
-export const LAB_ROUTE_PATH = '/lab';
-
-/** The one vertical that serves {@link LAB_ROUTE_PATH}. */
-export const LAB_VERTICAL_ID: VerticalId = 'react-plain';
+// The lab's route and the vertical that serves it, re-exported so this page's links and their target
+// are read from one subpath. Declared in `verticals.ts`, with the other cross-site paths, because the
+// plain-React app's router reads them too, and that subpath brings nothing else into its startup
+// bundle — this one would bring the benchmark's engine workload.
+export { LAB_ROUTE_PATH, LAB_VERTICAL_ID } from '../verticals/verticals.js';
 
 /** A band's link to a running demonstration of its capability. */
 export interface HowItWorksDemoLink {

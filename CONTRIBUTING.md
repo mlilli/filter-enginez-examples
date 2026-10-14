@@ -84,7 +84,9 @@ CI or review holds every change to these. Most are enforced by the engine's shar
 - **Ports and builds** — each dev server pins its port (the map is in [`playwright.config.ts`](./playwright.config.ts)),
   and each app's build ends by stripping the local-only corpus.
 - **Bundle budgets** — the brand mark, wordmark, and loaders have gzipped size budgets in
-  [`.size-limit.json`](./.size-limit.json).
+  [`.size-limit.json`](./.size-limit.json). Each React app's build also fails when the JavaScript its first screen loads
+  exceeds the budget in its `build` script ([`scripts/check-startup-budget.mjs`](./scripts/check-startup-budget.mjs)):
+  every page loads on demand, so a static import that pulls one onto the first screen is what trips it.
 - **Formatting** — Prettier (tabs, single quotes, 120 columns; Markdown wrapped at 120) and markdownlint.
 - **Spelling** — American English, checked by cspell ([`cspell.config.yaml`](./cspell.config.yaml) rejects British
   forms); add a legitimate new term to its `words` list with a comment.

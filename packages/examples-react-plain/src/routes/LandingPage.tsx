@@ -17,10 +17,11 @@ import { AppHeaderBrand, HEADER_PAGE_LABELS } from '@filter-enginez/examples-sha
 // The route path is written in exactly one place. A link that hardcoded '/lab' would survive a
 // rename as a plausible 404 rather than a build error — the same failure the how-it-works content
 // test pins for the links that page makes to the lab.
-import { LAB_ROUTE_PATH } from '@filter-enginez/examples-shared/how-it-works';
+import { LAB_ROUTE_PATH } from '@filter-enginez/examples-shared/verticals';
 import { Link } from 'react-router';
 
 import { type DatasetEntry, datasets } from '../datasets.js';
+import { prefetchDatasetRoute } from './DatasetRoute.js';
 
 /** Scoped landing styles — keyframes + hover states inline styles can't express. */
 const LANDING_CSS = `
@@ -317,15 +318,34 @@ export const LandingPage = (): React.ReactElement => {
 /**
  * One dataset tile, linking to the dataset's route.
  *
+ * @remarks
+ * Hovering or focusing the tile starts fetching the route's code (`prefetchDatasetRoute`), which is
+ * what intent looks like before the click: by the time it lands the chunk is usually in hand, so the
+ * boot screen goes straight to booting. Only code is fetched — the engine boots, and the corpus
+ * streams, when the route opens. Repeat hovers cost nothing, because a loaded module is not fetched
+ * twice.
+ *
  * @internal
  */
-const DatasetCard = ({ dataset }: { readonly dataset: DatasetEntry }): React.ReactElement => (
-	<Link to={`/${dataset.id}`} className="fe-landing__card fe-landing__card--live" aria-label={`Explore ${dataset.label}`}>
-		<div className="fe-landing__card-top">
-			<span className="fe-landing__card-title">{dataset.label}</span>
-			<span className="fe-landing__badge fe-landing__badge--live">Live</span>
-		</div>
-		<p className="fe-landing__card-blurb">{dataset.tagline}</p>
-		<span className="fe-landing__card-cta">Explore {dataset.recordNoun} →</span>
-	</Link>
-);
+const DatasetCard = ({ dataset }: { readonly dataset: DatasetEntry }): React.ReactElement => {
+	const prefetch = (): void => {
+		prefetchDatasetRoute(dataset);
+	};
+
+	return (
+		<Link
+			to={`/${dataset.id}`}
+			className="fe-landing__card fe-landing__card--live"
+			aria-label={`Explore ${dataset.label}`}
+			onFocus={prefetch}
+			onPointerEnter={prefetch}
+		>
+			<div className="fe-landing__card-top">
+				<span className="fe-landing__card-title">{dataset.label}</span>
+				<span className="fe-landing__badge fe-landing__badge--live">Live</span>
+			</div>
+			<p className="fe-landing__card-blurb">{dataset.tagline}</p>
+			<span className="fe-landing__card-cta">Explore {dataset.recordNoun} →</span>
+		</Link>
+	);
+};

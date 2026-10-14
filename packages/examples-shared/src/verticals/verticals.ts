@@ -216,6 +216,20 @@ export const COMPARE_PATH = '/compare';
  */
 export const DEMOS_SECTION_ID = 'demos';
 
+/**
+ * The plain-React app's lab route.
+ *
+ * @remarks
+ * One string for every reader — the app's router, its landing page and the how-it-works page's links
+ * to it (`how-it-works/content.ts` re-exports it): a `/lab` that became `/laboratory` in one of three
+ * places would be a 404 nobody could reproduce from the page that links to it. Declared here, with the
+ * other cross-site paths, because this subpath is light enough for the app's startup bundle.
+ */
+export const LAB_ROUTE_PATH = '/lab';
+
+/** The one vertical that serves {@link LAB_ROUTE_PATH}. */
+export const LAB_VERTICAL_ID: VerticalId = 'react-plain';
+
 /** Lookup by id. @internal */
 const BY_ID = new Map(VERTICALS.map((entry) => [entry.id, entry]));
 

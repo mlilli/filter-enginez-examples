@@ -156,6 +156,9 @@ jobs:
         working-directory: filter-enginez-examples
         run: pnpm test:frameworks
 
+      # Each React app's build also measures the JavaScript its first screen loads and fails over the
+      # budget in its `build` script (`scripts/check-startup-budget.mjs`), so a page that slips back into
+      # the startup bundle fails here rather than shipping.
       - name: Build all packages
         working-directory: filter-enginez-examples
         run: pnpm build

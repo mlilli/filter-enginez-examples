@@ -1,46 +1,33 @@
 /**
  * Dataset registry — the single source of truth for which datasets the RTK app serves, their
- * landing-page metadata, and how to boot + Redux-wire them.
+ * landing-page metadata, and how to load, boot + Redux-wire them.
  *
  * @remarks
- * `<DatasetRoute>` and `<LandingPage>` both read from here, so adding a dataset is one entry: its
- * `bootAndWire` / progress / `Component`, and both the route and the landing card appear. The boot
- * itself stays in the framework-agnostic `examples-shared/<dataset>` slice, which the other
- * verticals share; this registry is the React+RTK binding.
+ * `<DatasetRoute>` and `<LandingPage>` both read from here, so adding a dataset is one entry: its card
+ * copy and a `load` for its module (`bootAndWire` / progress / `Component`), and both the route and the
+ * landing card appear. The boot itself stays in the framework-agnostic `examples-shared/<dataset>`
+ * slice, which the other verticals share; this registry is the React+RTK binding.
+ *
+ * ### Two halves per dataset: the card and the code
+ *
+ * The hub renders from this registry, so everything in it is in the startup bundle. An entry therefore
+ * holds only what the hub card and the boot screen print — id, label, record noun, tagline — and a
+ * `load` that `import()`s the rest: the dataset's {@link DatasetModule}, whose module graph carries the
+ * engine, the dataset's `examples-shared` slice, its page and its Redux store. Each dataset's code is
+ * its own chunk, fetched the first time its route opens (or its hub card is hovered or focused), so a
+ * visitor pays for the datasets they open and nothing else. Redux Toolkit itself arrives with the first
+ * dataset; each dataset's mirror store is still created by its `bootAndWire`, on arrival, which is
+ * when the Redux DevTools extension sees it.
+ *
+ * 🔴 **Nothing here may statically import a dataset module, a page, a store, or an `examples-shared`
+ * dataset slice.** One such import moves that code back into the startup bundle with no error and no
+ * warning other than the startup budget the build checks (`scripts/check-startup-budget.mjs`).
  *
  * @packageDocumentation
  */
 
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 import type { Store } from '@reduxjs/toolkit';
-
-import {
-	bootBooksConfigEngine,
-	bootBooksEngine,
-	getBooksBootProgressSnapshot,
-	getBooksConfigBootProgressSnapshot,
-	subscribeBooksBootProgress,
-	subscribeBooksConfigBootProgress,
-} from '@filter-enginez/examples-shared/books';
-import {
-	bootRealEstateEngine,
-	getRealEstateBootProgressSnapshot,
-	subscribeRealEstateBootProgress,
-} from '@filter-enginez/examples-shared/real-estate';
-import {
-	bootWineEngine,
-	getWineBootProgressSnapshot,
-	subscribeWineBootProgress,
-} from '@filter-enginez/examples-shared/wine';
-import { spawnWineWorker } from '@filter-enginez/examples-shared/wine-worker-spawn';
-
-import { BooksApp } from './books/BooksApp.js';
-import { BooksConfigApp } from './books/BooksConfigApp.js';
-import { createBooksStore } from './books/store.js';
-import { RealEstateApp } from './real-estate/RealEstateApp.js';
-import { createRealEstateStore } from './real-estate/store.js';
-import { createWineStore } from './store.js';
-import { WineApp } from './wine/WineApp.js';
 
 /** Boot progress the loader reads — records loaded so far out of the tier total. */
 export interface DatasetBootProgress {
@@ -65,24 +52,35 @@ export interface BootedDataset {
 }
 
 /**
- * One dataset the app serves: its route id, landing-card copy, boot-and-wire function, boot-progress
- * store and the `Component` rendered once the engine is ready.
+ * The code half of a dataset: what its lazily loaded module provides once its chunk has arrived.
  */
-export interface DatasetEntry {
+export interface DatasetModule {
 	/** The dataset app rendered inside the providers once boot resolves. */
 	readonly Component: React.ComponentType;
 	/** Boot the engine (cached) + attach a fresh Redux mirror store; returns the render handle. */
 	readonly bootAndWire: () => Promise<BootedDataset>;
 	/** Read the current boot progress (for the loader). */
 	readonly getProgressSnapshot?: () => DatasetBootProgress | null;
+	/** Subscribe to boot-progress changes (`useSyncExternalStore`-shaped). */
+	readonly subscribeProgress?: (onStoreChange: () => void) => () => void;
+}
+
+/**
+ * One dataset the app serves: its route id, landing-card copy, and the loader for its code.
+ */
+export interface DatasetEntry {
 	/** URL segment + registry key, e.g. `wine`. */
 	readonly id: string;
 	/** Human label, e.g. `Wine reviews`. */
 	readonly label: string;
+	/**
+	 * Load the dataset's {@link DatasetModule} — its own chunk. The browser's module map holds the
+	 * module once it has loaded, so every call after the first resolves to the same object without
+	 * fetching again.
+	 */
+	readonly load: () => Promise<DatasetModule>;
 	/** Plural record noun for the loader caption, e.g. `bottles`. */
 	readonly recordNoun: string;
-	/** Subscribe to boot-progress changes (`useSyncExternalStore`-shaped). */
-	readonly subscribeProgress?: (onStoreChange: () => void) => () => void;
 	/**
 	 * Whether this route keeps its filter state in a shareable URL via `<FilterEngineUrlSync>`. Every
 	 * dataset sets it; the worker-backed wine tier syncs through `engine.asyncEngine` (passed as
@@ -96,18 +94,10 @@ export interface DatasetEntry {
 
 /** The wine dataset. Boots the 150,000-wine tier in a worker (see `examples-shared/wine`). */
 const wine: DatasetEntry = {
-	bootAndWire: async (): Promise<BootedDataset> => {
-		const bundle = await bootWineEngine({ spawnWorker: spawnWineWorker });
-		const { detach, store } = createWineStore(bundle.engine.core);
-
-		return { detach, engine: bundle.engine as unknown as SignalsEngine<unknown>, store };
-	},
-	Component: WineApp,
-	getProgressSnapshot: getWineBootProgressSnapshot,
 	id: 'wine',
 	label: 'Wine reviews',
+	load: async () => (await import('./wine/wineDataset.js')).wineDataset,
 	recordNoun: 'bottles',
-	subscribeProgress: subscribeWineBootProgress,
 	supportsUrlState: true,
 	tagline:
 		'150,000 synthetic wine reviews — a cascading origin hierarchy, points / price / ABV ranges, and typo-tolerant tasting-note search.',
@@ -115,18 +105,10 @@ const wine: DatasetEntry = {
 
 /** Books. Boots the bundled default tier on the main thread (see `examples-shared/books`). */
 const books: DatasetEntry = {
-	bootAndWire: async (): Promise<BootedDataset> => {
-		const bundle = await bootBooksEngine();
-		const { detach, store } = createBooksStore(bundle.engine.core);
-
-		return { detach, engine: bundle.engine as unknown as SignalsEngine<unknown>, store };
-	},
-	Component: BooksApp,
-	getProgressSnapshot: getBooksBootProgressSnapshot,
 	id: 'books',
 	label: 'Books',
+	load: async () => (await import('./books/booksDataset.js')).booksDataset,
 	recordNoun: 'books',
-	subscribeProgress: subscribeBooksBootProgress,
 	supportsUrlState: true,
 	tagline:
 		'≈10k Open Library titles — genre / format / language facets, publication-year + rating ranges, fuzzy author search.',
@@ -137,18 +119,10 @@ const books: DatasetEntry = {
  * `examples-shared/books` — `bootBooksConfigEngine` + `ConfigDrivenPanel`). The headline
  * "the filter UI is a function of the data" demonstration. */
 const booksConfig: DatasetEntry = {
-	bootAndWire: async (): Promise<BootedDataset> => {
-		const bundle = await bootBooksConfigEngine();
-		const { detach, store } = createBooksStore(bundle.engine.core);
-
-		return { detach, engine: bundle.engine as unknown as SignalsEngine<unknown>, store };
-	},
-	Component: BooksConfigApp,
-	getProgressSnapshot: getBooksConfigBootProgressSnapshot,
 	id: 'books-config',
 	label: 'Books · config-driven',
+	load: async () => (await import('./books/booksConfigDataset.js')).booksConfigDataset,
 	recordNoun: 'books',
-	subscribeProgress: subscribeBooksConfigBootProgress,
 	supportsUrlState: true,
 	tagline:
 		'The same Open Library corpus — but the entire filter panel is generated from a declarative JSON FilterEngineConfig via loadConfig. The UI is a function of the data.',
@@ -157,18 +131,10 @@ const booksConfig: DatasetEntry = {
 /** Real estate. The geo-heavy dataset (GeoProximity / R-tree, DateRange, metro→neighborhood
  * tree), booting the bundled default tier on the main thread (see `examples-shared/real-estate`). */
 const realEstate: DatasetEntry = {
-	bootAndWire: async (): Promise<BootedDataset> => {
-		const bundle = await bootRealEstateEngine();
-		const { detach, store } = createRealEstateStore(bundle.engine.core);
-
-		return { detach, engine: bundle.engine as unknown as SignalsEngine<unknown>, store };
-	},
-	Component: RealEstateApp,
-	getProgressSnapshot: getRealEstateBootProgressSnapshot,
 	id: 'real-estate',
 	label: 'Real estate',
+	load: async () => (await import('./real-estate/realEstateDataset.js')).realEstateDataset,
 	recordNoun: 'listings',
-	subscribeProgress: subscribeRealEstateBootProgress,
 	supportsUrlState: true,
 	tagline:
 		'MLS-style listings — geo-radius search (R-tree), beds / baths / price / sqft ranges, and a metro→neighborhood hierarchy.',

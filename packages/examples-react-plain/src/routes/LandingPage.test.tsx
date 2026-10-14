@@ -11,20 +11,30 @@
 
 import { appHeaderLinks, HEADER_PAGE_LABELS, SITE_HOME_LABEL } from '@filter-enginez/examples-shared/app-header';
 import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { DatasetEntry } from '../datasets.js';
+
+/**
+ * The stub dataset's `load`, which the hub calls to prefetch the route's code.
+ *
+ * @remarks
+ * `vi.hoisted` because `vi.mock`'s factory is hoisted above the imports and cannot close over an
+ * ordinary `const`. It never resolves: the hub only starts the fetch and must not wait on it.
+ */
+const loadBooks = vi.hoisted(() => vi.fn(async () => new Promise<never>(() => undefined)));
 
 vi.mock('../datasets.js', () => ({
 	datasets: [
 		{
 			id: 'books',
 			label: 'Books',
+			load: loadBooks,
 			recordNoun: 'books',
 			tagline: 'A stub tagline.',
-		} as Partial<DatasetEntry> as DatasetEntry,
+		} satisfies DatasetEntry,
 	],
 }));
 
@@ -32,7 +42,10 @@ const { LandingPage } = await import('./LandingPage.js');
 
 // Explicit, because the root Vitest config does not set `globals: true`, so Testing Library never
 // registers its own cleanup.
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	loadBooks.mockClear();
+});
 
 /** Mount the hub at `/`, inside a router, since every link on it is a router link. */
 function mountHub(): ReturnType<typeof render> {
@@ -97,5 +110,28 @@ describe('LandingPage', () => {
 		mountHub();
 
 		expect(screen.getByRole('link', { name: 'Explore Books' }).getAttribute('href')).toBe('/books');
+	});
+
+	it('fetches nothing for a dataset until its card shows intent', () => {
+		// The hub is the startup bundle; a dataset's code is not. Rendering the cards must not start a
+		// single dataset fetch, or every visit pays for every dataset again.
+		mountHub();
+
+		expect(loadBooks).not.toHaveBeenCalled();
+	});
+
+	it('starts fetching a dataset route when its card is hovered', () => {
+		mountHub();
+		fireEvent.pointerEnter(screen.getByRole('link', { name: 'Explore Books' }));
+
+		expect(loadBooks).toHaveBeenCalledTimes(1);
+	});
+
+	it('starts fetching a dataset route when its card is focused', () => {
+		// Keyboard intent counts as much as a pointer's: tabbing to a card is the keyboard user's hover.
+		mountHub();
+		fireEvent.focus(screen.getByRole('link', { name: 'Explore Books' }));
+
+		expect(loadBooks).toHaveBeenCalledTimes(1);
 	});
 });

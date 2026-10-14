@@ -3,8 +3,12 @@
  *
  * @remarks
  * Renders the lab over the books engine by handing `<DatasetRoute>` a synthesized `DatasetEntry`,
- * so the boot path — lazy boot, progress loader, error screen, provider — is reused rather than
- * duplicated.
+ * so the boot path — code loading, lazy boot, progress loader, error screen, provider — is reused
+ * rather than duplicated.
+ *
+ * This module is in the startup bundle (the router names it); the lab page is not. `LabPage` is
+ * reached only through the `import()` below, so the panes and the similarity and suggestion engines
+ * they drive load when `/lab` first opens.
  *
  * @packageDocumentation
  */
@@ -14,7 +18,6 @@ import { NotFoundPage } from '@filter-enginez/examples-shared/notfound';
 import { findDataset } from '../datasets.js';
 import { DatasetRoute } from '../routes/DatasetRoute.js';
 import { buildLabEntry } from './labEntry.js';
-import { LabPage } from './LabPage.js';
 
 /**
  * The lab's dataset entry, resolved ONCE at module load.
@@ -27,7 +30,7 @@ import { LabPage } from './LabPage.js';
  *
  * @internal
  */
-const labEntry = buildLabEntry(findDataset('books'), LabPage);
+const labEntry = buildLabEntry(findDataset('books'), async () => (await import('./LabPage.js')).LabPage);
 
 /**
  * Route element for `/lab`. Falls back to the shared 404 when the books dataset is absent.

@@ -19,6 +19,21 @@
  * are controller methods rather than React `useEffect` bodies, so a Svelte action or an Angular
  * directive gets them for free.
  *
+ * ### Leaflet loads when the map mounts
+ *
+ * The controller, and Leaflet with it, is a dynamic `import()` inside the create-once effect rather
+ * than a static import, so Leaflet (about 150 kB, plus its stylesheet) is its own chunk and stays out of
+ * every bundle that merely contains this component — the real-estate route's, in both React apps. The
+ * region box below renders at its final size from the first frame, so the map fills a box that is
+ * already there instead of pushing the panel around when it arrives. That is also why the geometry
+ * constant comes from `./map/radiusMapGeometry.js` and not the `./map` barrel: a static import of the
+ * barrel would pull the controller back in and turn the `import()` into a no-op.
+ *
+ * Arriving late is safe for the same reasons the StrictMode remount is: the effect's cleanup marks
+ * the mount as gone, a controller that resolves after that is never created, and the sync effects
+ * below find no controller until one exists. The controller reads the latest `center` and radius when
+ * it IS created, so a change made while Leaflet was loading is not lost.
+ *
  * The map is a progressive enhancement, never the only way to drive the geo filter: the section
  * hosting it pairs it with a keyboard-operable metro dropdown and radius slider, and announces the
  * active center and radius textually.
@@ -33,11 +48,9 @@ import type { GeoCoords } from '@filter-enginez/core';
 
 import { useEffect, useEffectEvent, useRef } from 'react';
 
-import {
-	createRadiusMapController,
-	METERS_PER_KM,
-	type RadiusMapController,
-} from './map/index.js';
+import type { RadiusMapController } from './map/index.js';
+
+import { METERS_PER_KM } from './map/radiusMapGeometry.js';
 
 /** Props for {@link LeafletRadiusMap}. */
 export interface LeafletRadiusMapProps {
@@ -78,7 +91,8 @@ export const LeafletRadiusMap = (props: LeafletRadiusMapProps): React.ReactEleme
 
 	// Create once per mount. StrictMode runs this twice (mount → cleanup → mount); the cleanup's
 	// `destroy()` plus the controller's own per-container guard make the second run land on a clean
-	// element rather than on Leaflet's "already initialized".
+	// element rather than on Leaflet's "already initialized". With Leaflet loading asynchronously the
+	// first run's import usually resolves after its cleanup, so it creates nothing at all.
 	useEffect(() => {
 		const element = containerRef.current;
 
@@ -88,23 +102,34 @@ export const LeafletRadiusMap = (props: LeafletRadiusMapProps): React.ReactEleme
 			return undefined;
 		}
 
-		const initialView = readInitialView();
-		const controller = createRadiusMapController(element, {
-			center: initialView.center,
-			// Stable by construction — calls the Effect Event, so a changing parent callback never
-			// re-creates the map, and a drag always reports to the latest one.
-			onCenterChange: (next) => {
-				reportCenterChange(next);
-			},
-			radiusMeters: initialView.radiusMeters,
-			// Read at creation: Leaflet's animation options are init-only.
-			shouldReduceMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+		let isUnmounted = false;
+		let controller: RadiusMapController | null = null;
+
+		void import('./map/index.js').then(({ createRadiusMapController }) => {
+			if (isUnmounted) {
+				return;
+			}
+
+			// Read now rather than when the effect ran: the props may have moved while Leaflet loaded.
+			const initialView = readInitialView();
+
+			controller = createRadiusMapController(element, {
+				center: initialView.center,
+				// Stable by construction — calls the Effect Event, so a changing parent callback never
+				// re-creates the map, and a drag always reports to the latest one.
+				onCenterChange: (next) => {
+					reportCenterChange(next);
+				},
+				radiusMeters: initialView.radiusMeters,
+				// Read at creation: Leaflet's animation options are init-only.
+				shouldReduceMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+			});
+			controllerRef.current = controller;
 		});
 
-		controllerRef.current = controller;
-
 		return () => {
-			controller.destroy();
+			isUnmounted = true;
+			controller?.destroy();
 			controllerRef.current = null;
 		};
 	}, []);

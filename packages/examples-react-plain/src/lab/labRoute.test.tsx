@@ -55,13 +55,19 @@ beforeEach(() => {
 		return { engine: {} as never };
 	});
 	registryEntry = {
-		boot: bootSpy,
-		Component: (): null => null,
-		getProgressSnapshot: () => null,
 		id: 'books',
 		label: 'Books',
+		load: async () => {
+			await Promise.resolve();
+
+			return {
+				boot: bootSpy,
+				Component: (): null => null,
+				getProgressSnapshot: () => null,
+				subscribeProgress: () => () => undefined,
+			};
+		},
 		recordNoun: 'books',
-		subscribeProgress: () => () => undefined,
 		supportsUrlState: true,
 		tagline: 'a tagline',
 	};

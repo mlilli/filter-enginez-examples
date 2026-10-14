@@ -16,8 +16,16 @@
  *
  * The registration itself is shared across all six verticals
  * (`@filter-enginez/examples-shared/mocks`); only this guard is per-app, because only the guard is
- * framework-specific. `dev` from `$app/environment` is SvelteKit's idiom and is statically replaced
- * at build time, so the DYNAMIC import below is eliminated from the production bundle entirely.
+ * framework-specific.
+ *
+ * **`import.meta.env.DEV`, not `dev` from `$app/environment`.** Both are `false` in a production
+ * build, but only one of them is a literal by the time the bundler reads this file. Vite replaces
+ * `import.meta.env.DEV` with `false` in the source text, so the branch below is dead before the module
+ * graph is built and the DYNAMIC import is never seen. `dev` is an imported binding: the branch is still
+ * removed from the code, but the `import()` inside it has already been recorded, and the MSW chunk
+ * (with the wine generator behind the mock handlers, ~640 kB) is emitted into `build/client` anyway,
+ * referenced by nothing but the Vite manifest. The same guard is what keeps MSW out of the Vue,
+ * vanilla and React production builds.
  *
  * **This vertical is the one that needs the vendored service-worker patch most.** Its `/wine` route
   * runs the 150k worker tier, which streams `static/data-real-full.ndjson` when the local real corpus
@@ -28,14 +36,12 @@
 
 import type { ClientInit } from '@sveltejs/kit';
 
-import { dev } from '$app/environment';
-
 /**
  * Runs once, before the client-side app starts. Awaited by SvelteKit, so everything downstream can
  * assume the mock API is live in dev.
  */
 export const init: ClientInit = async () => {
-	if (!dev) {
+	if (!import.meta.env.DEV) {
 		return;
 	}
 	const { startMockServiceWorker } = await import('@filter-enginez/examples-shared/mocks');

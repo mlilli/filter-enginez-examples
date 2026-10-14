@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-10-14T03:58:58.966Z",
-  "note": "Counts each vertical’s OWN src only; tests, vendored mockServiceWorker.js and generated output are excluded. Quote `code`; `comment` is reported so its exclusion is visible rather than assumed. READ WITH `shared`: that slice is written in React, so the two React verticals consume ~11,800 lines the other four had to re-express in their own idiom. These figures are NOT a framework-verbosity comparison.",
+  "generatedAt": "2026-10-14T07:50:13.510Z",
+  "note": "Counts each vertical’s OWN src only; tests, vendored mockServiceWorker.js and generated output are excluded. Quote `code`; `comment` is reported so its exclusion is visible rather than assumed. READ WITH `shared`: that slice is written in React, so the two React verticals consume ~11,900 lines the other four had to re-express in their own idiom. These figures are NOT a framework-verbosity comparison.",
   "shared": {
     "examples-shared": {
-      "blank": 1998,
-      "code": 9845,
-      "comment": 8713,
-      "files": 177,
-      "total": 20556
+      "blank": 2055,
+      "code": 10022,
+      "comment": 9042,
+      "files": 181,
+      "total": 21119
     },
     "react-ui": {
       "blank": 319,
       "code": 1912,
-      "comment": 1651,
+      "comment": 1655,
       "files": 21,
-      "total": 3882
+      "total": 3886
     },
     "ui-styles": {
       "blank": 223,
@@ -26,46 +26,46 @@
   },
   "verticals": {
     "react-rtk": {
-      "blank": 281,
-      "code": 1858,
-      "comment": 870,
-      "files": 21,
-      "total": 3009
+      "blank": 317,
+      "code": 1935,
+      "comment": 1066,
+      "files": 27,
+      "total": 3318
     },
     "react-plain": {
-      "blank": 330,
-      "code": 2198,
-      "comment": 1281,
-      "files": 26,
-      "total": 3809
+      "blank": 367,
+      "code": 2280,
+      "comment": 1482,
+      "files": 32,
+      "total": 4129
     },
     "sveltekit": {
-      "blank": 998,
-      "code": 5280,
-      "comment": 3170,
+      "blank": 996,
+      "code": 5278,
+      "comment": 3183,
       "files": 85,
-      "total": 9448
+      "total": 9457
     },
     "vue": {
-      "blank": 861,
-      "code": 4967,
-      "comment": 2772,
+      "blank": 860,
+      "code": 4963,
+      "comment": 2777,
       "files": 66,
       "total": 8600
     },
     "angular": {
-      "blank": 1191,
-      "code": 5647,
-      "comment": 4219,
+      "blank": 1190,
+      "code": 5640,
+      "comment": 4221,
       "files": 70,
-      "total": 11057
+      "total": 11051
     },
     "vanilla": {
-      "blank": 843,
-      "code": 5066,
-      "comment": 3540,
+      "blank": 848,
+      "code": 5108,
+      "comment": 3577,
       "files": 48,
-      "total": 9449
+      "total": 9533
     }
   }
 }

@@ -10,13 +10,16 @@
  * server rather than a streaming corpus loader. A failed boot means the Node server isn't running, so
  * the offline screen tells you how to start it.
  *
+ * The router loads this module on the route's first visit (`React.lazy` in `App.tsx`), with
+ * `<ServerConnecting>` as the fallback, so neither the HTTP engine nor the page it mounts is in the
+ * startup bundle.
+ *
  * @packageDocumentation
  */
 
 import type { Book } from '@filter-enginez/mock-data/books';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { BrainSynapse } from '@filter-enginez/brand';
 import { bootBooksServerEngine } from '@filter-enginez/examples-shared/books-server-core';
 import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
 import { useUrlFormat } from '@filter-enginez/examples-shared/url';
@@ -25,6 +28,7 @@ import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
 import { useEffect, useMemo, useState } from 'react';
 
 import { BooksApp } from './BooksApp.js';
+import { ServerConnecting } from './ServerConnecting.js';
 
 /**
  * Boot + provide the server-backed books engine, then render `<BooksApp />`.
@@ -79,24 +83,6 @@ export const BooksServerRoute = (): React.ReactElement => {
 			<FilterEngineUrlSync engine={engine.core} asyncConfig={engine.asyncEngine} serializer={urlSerializer} />
 			<BooksApp engineLabel="server engine over HTTP" tier="server" />
 		</FilterEngineProvider>
-	);
-};
-
-/** Full-screen "talking to the server" loader — the brand `<BrainSynapse>` + a server caption. */
-const ServerConnecting = (): React.ReactElement => {
-	return (
-		<div
-			className="min-h-screen flex flex-col items-center justify-center gap-6 px-6"
-			style={{ background: 'var(--gray-0)' }}
-		>
-			<BrainSynapse width={520} ariaLabel="Connecting to the filter server" className="fe-boot-loader" />
-			<p
-				className="text-xs uppercase"
-				style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)', letterSpacing: '0.16em' }}
-			>
-				Filtering on the Node server · fetching corpus + initial state
-			</p>
-		</div>
 	);
 };
 
