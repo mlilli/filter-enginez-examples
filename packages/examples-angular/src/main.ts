@@ -22,7 +22,7 @@
  * @packageDocumentation
  */
 
-import { isDevMode, provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import {
 	provideRouter,
@@ -42,13 +42,14 @@ import { routes } from './app/app.routes.js';
  * (`@filter-enginez/examples-shared/mocks`); only this guard is per-app, because only the guard is
  * framework-specific.
  *
- * **`isDevMode()`, not `import.meta.env.DEV`.** `@angular/build` does not define Vite's `import.meta.env`
- * constants, so the other five verticals' guard simply isn't available here. The trade-off is real
- * and worth stating: `isDevMode()` is a RUNTIME check, so the dynamic import below cannot be
- * dead-code-eliminated the way a statically-false `import.meta.env.DEV` allows. Angular therefore
- * emits an MSW chunk in production builds that is never fetched — a handful of unused KB on disk, not
- * on the wire. Eliminating it outright would mean an `angular.json` `fileReplacements` shim, which
- * costs more clarity than the bytes are worth for a demo app.
+ * **A build-time constant, not `isDevMode()`.** `@angular/build` does not define Vite's
+ * `import.meta.env`, so the other five verticals' `import.meta.env.DEV` guard isn't available here.
+ * `isDevMode()` would work at runtime, but a runtime check keeps the `import()` in the bundle, and the
+ * production build would emit a ~290 kB MSW chunk that is never fetched. `shouldStartMockServiceWorker`
+ * (declared in `build-constants.d.ts`) is instead replaced with a literal by `angular.json`'s `define`:
+ * `false` in the base build options, which production inherits, and `true` in the development
+ * configuration. esbuild removes the `if (false)` branch with its `import()`, so production emits no
+ * mock code at all — the same outcome the other verticals get.
  *
  * Bootstrap is sequenced AFTER the await: `/books` boots its engine in a route resolver, and a
  * corpus fetch that lands before the service worker controls the page falls through to the bundled
@@ -56,12 +57,12 @@ import { routes } from './app/app.routes.js';
  * starter never throws.
  */
 async function enableMocking(): Promise<void> {
-	if (!isDevMode()) {
-		return;
-	}
-	const { startMockServiceWorker } = await import('@filter-enginez/examples-shared/mocks');
+	// The whole branch, `import()` included, is the unit esbuild drops when the constant is `false`.
+	if (shouldStartMockServiceWorker) {
+		const { startMockServiceWorker } = await import('@filter-enginez/examples-shared/mocks');
 
-	await startMockServiceWorker();
+		await startMockServiceWorker();
+	}
 }
 
 void enableMocking()

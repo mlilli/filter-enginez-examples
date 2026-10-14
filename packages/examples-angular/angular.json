@@ -32,6 +32,9 @@
             "polyfills": [],
             "loader": {
               ".png": "file"
+            },
+            "define": {
+              "shouldStartMockServiceWorker": "false"
             }
           },
           "configurations": {
@@ -53,7 +56,10 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "define": {
+                "shouldStartMockServiceWorker": "true"
+              }
             }
           },
           "defaultConfiguration": "production"

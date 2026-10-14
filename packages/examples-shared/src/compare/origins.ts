@@ -8,9 +8,9 @@
  * Three constraints shaped the answer:
  *
  * 1. **Angular cannot read `import.meta.env`.** `@angular/build` does not define Vite's constants —
- *    `examples-angular/src/main.ts` says so in as many words, and pays for it with a runtime
- *    `isDevMode()` guard. A build-time origin scheme would therefore need a second mechanism for
- *    Angular alone, permanently.
+ *    `examples-angular/src/main.ts` says so in as many words, and its one build-time switch comes from
+ *    an `angular.json` `define` constant instead. A build-time origin scheme would therefore need that
+ *    second mechanism for Angular alone, permanently.
  * 2. **Six env configs are six copies of one contract.** Nothing would keep six `VITE_FE_ORIGIN_*`
  *    files in step.
  * 3. **A production build is also served locally.** `vite preview`, `ng serve --configuration

@@ -10,8 +10,9 @@
  * one place.
  *
  * What deliberately does NOT live here is the dev guard. Each vertical asks "am I in development?"
- * in its own idiom — `import.meta.env.DEV` under Vite, `dev` from `$app/environment` under SvelteKit,
- * `isDevMode()` under Angular — and keeping that check in the app, wrapped around a DYNAMIC import of
+ * in its own idiom — `import.meta.env.DEV` under Vite and SvelteKit, the `shouldStartMockServiceWorker`
+ * constant that `angular.json`'s `define` sets under Angular — and keeping that check in the app,
+ * wrapped around a DYNAMIC import of
  * this module, is what lets each bundler eliminate MSW from its production build entirely. Move the
  * guard in here and every app ships a chunk it never loads. So the app-side call is:
  *
