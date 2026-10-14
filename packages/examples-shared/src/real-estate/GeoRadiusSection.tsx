@@ -32,7 +32,7 @@ import { commitFilterMutation } from '../scheduling/index.js';
 import { markUserAction } from './engineBusy.js';
 import { LeafletRadiusMap } from './LeafletRadiusMap.js';
 import { extractListingCoords } from './real-estate-domain/extractors.js';
-import { findMetroLabel, listingMetroCenters, type MetroCenterOption } from './real-estate-domain/metroCenters.js';
+import { findMetroLabel, type MetroCenterOption } from './real-estate-domain/metroCenters.js';
 import { kmToMiles, milesToKm } from './real-estate-domain/units.js';
 
 /** Rule id + registry key for the geo-proximity rule. */
@@ -55,18 +55,22 @@ const COORD_DISPLAY_DECIMALS = 4;
 const GEOLOCATION_MAX_AGE_MS = 60000;
 const GEOLOCATION_TIMEOUT_MS = 10000;
 
-/** Metro options derived once from the bundled default-tier corpus. */
-/* The derivation lives in `real-estate-domain/metroCenters`, where the results header can also reach
- * it — the Distance chip names the center rather than printing a radius with no anchor. One place,
- * two consumers. */
-const metroCenterOptions: readonly MetroCenterOption[] = listingMetroCenters;
+/** Props for `<GeoRadiusSection />`. */
+export interface GeoRadiusSectionProps {
+	/**
+	 * The metro dropdown's options: `deriveMetroCenters` over the corpus the engine booted from. The
+	 * results header derives its Distance-chip names from the same corpus, so the chip and the dropdown
+	 * always name the same place.
+	 */
+	readonly metroCenters: readonly MetroCenterOption[];
+}
 
 /**
  * The real-estate "Distance" filter section: enable checkbox → metro dropdown + "Near me" button +
  * Leaflet radius map + radius slider, committing a `geo(extractListingCoords, ...)` rule under
  * {@link GEO_RULE_ID}.
  */
-export const GeoRadiusSection = (): React.ReactElement => {
+export const GeoRadiusSection = ({ metroCenters }: GeoRadiusSectionProps): React.ReactElement => {
 	const engine = useFilterEngine<Listing>();
 	const rule = useRule(GEO_RULE_ID) as GeoProximityRule | undefined;
 	const engineCenter = rule?.config.center;
@@ -144,14 +148,14 @@ export const GeoRadiusSection = (): React.ReactElement => {
 	}, [center, engine, radiusKm]);
 
 	const handleMetroChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>): void => {
-		const option = metroCenterOptions.find((metro) => metro.label === event.target.value);
+		const option = metroCenters.find((metro) => metro.label === event.target.value);
 
 		// Re-selecting the "Custom location" placeholder has nothing to recenter to.
 		if (option === undefined) {
 			return;
 		}
 		commitRule(option.center, radiusKm);
-	}, [commitRule, radiusKm]);
+	}, [commitRule, metroCenters, radiusKm]);
 
 	const handleNearMe = useCallback((): void => {
 		// Feature-detect in the guard shape eslint-plugin-compat recognizes (usage nested inside a
@@ -200,7 +204,7 @@ export const GeoRadiusSection = (): React.ReactElement => {
 	const shownRadiusKm = draftRadiusKm ?? radiusKm;
 	const shownRadiusMiles = Math.round(kmToMiles(shownRadiusKm));
 	const selectedMetroLabel =
-		findMetroLabel(metroCenterOptions, center) ?? '';
+		findMetroLabel(metroCenters, center) ?? '';
 	const centerDescription = selectedMetroLabel !== ''
 		? selectedMetroLabel
 		: `${center.lat.toFixed(COORD_DISPLAY_DECIMALS)}, ${center.lng.toFixed(COORD_DISPLAY_DECIMALS)}`;
@@ -247,7 +251,7 @@ export const GeoRadiusSection = (): React.ReactElement => {
 								}}
 							>
 								<option value="">Custom location</option>
-								{metroCenterOptions.map((metro) => (
+								{metroCenters.map((metro) => (
 									<option key={metro.label} value={metro.label}>
 										{metro.label}
 									</option>

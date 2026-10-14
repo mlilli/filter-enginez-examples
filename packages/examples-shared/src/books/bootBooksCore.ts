@@ -22,8 +22,9 @@
  * @packageDocumentation
  */
 
+import type { Book } from '@filter-enginez/mock-data/books';
+
 import { type FilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
-import { type Book } from '@filter-enginez/mock-data/books';
 
 import { loadDefaultTierCorpus } from '../data/loadDefaultTierCorpus.js';
 import { buildBooksEngine } from './buildBooksEngine.js';
@@ -98,6 +99,8 @@ export async function bootBooksCore(): Promise<BooksCoreBundle> {
  * reporting progress as it goes. Where the endpoint is unavailable (a production build with no API, or
  * a vertical that has not started MSW), the bundled corpus is DYNAMICALLY imported as a fallback, so it
  * still code-splits out of the streamed path. On that fallback path a single final progress ping fires.
+ * The `Book` type comes in through `import type`, which is erased: under `verbatimModuleSyntax` an
+ * inline `import { type Book }` survives as a side-effect import of the dataset and undoes the split.
  *
  * @internal
  */

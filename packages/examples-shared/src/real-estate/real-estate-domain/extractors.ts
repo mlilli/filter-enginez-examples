@@ -19,12 +19,16 @@
  *      array (the config's per-feature `feature.pool` boolean paths don't exist on `Listing`), so no
  *      shared extractor is needed for them.
  *
+ * The location tree is built by every vertical from the corpus its engine booted from, with
+ * {@link buildListingLocationTree}. This module imports only the `Listing` TYPE, with `import type`, so
+ * it never loads the dataset: the real-estate barrel generates the 10,000-listing default tier when it
+ * is evaluated, and the pages load that tier on demand, never at startup.
+ *
  * @packageDocumentation
  */
 
 import type { FieldExtractor, GeoCoords } from '@filter-enginez/core';
-
-import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
+import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import type { PickerTreeNode } from './pickerTree.js';
 
@@ -113,8 +117,9 @@ export const extractListingCoords: FieldExtractor = (item: unknown): GeoCoords |
 /**
  * Location-id extractor — synthesizes the composite leaf id
  * (`neighborhood:{state}/{metro}/{neighborhood}`) a listing sits at, so a `HierarchicalRule` can
- * match it against a selected ancestor node in {@link listingLocationTree}. Returns `undefined` when
- * any path segment is missing (the rule treats non-strings as non-matching).
+ * match it against a selected ancestor node in the tree {@link buildListingLocationTree} builds.
+ * Returns `undefined` when any path segment is missing (the rule treats non-strings as
+ * non-matching).
  *
  * @param item - The candidate item (an unknown until narrowed to `Listing`).
  * @returns The composite leaf-node id, or `undefined` when a path segment is missing.
@@ -181,9 +186,3 @@ export function buildListingLocationTree(corpus: readonly Listing[]): PickerTree
 		label: 'Location',
 	};
 }
-
-/**
- * The location tree derived once from the default-tier corpus — the ready-to-render input for the
- * `HierarchicalPicker` and the `hierarchical(...)` rule's `tree` config.
- */
-export const listingLocationTree: PickerTreeNode = buildListingLocationTree(listings);

@@ -14,7 +14,7 @@
 
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
-import { buildRuleSummaries, commitFilterMutation, type FilterSummary, getIsEngineBusy, listingMetroCenters, markUserAction, subscribeEngineBusy } from '@filter-enginez/examples-shared/real-estate';
+import { buildRuleSummaries, commitFilterMutation, deriveMetroCenters, type FilterSummary, getIsEngineBusy, markUserAction, subscribeEngineBusy } from '@filter-enginez/examples-shared/real-estate';
 import { useActiveRules, useFilterEngine, useResultCount } from '@filter-enginez/react-signals';
 import { ResultsHeaderView } from '@filter-enginez/react-ui';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
@@ -26,15 +26,19 @@ export const RealEstateResultsHeader = (): React.ReactElement => {
 	const engine = useFilterEngine<Listing>();
 	const activeRules = useActiveRules();
 	const resultCount = useResultCount();
-	const totalCount = engine.core.getSourceData().length;
+	const sourceData = engine.core.getSourceData();
+	const totalCount = sourceData.length;
+	// The metro centroids of the corpus the engine booted from — the same derivation the panel's geo
+	// section runs, so the chip and the dropdown name the same place.
+	const metroCenters = useMemo(() => deriveMetroCenters(sourceData), [sourceData]);
 
 	const isFetching = useSyncExternalStore(subscribeEngineBusy, getIsEngineBusy, getIsEngineBusy);
 
 	const summaries = useMemo<readonly FilterSummary[]>(
 		// `metroCenters` is what turns "≤ 15 mi" into "≤ 15 mi of Greater Denver". A radius states half
 		// a filter without its center, and the center is the half the user actually chose.
-		() => buildRuleSummaries(activeRules, { metroCenters: listingMetroCenters }),
-		[activeRules],
+		() => buildRuleSummaries(activeRules, { metroCenters }),
+		[activeRules, metroCenters],
 	);
 
 	const handleRemoveRule = useCallback((ruleId: string): void => {

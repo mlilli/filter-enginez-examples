@@ -20,6 +20,11 @@
  * That is the point: the engine is genuinely framework-agnostic AND reactive-surface-optional; the
  * adapter buys you update granularity and immediate-fire subscriptions, not capability.
  *
+ * The bundled books arrive through a dynamic `import()` of the dataset when the route renders — the
+ * same specifier the shared boot falls back to, so the bundler emits the dataset as one chunk that only
+ * a books route fetches. A static import would put the 10,000-book generator in the app's startup
+ * bundle and run it on every page.
+ *
  * @packageDocumentation
  */
 
@@ -28,7 +33,6 @@ import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-co
 import { buildBooksEngine } from '@filter-enginez/examples-shared/books-core';
 import { safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
 import { el } from '@filter-enginez/examples-shared/dom';
-import { books as defaultBooks } from '@filter-enginez/mock-data/books';
 
 import type { RouteTeardown } from '../router.js';
 
@@ -46,8 +50,12 @@ import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 export async function renderBooksRawPage(container: HTMLElement): Promise<RouteTeardown> {
 	container.append(bootingNotice());
 
-	// Same acceleration the shared boot installs, so the two routes are a fair comparison.
-	await initializeBitmapAcceleration();
+	// Same acceleration the shared boot installs, so the two routes are a fair comparison. The dataset
+	// chunk downloads meanwhile; neither depends on the other.
+	const [{ books: defaultBooks }] = await Promise.all([
+		import('@filter-enginez/mock-data/books'),
+		initializeBitmapAcceleration(),
+	]);
 
 	const core = buildBooksEngine(defaultBooks);
 

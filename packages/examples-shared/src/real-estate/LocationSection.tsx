@@ -5,8 +5,8 @@
  * The location analogue of wine's origin picker: selecting a state implicitly includes every listing
  * in it via the rule's subtree walk; drilling to a metro or neighborhood narrows further. Two
  * real-estate specifics vs. wine: the rule's field is the `extractListingLocationId` FUNCTION
- * extractor (it synthesizes the prefixed leaf path the tree's leaves use), and the tree is the
- * pre-derived `listingLocationTree`.
+ * extractor (it synthesizes the prefixed leaf path the tree's leaves use), and the tree comes in as a
+ * prop, built by the panel from the corpus the engine booted from.
  *
  * ### Predictive disable, and the two id spaces it straddles
  *
@@ -30,20 +30,31 @@ import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { HierarchicalPicker } from '@filter-enginez/react-ui';
 import { useCallback, useMemo } from 'react';
 
+import type { PickerTreeNode } from './real-estate-domain/pickerTree.js';
+
 import { useChipExclusion } from '../filter-bundle/index.js';
 import { useSeedAndAdopt } from '../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../scheduling/index.js';
 import { markUserAction } from './engineBusy.js';
-import { extractListingLocationId, listingLocationTree } from './real-estate-domain/extractors.js';
+import { extractListingLocationId } from './real-estate-domain/extractors.js';
 import { SectionHeader } from './RealEstateFilterSections.js';
 
 /** Stable empty selection so an unset location rule doesn't churn referential identity. */
 const EMPTY_SELECTION: readonly string[] = [];
 
+/** Props for `<LocationSection />`. */
+export interface LocationSectionProps {
+	/**
+	 * The state → metro → neighborhood tree (`buildListingLocationTree` over the booted corpus). Both
+	 * the picker and the committed `hierarchical(...)` rule read it, so they always agree.
+	 */
+	readonly locationTree: PickerTreeNode;
+}
+
 /**
  * The location hierarchy filter section.
  */
-export const LocationSection = (): React.ReactElement => {
+export const LocationSection = ({ locationTree }: LocationSectionProps): React.ReactElement => {
 	const engine = useFilterEngine<Listing>();
 	const rule = useRule('location') as HierarchicalRule | undefined;
 	const engineSelected: readonly string[] = rule?.config.selected ?? EMPTY_SELECTION;
@@ -55,12 +66,12 @@ export const LocationSection = (): React.ReactElement => {
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(
 				'location',
-				hierarchical(extractListingLocationId, { selected: nextSelected, tree: listingLocationTree }),
+				hierarchical(extractListingLocationId, { selected: nextSelected, tree: locationTree }),
 			),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(nextSelected),
 		});
-	}, [engine, setSelected]);
+	}, [engine, locationTree, setSelected]);
 
 	const exclusion = useChipExclusion('location');
 	// A node is disabled only if selecting it would empty the results AND it isn't already selected —
@@ -82,7 +93,7 @@ export const LocationSection = (): React.ReactElement => {
 		<section>
 			<SectionHeader label="Location" />
 			<HierarchicalPicker
-				tree={listingLocationTree}
+				tree={locationTree}
 				selected={selected}
 				onChange={handleChange}
 				disabledNodes={disabledNodes}

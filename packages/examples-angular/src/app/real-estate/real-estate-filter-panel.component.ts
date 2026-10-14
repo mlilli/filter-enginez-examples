@@ -223,9 +223,8 @@ export class RealEstateFilterPanelComponent {
 	 * The state → metro → neighborhood hierarchy, built once at the route from the booted corpus.
 	 *
 	 * @remarks
-	 * NOT `real-estate-domain`'s module-scope `listingLocationTree`, which is derived at import time
-	 * from the statically-imported bundled corpus — reading that would both undo the corpus
-	 * code-split and leave a streamed tier's extra neighborhoods missing from the picker.
+	 * From the booted corpus rather than the bundled one, so a streamed tier's extra neighborhoods
+	 * reach the picker and the dataset module stays out of this bundle.
 	 */
 	protected readonly locationTree = this._facets.locationTree;
 

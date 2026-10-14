@@ -23,7 +23,6 @@ import {
 	buildLocationNodeSpecs,
 	extractListingCoords,
 	extractListingLocationId,
-	listingLocationTree,
 } from './extractors.js';
 
 /**
@@ -203,14 +202,5 @@ describe('buildListingLocationTree', () => {
 
 	it('handles an empty corpus without throwing', () => {
 		expect(buildListingLocationTree([]).children ?? []).toEqual([]);
-	});
-});
-
-describe('listingLocationTree', () => {
-	it('is prebuilt over the bundled corpus', () => {
-		// Module-level so the panel does not rebuild it per render. Asserting it is populated catches a
-		// build that silently produced an empty tree — which would render a location picker with no
-		// options and no error.
-		expect((listingLocationTree.children ?? []).length).toBeGreaterThan(0);
 	});
 });

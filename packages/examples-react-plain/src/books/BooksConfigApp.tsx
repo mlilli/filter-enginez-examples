@@ -18,11 +18,11 @@ import {
 	captureCurrentVersion,
 	ConfigDrivenPanel,
 	ConfigJsonView,
+	getBootedBooksFilterConfig,
 	markResolvedAtLeast,
 } from '@filter-enginez/examples-shared/books';
 import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
 import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
-import { booksFilterConfig } from '@filter-enginez/mock-data/books';
 import { useLastChange } from '@filter-enginez/react-signals';
 import { FilterDrawer } from '@filter-enginez/react-ui';
 import { useEffect, useState } from 'react';
@@ -33,6 +33,10 @@ import { BooksResultsHeader } from './BooksResultsHeader.js';
  * The config-driven books page shell.
  */
 export const BooksConfigApp = (): React.ReactElement => {
+	// The config the engine booted from. `<DatasetRoute>` renders this shell only once the boot has
+	// resolved, and reading the config from the boot keeps the books dataset out of this module's
+	// static imports, so the dataset chunk loads with `/books-config` rather than at app startup.
+	const booksFilterConfig = getBootedBooksFilterConfig();
 	// Mobile filter-drawer visibility — only meaningful below `lg`, where the sidebar collapses.
 	const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 	// Two-column breakpoint switch — `true` at ≥1024px (static sidebar), `false` below (drawer).

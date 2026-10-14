@@ -15,10 +15,10 @@ import { createFilterEngine, geo, inSet } from '@filter-enginez/core';
 import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
 import { describe, expect, it } from 'vitest';
 
-import { buildLocationNodeSpecs, extractListingCoords, listingLocationTree } from './real-estate-domain/extractors.js';
+import { buildListingLocationTree, buildLocationNodeSpecs, extractListingCoords } from './real-estate-domain/extractors.js';
 
 /** The location tree flattened into bundle candidates, exactly as the panel does it. */
-const locationSpecs = buildLocationNodeSpecs(listingLocationTree);
+const locationSpecs = buildLocationNodeSpecs(buildListingLocationTree(listings));
 
 /** A 15-mile commute radius, the panel's default, in km. */
 const FIFTEEN_MILES_KM = 24.14;

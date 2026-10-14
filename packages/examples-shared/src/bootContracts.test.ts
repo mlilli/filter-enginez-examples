@@ -23,9 +23,12 @@
  * the file would satisfy every later assertion and the caching tests would pass vacuously.
  */
 
-import { books as defaultBooks } from '@filter-enginez/mock-data/books';
+import { loadConfig } from '@filter-enginez/core';
+import { booksFilterConfig, books as defaultBooks } from '@filter-enginez/mock-data/books';
 import { listings as defaultListings } from '@filter-enginez/mock-data/real-estate';
 import { describe, expect, it, vi } from 'vitest';
+
+import { buildBooksEngine } from './books/buildBooksEngine.js';
 
 /** One boot module, reduced to the contract every one of them shares. */
 interface BootContract {
@@ -191,6 +194,40 @@ describe('books config boot', () => {
 		const { engine } = await mod.bootBooksConfigEngine();
 
 		expect(engine.activeRuleIds.value.length).toBeGreaterThan(0);
+	});
+
+	it('boots the same engine a static import of the dataset and its config would build', async () => {
+		// The boot loads the books and `booksFilterConfig` with a dynamic `import()`, so the dataset is a
+		// chunk of its own instead of part of every page's startup. Built directly from the statically
+		// imported values instead, the engine must hold the same records under the same rules.
+		vi.resetModules();
+
+		const mod = await import('./books/bootBooksConfigEngine.js');
+		const { config, engine } = await mod.bootBooksConfigEngine();
+		const eager = buildBooksEngine(defaultBooks);
+
+		loadConfig(eager, booksFilterConfig);
+
+		expect(config).toEqual(booksFilterConfig);
+		expect(engine.core.getSourceData()).toEqual(defaultBooks);
+		expect(engine.core.exportConfig()).toEqual(eager.exportConfig());
+		expect(engine.core.getResultIndices()).toEqual(eager.getResultIndices());
+	});
+
+	it('hands the page the config it booted from, and refuses before the boot resolves', async () => {
+		// The page shell renders this config beside the panel generated from it. It reads it from the
+		// boot rather than importing the dataset, and it renders only after the boot — so a read ahead
+		// of the boot is a wiring mistake that fails loudly instead of rendering an empty panel.
+		vi.resetModules();
+
+		const mod = await import('./books/bootBooksConfigEngine.js');
+
+		expect(() => mod.getBootedBooksFilterConfig()).toThrow(/bootBooksConfigEngine\(\) to have resolved/u);
+
+		const bundle = await mod.bootBooksConfigEngine();
+
+		expect(mod.getBootedBooksFilterConfig()).toBe(bundle.config);
+		expect(mod.getBootedBooksFilterConfig()).toEqual(booksFilterConfig);
 	});
 });
 

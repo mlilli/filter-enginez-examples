@@ -26,7 +26,7 @@ import { GeoRadiusSection } from './GeoRadiusSection.js';
 import { ListedDateSection } from './ListedDateSection.js';
 import { LocationSection } from './LocationSection.js';
 import { buildRealEstateBundleQuery } from './real-estate-domain/bundle.js';
-import { buildLocationNodeSpecs, listingLocationTree } from './real-estate-domain/extractors.js';
+import { buildListingLocationTree, buildLocationNodeSpecs } from './real-estate-domain/extractors.js';
 import {
 	deriveRealEstateVocabularies,
 	REAL_ESTATE_SLIDER_FIELD_IDS,
@@ -36,16 +36,8 @@ import {
 	SLIDER_STEPS,
 } from './real-estate-domain/filterConfig.js';
 import { formatListingPrice } from './real-estate-domain/formatters.js';
+import { deriveMetroCenters } from './real-estate-domain/metroCenters.js';
 import { CheckboxSection, ChipSection, FeatureSection, RangeSection, TextSection } from './RealEstateFilterSections.js';
-
-/**
- * Predictive-disable candidates for the location tree, flattened once at module load.
- *
- * @remarks
- * `listingLocationTree` is itself derived from the corpus at import time, so these never change and
- * have no business being recomputed per render.
- */
-const locationNodeSpecs = buildLocationNodeSpecs(listingLocationTree);
 
 /** Whole-dollar USD formatter for the price slider readout. */
 /**
@@ -70,6 +62,14 @@ export const RealEstateFilterPanel = (props: RealEstateFilterPanelProps = {}): R
 
 	// Chip / checklist vocabularies — every distinct value in the corpus, sorted for stable ordering.
 	const vocabularies = useMemo(() => deriveRealEstateVocabularies(sourceData), [sourceData]);
+
+	// The state → metro → neighborhood tree, its predictive-disable candidates and the metro centroids,
+	// all from the corpus the engine booted from — the same derivation every other vertical runs, and
+	// the reason none of these modules has to load the dataset itself. One pass each per corpus, not
+	// per render: `getSourceData()` returns the same array until the corpus is replaced.
+	const locationTree = useMemo(() => buildListingLocationTree(sourceData), [sourceData]);
+	const locationNodeSpecs = useMemo(() => buildLocationNodeSpecs(locationTree), [locationTree]);
+	const metroCenters = useMemo(() => deriveMetroCenters(sourceData), [sourceData]);
 	const { features, propertyTypes, schoolDistricts, statuses } = vocabularies;
 
 	// Numeric baselines — the full-corpus track extents for each range slider. The clamps, the field
@@ -101,7 +101,7 @@ export const RealEstateFilterPanel = (props: RealEstateFilterPanelProps = {}): R
 	// itself. See `../filter-bundle`.
 	const bundleQuery = useMemo<FilterBundleQuery>(
 		() => buildRealEstateBundleQuery(baselines, vocabularies, locationNodeSpecs),
-		[baselines, vocabularies],
+		[baselines, locationNodeSpecs, vocabularies],
 	);
 	const bundle = useFetchFilterBundle<Listing>(bundleQuery);
 	const bundleValue = useMemo(() => ({ bundle }), [bundle]);
@@ -118,8 +118,8 @@ export const RealEstateFilterPanel = (props: RealEstateFilterPanelProps = {}): R
 				aria-busy={isBusy}
 			>
 				<FilterBundleContext value={bundleValue}>
-					<LocationSection />
-					<GeoRadiusSection />
+					<LocationSection locationTree={locationTree} />
+					<GeoRadiusSection metroCenters={metroCenters} />
 					<CheckboxSection ruleId="school-district" field="schoolDistrict" label="School district" options={schoolDistricts} />
 					<ChipSection ruleId="property-type" field="propertyType" label="Property type" options={propertyTypes} formatLabel={replaceHyphens} />
 					<ChipSection ruleId="status" field="status" label="Status" options={statuses} formatLabel={replaceHyphens} />

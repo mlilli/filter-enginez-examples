@@ -14,10 +14,19 @@
  *
  * Lifted out of `GeoRadiusSection.tsx` — it is pure, and every vertical's geo section needs it.
  *
+ * ### Derived from the booted corpus, by every caller
+ *
+ * Every vertical runs {@link deriveMetroCenters} over the corpus its engine booted from
+ * (`engine.core.getSourceData()`), so the geo section's dropdown and the results header's Distance
+ * chip read centroids of the same listings and always agree on where a metro is. This module imports
+ * only the `Listing` TYPE, with `import type`, so it never loads the dataset: the real-estate barrel
+ * generates the 10,000-listing default tier when it is evaluated, and the pages load that tier on
+ * demand, never at startup.
+ *
  * @packageDocumentation
  */
 
-import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
+import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 /** Latitude / longitude in the `{ lat, lng }` spelling Leaflet and the map controller use. */
 export interface MapCoords {
@@ -66,21 +75,6 @@ export function deriveMetroCenters(corpus: readonly Listing[]): readonly MetroCe
 			label,
 		}));
 }
-
-/**
- * The metro options for the BUNDLED corpus, derived once at import.
- *
- * @remarks
- * The same shape as `listingLocationTree` next door, and for the same reason: a consumer that only
- * needs to NAME a coordinate — the active-filter chip summarizer — should not have to be handed a
- * corpus to do it. React's geo section and the results headers all read this one module-scope pass.
- *
- * A vertical that streams a corpus differing from the bundled one should derive its own from
- * `engine.core.getSourceData()` and pass that instead — a streamed tier can carry metros the bundled
- * fallback does not, and a dropdown naming places with no listings behind them is worse than a
- * shorter one.
- */
-export const listingMetroCenters: readonly MetroCenterOption[] = deriveMetroCenters(listings);
 
 /**
  * Name the metro whose centroid a point sits exactly on, if any.

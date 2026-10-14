@@ -47,8 +47,6 @@ export {
 	type FilterSummary,
 	findMetroLabel,
 	kmToMiles,
-	listingLocationTree,
-	listingMetroCenters,
 	type LocationNodeSpec,
 	type MapCoords,
 	type MetroCenterOption,

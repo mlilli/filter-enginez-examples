@@ -39,7 +39,6 @@ export {
 	buildLocationNodeSpecs,
 	extractListingCoords,
 	extractListingLocationId,
-	listingLocationTree,
 	type LocationNodeSpec,
 } from './extractors.js';
 export {
@@ -62,7 +61,6 @@ export {
 	deriveMetroCenters,
 	describeMapCoords,
 	findMetroLabel,
-	listingMetroCenters,
 	type MapCoords,
 	type MetroCenterOption,
 } from './metroCenters.js';

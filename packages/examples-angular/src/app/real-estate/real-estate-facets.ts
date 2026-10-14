@@ -28,12 +28,10 @@
  *
  * ### Derived from the booted corpus, never from the bundled one
  *
- * `real-estate-domain` also exports `listingLocationTree` and `listingMetroCenters`, module-scope
- * constants computed at import time from the statically-imported bundled corpus. They are convenient
- * and wrong here twice over: they would drag that corpus into this bundle — the very thing
- * `loadDefaultTierCorpus` code-splits away — and a streamed tier carrying metros the bundled
- * fallback lacks would render a dropdown missing them. Everything below comes from
- * `core.getSourceData()`.
+ * Everything below comes from `core.getSourceData()`, for two reasons. A streamed tier carrying
+ * metros the bundled copy lacks still gets a complete dropdown. And this module never needs the
+ * dataset module itself, only the `Listing` type: importing the bundled corpus would drag its
+ * generator into this bundle — the very thing `loadDefaultTierCorpus` code-splits away.
  *
  * @packageDocumentation
  */

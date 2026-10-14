@@ -27,8 +27,9 @@
  * @packageDocumentation
  */
 
+import type { Listing } from '@filter-enginez/mock-data/real-estate';
+
 import { type FilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
-import { type Listing } from '@filter-enginez/mock-data/real-estate';
 
 import { loadDefaultTierCorpus } from '../data/loadDefaultTierCorpus.js';
 import { buildRealEstateEngine } from './buildRealEstateEngine.js';
@@ -114,7 +115,9 @@ export async function bootRealEstateCore(): Promise<RealEstateCoreBundle> {
  * ~10k default tier stays out of the main-thread bundle. Where the endpoint is unavailable (a
  * production build with no API, or an environment where MSW is not running), the bundled corpus is
  * DYNAMICALLY imported as a fallback, so it still code-splits out of the streamed path. On that
- * fallback path a single final progress ping fires.
+ * fallback path a single final progress ping fires. The `Listing` type comes in through `import type`,
+ * which is erased: under `verbatimModuleSyntax` an inline `import { type Listing }` survives as a
+ * side-effect import of the dataset and undoes the split.
  *
  * @internal
  */

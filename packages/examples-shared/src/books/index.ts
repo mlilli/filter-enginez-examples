@@ -47,6 +47,7 @@ export {
 	type BooksConfigEngineBundle,
 	bootBooksConfigEngine,
 	getBooksConfigBootProgressSnapshot,
+	getBootedBooksFilterConfig,
 	subscribeBooksConfigBootProgress,
 } from './bootBooksConfigEngine.js';
 

@@ -229,9 +229,9 @@ let cachedRealEstateRouteData: Promise<RealEstateRouteData> | null = null;
  * `@preact/signals-core` into the one vertical that does not use it. Exactly the relationship
  * `./books-boot-core` has to `./books-core`, and the reason both bare boots exist at all.
  *
- * The facets are derived here, once, from the BOOTED corpus — never from `real-estate-domain`'s
- * module-scope `listingLocationTree` / `listingMetroCenters`, which are computed at import time from
- * the statically-imported bundled copy and would undo the corpus code-split.
+ * The facets are derived here, once, from the BOOTED corpus — the records the engine holds, which
+ * is also what keeps the dataset itself out of this bundle: nothing on this path imports more than
+ * the `Listing` type from it.
  *
  * Importing `real-estate-facets.js` also transitively imports `real-estate-domain`, whose
  * `ContainsAllRule` self-registers with `ruleRegistry` as a module side effect. That registration is

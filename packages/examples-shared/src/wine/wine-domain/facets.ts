@@ -25,7 +25,7 @@
  * side-effect import — bundles the ~215 kB generator and evaluates the module that generates the
  * 10,000-wine default tier at load. So the import below is `import type`, which is erased, and the
  * origin tree is built here from the records' own `originId`s ({@link buildOriginTreeFromOriginIds})
- * rather than by the dataset's `buildOriginTree`. `tests/tooling/mainThreadWineImports.test.ts`
+ * rather than by the dataset's `buildOriginTree`. `tests/tooling/mainThreadDatasetImports.test.ts`
  * holds every main-thread module to the same rule.
  *
  * @packageDocumentation
