@@ -176,7 +176,7 @@ overrides:
   '@filter-enginez/angular-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz
   '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
   '@filter-enginez/eslint': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-  '@filter-enginez/mock-data': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
+  '@filter-enginez/mock-data': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
   '@filter-enginez/react-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
   '@filter-enginez/reactive-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz
   '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
@@ -327,8 +327,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-rxjs':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz(rxjs@7.8.2)
@@ -373,8 +373,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
@@ -425,8 +425,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
@@ -507,8 +507,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
@@ -622,8 +622,8 @@ importers:
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       tsx:
         specifier: ^4.23.0
         version: 4.23.15
@@ -637,8 +637,8 @@ importers:
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
@@ -707,8 +707,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
@@ -780,8 +780,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
@@ -817,8 +817,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-signals':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
@@ -906,8 +906,8 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
@@ -1890,72 +1890,72 @@ packages:
         optional: true
 
   '@filter-enginez/angular-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz':
-    resolution: {integrity: sha512-Bg8+nnwn3KuxBiV4TL/n8wP19qYemCG8Ho74JEbjVyuR1O/dJBG8jz/cTfhUnz9LKRUlQlfL/Cpjm1J9b3gkOA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz}
+    resolution: {integrity: sha512-M+uSL5DAYJ0oE/s/BhslgVstFZ8k9eylYUqXDKPtdP7EWrMpVbhDjR3hjtOERRbHn584YAkbzoMAirt6K05MjQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       '@angular/core': ^22.0.0
       rxjs: ^7.8.1
 
   '@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz':
-    resolution: {integrity: sha512-pcvs7Lb9UXjrU6xf2XPPaCaPXEtJ/Y/i33XCsKOvgBJ25f4ZYiU1PBycOP8fQt8pKHYdaOHRXBninI60mUW4aw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz}
+    resolution: {integrity: sha512-7YAGC0YUEdGc+1eL1ojxQX6bf31MRat5ym74DafKt4aHNOfyyKg5sXHA59qzkvbys6ALuoF/e6/RlsH+t6W1gA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz}
     version: 0.0.2
 
   '@filter-enginez/eslint@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz':
-    resolution: {integrity: sha512-ewb0mtQLsRbjlYYS2mxQZntuPIJrVNC7tvdzGnI5MrYJYCbuLxIoGzcPF2+ztBgNhJvENhpQ5fm6KBa8D4xnjQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz}
+    resolution: {integrity: sha512-St/oTRbsN2/tLXutTZFRcRjwNtMnpr7caWMJ1svcY39TWS2wugx/Tfk2lpcWdARq+kSxus1zT+iH+wtnyEz9lQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       eslint: ^10.0.0
 
-  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz':
-    resolution: {integrity: sha512-1mEUz6CH+Eq7zWF8GAArdd/ihUV+j5CiZ/5mEB5VvtnJkXlk56BIushK5wK9rGaJ4R5YWmTnaxQouw71BLzNQQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz':
+    resolution: {integrity: sha512-Q4evynUAHigOaafx8g25ZwPOCFZnwFBkoneeAzcP/1fdC4ZiIOztdiFLUA/hqA8zbpeynZe7nqQT6UXvxHtwrA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz}
+    version: 0.1.0
     peerDependencies:
       '@filter-enginez/core': ^0.0.2
       msw: ^2.0.0
 
   '@filter-enginez/react-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-ITvnneZewPhzY+kXeORAM4tLlfSs5RfBKJOqhKlkgheopuI3/uO0wMgDAFoPVgb5VVaeeCxZoZsO4vFeatD5Hg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-SoqEFhnXOv/turX0thfaWGSzm5JeDoNWRMJex7u7OwGvDhQrT+y/ho53EVpdEScXR/ukwGf/rnTlgNVsAHWVww==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       react: ^19.2.7
 
   '@filter-enginez/reactive-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz':
-    resolution: {integrity: sha512-sYow8ruzHmKX15zhmvWtmZE1mpz78yD+GcsLUYZ3SZH0zSol1T4oOZXVUdHDueNfGwjczMzyvcAgtyd9Wx1ucA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz}
+    resolution: {integrity: sha512-dpuT6DsuDWZKvYi0Eut1vOTtymoK/6k4cyX8hdjGcbN6UwQQKePjTXNRFZ/E5GMBptKhxvfHFwaFoKahMkL4UA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       rxjs: ^7.8.1
 
   '@filter-enginez/reactive-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-wU6PT63iF8ngcpqHa9p3391NudF2Es+t8TybbrMy4nb4pQ59sgkuTv+5q8UAlCBnHBKQSNBhRhTTohfRT9V+qA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-x3X02LVvK5GcqFMrDcYmMX1HRijOi1dMTIsS/2txHNFKCal52/0DYEYnnABHPqQQVsl6JXcNkX7MDgm/g0Tobw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz}
     version: 0.0.2
 
   '@filter-enginez/redux-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz':
-    resolution: {integrity: sha512-jV+hCnNfYy14CfYLndZwLpuu1wer7uyggTrXrgu4ucMT1LwJk29/R/UuWibk0f5vNIqFJKqNonmBshxbqm6lIw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz}
+    resolution: {integrity: sha512-UblsH0iYdcC9P0CbdattoYSevaWsFP3t50A5hfymCn+tgnJZwXAvXv0wUqZAogENWbmAtemomFeTdlMiISHnxg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       '@reduxjs/toolkit': ^2.0.0
 
   '@filter-enginez/svelte-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-ignBgbBLN8kOk51fWQYGIOw2OatV4UcO/zAtmq3SVSOclGu/w51Ykl/t4/vbu87OGKBfHIx599Bm7FNi8sDQcw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-MzdRUfWSE0rxC/wx9nGXBgM7/mUXCn/T9KnBkM8szR30NymtawrBEEebFLy5+CVA/+Ut+v762j3mYwwad3U3CQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       svelte: ^5.0.0
 
   '@filter-enginez/url-state-router@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz':
-    resolution: {integrity: sha512-X3GRVr5bJgj+2Wr0RYF1d+78FGDERp31EJh3Swe78x28smRRe1LOzHxanfliWvJ67zybT6zSov487DFUHv6ZLA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz}
+    resolution: {integrity: sha512-zcDA+m24GGnj5Kz5QO34Qr+GtooVHl5s1ORExUGRL3S08XtXgHl/mA5GCbjdkldm3S1B6v8+x7CH9T7rOoWwGw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       react: ^19.2.7
       react-router: ^8.3.0
 
   '@filter-enginez/vue-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-RQCvw0uncqTdpQLBdtLhXADaZOcGDjLd8LdMOeH8MSSc0rKtOvXx+OSuvL6vGJrpkbrypzKAmfJmCvo04UPBAg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-kX1E+jBqUBa+x20dCgwPxZwANHfhRl+hJz95UbaH6BC0wR33fPuAPEjmXT6Bc94S2ObG97ZrUsFB0m5a4GHLvA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       vue: ^3.5.0
 
   '@filter-enginez/worker-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz':
-    resolution: {integrity: sha512-7231/sDSs0mXx1m7ebmi7jtT/9ayB1qgyuPdgRlFyWYNQvYCq3FaNeUZboYv2MxMzfCi4ThQXmZ70wBPQnz6uQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz}
+    resolution: {integrity: sha512-NxWxELQwJS0YanfupE8mAdVhbMfRKWkhN7btCnbg2qNC5YhP+LS4Ry6bJH0N+ufic9mDBbVo2WVF4o+mQSwR2A==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz}
     version: 0.0.2
 
   '@floating-ui/core@1.8.0':
@@ -8409,7 +8409,7 @@ snapshots:
       - typescript
       - vitest
 
-  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))':
+  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))':
     dependencies:
       '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
       msw: 2.15.0(@types/node@24.19.1)(typescript@6.0.3)

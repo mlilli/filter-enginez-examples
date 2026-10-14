@@ -91,7 +91,7 @@ describe('<fe-number-field>', () => {
 	it('does NOT commit while typing', () => {
 		// The reason this is a rule: typing "95" passes through "9" first. Committing per keystroke
 		// would fire a filter for scores above nine and briefly show the whole corpus — and on wine's
-		// worker tier each intermediate value is a full Comlink round trip against 130k records.
+		// worker tier each intermediate value is a full Comlink round trip against 150k records.
 		type('9', false);
 
 		expect(host.committed()).toBeNull();

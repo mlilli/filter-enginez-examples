@@ -25,13 +25,14 @@
  * never learns which it has. That is the same claim the React apps make when `/books-server` renders
  * the exact same `<BooksApp>`.
  *
- * ## The corpus is the COMMITTED 10k, not `/wine`'s 130k
+ * ## The corpus is the 10,000-wine default tier, not `/wine`'s 150,000
  *
  * `examples-server`'s dataset registry imports `wines` from `@filter-enginez/mock-data/wine` — the
- * committed default tier. Two consequences worth carrying: the footer says so, because two wine
- * routes reporting different counts with no explanation is worse than either number; and the shared
- * `wineFlow.ts` suite must NOT be pointed here, since it asserts positively that the footer reads
- * `full corpus`. It would fail correctly, for a route behaving exactly as designed.
+ * default tier — because the deployed server runs on a plan with 10 ms of CPU and 128 MB of memory
+ * per request. Two consequences worth carrying: the footer says so (`SERVER_WINE_TIER_LABEL`), because
+ * two wine routes reporting different counts with no explanation is worse than either number; and the
+ * shared `wineFlow.ts` suite must NOT be pointed here, since it asserts positively that the footer
+ * reads `full corpus`. It would fail correctly, for a route behaving exactly as designed.
  *
  * ## A missing API is the COMMON case, not an edge one
  *
@@ -45,7 +46,7 @@
 
 import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { el } from '@filter-enginez/examples-shared/dom';
-import { bootWineServerEngine } from '@filter-enginez/examples-shared/wine-server-core';
+import { bootWineServerEngine, SERVER_WINE_TIER_LABEL } from '@filter-enginez/examples-shared/wine-server-core';
 
 import type { RouteTeardown } from '../router.js';
 
@@ -97,8 +98,7 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
 		// one engine — which is the reason this route exists.
 		compareDataset: 'wine-server',
 		engine,
-		footnote:
-			'filter-enginez · wine demo · vanilla + reactive-signals over HTTP to the isomorphic core · committed 10k tier',
+		footnote: `filter-enginez · wine demo · vanilla + reactive-signals over HTTP to the isomorphic core · ${SERVER_WINE_TIER_LABEL}`,
 		subtitle: appHeaderSubtitle('Wine', 'vanilla', 'server'),
 	});
 }

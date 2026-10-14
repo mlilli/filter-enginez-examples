@@ -1,5 +1,5 @@
 /**
- * `wineCorpusLoader` — the wine worker's three-tier corpus resolution, extracted so it can be tested.
+ * `wineCorpusLoader` — the wine worker's corpus resolution, extracted so it can be tested.
  *
  * @remarks
  * **Why this is a separate module.** `wine.worker.ts` calls `exposeFilterEngineWorker` at the top
@@ -12,51 +12,67 @@
  * only its registration call, and the logic that actually decides something moves where it can be
  * exercised.
  *
- * And it does decide something load-bearing. The fallback chain picks between a ~130k-record corpus
- * and the 10k bundled tier, and it falls back SILENTLY by design — every failure path returns `null`
- * rather than throwing, so a fresh clone still boots. That is the right behavior and also exactly the
- * kind of thing that hides: if the NDJSON tier broke, the wine demo would quietly serve 10k records
- * and look completely healthy while every performance claim it demonstrates became untrue.
+ * ## The chain
  *
- * Kept isomorphic-ish on purpose: nothing here touches `self`, Comlink, or the engine, so the tests
- * need only a `fetch` stub.
+ * On the full tier, three sources are tried in order, and the first that yields records wins:
+ *
+ *   1. **`/data-real-full.ndjson`** — the local real review corpus, streamed line by line. It exists
+ *      only on a development machine where `pnpm link:wine-corpus` has run; it is never committed,
+ *      packaged or deployed.
+ *   2. **`/data-real-full.json`** — the same corpus as one JSON array, for a machine that has only
+ *      that export.
+ *   3. **The synthetic full tier** — {@link FULL_WINE_TIER_SIZE} wines from the seeded generator,
+ *      built in chunks inside the worker so the boot screen can count them in. This is what every
+ *      deployed page runs, and what a fresh clone runs.
+ *
+ * The real corpus is tried first so a developer who has linked it sees it, and every failure on the
+ * way down returns `null` rather than throwing, so a missing file costs one 404 and nothing else.
+ *
+ * On the low-memory tier (see `wineMemoryTier.ts`) the chain is skipped entirely: the worker
+ * generates the first {@link DEFAULT_TIER_SIZE} wines of the same stream, which are exactly the
+ * default tier.
+ *
+ * Kept free of `self`, Comlink and the engine on purpose, so the tests need only a `fetch` stub. The
+ * source names and their footer labels live in `wineCorpusTier.ts`, apart from this module, because
+ * the main thread needs them and must not bundle the generator this module imports.
  *
  * @packageDocumentation
  */
 
-import { type Wine } from '@filter-enginez/mock-data/wine';
+import {
+	DEFAULT_TIER_SIZE,
+	FULL_WINE_TIER_SIZE,
+	generateWineRange,
+	type Wine,
+} from '@filter-enginez/mock-data/wine/generator';
+
+import { type WineCorpusSource, type WineWorkerTier } from './wineCorpusTier.js';
 
 /**
- * The real Kaggle Wine Reviews dataset's known size (129,907 valid rows after dropping 64 sparse
- * ones). Used purely for the loader's "Loaded N of ~130k" copy — if the real count comes back
- * different, the caption just lags a few hundred bottles, which is fine.
+ * The local real review corpus's known size (129,907 valid rows).
+ *
+ * @remarks
+ * Used only as the ESTIMATED total in the intermediate progress reports while that corpus streams,
+ * because a stream cannot know its own length until it ends. The final report carries the real count.
  */
-export const EXPECTED_FULL_CORPUS_SIZE = 129_907;
+export const EXPECTED_REAL_CORPUS_SIZE = 129_907;
 
 /**
- * Report progress every this-many records parsed. Sized so the main thread receives roughly 10-15
- * updates over the ~1-2s parse — smooth enough to animate a counter without flooding the channel.
+ * Report progress every this-many records parsed from the real corpus. Sized so the main thread
+ * receives roughly 15 updates over the parse — smooth enough to animate a counter without flooding
+ * the channel.
  */
 export const PROGRESS_REPORT_EVERY = 8_000;
 
-/** Which tier of the fallback chain produced the corpus. */
-export type WineCorpusSource = 'default-tier' | 'full-corpus-json' | 'full-corpus-ndjson';
-
 /**
- * A short, user-facing label for the tier a wine route actually booted.
+ * Records generated per chunk of the synthetic tier, with one progress report after each.
  *
  * @remarks
- * **Shared so the verticals cannot describe the same state different ways.** Every wine footer
- * renders this next to the record count, because a count alone states WHAT happened and never why:
- * "10,000 bottles" with no tier points at the engine boot, when the usual cause is a missing corpus
- * symlink, three layers away and invisible from the number on screen.
- *
- * @param source - Which tier of the fallback chain produced the corpus
- * @returns A label suitable for a footer, e.g. `'bundled 10k tier'`
+ * 150,000 / 5,000 is 30 reports over a generation of roughly one to two seconds, the same cadence as
+ * the real-corpus stream. The chunks exist for the count on the boot screen, not for responsiveness:
+ * the generation runs in the worker, so the page stays interactive whatever the chunk size.
  */
-export function describeWineCorpusTier(source: WineCorpusSource): string {
-	return source === 'default-tier' ? 'bundled 10k tier' : 'full corpus';
-}
+export const SYNTHETIC_CHUNK_SIZE = 5_000;
 
 /**
  * Shape of the callbacks the worker factory expects from the main thread, delivered via
@@ -65,26 +81,30 @@ export function describeWineCorpusTier(source: WineCorpusSource): string {
  */
 export interface WineWorkerCallbacks {
 	/**
-	 * `loaded` is the count of parsed wine records so far. `total` is the expected total
-	 * (`EXPECTED_FULL_CORPUS_SIZE` when streaming the real corpus, the actual count otherwise).
-	 * `source` describes which fallback tier landed.
+	 * Report load progress.
+	 *
+	 * @param loaded - Records loaded or generated so far.
+	 * @param total - The total. Exact, except while the real corpus streams (see `isTotalEstimated`).
+	 * @param source - Which source is producing the records.
+	 * @param isTotalEstimated - `true` only for the intermediate reports of the real-corpus stream,
+	 *   whose total is {@link EXPECTED_REAL_CORPUS_SIZE} until the stream ends.
 	 */
-	readonly onProgress?: (loaded: number, total: number, source: WineCorpusSource) => void;
+	readonly onProgress?: (loaded: number, total: number, source: WineCorpusSource, isTotalEstimated: boolean) => void;
 }
 
 /** A progress reporter, once narrowed out of the callbacks bag. */
 type ProgressReporter = WineWorkerCallbacks['onProgress'];
 
 /**
- * Stream the NDJSON full corpus from `/data-real-full.ndjson`.
+ * Stream the NDJSON real corpus from `/data-real-full.ndjson`.
  *
  * @remarks
  * Returns `null` on any failure — 404, network error, a body that cannot be read — so the caller can
- * fall through to the next tier. Malformed individual LINES are skipped rather than aborting the
- * parse: the corpus should be clean, but one bad row should not cost the user the other 129,906.
+ * fall through to the next source. Malformed individual LINES are skipped rather than aborting the
+ * parse: one bad row should not cost the rest.
  *
  * @param onProgress - Optional reporter, called every {@link PROGRESS_REPORT_EVERY} records.
- * @returns The parsed records, or `null` if this tier is unavailable.
+ * @returns The parsed records, or `null` if this source is unavailable.
  */
 export async function tryStreamNdjson(onProgress?: ProgressReporter): Promise<null | readonly Wine[]> {
 	try {
@@ -123,7 +143,7 @@ export async function tryStreamNdjson(onProgress?: ProgressReporter): Promise<nu
 					}
 				}
 				if (wines.length > 0 && wines.length % PROGRESS_REPORT_EVERY === 0) {
-					onProgress?.(wines.length, EXPECTED_FULL_CORPUS_SIZE, 'full-corpus-ndjson');
+					onProgress?.(wines.length, EXPECTED_REAL_CORPUS_SIZE, 'full-corpus-ndjson', true);
 				}
 				newlineIdx = buffer.indexOf('\n');
 			}
@@ -143,12 +163,8 @@ export async function tryStreamNdjson(onProgress?: ProgressReporter): Promise<nu
 		// a hang while it happens — is entered on `loaded >= total`. (Named rather than quoted:
 		// `tests/tooling/bootCaptionSingleSource.test.ts` does not exempt comments, deliberately.)
 		// With the estimate here, that would hold only while the constant happens to equal the corpus on
-		// disk: regenerate the corpus a hundred rows short and the pause would stop being narrated in ALL
-		// SIX verticals at once, silently, leaving a frozen count.
-		//
-		// `tryLoadJsonFullCorpus` and the default tier report their real counts at completion too. The
-		// estimate belongs only where it is honest: in the intermediate reports, which cannot know the end.
-		onProgress?.(wines.length, wines.length, 'full-corpus-ndjson');
+		// disk.
+		onProgress?.(wines.length, wines.length, 'full-corpus-ndjson', false);
 
 		return wines;
 	} catch {
@@ -157,14 +173,14 @@ export async function tryStreamNdjson(onProgress?: ProgressReporter): Promise<nu
 }
 
 /**
- * Load the monolithic JSON full corpus from `/data-real-full.json`.
+ * Load the monolithic JSON real corpus from `/data-real-full.json`.
  *
  * @remarks
  * Atomic parse, so progress is a single 100% update once it completes. Used when the NDJSON variant
- * is absent — e.g. before `pnpm regen:wine:real` has been re-run since the import-script change.
+ * is absent.
  *
  * @param onProgress - Optional reporter, called once on success.
- * @returns The parsed records, or `null` if this tier is unavailable.
+ * @returns The parsed records, or `null` if this source is unavailable.
  */
 export async function tryLoadJsonFullCorpus(onProgress?: ProgressReporter): Promise<null | readonly Wine[]> {
 	try {
@@ -176,7 +192,7 @@ export async function tryLoadJsonFullCorpus(onProgress?: ProgressReporter): Prom
 		const text = await res.text();
 		const wines = JSON.parse(text) as readonly Wine[];
 
-		onProgress?.(wines.length, wines.length, 'full-corpus-json');
+		onProgress?.(wines.length, wines.length, 'full-corpus-json', false);
 
 		return wines;
 	} catch {
@@ -185,21 +201,59 @@ export async function tryLoadJsonFullCorpus(onProgress?: ProgressReporter): Prom
 }
 
 /**
- * Resolve the wine corpus through the three-tier chain: NDJSON → monolithic JSON → bundled default.
+ * Generate the first `count` wines of the synthetic stream in chunks, reporting after each chunk.
  *
  * @remarks
- * A tier that returns an EMPTY array is treated as unavailable, not as success. That matters: an
- * empty NDJSON file (a truncated or half-written regen) would otherwise be accepted and the app would
- * boot showing zero wines rather than falling back to the 10k tier.
+ * Record `i` of the stream depends only on the seed and `i`, so generating in chunks yields exactly the
+ * records one `generateWines(count)` call would. Every record is stamped with the tier it belongs to:
+ * `'full'` for the 150,000-wine tier, `'default'` for the 10,000-wine one.
  *
- * @param defaultWines - The bundled default tier, used when neither full-corpus tier lands.
- * @param onProgress - Optional reporter, forwarded to each tier.
- * @returns The corpus and which tier produced it.
+ * @param count - How many wines to generate.
+ * @param source - The source to report progress under.
+ * @param onProgress - Optional reporter, called after every {@link SYNTHETIC_CHUNK_SIZE} records and
+ *   once more at the end. Every report carries the exact total.
+ * @returns The generated wines, in stream order.
+ */
+export function generateSyntheticWines(
+	count: number,
+	source: Extract<WineCorpusSource, 'low-memory-tier' | 'synthetic-full-tier'>,
+	onProgress?: ProgressReporter,
+): readonly Wine[] {
+	const tier = source === 'synthetic-full-tier' ? 'full' : 'default';
+	const wines: Wine[] = [];
+
+	for (let start = 0; start < count; start += SYNTHETIC_CHUNK_SIZE) {
+		const end = Math.min(start + SYNTHETIC_CHUNK_SIZE, count);
+
+		// A loop, not `push(...chunk)`: spreading thousands of arguments is a stack-size hazard.
+		for (const wine of generateWineRange(start, end, undefined, tier)) {
+			wines.push(wine);
+		}
+		onProgress?.(wines.length, count, source, false);
+	}
+
+	return wines;
+}
+
+/**
+ * Resolve the wine corpus for the requested tier.
+ *
+ * @remarks
+ * A real-corpus source that returns an EMPTY array is treated as unavailable, not as success: an empty
+ * NDJSON file (a truncated or half-written import) would otherwise boot the app showing zero wines.
+ *
+ * @param tier - Which tier to build. See {@link WineWorkerTier}.
+ * @param onProgress - Optional reporter, forwarded to each source.
+ * @returns The corpus and which source produced it.
  */
 export async function loadWineCorpus(
-	defaultWines: readonly Wine[],
+	tier: WineWorkerTier,
 	onProgress?: ProgressReporter,
 ): Promise<{ readonly source: WineCorpusSource; readonly wines: readonly Wine[] }> {
+	if (tier === 'low-memory') {
+		return { source: 'low-memory-tier', wines: generateSyntheticWines(DEFAULT_TIER_SIZE, 'low-memory-tier', onProgress) };
+	}
+
 	const ndjson = await tryStreamNdjson(onProgress);
 
 	if (ndjson !== null && ndjson.length > 0) {
@@ -212,26 +266,8 @@ export async function loadWineCorpus(
 		return { source: 'full-corpus-json', wines: json };
 	}
 
-	// **The one place that knows both full tiers missed, so the only place that can say so.**
-	// The house logging rules put this exact case under `warn`: "something unexpected happened
-	// but was handled (e.g. worker requested but unavailable, falling back)". Without it, a missing
-	// corpus symlink makes both fetches 404 and the tier fall back below `WORKER_THRESHOLD` with
-	// nothing on screen or in the console to say why. The remedies are named because "corpus
-	// unavailable" is not actionable on its own.
-	//
-	// This fires on a deployed app too, where the default tier IS the correct state and the 116 MB
-	// corpus is deliberately not shipped. One line per boot, stating a true fact about which tier is
-	// running, is diagnostic rather than noise — and a warning that only appears in development is a
-	// warning nobody sees when it matters.
-	console.warn(
-		'[wine] Full corpus unavailable — the worker is falling back to the bundled 10k tier, which is '
-		+ 'BELOW WORKER_THRESHOLD and does not need a worker at all. Both /data-real-full.ndjson and '
-		+ '/data-real-full.json failed to load. Locally: in the engine repo, run '
-		+ '`pnpm --filter @filter-enginez/mock-data regen:wine:real --accept-data-license` (the data is '
-		+ 'CC BY-NC-SA 4.0 and stays on your machine), then `pnpm link:wine-corpus` here to link it into '
-		+ 'every vertical. On a deployed build this is expected — the corpus is never published.',
-	);
-	onProgress?.(defaultWines.length, defaultWines.length, 'default-tier');
-
-	return { source: 'default-tier', wines: defaultWines };
+	return {
+		source: 'synthetic-full-tier',
+		wines: generateSyntheticWines(FULL_WINE_TIER_SIZE, 'synthetic-full-tier', onProgress),
+	};
 }

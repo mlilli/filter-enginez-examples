@@ -24,9 +24,9 @@
  * @packageDocumentation
  */
 
-import { buildOriginTree, type Wine } from '@filter-enginez/mock-data/wine';
+import { type Wine } from '@filter-enginez/mock-data/wine';
 import { useFilterEngine } from '@filter-enginez/react-signals';
-import { type NumericBounds, type PickerTreeNode } from '@filter-enginez/react-ui';
+import { type NumericBounds } from '@filter-enginez/react-ui';
 import { useMemo } from 'react';
 
 import { ChipFilterSection } from './filters/ChipFilterSection.js';
@@ -53,6 +53,7 @@ import { RangeFilterSection } from './filters/RangeFilterSection.js';
 import { SmartFilterPresets } from './filters/SmartFilterPresets.js';
 import { VarietalFilterSection } from './filters/VarietalFilterSection.js';
 import { VintageFilterSection } from './filters/VintageFilterSection.js';
+import { buildWineOriginTree, rankWineVarietals } from './wine-domain/facets.js';
 
 /**
  * Props for `<WineFilterPanel />`.
@@ -85,18 +86,11 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 		[priceBaseline, pointsBaseline, abvBaseline, vintageBaseline],
 	);
 
-	// Varietal vocabulary derived from the FULL sourceData (not current results) so the chip list
-	// shows every varietal in the corpus, with bundle data telling us which are currently reachable.
+	// Varietal vocabulary derived from the FULL sourceData (not current results) so the list shows
+	// every varietal in the corpus, most-reviewed first, with bundle data telling us which are
+	// currently reachable.
 	const sourceData = engine.core.getSourceData();
-	const allVarietals = useMemo(() => {
-		const set = new Set<string>();
-
-		for (const wine of sourceData) {
-			set.add(wine.varietal);
-		}
-
-		return Array.from(set).sort();
-	}, [sourceData]);
+	const allVarietals = useMemo(() => rankWineVarietals(sourceData), [sourceData]);
 
 	const chipVocabularies = useMemo(
 		() => ({
@@ -110,9 +104,8 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 
 	// Origin tree → flat node specs the bundle uses to simulate "if user clicked X, would it yield
 	// 0?" for every node. Built from the engine's loaded corpus (`sourceData`) so the tree reflects
-	// the actual tier — the mock-data `buildOriginTree` is corpus-parameterized (it imports no default
-	// corpus), which is what keeps the wine handlers import-safe.
-	const originTree = useMemo(() => buildOriginTree(sourceData) as unknown as PickerTreeNode, [sourceData]);
+	// the actual tier, ordered by wine count like every other app's.
+	const originTree = useMemo(() => buildWineOriginTree(sourceData), [sourceData]);
 	const originNodeSpecs = useMemo(() => buildOriginNodeSpecs(originTree), [originTree]);
 
 	const bundle = useFetchFilterBundle(baselines, chipVocabularies, originNodeSpecs);
@@ -136,15 +129,15 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 			    contrast only reads if they are adjacent.
 			*/}
 			<FilterSectionGuard topSlot={<SmartFilterPresets />}>
-				<RangeFilterSection ruleId="price" fieldKey="priceUsd" label="Price (USD)" ariaLabel="Price range in USD" step={5} format={(n) => `$${n.toFixed(0)}`} parse={(raw) => parseFloat(raw.replace(/[$,\s]/g, ''))} openEnded />
-				<RangeFilterSection ruleId="points" fieldKey="points" label="Points" ariaLabel="Wine Enthusiast points score" step={1} format={(n) => n.toFixed(0)} parse={(raw) => parseFloat(raw)} />
+				<RangeFilterSection ruleId="price" fieldKey="priceUsd" label="Price (USD)" ariaLabel="Price range in USD" step={1} openEnded />
+				<RangeFilterSection ruleId="points" fieldKey="points" label="Points" ariaLabel="Wine Enthusiast points score" step={1} />
 				<PointsCompareFilterSection />
 				<ChipFilterSection ruleId="color" label="Color" options={COLOR_ORDER} showCount />
 				<ColorValueFilterSection />
 				<VarietalFilterSection />
 				<OriginFilterSection />
 				<VintageFilterSection />
-				<RangeFilterSection ruleId="abv" fieldKey="abv" label="ABV (%)" ariaLabel="Alcohol by volume range" step={0.1} format={(n) => `${n.toFixed(1)}%`} parse={(raw) => parseFloat(raw.replace(/[%\s]/g, ''))} />
+				<RangeFilterSection ruleId="abv" fieldKey="abv" label="ABV (%)" ariaLabel="Alcohol by volume range" step={0.1} />
 				<ChipFilterSection ruleId="body" label="Body" options={BODY_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
 				<ChipFilterSection ruleId="sweetness" label="Sweetness" options={SWEETNESS_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
 				<FuzzySearchFilterSection ruleId="notes" label="Tasting notes search" placeholder="blackberry, citrus, oak..." ariaLabel="Search tasting notes (fuzzy)" field="description" threshold={0.45} keys={['description', 'tastingNotes']} />

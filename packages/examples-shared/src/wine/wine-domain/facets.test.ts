@@ -5,10 +5,10 @@
  * This is the one part of wine's boot that CAN be tested without a worker, and the part where being
  * wrong is quietest. Every failure mode here presents as a plausible-looking panel:
  *
- *   - Baselines taken from `FALLBACK_BOUNDS` instead of the corpus make everything above ~$400
+ *   - Baselines taken from `FALLBACK_BOUNDS` instead of the corpus make everything beyond them
  *     unreachable, and the slider looks completely normal while doing it.
- *   - A vocabulary derived from the bundled 10k rather than the worker's 130k is missing entries, and
- *     a missing chip reads as "the corpus has none of those".
+ *   - A vocabulary derived from the 10k default tier rather than the worker's 150k is missing entries,
+ *     and a missing chip reads as "the corpus has none of those".
  *
  * So the assertions are about the corpus's real extremes reaching the outputs, not about the shape of
  * the returned object.
@@ -22,10 +22,19 @@
 
 import type { Wine, WineOrigin } from '@filter-enginez/mock-data/wine';
 
+import { FULL_WINE_TIER_SIZE, generateWines } from '@filter-enginez/mock-data/wine/generator';
+import { deriveBaselineBounds } from '@filter-enginez/react-ui/bounds';
 import { describe, expect, it } from 'vitest';
 
-import { deriveWineFacets } from './facets.js';
-import { FALLBACK_BOUNDS } from './filterConfig.js';
+import { buildWineOriginTree, deriveWineFacets, rankWineVarietals } from './facets.js';
+import {
+	FALLBACK_BOUNDS,
+	SLIDER_FIELD_GETTERS,
+	type SliderFieldId,
+	VARIETAL_CHIP_LIMIT,
+	visibleVarietalChips,
+	WINE_SLIDER_TEXT,
+} from './filterConfig.js';
 
 /**
  * Build one fixture wine, defaulting every field the facets do not read.
@@ -74,12 +83,12 @@ function makeWine(overrides: Partial<Wine> & Pick<Wine, 'id'>): Wine {
  * A corpus whose extremes sit deliberately OUTSIDE the pre-boot placeholder bounds.
  *
  * @remarks
- * That is the point of the fixture: a $900 bottle and a 1998 vintage are both beyond
+ * That is the point of the fixture: a $5,000 bottle and an 1890 vintage are both beyond
  * `FALLBACK_BOUNDS`, so a derivation that quietly used the placeholder instead of the data would fail
  * rather than merely look different.
  */
 const FIXTURE_WINES: readonly Wine[] = [
-	makeWine({ color: 'red', id: 'w0', points: 96, priceUsd: 900, varietal: 'Syrah', vintage: 1998 }),
+	makeWine({ color: 'red', id: 'w0', points: 96, priceUsd: 5000, varietal: 'Syrah', vintage: 1890 }),
 	makeWine({ body: 'light', color: 'white', id: 'w1', priceUsd: 8, sweetness: 'sweet', vintage: 2021 }),
 	makeWine({ color: 'rosé', id: 'w2', points: 82, priceUsd: 15, varietal: 'Grenache', vintage: 2010 }),
 ];
@@ -88,9 +97,9 @@ describe('deriveWineFacets', () => {
 	it('derives slider baselines from the corpus, not from the placeholder', () => {
 		const { baselines } = deriveWineFacets(FIXTURE_WINES);
 
-		// The corpus reaches $900; the placeholder stops well short. A baseline that stopped there would
+		// The corpus reaches $5,000; the placeholder stops short. A baseline that stopped there would
 		// make every expensive bottle unreachable the moment someone touched the slider.
-		expect(baselines.price.max).toBeGreaterThanOrEqual(900);
+		expect(baselines.price.max).toBeGreaterThanOrEqual(5000);
 		expect(baselines.price.max).toBeGreaterThan(FALLBACK_BOUNDS.price.max);
 		expect(baselines.price.min).toBeLessThanOrEqual(8);
 	});
@@ -98,11 +107,11 @@ describe('deriveWineFacets', () => {
 	it('reaches a vintage outside the placeholder window', () => {
 		const { baselines } = deriveWineFacets(FIXTURE_WINES);
 
-		expect(baselines.vintage.min).toBeLessThanOrEqual(1998);
+		expect(baselines.vintage.min).toBeLessThanOrEqual(1890);
 		expect(baselines.vintage.min).toBeLessThan(FALLBACK_BOUNDS.vintage.min);
 	});
 
-	it('collects each vocabulary from the corpus, sorted and distinct', () => {
+	it('collects each vocabulary from the corpus, distinct', () => {
 		const { vocabularies } = deriveWineFacets(FIXTURE_WINES);
 
 		expect([...vocabularies.color].sort()).toEqual(['red', 'rosé', 'white'].sort());
@@ -132,4 +141,88 @@ describe('deriveWineFacets', () => {
 		expect(facets.vocabularies.color).toEqual([]);
 		expect(facets.baselines.price).toEqual(FALLBACK_BOUNDS.price);
 	});
+
+	it('ranks varietals by wine count, not alphabetically', () => {
+		const corpus = [
+			makeWine({ id: 'a', varietal: 'Abouriou' }),
+			makeWine({ id: 'b', varietal: 'Pinot Noir' }),
+			makeWine({ id: 'c', varietal: 'Pinot Noir' }),
+		];
+
+		expect(deriveWineFacets(corpus).vocabularies.varietal).toEqual(['Pinot Noir', 'Abouriou']);
+		expect(rankWineVarietals(corpus)).toEqual(['Pinot Noir', 'Abouriou']);
+	});
+
+	it('lists the origin with the most wines first', () => {
+		const corpus = [
+			makeWine({ id: 'a', origin: { country: 'Argentina', province: 'Mendoza Province', region: '', subregion: '' }, originId: 'Argentina|Mendoza Province' }),
+			makeWine({ id: 'b', origin: { country: 'US', province: 'Oregon', region: '', subregion: '' }, originId: 'US|Oregon' }),
+			makeWine({ id: 'c', origin: { country: 'US', province: 'Oregon', region: '', subregion: '' }, originId: 'US|Oregon' }),
+		];
+
+		expect(buildWineOriginTree(corpus).children?.map((node) => node.id)).toEqual(['US', 'Argentina']);
+	});
+
+	it('matches wines whose origin stops above a leaf when their region is selected', () => {
+		// Real wine data mixes wines with and without a subregion under one region. A spec holding only
+		// leaves would leave the subregion-less wines unmatched by the region, the state and the country.
+		const corpus = [
+			makeWine({ id: 'a', origin: { country: 'US', province: 'Oregon', region: 'Willamette Valley', subregion: '' }, originId: 'US|Oregon|Willamette Valley' }),
+			makeWine({ id: 'b', origin: { country: 'US', province: 'Oregon', region: 'Willamette Valley', subregion: 'Dundee Hills' }, originId: 'US|Oregon|Willamette Valley|Dundee Hills' }),
+		];
+		const { originSpecs } = deriveWineFacets(corpus);
+
+		for (const node of ['US', 'US|Oregon', 'US|Oregon|Willamette Valley']) {
+			const spec = originSpecs.find((candidate) => candidate.value === node);
+
+			expect(spec?.leafIds).toContain('US|Oregon|Willamette Valley');
+			expect(spec?.leafIds).toContain('US|Oregon|Willamette Valley|Dundee Hills');
+		}
+	});
 });
+
+describe('FALLBACK_BOUNDS', () => {
+	it('are the extents of the 150,000-wine tier, so the deployed sliders do not jump on boot', () => {
+		// The guard on the hand-written numbers: regenerate the tier, derive each slider's baseline the
+		// way the panels do, and compare. A generator change that moves an extent fails here.
+		const fullTier = generateWines(FULL_WINE_TIER_SIZE, undefined, 'full');
+		const fields: readonly SliderFieldId[] = ['abv', 'points', 'price', 'vintage'];
+
+		for (const field of fields) {
+			expect(deriveBaselineBounds(fullTier.map(SLIDER_FIELD_GETTERS[field]), FALLBACK_BOUNDS[field], 0), field).toEqual(
+				FALLBACK_BOUNDS[field],
+			);
+		}
+	});
+});
+
+describe('visibleVarietalChips', () => {
+	const ranked = Array.from({ length: VARIETAL_CHIP_LIMIT + 5 }, (_unused, index) => `grape-${String(index)}`);
+
+	it('shows the most-reviewed varietals up to the limit', () => {
+		expect(visibleVarietalChips(ranked, [])).toEqual(ranked.slice(0, VARIETAL_CHIP_LIMIT));
+	});
+
+	it('keeps a selected varietal from beyond the limit', () => {
+		const rare = ranked.at(-1) ?? '';
+
+		expect(visibleVarietalChips(ranked, [rare])).toEqual([...ranked.slice(0, VARIETAL_CHIP_LIMIT), rare]);
+	});
+});
+
+describe('WINE_SLIDER_TEXT', () => {
+	it.each([
+		['price', 1250, '$1,250'],
+		['abv', 13.5, '13.5%'],
+		['points', 92, '92'],
+		['vintage', 2025, 'NV'],
+	] as const)('formats %s %s as %s and parses it back', (field, value, text) => {
+		expect(WINE_SLIDER_TEXT[field].format(value)).toBe(text);
+		expect(WINE_SLIDER_TEXT[field].parse(text)).toBe(value);
+	});
+
+	it('reads text that is not a number as NaN, which the sliders revert', () => {
+		expect(WINE_SLIDER_TEXT.price.parse('cheap')).toBeNaN();
+	});
+});
+

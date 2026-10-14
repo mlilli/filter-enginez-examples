@@ -16,7 +16,7 @@ const QUICK_START = `import { createFilterEngine, inSet, range } from '@filter-e
 
 const engine = createFilterEngine({ sourceData: wines });
 engine.addRule('color', inSet('color', ['red']));
-engine.addRule('price', range('price', { min: 20, max: 60 }));
+engine.addRule('price', range('priceUsd', { min: 20, max: 60 }));
 
 engine.getResults();      // the matching records
 engine.getResultCount();  // …or just the count`;

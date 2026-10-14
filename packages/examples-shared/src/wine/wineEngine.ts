@@ -3,13 +3,13 @@
  *
  * @remarks
  * Built on the worker-bridge integration. On the worker tier, `wrapInWorker` spawns `wine.worker.ts` and
- * Comlink-wraps it, the worker streams the 130k NDJSON corpus + constructs the engine, and
+ * Comlink-wraps it, the worker builds the 150,000-wine corpus + constructs the engine, and
  * main-thread code consumes the result via the async-engine signals adapter.
  *
  * **The boot sequence:**
  *
- *   1. Construct a preact signal so the `<BootScreen>` can show "Loaded N of 130k bottles"
- *      copy as the worker reports parse progress.
+ *   1. Publish progress through a small pub/sub so the boot screen can show
+ *      "Loaded N of 150,000 bottles" as the worker reports it.
  *   2. Call `wrapInWorker<Wine>({ worker: spawnWorker(), factoryName: 'wineEngine',
  *      factoryCallbacks: { onProgress } })`. Comlink proxies the `onProgress` callback so the
  *      worker can invoke it across the postMessage boundary.
@@ -21,7 +21,7 @@
  *      (https://github.com/mlilli/filter-enginez) holds every such example in the engine packages
  *      to the declared option set; this file is outside its walk, so keep this step in step with
  *      the call site below by hand.
- *   3. The worker's factory streams the NDJSON, building the engine. During this, the main
+ *   3. The worker's factory builds the corpus in chunks, then the engine. During this, the main
  *      thread is fully idle — the BrainSynapse loader animates smoothly + progress copy
  *      updates per chunk.
  *   4. `wrapInWorker` resolves to a `FilterEngineAsync<Wine>`. Wrap it via
@@ -42,23 +42,31 @@ import { type FilterEngineAsync, type WorkerLike, wrapInWorker } from '@filter-e
 
 import { loadCorpusPaged } from '../data/loadCorpusPaged.js';
 import { buildWineEngine } from './buildWineEngine.js';
-import { describeWineCorpusTier } from './wineCorpusLoader.js';
+import { describeWineCorpusTier, type WineCorpusSource } from './wineCorpusTier.js';
+import { resolveWineWorkerTier } from './wineMemoryTier.js';
 
 /**
- * Records at/above this count boot the engine in a Web Worker; fewer boot on the main thread.
- * By design, the worker is for large corpora only. The default tier (~10k) runs on the
- * main thread; the full ~130k corpus goes to the worker.
+ * Records above this count boot the engine in a Web Worker; this many or fewer boot on the main
+ * thread. The default tier (10,000) runs on the main thread; the 150,000-wine full tier goes to the
+ * worker.
  */
 const WORKER_THRESHOLD = 10_000;
 
 /**
- * Nominal size of the full ~130k Kaggle corpus. Drives the size-aware boot decision — being well
- * above WORKER_THRESHOLD, it resolves to the worker path.
+ * Size of the full tier the worker builds (`FULL_WINE_TIER_SIZE` in `@filter-enginez/mock-data`).
+ * Used ONLY for the size-aware boot decision, and well above {@link WORKER_THRESHOLD}, so it routes to
+ * the worker.
+ *
+ * @remarks
+ * A local constant rather than an import, for the same reason as {@link DEFAULT_TIER_SIZE} below:
+ * the constant's home module re-exports the generator, and this module is on the main thread, which
+ * must not bundle the generator's tables just to read one number. `wineEngine.test.ts` pins the two
+ * values equal.
  */
-const FULL_CORPUS_SIZE = 129_907;
+export const FULL_TIER_SIZE = 150_000;
 
 /**
- * Nominal size of the bundled default tier (mirrors `DEFAULT_TIER_SIZE` in `@filter-enginez/mock-
+ * Size of the default tier (mirrors `DEFAULT_TIER_SIZE` in `@filter-enginez/mock-
  * data`). Used ONLY for the size-aware boot decision — a local constant rather than a
  * `defaultTierWines.length` read, so this module does not statically import the ~9 MB default
  * corpus (the default records stream in over `loadCorpusPaged`). It equals `WORKER_THRESHOLD`,
@@ -67,17 +75,16 @@ const FULL_CORPUS_SIZE = 129_907;
 const DEFAULT_TIER_SIZE = 10_000;
 
 /**
- * Resolve the dataset tier from the `VITE_WINE_TIER` env var (default `'full'`).
+ * Resolve the dataset size from the `VITE_WINE_TIER` env var (default `'full'`).
  *
  * @remarks
- * Set it at dev/build time to exercise the main-thread boot path against the bundled ~10k tier:
+ * Set it at dev/build time to exercise the main-thread boot path against the 10,000-wine default tier:
  *
  *   VITE_WINE_TIER=default pnpm dev:rtk:fresh
  *
- * `'full'` (or unset) keeps the production-shaped worker path with the streamed 130k corpus. The
- * returned `size` is what we hand to `bootSignalsEngine`, so it — not a separate flag — is what
- * flips worker vs main thread. (For `'default'` we use the actual bundled-tier length so the size
- * the boot sees matches the data it'll build with.)
+ * `'full'` (or unset) keeps the deployed worker path with the 150,000-wine corpus. The returned size
+ * is what we hand to `bootSignalsEngine`, so it — not a separate flag — is what flips worker vs main
+ * thread.
  *
  * ## The cast is load-bearing, and `ng build` is what proved it
  *
@@ -105,20 +112,25 @@ const DEFAULT_TIER_SIZE = 10_000;
 function resolveDatasetSize(): number {
 	const meta = import.meta as unknown as { env?: { VITE_WINE_TIER?: string }};
 
-	return meta.env?.VITE_WINE_TIER === 'default' ? DEFAULT_TIER_SIZE : FULL_CORPUS_SIZE;
+	return meta.env?.VITE_WINE_TIER === 'default' ? DEFAULT_TIER_SIZE : FULL_TIER_SIZE;
 }
 
 /**
- * Live progress data emitted by the wine worker as the corpus streams in. Read this
- * from the `<BootScreen>` to render "Loaded N of 130k bottles" copy.
+ * Live progress data emitted while the wine corpus loads. Read this from the boot screen to render
+ * "Loaded N of 150,000 bottles" copy.
  */
 export interface WineBootProgress {
-	/** Records parsed so far. */
+	/** Records loaded or generated so far. */
 	readonly loaded: number;
-	/** Expected total — best-effort estimate, may shift slightly when the parse completes. */
+	/** The total. Exact, except while the local real corpus streams — see {@link isTotalEstimated}. */
 	readonly total: number;
-	/** Which tier the worker landed on. Reflected in subtle caption variations. */
-	readonly source: 'default-tier' | 'full-corpus-json' | 'full-corpus-ndjson';
+	/** Which source is producing the corpus. */
+	readonly source: WineCorpusSource;
+	/**
+	 * `true` while `total` is an estimate: only during the local real corpus's stream, which cannot
+	 * know its length until it ends. The boot caption prints `~` before an estimated total.
+	 */
+	readonly isTotalEstimated: boolean;
 }
 
 /**
@@ -194,7 +206,7 @@ export function getWineBootProgressSnapshot(): WineBootProgress | null {
  * `tests/e2e` asserts the tier POSITIVELY (`full corpus` must appear) precisely so an app that
  * silently stopped reporting fails instead of passing over a blank.
  *
- * @returns `'full corpus'`, `'bundled 10k tier'`, or `''` when no boot has completed.
+ * @returns The {@link describeWineCorpusTier} label, or `''` when no boot has completed.
  */
 export function describeBootedWineCorpusTier(): string {
 	return currentProgress === null ? '' : describeWineCorpusTier(currentProgress.source);
@@ -240,12 +252,13 @@ export interface WineBootOptions {
  * `currentProgress` snapshot they later read is the same one. A per-boot closure would leave the
  * async boot silently unable to reach the pub/sub every vertical's boot screen subscribes to.
  *
- * @param loaded - Records parsed so far.
- * @param total - Best-effort expected total.
- * @param source - Which tier the worker landed on.
+ * @param loaded - Records loaded or generated so far.
+ * @param total - The total.
+ * @param source - Which source is producing the corpus.
+ * @param isTotalEstimated - Whether `total` is an estimate. Defaults to `false`.
  */
-function reportProgress(loaded: number, total: number, source: WineBootProgress['source']): void {
-	currentProgress = { loaded, source, total };
+function reportProgress(loaded: number, total: number, source: WineCorpusSource, isTotalEstimated = false): void {
+	currentProgress = { isTotalEstimated, loaded, source, total };
 	for (const listener of progressListeners) {
 		listener(currentProgress);
 	}
@@ -260,6 +273,10 @@ function reportProgress(loaded: number, total: number, source: WineBootProgress[
  * `factoryOptions` so Comlink proxies the function across the postMessage boundary instead of choking
  * on it in `structuredClone`.
  *
+ * The tier the worker builds is decided HERE, on the main thread, by `resolveWineWorkerTier` — and
+ * because all six apps reach the worker through this one function, every wine route on a device boots
+ * the same tier. It travels in `factoryOptions` as a plain string.
+ *
  * @param options - The caller's boot inputs.
  * @returns The worker-hosted async engine.
  * @throws When `spawnWorker` is absent — see the message.
@@ -268,7 +285,7 @@ async function spawnWineAsyncEngine(options: WineBootOptions): Promise<FilterEng
 	const { spawnWorker } = options;
 
 	if (spawnWorker === undefined) {
-		// Thrown rather than silently degraded to the main thread. A 130k main-thread boot "works" — it
+		// Thrown rather than silently degraded to the main thread. A 150k main-thread boot "works" — it
 		// just freezes the tab for seconds and quietly retires the entire point of the wine vertical,
 		// which is the worker tier. Better to name the missing argument.
 		throw new Error(
@@ -282,6 +299,7 @@ async function spawnWineAsyncEngine(options: WineBootOptions): Promise<FilterEng
 	return wrapInWorker<Wine>({
 		factoryCallbacks: { onProgress: reportProgress },
 		factoryName: 'wineEngine',
+		factoryOptions: { tier: resolveWineWorkerTier() },
 		worker: spawnWorker(),
 	});
 }
@@ -331,9 +349,9 @@ export async function bootWineEngine(options: WineBootOptions = {}): Promise<Win
 async function bootInternal(options: WineBootOptions): Promise<WineEngineBundle> {
 	const t0 = performance.now();
 
-	// Size-aware boot. The wine demo targets the full ~130k corpus, so this resolves to the worker
-	// path; for any dataset below WORKER_THRESHOLD (e.g. the default ~10k tier) the helper builds
-	// the engine on the main thread instead. Both branches are real — see `createMainEngine`.
+	// Size-aware boot. The wine demo targets the 150,000-wine tier, so this resolves to the worker
+	// path; at or below WORKER_THRESHOLD (the 10,000-wine default tier) the helper builds the engine
+	// on the main thread instead. Both branches are real — see `createMainEngine`.
 	const { engine, mode } = await bootSignalsEngine<Wine>({
 		// Main-thread path — build the identical engine from the bundled default tier via the
 		// shared `buildWineEngine`. Bitmap acceleration is initialized here (the worker does it in

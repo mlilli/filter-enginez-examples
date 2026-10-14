@@ -17,6 +17,7 @@
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
+import { formatVintage } from '@filter-enginez/examples-shared/wine-domain';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -51,6 +52,16 @@ const originBreadcrumb = computed(() =>
 		.join(' · '),
 );
 
+/**
+ * The vintage as the card shows it — the year, or `NV` for a non-vintage bottle.
+ *
+ * @remarks
+ * A non-vintage wine stores `NON_VINTAGE_YEAR` (2025) so the vintage filter can still select it;
+ * printing that number would claim a harvest the bottle does not have. `formatVintage` is the same
+ * formatter the vintage slider's readout uses, so the card and the panel agree.
+ */
+const vintageLabel = computed(() => formatVintage(props.wine.vintage));
+
 /** At most four notes — the card is a summary, and the full list runs to a dozen. */
 const visibleNotes = computed(() => props.wine.tastingNotes.slice(0, 4));
 </script>
@@ -66,7 +77,7 @@ const visibleNotes = computed(() => props.wine.tastingNotes.slice(0, 4));
 					:style="{ background: COLOR_CHIP[wine.color] }"
 					:title="wine.color"
 				/>
-				<span class="fe-wine-card__vintage">{{ wine.vintage }}</span>
+				<span class="fe-wine-card__vintage">{{ vintageLabel }}</span>
 			</div>
 			<div class="fe-wine-card__points" title="Wine Enthusiast points">{{ wine.points }} pts</div>
 		</div>

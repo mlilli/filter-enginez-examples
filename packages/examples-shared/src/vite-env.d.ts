@@ -16,8 +16,8 @@
  */
 interface ImportMetaEnv {
 	/**
-	 * Which wine dataset tier to boot — `'full'` (default, ~130k, worker) or `'default'`
-	 * (~10k bundled, main thread). See `wineEngine.ts` `resolveDatasetSize`.
+	 * Which wine dataset tier to boot — `'full'` (default: 150,000 wines, built in a worker) or
+	 * `'default'` (10,000 wines, main thread). See `wineEngine.ts` `resolveDatasetSize`.
 	 */
 	readonly VITE_WINE_TIER?: 'default' | 'full';
 }

@@ -13,6 +13,12 @@
  * slider then shows a span wider than the rule, which is the honest rendering of "this control cannot
  * express what is committed", and the next drag replaces it.
  *
+ * **The track is log-scaled toward the youngest vintage.** Nearly every bottle is from the last twenty
+ * years and a few are a century old, so `wineSliderScale` gives recent years most of the track and
+ * `wineSliderHistogram` slices the bars to match. The non-vintage year at the right end reads `NV`,
+ * through the shared `WINE_SLIDER_TEXT.vintage` (`formatVintage` / `parseVintage`), in the readout,
+ * the editable fields and the thumbs' `aria-valuetext` alike.
+ *
  * **The projection reads `baseline()`, which is why it cannot be a plain arrow over the rule alone.**
  * `vintageBoundsFromSet` needs the baseline to resolve an empty set. That read happens inside the
  * `adoptCommittedRule` source computation, so the baseline is tracked too — correct, and worth knowing:
@@ -30,10 +36,12 @@ import {
 	commitRule,
 	FALLBACK_BOUNDS,
 	fieldBounds,
-	fieldHistogram,
 	type NumericBounds,
 	vintageBoundsFromSet,
 	vintageYearsFromRange,
+	WINE_SLIDER_TEXT,
+	wineSliderHistogram,
+	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
 
 import { type RangeSliderChange, RangeSliderComponent } from '../../controls/range-slider.component.js';
@@ -42,16 +50,6 @@ import { injectWineBundle } from '../wine-bundle.js';
 
 /** The engine's key for this facet. */
 const RULE_ID = 'vintage';
-
-/**
- * Render a year without a thousands separator — `2015`, never `2,015`.
- *
- * @param year - The slider value.
- * @returns The label.
- */
-function formatYear(year: number): string {
-	return String(Math.round(year));
-}
 
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,9 +61,11 @@ function formatYear(year: number): string {
 				ariaLabel="Filter by vintage year"
 				[available]="available()"
 				[baseline]="baseline()"
-				[format]="formatYear"
+				[format]="text.format"
 				[histogram]="histogram()"
 				label="Vintage"
+				[parse]="text.parse"
+				[scale]="scale()"
 				[step]="step()"
 				[valueMax]="valueMax()"
 				[valueMin]="valueMin()"
@@ -81,8 +81,8 @@ export class WineVintageSectionComponent {
 	/** Drag granularity. NOT `SLIDER_STEPS` — see the panel's `DRAG_STEPS`. */
 	public readonly step = input.required<number>();
 
-	/** Bound into the template; see {@link formatYear}. */
-	protected readonly formatYear = formatYear;
+	/** The shared vintage readout and parser: a plain year, or `NV` for the non-vintage year. */
+	protected readonly text = WINE_SLIDER_TEXT.vintage;
 
 	private readonly _bundle = injectWineBundle();
 
@@ -92,6 +92,9 @@ export class WineVintageSectionComponent {
 	protected readonly baseline = computed(
 		() => this._bundle?.baselines.vintage ?? FALLBACK_BOUNDS.vintage,
 	);
+
+	/** The log track, anchored at the youngest vintage; built over the same baseline the slider gets. */
+	protected readonly scale = computed(() => wineSliderScale(RULE_ID, this.baseline()));
 
 	/** The painted handle span — written on drag, re-seeded on settle. `null` means no constraint. */
 	protected readonly span = adoptCommittedRule<InSetRule<number>, NumericBounds | null>(
@@ -118,9 +121,15 @@ export class WineVintageSectionComponent {
 		() => fieldBounds(this._currentBundle(), RULE_ID) ?? undefined,
 	);
 
-	/** One bucket per year — the per-vintage distribution, matching the field's actual discreteness. */
+	/**
+	 * The per-vintage distribution, sliced into equal pieces of the log track.
+	 *
+	 * @remarks
+	 * The bundle carries one bucket per year; `wineSliderHistogram` sums them into the track's slices,
+	 * so recent years get bars of their own and the sparse early decades share a few.
+	 */
 	protected readonly histogram = computed(() =>
-		fieldHistogram(this._currentBundle(), RULE_ID, this.valueMin(), this.valueMax()),
+		wineSliderHistogram(this._currentBundle(), RULE_ID, this.baseline(), this.valueMin(), this.valueMax()),
 	);
 
 	/**

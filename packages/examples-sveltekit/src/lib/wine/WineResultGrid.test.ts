@@ -2,7 +2,7 @@
  * Tests for the wine grid's result windowing.
  *
  * @remarks
- * **The window is not an optimization; it is what keeps the tab alive.** The wine corpus is ~130k
+ * **The window is not an optimization; it is what keeps the tab alive.** The wine corpus is 150,000
  * rows and an unfiltered result set is most of them. Rendering every match builds hundreds of
  * thousands of DOM nodes, which locks the browser for seconds — and reads as the ENGINE being slow,
  * when the engine answered in single-digit milliseconds and the entire cost is paint. That

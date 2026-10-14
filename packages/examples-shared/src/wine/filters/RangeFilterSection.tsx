@@ -3,7 +3,8 @@
  *
  * @remarks
  * One config-driven container for the Price / Points / ABV sections, which are near-identical save
- * for field, step, formatting, and price's open-ended upper bound. Vintage
+ * for field, step, and price's open-ended upper bound. Readout formatting and typed-text parsing
+ * come from the shared `WINE_SLIDER_TEXT`, which every app's wine panel reads. Vintage
  * is intentionally NOT covered here — it's a discrete InSet-of-years masquerading as a slider, so
  * it has its own `<VintageFilterSection />`.
  *
@@ -19,12 +20,13 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { range, type RangeRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
-import { type HistogramBucket, type NumericBounds, RangeSlider } from '@filter-enginez/react-ui';
+import { type NumericBounds, RangeSlider } from '@filter-enginez/react-ui';
 import { useCallback, useMemo } from 'react';
 
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
-import { bundleHistogramToBuckets, useBundleFieldMeta } from './filterBundle.js';
+import { WINE_SLIDER_TEXT, wineSliderScale } from '../wine-domain/filterConfig.js';
+import { useBundleFieldMeta, useBundleSliderHistogram } from './filterBundle.js';
 import { type SliderFieldId, useBaselineBounds } from './filterConfig.js';
 
 /**
@@ -41,10 +43,6 @@ export interface RangeFilterSectionProps {
 	readonly ariaLabel: string;
 	/** Step granularity. */
 	readonly step: number;
-	/** Value → display string (e.g. `$42`). */
-	readonly format: (n: number) => string;
-	/** Raw input string → number. */
-	readonly parse: (raw: string) => number;
 	/** When true (price), the upper bound is open-ended (`+Infinity` sentinel). */
 	readonly openEnded?: boolean;
 }
@@ -53,7 +51,8 @@ export interface RangeFilterSectionProps {
  * A continuous range-rule slider section.
  */
 export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactElement => {
-	const { ariaLabel, fieldKey, format, label, openEnded: isOpenEnded = false, parse, ruleId, step } = props;
+	const { ariaLabel, fieldKey, label, openEnded: isOpenEnded = false, ruleId, step } = props;
+	const { format, parse } = WINE_SLIDER_TEXT[ruleId];
 	const engine = useFilterEngine<Wine>();
 	const rule = useRule(ruleId) as RangeRule | undefined;
 	const baseline = useBaselineBounds(ruleId);
@@ -71,12 +70,10 @@ export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactE
 	// For the open-ended (price) case the histogram's selection overlap uses the baseline max in
 	// place of the Infinity sentinel; otherwise the finite max is used directly.
 	const selectionMax = isOpenEnded ? (Number.isFinite(max) ? max : baseline.max) : max;
-	const histogram = useMemo<readonly HistogramBucket[]>(
-		() => fieldMeta !== null
-			? bundleHistogramToBuckets(fieldMeta.histogram, min, selectionMax)
-			: [],
-		[fieldMeta, min, selectionMax],
-	);
+	// The field's declared scale (log for price, linear for points and ABV) and the bars sliced for it,
+	// both from the declarations every app's wine panel reads.
+	const scale = useMemo(() => wineSliderScale(ruleId, baseline), [ruleId, baseline]);
+	const histogram = useBundleSliderHistogram(ruleId, baseline, min, selectionMax);
 
 	const handleChange = useCallback((next: { max: number; min: number; }): void => {
 		// Open-ended: translate a maxed-out drag back into the Infinity sentinel so downstream code
@@ -107,6 +104,7 @@ export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactE
 				format={format}
 				parse={parse}
 				histogram={histogram}
+				scale={scale}
 				ariaLabel={ariaLabel}
 			/>
 		</section>

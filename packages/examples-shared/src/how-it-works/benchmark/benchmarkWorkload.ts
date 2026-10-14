@@ -66,7 +66,7 @@ export function toAcceleration(config: BenchmarkConfig): AccelerationOptions {
 }
 
 /**
- * Lazily load the committed 10k wine corpus. Isolated so the JSON is a separate async chunk.
+ * Lazily load the 10,000-wine default tier. Isolated so the generator is a separate async chunk.
  */
 export async function loadWineCorpus(): Promise<readonly Wine[]> {
 	const module = await import('@filter-enginez/mock-data/wine');

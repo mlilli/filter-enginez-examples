@@ -80,8 +80,8 @@
 			</nav>
 		</header>
 
-		<main id="main" tabindex="-1">
-			<section class="fe-landing" aria-labelledby="hero-title">
+		<main id="main" class="home" tabindex="-1">
+			<section class="fe-landing home-hero" aria-labelledby="hero-title">
 				<div class="fe-landing__inner">
 					<div class="fe-landing__hero">
 						<img class="fe-landing__mark" src="/mark.svg" alt="" width="72" height="72" />
@@ -90,126 +90,143 @@
 							A generic, isomorphic, framework-agnostic TypeScript data filter engine — for filtering
 							arbitrarily-complex data on arbitrarily-shaped datasets, anywhere JavaScript runs.
 						</p>
+						<div class="hero-actions">
+							<div class="hero-actions__group" role="group" aria-labelledby="hero-actions-demos">
+								<p id="hero-actions-demos" class="hero-actions__label">Live demos</p>
+								<ul class="hero-actions__list">
+									<li>
+										<a class="hero-actions__link fe-landing__cta" href="#demos">See it running</a>
+									</li>
+									<li>
+										<a class="hero-actions__link fe-landing__cta" href="/compare">Compare stacks</a>
+									</li>
+								</ul>
+							</div>
+							<div class="hero-actions__group" role="group" aria-labelledby="hero-actions-engine">
+								<p id="hero-actions-engine" class="hero-actions__label">Learn the engine</p>
+								<ul class="hero-actions__list">
+									<li>
+										<a class="hero-actions__link hero-actions__link--secondary" href="/how-it-works">How it works</a>
+									</li>
+									<li>
+										<a class="hero-actions__link hero-actions__link--secondary" href="https://docs.filterenginez.com/">
+											Read the docs
+										</a>
+									</li>
+								</ul>
+							</div>
+						</div>
 						<div class="install">
 							<p class="install__label">Install the core</p>
 							<pre class="install__command"><code>pnpm add @filter-enginez/core</code></pre>
 							<p class="install__note">
 								Then add the binding for your stack, such as
 								<code>@filter-enginez/react-signals</code>
-								or
+								for React or
 								<code>@filter-enginez/angular-rxjs</code>
-								.
+								for Angular.
 							</p>
 						</div>
-						<ul class="hero-actions">
-							<li><a class="fe-landing__cta" href="#demos">See it running</a></li>
-							<li><a class="fe-landing__about" href="/how-it-works">How the engine works →</a></li>
-							<li><a class="fe-landing__compare" href="/compare">See one filter state in all six stacks →</a></li>
-							<li><a class="fe-landing__compare" href="https://docs.filterenginez.com/">Read the docs →</a></li>
-						</ul>
 					</div>
-
-					<section id="demos" class="demos" aria-labelledby="demos-title">
-						<h2 id="demos-title" class="fe-landing__prompt">Live demos · six stacks, one engine</h2>
-						<p class="fe-landing__tagline">
-							The same engine over the same three datasets — books, wine reviews and real estate — under six front-end
-							stacks. Each demo is its own site, and its Compare button opens your current filters in all six.
-						</p>
-						<ul class="fe-landing__grid">
-							<li>
-								<a class="fe-landing__card fe-landing__card--live" href="https://react-rtk.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">React + Redux Toolkit</span>
-										<span class="fe-landing__badge fe-landing__badge--live">Live</span>
-									</span>
-									<span class="fe-landing__card-blurb">
-										The optional Redux mirror, with the engine as the source of truth
-									</span>
-									<span class="fe-landing__card-cta">react-rtk.filterenginez.com</span>
-								</a>
-							</li>
-							<li>
-								<a class="fe-landing__card fe-landing__card--live" href="https://react.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">React</span>
-										<span class="fe-landing__badge fe-landing__badge--live">Live</span>
-									</span>
-									<span class="fe-landing__card-blurb">The same app with no store library at all</span>
-									<span class="fe-landing__card-cta">react.filterenginez.com</span>
-								</a>
-							</li>
-							<li>
-								<a class="fe-landing__card fe-landing__card--live" href="https://svelte.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">SvelteKit</span>
-										<span class="fe-landing__badge fe-landing__badge--live">Live</span>
-									</span>
-									<span class="fe-landing__card-blurb">
-										The engine in SvelteKit’s own server tier, with server rendering
-									</span>
-									<span class="fe-landing__card-cta">svelte.filterenginez.com</span>
-								</a>
-							</li>
-							<li>
-								<a class="fe-landing__card fe-landing__card--live" href="https://vue.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">Vue</span>
-										<span class="fe-landing__badge fe-landing__badge--live">Live</span>
-									</span>
-									<span class="fe-landing__card-blurb">Vue 3 and Vue Router over the signals binding</span>
-									<span class="fe-landing__card-cta">vue.filterenginez.com</span>
-								</a>
-							</li>
-							<li>
-								<a class="fe-landing__card fe-landing__card--live" href="https://angular.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">Angular</span>
-										<span class="fe-landing__badge fe-landing__badge--live">Live</span>
-									</span>
-									<span class="fe-landing__card-blurb">
-										Zoneless and standalone, consuming the engine’s Observables
-									</span>
-									<span class="fe-landing__card-cta">angular.filterenginez.com</span>
-								</a>
-							</li>
-							<li>
-								<a class="fe-landing__card fe-landing__card--live" href="https://vanilla.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">Vanilla TypeScript</span>
-										<span class="fe-landing__badge fe-landing__badge--live">Live</span>
-									</span>
-									<span class="fe-landing__card-blurb">
-										No framework: hand-written DOM over the signals facade and the bare core
-									</span>
-									<span class="fe-landing__card-cta">vanilla.filterenginez.com</span>
-								</a>
-							</li>
-							<li>
-								<a class="fe-landing__card" href="https://docs.filterenginez.com/">
-									<span class="fe-landing__card-top">
-										<span class="fe-landing__card-title">Documentation</span>
-										<span class="fe-landing__badge fe-landing__badge--docs">Docs</span>
-									</span>
-									<span class="fe-landing__card-blurb">
-										Every rule and algorithm, a live playground, and the API reference
-									</span>
-									<span class="fe-landing__card-cta">docs.filterenginez.com</span>
-								</a>
-							</li>
-						</ul>
-					</section>
 				</div>
 			</section>
 
-			<section class="section" aria-labelledby="features-title">
-				<p class="fe-landing__prompt">The engine</p>
-				<h2 id="features-title" class="section__title">What it does</h2>
-				<p class="section__intro">
-					You describe filters as rules, in code or as JSON, and the engine evaluates them over your data, returns what
-					passes, and tells subscribers when that changes. The core has no framework and no browser dependency, so the
-					same engine runs in a browser, in Node, or in a Web Worker.
+			<section id="demos" class="section" aria-labelledby="demos-title">
+				<div class="section__head">
+					<p class="fe-landing__prompt section__eyebrow">Live demos</p>
+					<h2 id="demos-title" class="section__title">Six stacks, one engine</h2>
+					<p class="section__intro">
+						The same engine over the same three datasets — books, wine reviews and real estate — under six front-end
+						stacks. Each demo is its own site, and its Compare button opens your current filters in all six.
+					</p>
+				</div>
+				<ul class="fe-landing__grid section__grid">
+					<li>
+						<a class="fe-landing__card fe-landing__card--live" href="https://react-rtk.filterenginez.com/">
+							<span class="fe-landing__card-top">
+								<span class="fe-landing__card-title">React + Redux Toolkit</span>
+								<span class="fe-landing__badge fe-landing__badge--live">Live</span>
+							</span>
+							<span class="fe-landing__card-blurb">
+								The optional Redux mirror, with the engine as the source of truth
+							</span>
+							<span class="fe-landing__card-cta">react-rtk.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="fe-landing__card fe-landing__card--live" href="https://react.filterenginez.com/">
+							<span class="fe-landing__card-top">
+								<span class="fe-landing__card-title">React</span>
+								<span class="fe-landing__badge fe-landing__badge--live">Live</span>
+							</span>
+							<span class="fe-landing__card-blurb">The same app with no store library at all</span>
+							<span class="fe-landing__card-cta">react.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="fe-landing__card fe-landing__card--live" href="https://svelte.filterenginez.com/">
+							<span class="fe-landing__card-top">
+								<span class="fe-landing__card-title">SvelteKit</span>
+								<span class="fe-landing__badge fe-landing__badge--live">Live</span>
+							</span>
+							<span class="fe-landing__card-blurb">
+								The engine in SvelteKit’s own server tier, with server rendering
+							</span>
+							<span class="fe-landing__card-cta">svelte.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="fe-landing__card fe-landing__card--live" href="https://vue.filterenginez.com/">
+							<span class="fe-landing__card-top">
+								<span class="fe-landing__card-title">Vue</span>
+								<span class="fe-landing__badge fe-landing__badge--live">Live</span>
+							</span>
+							<span class="fe-landing__card-blurb">Vue 3 and Vue Router over the signals binding</span>
+							<span class="fe-landing__card-cta">vue.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="fe-landing__card fe-landing__card--live" href="https://angular.filterenginez.com/">
+							<span class="fe-landing__card-top">
+								<span class="fe-landing__card-title">Angular</span>
+								<span class="fe-landing__badge fe-landing__badge--live">Live</span>
+							</span>
+							<span class="fe-landing__card-blurb">Zoneless and standalone, consuming the engine’s Observables</span>
+							<span class="fe-landing__card-cta">angular.filterenginez.com</span>
+						</a>
+					</li>
+					<li>
+						<a class="fe-landing__card fe-landing__card--live" href="https://vanilla.filterenginez.com/">
+							<span class="fe-landing__card-top">
+								<span class="fe-landing__card-title">Vanilla TypeScript</span>
+								<span class="fe-landing__badge fe-landing__badge--live">Live</span>
+							</span>
+							<span class="fe-landing__card-blurb">
+								No framework: hand-written DOM over the signals facade and the bare core
+							</span>
+							<span class="fe-landing__card-cta">vanilla.filterenginez.com</span>
+						</a>
+					</li>
+				</ul>
+				<p class="section__footnote">
+					All six apps, the documentation site and the design system are one open-source repository:
+					<a class="section__footnote-link" href="https://github.com/mlilli/filter-enginez-examples">
+						mlilli/filter-enginez-examples
+					</a>
 				</p>
-				<ul class="fe-landing__grid">
+			</section>
+
+			<section class="section" aria-labelledby="features-title">
+				<div class="section__head">
+					<p class="fe-landing__prompt section__eyebrow">The engine</p>
+					<h2 id="features-title" class="section__title">What it does</h2>
+					<p class="section__intro">
+						You describe filters as rules, in code or as JSON, and the engine evaluates them over your data, returns
+						what passes, and tells subscribers when that changes. The core has no framework and no browser dependency,
+						so the same engine runs in a browser, in Node, or in a Web Worker.
+					</p>
+				</div>
+				<ul class="fe-landing__grid section__grid">
 					<li class="fe-landing__card">
 						<h3 class="fe-landing__card-title">Built-in rules</h3>
 						<p class="fe-landing__card-blurb feature__body">
@@ -226,11 +243,11 @@
 					<li class="fe-landing__card">
 						<h3 class="fe-landing__card-title">Filters as data</h3>
 						<p class="fe-landing__card-blurb feature__body">
-							Round-trip a whole filter panel through validated JSON with
-							<code>loadConfig</code>
-							and
+							Round-trip a whole filter panel through validated JSON:
 							<code>exportConfig</code>
-							.
+							writes it and
+							<code>loadConfig</code>
+							reads it back.
 						</p>
 					</li>
 					<li class="fe-landing__card">
@@ -253,43 +270,14 @@
 						</p>
 					</li>
 				</ul>
-				<p class="section__more">
-					<a href="/how-it-works">How the engine works</a>
-					<span class="section__more-detail">
-						Eight of its algorithms, animated, and a benchmark you can run in your browser
-					</span>
-				</p>
-				<p class="section__more">
-					<a href="/compare">Compare the six stacks</a>
-					<span class="section__more-detail">One filter state, opened in every demo that serves its dataset</span>
-				</p>
-			</section>
-
-			<section class="section" aria-labelledby="source-title">
-				<p class="fe-landing__prompt">Open source</p>
-				<h2 id="source-title" class="section__title">Source and packages</h2>
-				<ul class="links">
-					<li>
-						<a href="https://www.npmjs.com/org/filter-enginez">@filter-enginez on npm</a>
-						<span class="links__detail">The core, the reactive facades and a binding per framework</span>
-					</li>
-					<li>
-						<a href="https://github.com/mlilli/filter-enginez">mlilli/filter-enginez</a>
-						<span class="links__detail">The engine, its guides and its architecture notes</span>
-					</li>
-					<li>
-						<a href="https://github.com/mlilli/filter-enginez-examples">mlilli/filter-enginez-examples</a>
-						<span class="links__detail">The six demo apps, the docs site and the design system</span>
-					</li>
-				</ul>
 			</section>
 		</main>
 
 		<footer class="fe-books-app__footer">
 			<p>
-				Filter EngineZ is open source under the
+				Filter EngineZ is open source ·
 				<a href="https://github.com/mlilli/filter-enginez/blob/main/LICENSE.md">Apache License 2.0</a>
-				. The demos run on synthetic data.
+				· The demos run on synthetic data
 			</p>
 		</footer>
 	</body>

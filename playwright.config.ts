@@ -11,11 +11,11 @@
  * ## Prerequisites (why a fresh checkout cannot run this as-is)
  *
  *   1. **Browsers.** Run `pnpm exec playwright install chromium` once.
- *   2. **The full wine corpus, linked into the apps.** The app boots by streaming the 130k-record
- *      corpus into a Web Worker (~110 MB JSON). Generate it once in the engine repo
+ *   2. **Optionally, the real wine corpus, linked into the apps.** Without it every `/wine` route
+ *      generates 150,000 synthetic wines in its Web Worker, and the suite runs against those. To run
+ *      it against the real reviews instead, generate them once in the engine repo
  *      (`pnpm --filter @filter-enginez/mock-data regen:wine:real --accept-data-license`), then run
- *      `pnpm link:wine-corpus` here; without both, the boot loader never resolves and every test
- *      times out.
+ *      `pnpm link:wine-corpus` here.
  *   3. **The dev servers.** `webServer` below launches one per vertical and waits for each, and
  *      every config pins `strictPort`, so a port collision is a hard failure rather than a silent
  *      reassignment. **Stop any dev servers before running the suite** — `reuseExistingServer` is
@@ -103,7 +103,7 @@ const SITE_BASE_URL = 'http://127.0.0.1:5181';
  * In a CI environment, run: `playwright test --forbid-only --retries=1`.
  */
 export default defineConfig({
-	// The 130k-corpus boot is heavy, so give each assertion room.
+	// The 150k-corpus boot is heavy, so give each assertion room.
 	expect: { timeout: 20_000 },
 	/**
 	 * Files run in parallel; cases WITHIN a file stay in order.
@@ -240,7 +240,7 @@ export default defineConfig({
 	 * | 6       |  99 s | green   |
 	 * | 8       | 102 s | green   |
 	 *
-	 * Six workers is the worst case for the obvious hazard: each wine test streams a ~130k-record
+	 * Six workers is the worst case for the obvious hazard: each wine test builds a 150k-record
 	 * corpus, and with six wine files across six workers all six corpus boots are in flight at once.
 	 * It stays green there.
 	 *

@@ -16,6 +16,16 @@
  *
  * State is the panel's usual `ref` + one-way `watch`; see `<WineChipSection>` and `<WineRangeSection>`
  * for why a read-only `computed` snaps the handle backwards on a worker-backed route.
+ *
+ * ## The track is log-scaled toward the youngest vintage
+ *
+ * Nearly every bottle is from the last twenty years and a few are a century old, so on a linear track
+ * the years people actually filter by would share the last sliver of the control. `wineSliderScale`
+ * anchors the scale at the maximum, and `wineSliderHistogram` slices the bars to match.
+ *
+ * Non-vintage wines carry `NON_VINTAGE_YEAR` (2025), the right end of the track. The readout and the
+ * editable fields go through `WINE_SLIDER_TEXT.vintage` — `formatVintage` shows that year as `NV`, and
+ * `parseVintage` reads a typed `NV` back as it — so the slider never claims a 2025 harvest.
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
@@ -26,10 +36,12 @@ import {
 	commitRule,
 	FALLBACK_BOUNDS,
 	fieldBounds,
-	fieldHistogram,
 	type NumericBounds,
 	vintageBoundsFromSet,
 	vintageYearsFromRange,
+	WINE_SLIDER_TEXT,
+	wineSliderHistogram,
+	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
 import { useEngineRefs } from '@filter-enginez/vue-signals';
 import { computed, ref, watch } from 'vue';
@@ -79,18 +91,13 @@ const valueMax = computed(() => {
 /** The filtered-except-self bounds, or `undefined` to fall back to the whole baseline track. */
 const available = computed(() => fieldBounds(bundle.value, 'vintage') ?? undefined);
 
-/** One bucket per year — the per-vintage distribution, matching the field's actual discreteness. */
-const histogram = computed(() => fieldHistogram(bundle.value, 'vintage', valueMin.value, valueMax.value));
+/** The log scale anchored at the youngest vintage — see the docblock. */
+const scale = computed(() => wineSliderScale('vintage', baseline.value));
 
-/**
- * Render a year without a thousands separator — `2015`, never `2,015`.
- *
- * @param year - The slider value.
- * @returns The label.
- */
-function formatYear(year: number): string {
-	return String(Math.round(year));
-}
+/** The per-vintage distribution, summed into equal slices of the log-scaled track. */
+const histogram = computed(() =>
+	wineSliderHistogram(bundle.value, 'vintage', baseline.value, valueMin.value, valueMax.value),
+);
 
 /**
  * Commit a dragged span as the set of years it covers.
@@ -114,9 +121,11 @@ function handleChange(next: { readonly max: number; readonly min: number }): voi
 		<RangeSlider
 			:available="available"
 			:baseline="baseline"
-			:format="formatYear"
+			:format="WINE_SLIDER_TEXT.vintage.format"
 			:histogram="histogram"
 			label="Vintage"
+			:parse="WINE_SLIDER_TEXT.vintage.parse"
+			:scale="scale"
 			slider-label="Filter by vintage year"
 			:step="step"
 			:value-max="valueMax"

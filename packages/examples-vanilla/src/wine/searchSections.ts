@@ -93,7 +93,7 @@ export function createSearchSection(
 	const input = createSearchInput({
 		ariaLabel: config.ariaLabel,
 		// Typing alone does not filter. The rule commits on blur / Enter / clear, so a fuzzy scan of
-		// 130k records runs once per query rather than once per character.
+		// 150k records runs once per query rather than once per character.
 		onChange: (next) => {
 			query.paint(next);
 		},

@@ -20,8 +20,8 @@
  * at build time, so the DYNAMIC import below is eliminated from the production bundle entirely.
  *
  * **This vertical is the one that needs the vendored service-worker patch most.** Its `/wine` route
- * runs the 130k worker tier off `static/data-real-full.ndjson`, and MSW's service worker intercepts
- * worker-thread fetches. See the `FILTER ENGINEZ LOCAL PATCH` block in `static/mockServiceWorker.js`.
+  * runs the 150k worker tier, which streams `static/data-real-full.ndjson` when the local real corpus
+ * is linked, and MSW's service worker intercepts worker-thread fetches. See the `FILTER ENGINEZ LOCAL PATCH` block in `static/mockServiceWorker.js`.
  *
  * @packageDocumentation
  */

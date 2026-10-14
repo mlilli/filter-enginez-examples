@@ -9,7 +9,7 @@
  *
  * ## The worker tier needs nothing app-specific
  *
- * `/books` and `/real-estate` are both main-thread. Wine is 130k records behind Comlink in every
+ * `/books` and `/real-estate` are both main-thread. Wine is 150k records behind Comlink in every
  * vertical, and here that takes no extra machinery: `spawnWineWorker` is a Vite `?worker` import and
  * this is a Vite app, so `bootWineAsyncEngine` takes it directly. `examples-shared/wine-core`'s own
  * docblock lists vanilla among the verticals that pass it.

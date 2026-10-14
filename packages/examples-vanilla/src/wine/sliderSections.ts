@@ -12,8 +12,15 @@
  *
  * `SLIDER_STEPS` is the grid the BASELINE BOUNDS round outward onto, and it is all zeros
  * deliberately: padding price by 5 would turn a $4 corpus minimum into a displayed $0. Conflating
- * the two — via a `|| 1` fallback — would snap the price slider to $1 where React snaps to $5.
- * {@link DRAG_STEPS} is the other quantity, and the two are never interchangeable.
+ * the two — via a `|| 1` fallback — would hide that ABV drags in tenths while its baseline is not
+ * rounded at all. {@link DRAG_STEPS} is the other quantity, and the two are never interchangeable.
+ *
+ * ## Scales and bars
+ *
+ * Every slider here takes its scale from `wineSliderScale` and its bars from `wineSliderHistogram`,
+ * the declarations every wine panel reads: price and vintage are log-scaled (most bottles cost under
+ * $30 and come from the last twenty years, with long tails beyond), points and ABV are linear. The
+ * bars come back already sliced for the field's scale, which is why `fieldHistogram` is not used here.
  *
  * ## Every handler paints before it commits
  *
@@ -38,11 +45,15 @@ import {
 	clearRule,
 	commitRule,
 	fieldBounds,
-	fieldHistogram,
+	formatVintage,
 	type NumericBounds,
+	parseVintage,
 	type SliderFieldId,
 	vintageBoundsFromSet,
 	vintageYearsFromRange,
+	WINE_SLIDER_TEXT,
+	wineSliderHistogram,
+	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
 
 import type { WineSection, WineSectionContext } from './sections.js';
@@ -53,8 +64,14 @@ import { section } from '../controls/sections.js';
 import { createSelectMenu } from '../controls/selectMenu.js';
 import { createFacetAdopter, sameSpan } from './facetState.js';
 
-/** Per-slider drag granularity. NOT `SLIDER_STEPS` — see the module docblock. */
-const DRAG_STEPS: Record<SliderFieldId, number> = { abv: 0.1, points: 1, price: 5, vintage: 1 };
+/**
+ * Per-slider drag granularity. NOT `SLIDER_STEPS` — see the module docblock.
+ *
+ * @remarks
+ * Price steps by whole dollars, like every other wine panel: on a log track the low end is spread
+ * wide enough that $1 is a visible move, and a $5 grid would make $8 or $12 unreachable by drag.
+ */
+const DRAG_STEPS: Record<SliderFieldId, number> = { abv: 0.1, points: 1, price: 1, vintage: 1 };
 
 /** Shown before an operator is picked — the low end of a "great" score, matching every vertical. */
 const DEFAULT_THRESHOLD = 90;
@@ -79,8 +96,6 @@ const OPERATORS: readonly { readonly label: string; readonly value: string }[] =
 interface RangeFacetConfig {
 	/** The `Wine` property the rule constrains — `priceUsd` for the `price` rule. */
 	readonly field: string;
-	/** Value → display string. Omitted for points, which reads as a bare number. */
-	readonly format?: (value: number) => string;
 	/** The slider's own header label. */
 	readonly label: string;
 	/** Rule id — also the key into the baselines and the bundle's field metadata. */
@@ -89,11 +104,10 @@ interface RangeFacetConfig {
 	readonly sliderLabel: string;
 }
 
-/** Price, points and ABV — identical but for these five values. */
+/** Price, points and ABV — identical but for these four values. */
 const RANGE_FACETS: Record<'abv' | 'points' | 'price', RangeFacetConfig> = {
 	abv: {
 		field: 'abv',
-		format: (abv) => `${abv.toFixed(1)}%`,
 		label: 'ABV (%)',
 		ruleId: 'abv',
 		sliderLabel: 'Filter by ABV',
@@ -101,7 +115,6 @@ const RANGE_FACETS: Record<'abv' | 'points' | 'price', RangeFacetConfig> = {
 	points: { field: 'points', label: 'Points', ruleId: 'points', sliderLabel: 'Filter by points' },
 	price: {
 		field: 'priceUsd',
-		format: (price) => `$${String(Math.round(price))}`,
 		label: 'Price (USD)',
 		ruleId: 'price',
 		sliderLabel: 'Filter by price',
@@ -122,6 +135,9 @@ export function createRangeSection(
 	const config = RANGE_FACETS[facetId];
 	const { facets, host, leaveExpressionMode } = context;
 	const baseline = facets.baselines[config.ruleId];
+	// Built once: the baseline is fixed for the life of the panel, and the scale must be built over the
+	// same baseline the slider is handed, or thumbs and bars would place a value differently.
+	const scale = wineSliderScale(config.ruleId, baseline);
 	const span = createFacetAdopter<NumericBounds | null>(
 		committedSpan(host.core.getRules(), config.ruleId),
 		sameSpan,
@@ -129,13 +145,15 @@ export function createRangeSection(
 
 	const slider = createRangeSlider({
 		ariaLabel: config.sliderLabel,
-		format: config.format,
+		// The readout and typed-text rules every app's wine panel shares, so `$1,250` reads back.
+		format: WINE_SLIDER_TEXT[config.ruleId].format,
 		label: config.label,
 		onChange: (next) => {
 			leaveExpressionMode();
 			span.paint(next);
 			commitRule(host, config.ruleId, range(config.field, next));
 		},
+		parse: WINE_SLIDER_TEXT[config.ruleId].parse,
 		step: DRAG_STEPS[config.ruleId],
 	});
 
@@ -163,7 +181,8 @@ export function createRangeSection(
 				// claim there is nothing there.
 				available: fieldBounds(bundle, config.ruleId) ?? baseline,
 				baseline,
-				histogram: fieldHistogram(bundle, config.ruleId, valueMin, valueMax),
+				histogram: wineSliderHistogram(bundle, config.ruleId, baseline, valueMin, valueMax),
+				scale,
 				valueMax,
 				valueMin,
 			});
@@ -184,12 +203,17 @@ export function createRangeSection(
  * The slider then shows a span wider than the rule, which is the honest rendering of "this control
  * cannot express what is committed", and the next drag replaces it.
  *
+ * The track is log-scaled toward the youngest vintage, and the non-vintage year at its right end
+ * reads `NV` in the summary, the editable fields and the thumbs' `aria-valuetext`; typing `NV` reads
+ * back as that year.
+ *
  * @param context - The panel's shared write path and derived facets.
  * @returns The mounted section.
  */
 export function createVintageSection(context: WineSectionContext): WineSection {
 	const { facets, host, leaveExpressionMode } = context;
 	const baseline = facets.baselines.vintage;
+	const scale = wineSliderScale('vintage', baseline);
 	/** Recover the committed year SET as a span. */
 	const read = (rules: ReadonlyMap<RuleId, unknown>): NumericBounds | null => {
 		const rule = rules.get('vintage') as InSetRule<number> | undefined;
@@ -200,14 +224,15 @@ export function createVintageSection(context: WineSectionContext): WineSection {
 
 	const slider = createRangeSlider({
 		ariaLabel: 'Filter by vintage year',
-		// A year without a thousands separator — `2015`, never `2,015`.
-		format: (year) => String(Math.round(year)),
+		// A year without a thousands separator — `2015`, never `2,015` — and `NV` for a non-vintage wine.
+		format: formatVintage,
 		label: 'Vintage',
 		onChange: (next) => {
 			leaveExpressionMode();
 			span.paint(next);
 			commitRule(host, 'vintage', inSet<number>('vintage', vintageYearsFromRange(next, baseline)));
 		},
+		parse: parseVintage,
 		step: DRAG_STEPS.vintage,
 	});
 
@@ -226,8 +251,9 @@ export function createVintageSection(context: WineSectionContext): WineSection {
 			slider.update({
 				available: fieldBounds(bundle, 'vintage') ?? baseline,
 				baseline,
-				// One bucket per year — the distribution matches the field's actual discreteness.
-				histogram: fieldHistogram(bundle, 'vintage', valueMin, valueMax),
+				// Sliced for the log track, so the dense recent years get the width they need.
+				histogram: wineSliderHistogram(bundle, 'vintage', baseline, valueMin, valueMax),
+				scale,
 				valueMax,
 				valueMin,
 			});

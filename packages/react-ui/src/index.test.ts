@@ -36,8 +36,16 @@ describe('@filter-enginez/react-ui barrel', () => {
 			'applyRulesExcept',
 			'clampToBounds',
 			'computeHistogram',
+			'createSliderScale',
 			'deriveBaselineBounds',
 			'deriveBounds',
+			'fineHistogramQuery',
+			'linearSliderScale',
+			'logSliderScale',
+			'rebinHistogram',
+			'scaledBucketCount',
+			'snapToStep',
+			'stepScaledValue',
 		] as const) {
 			expect(typeof reactUi[helperName]).toBe('function');
 		}

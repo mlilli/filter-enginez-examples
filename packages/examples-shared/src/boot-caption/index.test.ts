@@ -55,8 +55,20 @@ describe('bootCaptionParts', () => {
 	});
 
 	describe('the streaming state', () => {
-		it('counts records against the tier total', () => {
-			expect(caption({ loaded: 40_000, total: 130_000 })).toBe('Loaded 40,000 of ~130,000 bottles');
+		it('counts records against an exact total without a tilde', () => {
+			// The synthetic wine tier, a server's page envelope: totals known before the first record.
+			expect(caption({ loaded: 40_000, total: 150_000 })).toBe('Loaded 40,000 of 150,000 bottles');
+		});
+
+		it('marks an estimated total with a tilde', () => {
+			// The local real wine corpus streams, and cannot know its length until it ends.
+			expect(caption({ isTotalEstimated: true, loaded: 40_000, total: 129_907 })).toBe(
+				'Loaded 40,000 of ~129,907 bottles',
+			);
+		});
+
+		it('treats an explicitly exact total like an absent flag', () => {
+			expect(caption({ isTotalEstimated: false, loaded: 1, total: 2 })).toBe('Loaded 1 of 2 bottles');
 		});
 
 		it('marks the live count as the highlightable segment, and nothing else', () => {
@@ -81,26 +93,26 @@ describe('bootCaptionParts', () => {
 	describe('the indexing state', () => {
 		it('names the pause once every record has arrived, rather than freezing on the count', () => {
 			// After the final row there is still a visible wait while the bitmap index builds. A caption
-			// stuck on "Loaded 130,000 of ~130,000" reads as a hang at the exact moment a user reaches for
+			// stuck on "Loaded 150,000 of 150,000" reads as a hang at the exact moment a user reaches for
 			// reload — which is what Vue's and Angular's two-state screens still do.
-			expect(caption({ loaded: 130_000, total: 130_000 })).toBe(
-				'130,000 bottles loaded · constructing filter index',
+			expect(caption({ loaded: 150_000, total: 150_000 })).toBe(
+				'150,000 bottles loaded · constructing filter index',
 			);
 		});
 
 		it('holds when a stream overshoots its estimate', () => {
-			// `total` is documented best-effort and may shift when the parse completes, so `loaded` can
-			// exceed it. That is finished, not still streaming.
-			expect(caption({ loaded: 130_001, total: 130_000 })).toBe(
+			// An estimated total can be passed by the stream it estimates, so `loaded` can exceed it. That
+			// is finished, not still streaming.
+			expect(caption({ isTotalEstimated: true, loaded: 130_001, total: 130_000 })).toBe(
 				'130,001 bottles loaded · constructing filter index',
 			);
 		});
 	});
 
 	it.each([
-		['bottles', 'Loaded 500 of ~1,000 bottles'],
-		['books', 'Loaded 500 of ~1,000 books'],
-		['listings', 'Loaded 500 of ~1,000 listings'],
+		['bottles', 'Loaded 500 of 1,000 bottles'],
+		['books', 'Loaded 500 of 1,000 books'],
+		['listings', 'Loaded 500 of 1,000 listings'],
 	])('interpolates the %s noun', (recordNoun, expected) => {
 		expect(caption({ loaded: 500, total: 1000 }, recordNoun)).toBe(expected);
 	});

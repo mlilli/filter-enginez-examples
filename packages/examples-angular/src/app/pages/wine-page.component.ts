@@ -1,5 +1,5 @@
 /**
- * `/wine` — boots the worker-backed 130k engine and renders the wine demo.
+ * `/wine` — boots the worker-backed 150,000-wine engine and renders the wine demo.
  *
  * @remarks
  * The route owns the boot; `<fe-wine-view>` owns everything after it. Same split as `/real-estate`,
@@ -18,10 +18,12 @@
  *
  * ## The failure screen names the fix
  *
- * A wine boot fails for two ordinary local reasons — the worker not spawning, or the 130k corpus not
- * being present, since it is generated locally and gitignored. Both are setup states rather than bugs,
- * so the screen says what to run. An indefinite loader would read as a hang and send someone looking
- * in the wrong place.
+ * The worker generates the 150,000 synthetic wines itself (or streams the local real corpus when one
+ * is linked), so there is no data file to be missing: a failed boot almost always means the worker
+ * could not start. The screen says so, and names the switch that boots the 10,000-wine default tier
+ * on the main thread instead — `WINE_DATASET_SIZE` in `wineBoot.ts`, the Angular equivalent of the
+ * Vite apps' `VITE_WINE_TIER=default`. An indefinite loader would read as a hang and send someone
+ * looking in the wrong place.
  *
  * @packageDocumentation
  */
@@ -94,9 +96,10 @@ import { WineViewComponent } from '../wine/wine-view.component.js';
 				<p class="fe-boot-error__title">The wine engine could not start.</p>
 				<p class="fe-boot-error__detail">{{ message }}</p>
 				<p class="fe-boot-error__detail">
-					The 130k corpus is generated locally and is not in the repository. In the engine repo, run
-					<code>pnpm --filter @filter-enginez/mock-data regen:wine:real --accept-data-license</code>,
-					then <code>pnpm link:wine-corpus</code> here.
+					The 150,000 wines are generated inside a Web Worker, so a failure here almost always means
+					the worker could not start. To boot the 10,000-wine default tier on the main thread instead,
+					set <code>WINE_DATASET_SIZE</code> to <code>10_000</code> in
+					<code>src/app/wine/wineBoot.ts</code>.
 				</p>
 			</div>
 		} @else {
@@ -124,9 +127,13 @@ export class WinePageComponent {
 	 *
 	 * @remarks
 	 * Three states, not two. A two-state caption — `Booting the wine engine…` plus an optional
-	 * `N / M bottles` — freezes on `130,000 / 130,000` for the whole bitmap-index build, which reads as
+	 * `N / M bottles` — freezes on `150,000 / 150,000` for the whole bitmap-index build, which reads as
 	 * a hang. The third state exists to prevent that; the vanilla app's `winePage.boot.test.ts` argues
 	 * it at length.
+	 *
+	 * The store's progress snapshot reaches the builder unchanged, `isTotalEstimated` included, so the
+	 * total carries a `~` only while the local real corpus streams — the one source that cannot know
+	 * its length up front.
 	 *
 	 * A `computed` rather than a template call, because `@for` re-evaluates its source expression on
 	 * every change-detection pass and rebuilding the array each time would defeat `track`.

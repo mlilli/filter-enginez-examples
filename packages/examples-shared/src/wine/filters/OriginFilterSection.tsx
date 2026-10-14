@@ -18,14 +18,15 @@
  */
 
 import { hierarchical, type HierarchicalRule } from '@filter-enginez/core';
-import { buildOriginTree, type Wine } from '@filter-enginez/mock-data/wine';
+import { type Wine } from '@filter-enginez/mock-data/wine';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
-import { HierarchicalPicker, type PickerTreeNode } from '@filter-enginez/react-ui';
+import { HierarchicalPicker } from '@filter-enginez/react-ui';
 import { useCallback, useMemo } from 'react';
 
 import { useSeedAndAdopt } from '../../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
+import { buildWineOriginTree } from '../wine-domain/facets.js';
 import { useBundleOriginCounts, useBundleOriginDisabledSet } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
@@ -41,10 +42,10 @@ export const OriginFilterSection = (): React.ReactElement => {
 	// user clicks a node, before the engine round-trip confirms.
 	const [selected, setSelected] = useSeedAndAdopt(engineSelected, sameSelection);
 
-	// Corpus-parameterized `buildOriginTree` (mock-data does not bundle a default corpus into it);
-	// source the tree from the engine's loaded records so it reflects the actual tier.
+	// Built from the engine's loaded records so it reflects the actual tier, and ordered by wine count
+	// at every level through the same helper every app's panel uses.
 	const sourceData = engine.core.getSourceData();
-	const tree = useMemo(() => buildOriginTree(sourceData) as unknown as PickerTreeNode, [sourceData]);
+	const tree = useMemo(() => buildWineOriginTree(sourceData), [sourceData]);
 
 	const handleChange = useCallback((nextSelected: readonly string[]): void => {
 		// Paint the tree's new checked state first, then disable+loader, then the engine. Cast

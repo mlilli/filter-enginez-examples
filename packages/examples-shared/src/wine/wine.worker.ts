@@ -1,87 +1,83 @@
 /// <reference lib="webworker" />
 /**
- * `wine.worker.ts` — the Web Worker that hosts the wine filter engine.
+ * `wine.worker.ts` — the Web Worker that builds the wine corpus and hosts the wine filter engine.
  *
  * @remarks
- * The full 130k Kaggle Wine Reviews corpus is too heavy to keep on the main thread — the fetch + parse
- * blocks the React render loop for 1-3 seconds (loader animation freezes) and every
- * subsequent filter operation blocks the UI for hundreds of milliseconds (slider drag +
- * chip toggle feel unresponsive). This worker fixes both:
+ * 150,000 wines are too heavy for the main thread: generating them takes a second or two, and every
+ * filter over them would block input for tens of milliseconds. This worker takes both off the page:
  *
- *   1. The worker streams the NDJSON corpus off the main thread, reporting per-bottle
- *      progress to a `Comlink.proxy`-wrapped `onProgress` callback. The main-thread
- *      `<BrainSynapse>` loader keeps animating throughout.
- *   2. The worker hosts the `FilterEngine` for its lifetime. Every consumer call
- *      (addRule, removeRule, getResults, simulate, etc.) round-trips via Comlink. The
- *      main thread stays free to render React + handle user input regardless of how
- *      heavy the filter computation is.
+ *   1. It builds the corpus — the local real review corpus where one is linked, otherwise the 150,000
+ *      synthetic wines from the seeded generator — reporting progress after every chunk to a
+ *      `Comlink.proxy`-wrapped `onProgress` callback. The main-thread loader keeps animating
+ *      throughout. The chain lives in `wineCorpusLoader.ts`, where it can be tested.
+ *   2. It hosts the `FilterEngine` for its lifetime. Every consumer call (addRule, removeRule,
+ *      getResults, simulate, …) round-trips via Comlink, so the main thread stays free to render and
+ *      handle input however heavy the filter computation is.
  *
- * **Data source resolution.** Three-tier fallback chain:
- *
- *   - **Streaming NDJSON** — `/data-real-full.ndjson` via `response.body.getReader()`,
- *     parsed line-by-line. ~130k records. Reports progress every chunk.
- *   - **Monolithic JSON** — `/data-real-full.json` via `fetch(...).then(r => r.json())`.
- *     Same dataset, atomic parse. Used if the NDJSON 404s (e.g. only the JSON export is
- *     present).
- *   - **Bundled default tier** — `import { wines } from '@filter-enginez/mock-data/wine'`,
- *     the 10k stratified committed dataset. Works on a fresh clone with no extra fetch.
- *
- * **Why a static `import` from mock-data is OK here.** The worker runs in its own ES module
- * context — top-level await and ES module imports both work. The same `await
- * initializeBitmapAcceleration()` dance the main-thread tier performs happens here; same
- * outcome, different thread.
+ * **It imports the generator sub-export only.** `@filter-enginez/mock-data/wine/generator` has no
+ * corpus loaders, no MSW and no top-level `await`, so nothing is generated before the main thread has
+ * said which tier it wants.
  *
  * @packageDocumentation
  */
 
 import { createFilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
-import { wines as defaultWines, type Wine } from '@filter-enginez/mock-data/wine';
+import { type Wine } from '@filter-enginez/mock-data/wine/generator';
 import { exposeFilterEngineWorker, type WorkerEngineFactory } from '@filter-enginez/worker-bridge';
 
 import { loadWineCorpus, type WineWorkerCallbacks } from './wineCorpusLoader.js';
+import { type WineWorkerTier } from './wineCorpusTier.js';
+
+/**
+ * Read the requested tier out of the structured-cloned `factoryOptions`.
+ *
+ * @remarks
+ * The options arrive as plain data from another thread, so they are checked rather than cast: anything
+ * other than `'low-memory'` builds the full tier, which is what the page is for.
+ *
+ * @param options - The factory options as received.
+ * @returns The tier to build.
+ * @internal
+ */
+function readRequestedTier(options: unknown): WineWorkerTier {
+	const tier = (options as { readonly tier?: unknown } | undefined)?.tier;
+
+	return tier === 'low-memory' ? 'low-memory' : 'full';
+}
 
 /**
  * The worker-side engine factory. Receives plain (structuredClone-safe) `options` and a
- * separately-arriving `callbacks` object whose methods are Comlink-proxied back to the
- * main thread.
+ * separately-arriving `callbacks` object whose methods are Comlink-proxied back to the main thread.
  *
  * @internal
  */
-const wineEngineFactory: WorkerEngineFactory<Wine> = async (_options, callbacks) => {
+const wineEngineFactory: WorkerEngineFactory<Wine> = async (options, callbacks) => {
 	// The callbacks object is a Comlink remote — its methods round-trip via postMessage.
-	// Cast to our typed shape so the rest of the factory reads cleanly.
 	const cbs = callbacks as unknown as WineWorkerCallbacks | undefined;
 	const onProgress = cbs?.onProgress;
 
-	// Phase 1 — WASM init. The worker has its own module-init scope; we re-init Roaring here
-	// because the BitmapIndex will be constructed inside this thread.
+	// Phase 1 — WASM init. The worker has its own module scope, so Roaring is initialized here, where
+	// the bitmap index will be built.
 	await initializeBitmapAcceleration();
 
-	// Phase 2 — corpus fetch. The three-tier chain (NDJSON -> JSON -> bundled default) lives in
-	// `wineCorpusLoader` so it can be unit-tested. This file cannot be imported by a test at all:
-	// `exposeFilterEngineWorker` below runs at module load and needs a real worker `self`.
-	const { wines } = await loadWineCorpus(defaultWines, onProgress);
+	// Phase 2 — the corpus.
+	const { wines } = await loadWineCorpus(readRequestedTier(options), onProgress);
 
-	// Phase 3 — engine construction inside the worker. The returned engine lives here for
-	// the worker's lifetime; the main thread holds a Comlink proxy.
+	// Phase 3 — the engine, which lives here for the worker's lifetime; the main thread holds a Comlink
+	// proxy.
 	//
-	// **No pre-loaded rules.** Passing `config: wineFilterConfig` would start the engine
-	// with the 11 filter rules already registered, so every user interaction would record
-	// as `RULE_CHANGED` (because the rule already exists) — the devtools action log could
-	// never show `addRule` or `removeRule` entries organically. So, by design, the engine
-	// is left empty at boot. Filter
-	// controls handle `undefined` rules by falling back to default displayed values
-	// (`rule?.config.set ?? []`, etc.). The first user click on any filter dispatches a
-	// real `addRule`; subsequent edits become `changeRule`; clicking the X on a chip
-	// dispatches `removeRule`. All three categories show up in the log as the user
-	// interacts naturally.
+	// **No pre-loaded rules.** Passing a config would start the engine with every filter rule already
+	// registered, so every user interaction would record as `RULE_CHANGED` and the devtools action log
+	// could never show `addRule` or `removeRule` entries organically. Filter controls handle an absent
+	// rule by falling back to their default displayed values; the first click dispatches a real
+	// `addRule`, later edits `changeRule`, and a chip's X `removeRule`.
 	return createFilterEngine<Wine>({
 		sourceData: wines,
 	});
 };
 
-// Register the factory + expose the worker. `wrapInWorker({ factoryName: 'wineEngine' })`
-// on the main thread picks this up by name.
+// Register the factory + expose the worker. `wrapInWorker({ factoryName: 'wineEngine' })` on the main
+// thread picks this up by name.
 exposeFilterEngineWorker({
 	wineEngine: wineEngineFactory,
 });

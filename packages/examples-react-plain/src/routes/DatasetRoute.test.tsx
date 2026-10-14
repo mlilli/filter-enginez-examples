@@ -180,7 +180,15 @@ describe('DatasetRoute', () => {
 			// `toLocaleString`, so the assertion has to read `40,000` — the separators are the point of the
 			// call and a bare `40000` would pass over a version that had lost it.
 			expect(screen.getByText(/Loaded/u).textContent).toContain('40,000');
-			expect(screen.getByText(/Loaded/u).textContent).toContain('of ~130,000 books');
+			// An exact total, so no tilde.
+			expect(screen.getByText(/Loaded/u).textContent).toContain('of 130,000 books');
+		});
+
+		it('marks an estimated total with a tilde', async () => {
+			render(<DatasetRoute entry={makeEntry()} />);
+			await emitProgress({ isTotalEstimated: true, loaded: 8_000, total: 129_907 });
+
+			expect(screen.getByText(/Loaded/u).textContent).toContain('of ~129,907 books');
 		});
 
 		it('names the indexing pause once every record has arrived', async () => {

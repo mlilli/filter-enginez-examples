@@ -17,9 +17,10 @@
  *
  * ### What predicts coverage is WHEN the code runs, not what kind of code it is
  *
- * This module holds real decisions — the canonical vocabulary ordering, the sixty-varietal cap, the
- * compact-not-closure origin read — but every one of them runs at CONSTRUCTION time, and the panel
- * builds all six sections unconditionally, so any test that mounts drives them. What no other test
+ * This module holds real decisions — the canonical vocabulary ordering, the varietal chip limit, the
+ * compact-not-closure origin read — but every one of them runs at construction or on the repaint every
+ * mount performs, and the panel builds all six sections unconditionally, so any test that mounts
+ * drives them. What no other test
  * reaches is what only an interaction reaches.
  *
  * "Holds decisions rather than wiring" and "no test reaches it" are different claims, and only the
@@ -56,7 +57,8 @@
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { inSetofSets, type InSetofSetsRule, value, type ValueRule } from '@filter-enginez/core';
+import { inSet, inSetofSets, type InSetofSetsRule, value, type ValueRule } from '@filter-enginez/core';
+import { VARIETAL_CHIP_LIMIT } from '@filter-enginez/examples-shared/wine-domain';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { makeWine } from '../test-support/wineFixture.js';
@@ -66,10 +68,10 @@ import { createWinePanelMounter } from '../test-support/winePanelHarness.js';
  * Three wines: an Italian country node with TWO provinces beneath it, and a second country.
  *
  * @remarks
- * The two provinces are what make the last two cases mean anything. With one province, `Italy`,
- * `Italy|Sicily` and `Italy|Sicily|Etna` would all carry the identical leaf set, so "the compact node
- * for this leaf set" would be satisfied by the pre-order tie-break alone. With two, the pair of leaf
- * ids belongs to `Italy` and to nothing else.
+ * The two provinces are what make the last two cases mean anything. With one province, the country
+ * and its single branch would cover the same wines, so "the compact node for this set" would be
+ * satisfied by whichever node happened to be checked first. With two, the set covering both
+ * provinces belongs to `Italy` and to nothing else.
  */
 const DATA: readonly Wine[] = [
 	makeWine({ id: 'a' }),
@@ -89,14 +91,23 @@ const DATA: readonly Wine[] = [
 ];
 
 /**
- * Italy's leaf ids, in the pre-order the spec walk emits them.
+ * Every origin id selecting `Italy` matches, in the pre-order the spec walk emits them.
  *
  * @remarks
- * Provinces sort by `localeCompare`, so Piedmont precedes Sicily. `deriveOriginSelection` keys on a
- * SORTED copy, so this order is a readability choice rather than a load-bearing one — but the
- * commit-side assertion compares the array as written, and that one does depend on it.
+ * A node matches its own id as well as every id beneath it, because a wine's `originId` stops at the
+ * deepest level the wine names (`OriginNodeSpec.leafIds` explains why). Siblings are ordered by wine
+ * count, and these two provinces hold one wine each, so the tie falls to `localeCompare` and Piedmont
+ * precedes Sicily. `deriveOriginSelection` keys on a SORTED copy, so this order is a readability
+ * choice rather than a load-bearing one — but the commit-side assertion compares the array as
+ * written, and that one does depend on it.
  */
-const ITALY_LEAF_IDS: readonly string[] = ['Italy|Piedmont|Barolo', 'Italy|Sicily|Etna'];
+const ITALY_ORIGIN_IDS: readonly string[] = [
+	'Italy',
+	'Italy|Piedmont',
+	'Italy|Piedmont|Barolo',
+	'Italy|Sicily',
+	'Italy|Sicily|Etna',
+];
 
 /**
  * Mount the wine panel over a fresh engine, optionally pre-seeded.
@@ -168,8 +179,72 @@ function originRow(root: HTMLElement, label: string): HTMLButtonElement {
 	return row;
 }
 
+/**
+ * One more varietal than the chip limit, with the extra one the rarest.
+ *
+ * @remarks
+ * Every common varietal carries two wines and `Rare Grape` carries one, so the frequency ranking puts
+ * it last whatever the tie-break among the others — the one varietal the limit leaves out.
+ */
+const MANY_VARIETALS: readonly Wine[] = [
+	...Array.from({ length: VARIETAL_CHIP_LIMIT }, (_, index) => {
+		const varietal = `Grape ${String(index).padStart(2, '0')}`;
+
+		return [makeWine({ id: `${varietal} a`, varietal }), makeWine({ id: `${varietal} b`, varietal })];
+	}).flat(),
+	makeWine({ id: 'rare', varietal: 'Rare Grape' }),
+];
+
+const mountManyVarietals = createWinePanelMounter(MANY_VARIETALS);
+
+/**
+ * The varietal chips' labels, in render order.
+ *
+ * @param root - The mounted root.
+ * @returns Each chip's text.
+ */
+function varietalChips(root: HTMLElement): readonly string[] {
+	const heading = Array.from(root.querySelectorAll('h3')).find((node) => node.textContent.startsWith('Varietal'));
+
+	return Array.from(heading?.parentElement?.querySelectorAll('.fe-chip') ?? []).map((chip) => chip.textContent);
+}
+
 afterEach(() => {
 	document.body.replaceChildren();
+});
+
+describe('the varietal chips', () => {
+	it('shows the most-reviewed varietals up to the limit, under a heading with the full count', () => {
+		const { root } = mountManyVarietals();
+		const chips = varietalChips(root);
+
+		expect(chips).toHaveLength(VARIETAL_CHIP_LIMIT);
+		expect(chips).not.toContain('Rare Grape');
+		expect(root.textContent).toContain(`Varietal (${String(VARIETAL_CHIP_LIMIT + 1)})`);
+	});
+
+	it('keeps a selected varietal beyond the limit visible, so it can be cleared where it is shown', () => {
+		// The shared-link shape: a rare grape committed before the panel exists. Without its chip the
+		// facet would filter with nothing on screen to say so, and nothing to click to undo it.
+		const { core, root } = mountManyVarietals((engine) => {
+			engine.addRule('varietal', inSet<string>('varietal', ['Rare Grape']));
+		});
+
+		expect(varietalChips(root)).toContain('Rare Grape');
+
+		const rareChip = Array.from(root.querySelectorAll<HTMLButtonElement>('.fe-chip')).find(
+			(chip) => chip.textContent === 'Rare Grape',
+		);
+
+		expect(rareChip?.getAttribute('aria-pressed')).toBe('true');
+
+		expect(core.getResultCount()).toBe(1);
+
+		rareChip?.click();
+
+		expect(core.getRules().has('varietal')).toBe(false);
+		expect(core.getResultCount()).toBe(MANY_VARIETALS.length);
+	});
 });
 
 describe('the exact-color select', () => {
@@ -231,7 +306,7 @@ describe('the exact-color select', () => {
 
 	it('does not un-paint a choice when a repaint carries a STALE rule map', () => {
 		// The worker-lag shape, reproduced on a main-thread engine, and the reason every facet in this
-		// panel holds local state at all. `/wine` filters 130k records behind Comlink, so the settle in
+		// panel holds local state at all. `/wine` filters 150,000 records behind Comlink, so the settle in
 		// flight when the user picks a color always carries the PRE-choice rule map. A select that
 		// adopted it unconditionally would snap back to the placeholder on every single interaction —
 		// invisible here, glaring over a worker.
@@ -252,7 +327,7 @@ describe('the exact-color select', () => {
 });
 
 describe('the origin picker', () => {
-	it('commits a country as the set of leaf ids beneath it', () => {
+	it('commits a country as the set of origin ids at and beneath it', () => {
 		// One click covers a whole subtree without the rule understanding hierarchy: the set-of-sets is
 		// what flattens the tree for the engine. The result count is asserted alongside the field
 		// because a plausible wrong field (`origin`, the object) would commit a rule that matches
@@ -264,7 +339,7 @@ describe('the origin picker', () => {
 		const rule = core.getRules().get('origin') as InSetofSetsRule<string> | undefined;
 
 		expect(rule?.field).toBe('originId');
-		expect(rule?.config.set).toEqual([ITALY_LEAF_IDS]);
+		expect(rule?.config.set).toEqual([ITALY_ORIGIN_IDS]);
 		expect(core.getResultCount()).toBe(2);
 	});
 
@@ -276,7 +351,7 @@ describe('the origin picker', () => {
 		// `Italy` and leave its two provinces still committed, so the facet would keep filtering after
 		// the user switched it off.
 		const { core, root } = mountPanel((engine) => {
-			engine.addRule('origin', inSetofSets<string>('originId', [ITALY_LEAF_IDS]));
+			engine.addRule('origin', inSetofSets<string>('originId', [ITALY_ORIGIN_IDS]));
 		});
 
 		expect(originRow(root, 'Italy').getAttribute('aria-checked')).toBe('true');

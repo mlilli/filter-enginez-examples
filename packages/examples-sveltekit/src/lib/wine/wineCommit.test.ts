@@ -122,7 +122,7 @@ describe('busy-version ordering', () => {
 	});
 
 	it('bumps the version on a clear too', () => {
-		// Removing a filter is as much work for the engine as adding one — on 130k rows it recomputes
+		// Removing a filter is as much work for the engine as adding one — on 150k rows it recomputes
 		// either way, so the indicator has to light for both.
 		const engine = makeEngine();
 		const before = captureCurrentVersion();

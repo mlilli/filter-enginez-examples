@@ -28,7 +28,7 @@ framework-shaped.
 | `/books`        | The books panel with predictive disable, results header, shareable URL state, format toggle and copy link |
 | `/books-server` | The same panel, header and cards over an HTTP-backed engine; the browser runs no filtering                |
 | `/real-estate`  | Property listings: geo-radius search on a Leaflet map, a location hierarchy and must-have features        |
-| `/wine`         | About 130,000 wine reviews filtered in a Web Worker, with its own boot progress screen                    |
+| `/wine`         | 150,000 synthetic wines filtered in a Web Worker, with its own boot progress screen                       |
 | Anything else   | The shared "filtered to zero" 404 page over `examples-shared/notfound-core`                               |
 
 This app's `/about` redirects to [filterenginez.com/how-it-works](https://filterenginez.com/how-it-works) and its
@@ -71,7 +71,7 @@ resolver**, which may return a promise and blocks activation until it settles. S
 into route data and the page republishes it into component-scoped DI via `provideFilterEngineFactory`. Two things fall
 out of that: the landing page paints instantly and never waits on a corpus it doesn't use, and by the time any books
 component constructs, `injectFilterEngine()` is guaranteed live — no boot flags, no null checks. `/real-estate` and
-`/books-server` follow the same pattern. `/wine` is the exception: a 130k-record worker boot takes seconds, so the page
+`/books-server` follow the same pattern. `/wine` is the exception: a 150k-record worker boot takes seconds, so the page
 boots itself and renders its own progress instead of blocking navigation.
 
 ### 4. Two tsconfigs, and `noEmit` is the tricky one

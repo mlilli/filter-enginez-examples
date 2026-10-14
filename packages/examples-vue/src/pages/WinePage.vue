@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * `/wine` — boots the worker-backed 130k engine and renders the wine app.
+ * `/wine` — boots the worker-backed 150k engine and renders the wine app.
  *
  * @remarks
  * The route owns the boot; `<WineView>` owns everything after it. Same split as `/real-estate`, with
@@ -23,12 +23,13 @@
  * ## Everything the panel needs is derived from the BOOTED corpus
  *
  * Not from the bundled default tier. `buildOriginTree()` defaults to the 10k import, which would
- * produce a tree that does not match the 130k the worker actually holds — so a region present in the
- * real corpus would be missing from the picker, silently.
+ * produce a tree that does not match the 150k the worker actually holds — so a region present in the
+ * booted corpus would be missing from the picker, silently. `deriveWineFacets` also ranks what it
+ * derives: varietals most-reviewed first, and every level of the origin tree by wine count.
  *
- * `FALLBACK_BOUNDS` is a pre-boot PLACEHOLDER, not a ceiling. Using it as the live baseline would make
- * every wine over $400 and every vintage outside 2008–2024 unreachable the moment a user touched those
- * sliders.
+ * `FALLBACK_BOUNDS` is a pre-boot PLACEHOLDER, not a ceiling. It matches the extents of the 150,000
+ * synthetic wines, but the local real corpus, when linked, has extents of its own; using the
+ * placeholder as the live baseline would put any bottle outside it out of the sliders' reach.
  */
 
 import type { WineBootProgress } from '@filter-enginez/examples-shared/wine-core';
@@ -86,7 +87,7 @@ const progress = shallowRef<WineBootProgress | null>(null);
  * The cold-boot caption, from the one module every vertical renders.
  *
  * A two-state caption (`Booting the wine engine…` plus an optional `N / M bottles`) would freeze on
- * `130,000 / 130,000` for the whole bitmap-index build and read as a hang. The shared module's third
+ * `150,000 / 150,000` for the whole bitmap-index build and read as a hang. The shared module's third
  * state covers that build.
  */
 const bootCaption = computed(() => bootCaptionParts(progress.value, { recordNoun: 'bottles' }));
@@ -171,9 +172,9 @@ onUnmounted(() => {
 		<p class="fe-boot-error__title">The wine engine could not start.</p>
 		<p class="fe-boot-error__detail">{{ bootError }}</p>
 		<p class="fe-boot-error__detail">
-			The 130k corpus is generated locally and is not in the repository. Run
-			<code>pnpm regen:wine:real</code> then <code>pnpm link:wine-corpus</code>, or start the app
-			with <code>VITE_WINE_TIER=default</code> to boot the bundled 10k tier on the main thread.
+			The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the
+			worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
+			tier on the main thread instead.
 		</p>
 	</div>
 

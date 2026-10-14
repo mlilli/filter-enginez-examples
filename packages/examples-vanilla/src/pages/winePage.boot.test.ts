@@ -91,14 +91,14 @@ vi.mock('@filter-enginez/examples-shared/wine-core', () => ({
 			bootControls = {
 				reject,
 				resolve: () => {
-					resolve({ asyncEngine: {}, meta: { source: 'full-corpus-ndjson' }});
+					resolve({ asyncEngine: {}, meta: { source: 'synthetic-full-tier' }});
 				},
 			};
 		});
 
 		return booted;
 	},
-	describeWineCorpusTier: (): string => 'full corpus',
+	describeWineCorpusTier: (): string => 'full corpus · synthetic',
 	getWineBootProgressSnapshot: (): WineBootProgress | null => progressSnapshot,
 	subscribeWineBootProgress: (listener: ProgressListener): (() => void) => {
 		progressListeners.add(listener);
@@ -183,16 +183,27 @@ describe('vanilla wine page — boot progress', () => {
 
 		expect(caption(), 'the pre-stream caption').toBe('Spinning up worker thread');
 
-		emitProgress({ loaded: 0, source: 'full-corpus-ndjson', total: 0 });
+		emitProgress({ isTotalEstimated: false, loaded: 0, source: 'synthetic-full-tier', total: 0 });
 
 		expect(caption()).toBe('Spinning up worker thread');
 	});
 
 	it('counts up while rows are still arriving', () => {
 		startBoot();
-		emitProgress({ loaded: 40_000, source: 'full-corpus-ndjson', total: 130_000 });
+		emitProgress({ isTotalEstimated: false, loaded: 40_000, source: 'synthetic-full-tier', total: 150_000 });
 
-		expect(caption()).toBe('Loaded 40,000 of ~130,000 bottles');
+		expect(caption()).toBe('Loaded 40,000 of 150,000 bottles');
+	});
+
+	it('marks the total as an estimate only while the local real corpus streams', () => {
+		// The synthetic tier knows its length exactly, so the case above prints no `~`. The local real
+		// corpus streams from a file whose length is unknown until it ends; its reporter says so, and
+		// the caption must carry that through rather than state a guess as a fact. Vanilla hands the
+		// snapshot to the shared caption unchanged, which is what keeps the flag from being dropped.
+		startBoot();
+		emitProgress({ isTotalEstimated: true, loaded: 40_000, source: 'full-corpus-ndjson', total: 129_907 });
+
+		expect(caption()).toBe('Loaded 40,000 of ~129,907 bottles');
 	});
 
 	it('switches to INDEXING once the last row lands, rather than freezing on the count', () => {
@@ -206,9 +217,9 @@ describe('vanilla wine page — boot progress', () => {
 		// that a progress event with `loaded >= total` reaches the DOM through this route's
 		// subscription, which is the half no shared test can see.
 		startBoot();
-		emitProgress({ loaded: 130_000, source: 'full-corpus-ndjson', total: 130_000 });
+		emitProgress({ isTotalEstimated: false, loaded: 150_000, source: 'synthetic-full-tier', total: 150_000 });
 
-		expect(caption()).toBe('130,000 bottles loaded · constructing filter index');
+		expect(caption()).toBe('150,000 bottles loaded · constructing filter index');
 	});
 
 	it('is ALREADY listening when the boot starts streaming', () => {
@@ -217,11 +228,11 @@ describe('vanilla wine page — boot progress', () => {
 		// which reads worse than no counter at all. Emitting from inside the boot is what makes the
 		// ordering observable instead of incidental.
 		onBootCalled = () => {
-			emitProgress({ loaded: 12_000, source: 'full-corpus-ndjson', total: 130_000 });
+			emitProgress({ isTotalEstimated: false, loaded: 12_000, source: 'synthetic-full-tier', total: 150_000 });
 		};
 		startBoot();
 
-		expect(caption()).toBe('Loaded 12,000 of ~130,000 bottles');
+		expect(caption()).toBe('Loaded 12,000 of 150,000 bottles');
 	});
 
 	it('stops listening once the engine is up', async () => {
@@ -238,7 +249,7 @@ describe('vanilla wine page — boot progress', () => {
 
 		expect(container.contains(captionNode), 'the shell should have cleared the boot screen').toBe(false);
 
-		emitProgress({ loaded: 130_000, source: 'full-corpus-ndjson', total: 130_000 });
+		emitProgress({ isTotalEstimated: false, loaded: 150_000, source: 'synthetic-full-tier', total: 150_000 });
 
 		expect(captionNode?.textContent).toBe('Spinning up worker thread');
 	});
@@ -256,7 +267,7 @@ describe('vanilla wine page — boot progress', () => {
 
 		await expect(pendingBoot).rejects.toThrow('worker never handshook');
 
-		emitProgress({ loaded: 40_000, source: 'full-corpus-ndjson', total: 130_000 });
+		emitProgress({ isTotalEstimated: false, loaded: 40_000, source: 'synthetic-full-tier', total: 150_000 });
 
 		expect(captionNode?.textContent).toBe('Spinning up worker thread');
 	});

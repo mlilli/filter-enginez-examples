@@ -40,7 +40,7 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	// to register against, which jsdom does not provide, and the handlers it registers are
 	// the same relative-basePath ones excluded above. Its one decision (the full-corpus
 	// passthrough) is verified in the browser by the wine e2e, which is the only place the
-	// 130k worker tier exists at all.
+	// 150k worker tier exists at all.
 	'**/examples-shared/src/mocks/**',
 	// Same category: `real-estate/map/createRadiusMapController.ts` is Leaflet glue. `L.map()`
 	// needs a container with real layout — jsdom reports every element as 0x0 — and the

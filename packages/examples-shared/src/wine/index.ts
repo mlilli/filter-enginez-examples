@@ -57,7 +57,14 @@ export type { WineSmartFilter } from './smartFilters.js';
 // The vintage range ↔ year-set conversions. Surfaced on the React-facing barrel because the two React
 // apps' own `<ResultsHeader>` summary builders format a vintage chip and must agree with the shared
 // one — this keeps the FORMAT single-sourced.
-export { formatVintageRange, vintageBoundsFromSet, vintageYearsFromRange } from './wine-domain/vintage.js';
+export {
+	formatVintage,
+	formatVintageRange,
+	NON_VINTAGE_YEAR,
+	parseVintage,
+	vintageBoundsFromSet,
+	vintageYearsFromRange,
+} from './wine-domain/vintage.js';
 
 // ── Engine boot (size-aware: worker for the full corpus, main thread for the default tier) ──
 export {

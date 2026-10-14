@@ -123,7 +123,7 @@ describe('the sync transport', () => {
 
 describe('the async transport', () => {
 	it('prefers the async engine and never touches the sync core', async () => {
-		// The load-bearing assertion. Calling the core here would run the 130k filter on the main
+		// The load-bearing assertion. Calling the core here would run the 150k filter on the main
 		// thread and still produce a perfectly correct bundle — the failure is invisible except as jank.
 		const { source, syncSpy } = asyncSource(async () => Promise.resolve(bundleWithCount(3)));
 		const onBundle = vi.fn();

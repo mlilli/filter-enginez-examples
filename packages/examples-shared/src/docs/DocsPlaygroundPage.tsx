@@ -38,7 +38,8 @@ const DEFAULT_CONFIGS: Readonly<Record<PlaygroundDataset, string>> = {
 			label: 'Highly-rated, affordable wines',
 			rules: [
 				{ id: 'points', rule: { config: { max: 100, min: 90 }, field: 'points', type: 'RangeRule' }},
-				{ id: 'price', rule: { config: { max: 50, min: 10 }, field: 'price', type: 'RangeRule' }},
+				// `priceUsd`, the wine field — a range over a field the records do not have matches nothing.
+				{ id: 'price', rule: { config: { max: 50, min: 10 }, field: 'priceUsd', type: 'RangeRule' }},
 			],
 			version: 1,
 		},

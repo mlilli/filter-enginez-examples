@@ -28,8 +28,8 @@ import {
 	type PickerTreeNode,
 } from '@filter-enginez/react-ui/bounds';
 
-// `uniqueSorted` lives at the neutral address a cross-dataset helper needs, alongside `./picker`.
-import { uniqueSorted } from '../../vocabulary/index.js';
+// The vocabulary helpers live at the neutral address a cross-dataset helper needs, alongside `./picker`.
+import { orderTreeByFrequency, rankByFrequency, uniqueSorted } from '../../vocabulary/index.js';
 import {
 	buildOriginNodeSpecs,
 	type OriginNodeSpec,
@@ -77,6 +77,40 @@ function deriveBounds(field: SliderFieldId, corpus: readonly Wine[]): NumericBou
 }
 
 /**
+ * The origin picker's tree, most-reviewed places first at every level.
+ *
+ * @remarks
+ * `buildOriginTree` orders alphabetically, which opens the list on Argentina and Armenia and files the
+ * US — four wines in ten — near the bottom. Every wine panel builds its tree through this one function,
+ * so the six apps list origins in the same order.
+ *
+ * @param corpus - The records the engine actually holds.
+ * @returns The tree, re-ordered by wine count at every level.
+ */
+export function buildWineOriginTree(corpus: readonly Wine[]): PickerTreeNode {
+	// `buildOriginTree` returns a root without a `label` (nothing renders the root), so it is
+	// structurally narrower than `PickerTreeNode`. Every vertical cast here for the same reason.
+	const tree = buildOriginTree(corpus) as unknown as PickerTreeNode;
+
+	return orderTreeByFrequency(tree, corpus.map((wine) => wine.originId));
+}
+
+/**
+ * The varietal vocabulary, most-reviewed grapes first.
+ *
+ * @remarks
+ * The data names hundreds of varieties; alphabetically the list opens on grapes a handful of bottles
+ * carry. Ranked by count it opens on Pinot Noir, Chardonnay and Cabernet Sauvignon. Shared by every
+ * wine panel, so all six apps list varietals in the same order.
+ *
+ * @param corpus - The records the engine actually holds.
+ * @returns Each varietal once, by descending wine count.
+ */
+export function rankWineVarietals(corpus: readonly Wine[]): readonly string[] {
+	return rankByFrequency(corpus.map((wine) => wine.varietal));
+}
+
+/**
  * Derive every facet the panel needs, in one pass per field over the booted corpus.
  *
  * @remarks
@@ -85,15 +119,13 @@ function deriveBounds(field: SliderFieldId, corpus: readonly Wine[]): NumericBou
  * **Pass the corpus the ENGINE holds**, not a fresh import. `buildOriginTree()` defaults to the
  * bundled 10k tier, so deriving from the import rather than from `core.getSourceData()` would build
  * an origin picker for a corpus the engine is not filtering — a tree missing every region that only
- * appears in the full 130k set, with no error to say so.
+ * appears in the 150,000-wine set, with no error to say so.
  *
  * @param corpus - The records the engine actually holds.
  * @returns The derived facets.
  */
 export function deriveWineFacets(corpus: readonly Wine[]): WineFacets {
-	// `buildOriginTree` returns a root without a `label` (nothing renders the root), so it is
-	// structurally narrower than `PickerTreeNode`. Every vertical cast here for the same reason.
-	const originTree = buildOriginTree(corpus) as unknown as PickerTreeNode;
+	const originTree = buildWineOriginTree(corpus);
 
 	return {
 		baselines: {
@@ -108,7 +140,7 @@ export function deriveWineFacets(corpus: readonly Wine[]): WineFacets {
 			body: uniqueSorted(corpus.map((wine) => wine.body)),
 			color: uniqueSorted(corpus.map((wine) => wine.color)),
 			sweetness: uniqueSorted(corpus.map((wine) => wine.sweetness)),
-			varietal: uniqueSorted(corpus.map((wine) => wine.varietal)),
+			varietal: rankWineVarietals(corpus),
 		},
 	};
 }

@@ -15,7 +15,7 @@
  *
  * The count-ticking + mobile-drawer machinery is shared: it lives in `./filterFlow.ts`, whose docblocks
  * carry the `settledCount` / drawer rationale. Books boots on the main thread, so its boot wait is
- * shorter than wine's worker-streamed 130k corpus — but still generous to cover the bitmap-accel init.
+ * shorter than wine's worker-built 150k corpus — but still generous to cover the bitmap-accel init.
  *
  * **Selectors (mirror the wine app; books drawer is `dialog[name="Book filters"]`):**
  *   - `subtitle('Books', 'react-rtk')` — the header subtitle, present once `<DatasetRoute>` swaps in

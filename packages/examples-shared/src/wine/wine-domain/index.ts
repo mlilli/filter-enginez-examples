@@ -48,7 +48,7 @@ export * from './bundle.js';
 export * from './commit.js';
 // Shared by the Angular, Vue, SvelteKit and vanilla wine routes. Pure, engine-free, testable without a
 // worker.
-export { deriveWineFacets, type WineFacets } from './facets.js';
+export { buildWineOriginTree, deriveWineFacets, rankWineVarietals, type WineFacets } from './facets.js';
 // The tracker the commit helpers bump, exported from the same subpath that exports them — a vertical
 // that writes through `commitRule` and reads busy state from a DIFFERENT instance gets an indicator
 // that never lights, with nothing erroring. One import path, one instance.
@@ -66,7 +66,15 @@ export {
 	WINE_SMART_FILTERS,
 	type WineSmartFilter,
 } from '../smartFilters.js';
-export { formatVintageRange, vintageBoundsFromSet, vintageYearsFromRange } from './vintage.js';
+export {
+	formatVintage,
+	formatVintageRange,
+	NON_VINTAGE_LABEL,
+	NON_VINTAGE_YEAR,
+	parseVintage,
+	vintageBoundsFromSet,
+	vintageYearsFromRange,
+} from './vintage.js';
 export {
 	type BundleFetcher,
 	type BundleFetchHandlers,

@@ -11,7 +11,7 @@
  * values are usually nonsense — typing "95" passes through "9" first, which would fire a filter for
  * scores above nine and briefly show the whole corpus. `change` fires on blur or Enter, when the
  * number the user meant is actually there. On wine's worker tier that difference is not cosmetic: each
- * intermediate value would be a full Comlink round trip against 130k records.
+ * intermediate value would be a full Comlink round trip against 150k records.
  *
  * **A non-numeric or empty field is ignored rather than coerced.** `Number('')` is `0`, which would
  * silently become a real threshold the moment someone cleared the box to retype — a points filter of

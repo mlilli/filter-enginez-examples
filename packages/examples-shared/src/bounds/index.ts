@@ -8,7 +8,8 @@
  * a corpus into a baseline (`deriveBaselineBounds`) or clamp a selection back inside one
  * (`clampToBounds`), and the shared bar primitives every vertical's histogram overlay renders through
  * (`histogramBarTier`, `histogramBarHeightPercent`, plus `sliderBucketCount` for the panel that
- * builds the bundle query). None of that is about books, or wine, or real estate.
+ * builds the bundle query), and the scale a track lays its values out on (`SliderScale`, with the
+ * keyboard and snapping rules that follow it). None of that is about books, or wine, or real estate.
  *
  * They live in `@filter-enginez/react-ui/bounds` — an import-free subpath despite the package name,
  * per `tests/tooling/reactFreeSubpaths.test.ts` — but `examples-shared` is the only facade the
@@ -34,6 +35,7 @@
 
 export {
 	clampToBounds,
+	createSliderScale,
 	DENSE_BUCKET_COUNT,
 	deriveBaselineBounds,
 	deriveBounds,
@@ -42,6 +44,10 @@ export {
 	type HistogramBarTier,
 	histogramBarTier,
 	type HistogramBucket,
+	linearSliderScale,
 	type NumericBounds,
 	sliderBucketCount,
+	type SliderScale,
+	snapToStep,
+	stepScaledValue,
 } from '@filter-enginez/react-ui/bounds';

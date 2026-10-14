@@ -169,7 +169,7 @@ overrides:
   '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz'
   '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz'
   '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz'
-  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.0.2.tgz'
+  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz'
   '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz'
   '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz'
   '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz'

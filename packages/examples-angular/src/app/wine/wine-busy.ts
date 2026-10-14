@@ -11,7 +11,7 @@
  * `wineBusyCore` — a **signals** tracker shared with React, SvelteKit and Vue. A stream created here
  * would be a second, never-advanced tracker: `isBusy$` would emit `false` forever and **nothing would
  * error**. The symptom is a wine panel that never admits it is computing, on the one route where a
- * 130k Comlink round trip makes that visibly wrong. `engineBusyCore.ts` and Vue's `wineBusy.ts` both
+ * 150k Comlink round trip makes that visibly wrong. `engineBusyCore.ts` and Vue's `wineBusy.ts` both
  * carry the same warning.
  *
  * So this ADAPTS the shared core instead of creating anything.

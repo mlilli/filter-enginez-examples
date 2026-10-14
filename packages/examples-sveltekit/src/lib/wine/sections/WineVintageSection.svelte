@@ -24,6 +24,13 @@
 	 * occupy, and an empty set (the permissive state) reads back as the full baseline — the same span
 	 * that produced it.
 	 *
+	 * ### Log track, and `NV`
+	 *
+	 * The track is log-scaled toward the youngest vintage (`wineSliderScale`), with the bars sliced to
+	 * match. A non-vintage wine carries the year after the youngest possible harvest, so it sits at the
+	 * right end of the track; `formatVintage` shows that year as `NV` in the readout and the editable
+	 * fields, and `parseVintage` reads a typed `NV` back as that year.
+	 *
 	 * Everything else — the bundle context reads, `null` meaning "no rule" — matches
 	 * `<WineRangeSection>`.
 	 */
@@ -35,9 +42,12 @@
 	import {
 		FALLBACK_BOUNDS,
 		fieldBounds,
-		fieldHistogram,
+		formatVintage,
+		parseVintage,
 		vintageBoundsFromSet,
 		vintageYearsFromRange,
+		wineSliderHistogram,
+		wineSliderScale,
 	} from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores } from '@filter-enginez/svelte-signals';
 	import RangeSlider from '$lib/controls/RangeSlider.svelte';
@@ -95,8 +105,18 @@
 	/** The filtered-except-self bounds, or `undefined` to fall back to the whole baseline track. */
 	const available = $derived(fieldBounds(bundle, 'vintage') ?? undefined);
 
-	/** One bucket per year — the per-vintage distribution, matching the field's actual discreteness. */
-	const histogram = $derived(fieldHistogram(bundle, 'vintage', valueMin, valueMax));
+	/**
+	 * The track's scale — log, anchored at the youngest vintage.
+	 *
+	 * @remarks
+	 * Nearly every bottle is from the last twenty years and a few are a century old, so a linear track
+	 * would squeeze almost the whole corpus into its right-hand sliver. The declaration is shared with
+	 * the other five apps through `wineSliderScale`.
+	 */
+	const scale = $derived(wineSliderScale('vintage', baseline));
+
+	/** The per-vintage distribution, already sliced into the log track's bars by `wineSliderHistogram`. */
+	const histogram = $derived(wineSliderHistogram(bundle, 'vintage', baseline, valueMin, valueMax));
 </script>
 
 <section>
@@ -104,11 +124,13 @@
 		{available}
 		{baseline}
 		{histogram}
+		{scale}
 		{step}
 		{valueMax}
 		{valueMin}
+		format={formatVintage}
 		label="Vintage"
-		format={(year) => String(Math.round(year))}
+		parse={parseVintage}
 		onChange={(next) => {
 			leaveExpressionMode();
 			// Write the handle position locally first — the engine's own value lags a worker round trip.

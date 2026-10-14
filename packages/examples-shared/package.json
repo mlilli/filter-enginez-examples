@@ -61,7 +61,7 @@
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
     "@filter-enginez/core": "0.0.2",
-    "@filter-enginez/mock-data": "0.0.2",
+    "@filter-enginez/mock-data": "0.1.0",
     "@filter-enginez/react-signals": "0.0.2",
     "@filter-enginez/react-ui": "workspace:*",
     "@filter-enginez/reactive-signals": "0.0.2",

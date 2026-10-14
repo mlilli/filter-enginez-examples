@@ -17,6 +17,7 @@
 
 	import type { AppliedParams } from '$lib/server/wineServerParams.js';
 
+	import { formatVintage } from '@filter-enginez/examples-shared/wine-domain';
 	import AppHeaderBrand from '$lib/shell/AppHeaderBrand.svelte';
 
 	import type { SsrWineCard } from '../../routes/wine-server/+page.server.js';
@@ -120,7 +121,7 @@
 				<li class="fe-server-fallback__card">
 					<div class="fe-server-fallback__card-top">
 						<span class="fe-server-fallback__card-genre">{wine.color || 'Wine'}</span>
-						{#if wine.vintage !== null}<span class="fe-server-fallback__card-year">{wine.vintage}</span>{/if}
+						{#if wine.vintage !== null}<span class="fe-server-fallback__card-year">{formatVintage(wine.vintage)}</span>{/if}
 					</div>
 					<h3 class="fe-server-fallback__card-title">{wine.name}</h3>
 					<p class="fe-server-fallback__card-authors">

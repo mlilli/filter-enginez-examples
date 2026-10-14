@@ -14,7 +14,7 @@
  *
  * Predictive disable needs one bundle per engine change and exactly one fetcher. A panel fetching its
  * own would re-request on every re-render, and each section fetching its own facet would turn one
- * round trip into thirteen — across a Comlink boundary, against 130k records. So the loop lives here
+ * round trip into thirteen — across a Comlink boundary, against 150k records. So the loop lives here
  * and the result is provided through `WINE_BUNDLE`.
  *
  * A failed fetch keeps the PREVIOUS bundle. Predictive disable is an enhancement: slightly stale hints

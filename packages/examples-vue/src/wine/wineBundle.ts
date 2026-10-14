@@ -18,7 +18,7 @@
  *
  * **`shallowRef`, never `ref`.** The bundle carries `Uint32Array` result indices and `Float64Array`
  * histogram edges. Vue's deep reactive proxy neither preserves typed-array semantics nor survives
- * 130k entries at any acceptable speed — the same trap that makes the ENGINE need `shallowRef`. This
+ * 150k entries at any acceptable speed — the same trap that makes the ENGINE need `shallowRef`. This
  * is Vue's `$state.raw`.
  *
  * @packageDocumentation

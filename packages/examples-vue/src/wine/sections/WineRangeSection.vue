@@ -3,8 +3,12 @@
  * `<WineRangeSection>` — one `RangeRule` slider with predictive bounds and a histogram.
  *
  * @remarks
- * Price, points and ABV are the same facet three times over, differing only in field, label, format
- * and drag step.
+ * Price, points and ABV are the same facet three times over, differing only in field, label and drag
+ * step. Everything else is keyed by `ruleId` from the declarations all six apps share in
+ * `wine-domain`: the readout format and typed-text parser (`WINE_SLIDER_TEXT`), the track scale
+ * (`wineSliderScale` — log for price, linear for points and ABV) and the bars
+ * (`wineSliderHistogram`, already sliced for that scale). So `$25` sits at the same point of the
+ * price track here as on every other app's wine page, and reads the same.
  *
  * **The handle span is a `ref` + one-way `watch`, not a `computed`** — the pattern
  * `<WineChipSection>` establishes and documents at length. The slider makes the reason especially
@@ -25,7 +29,9 @@ import {
 	commitRule,
 	FALLBACK_BOUNDS,
 	fieldBounds,
-	fieldHistogram,
+	WINE_SLIDER_TEXT,
+	wineSliderHistogram,
+	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
 import { useEngineRefs } from '@filter-enginez/vue-signals';
 import { computed, ref, watch } from 'vue';
@@ -37,8 +43,6 @@ const props = defineProps<{
 	engine: SignalsEngine<Wine>;
 	/** The `Wine` property the `RangeRule` constrains — `priceUsd` for the `price` rule. */
 	field: string;
-	/** Value → display string. Omitted for points, which reads as a bare number. */
-	format?: (value: number) => string;
 	label: string;
 	leaveExpressionMode: () => void;
 	/** Rule id — also the key into the shared baselines and the bundle's field metadata. */
@@ -98,8 +102,23 @@ const valueMax = computed(() => {
  */
 const available = computed(() => fieldBounds(bundle.value, props.ruleId) ?? undefined);
 
-/** This field's distribution — where the data sits inside the available zone. */
-const histogram = computed(() => fieldHistogram(bundle.value, props.ruleId, valueMin.value, valueMax.value));
+/** How this field's values lay out on the track, over the same baseline the slider spans. */
+const scale = computed(() => wineSliderScale(props.ruleId, baseline.value));
+
+/**
+ * This field's distribution — where the data sits inside the available zone.
+ *
+ * @remarks
+ * `wineSliderHistogram` returns the bars already sliced for the field's scale. The bars are equal-width
+ * slices of the track, so a log track needs log-spaced value buckets under it; the engine's own
+ * equal-width buckets would pile every everyday bottle into the first bar.
+ */
+const histogram = computed(() =>
+	wineSliderHistogram(bundle.value, props.ruleId, baseline.value, valueMin.value, valueMax.value),
+);
+
+/** The shared readout formatter and typed-text parser for this field (`$1,250`, `13.5%`, `92`). */
+const sliderText = computed(() => WINE_SLIDER_TEXT[props.ruleId]);
 
 /**
  * Commit a dragged span, painting locally first.
@@ -120,9 +139,11 @@ function handleChange(next: { readonly max: number; readonly min: number }): voi
 		<RangeSlider
 			:available="available"
 			:baseline="baseline"
-			:format="format"
+			:format="sliderText.format"
 			:histogram="histogram"
 			:label="label"
+			:parse="sliderText.parse"
+			:scale="scale"
 			:slider-label="sliderLabel"
 			:step="step"
 			:value-max="valueMax"

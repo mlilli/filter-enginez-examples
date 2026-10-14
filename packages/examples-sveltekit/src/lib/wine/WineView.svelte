@@ -81,6 +81,17 @@
 		vocabularies: WineChipVocabularies;
 	} = $props();
 
+	/**
+	 * Where the filtering runs, for the footer.
+	 *
+	 * @remarks
+	 * An engine reached over HTTP is an async engine too, so `asyncEngine` alone cannot tell a Comlink
+	 * worker from a server; the route's `tier` can.
+	 */
+	const engineLocation = $derived(
+		tier === 'server' ? 'SvelteKit server tier' : engine.asyncEngine === undefined ? 'main thread' : 'Comlink worker',
+	);
+
 	// svelte-ignore state_referenced_locally
 	setFilterEngine(engine);
 	// svelte-ignore state_referenced_locally
@@ -88,7 +99,7 @@
 
 	// `$state.raw`, not `$state`: the bundle carries `Uint32Array` result indices and `Float64Array`
 	// histogram edges, and Svelte's deep proxy neither preserves typed-array semantics nor survives
-	// 130k entries at any acceptable speed. Same trap as the engine — see `wineBundle.ts`.
+	// 150k entries at any acceptable speed. Same trap as the engine — see `wineBundle.ts`.
 	let bundle = $state.raw<FilterBundle | null>(null);
 
 	// svelte-ignore state_referenced_locally
@@ -262,9 +273,9 @@
 
 	<footer class="fe-books-app__footer">
 		<span>
-			Engine: <strong>{engine.asyncEngine === undefined ? 'main thread' : 'Comlink worker'}</strong>
+			Engine: <strong>{engineLocation}</strong>
 			· {$sourceData.length.toLocaleString()} bottles resident{corpusTier ? ` (${corpusTier})` : ''}
 		</span>
-		<span>Kaggle wine reviews · filtered entirely client-side</span>
+		<span>{tier === 'server' ? 'Wine reviews · filtered on the server' : 'Wine reviews · filtered entirely client-side'}</span>
 	</footer>
 </div>

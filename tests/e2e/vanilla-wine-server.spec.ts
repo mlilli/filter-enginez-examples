@@ -7,11 +7,11 @@
  *
  * ## Modelled on `svelte-wine-server.spec.ts`, NOT on the shared wine suite
  *
- * `wineFlow.ts` asserts positively that the footer reads `full corpus`, because on the worker tier a
- * silent fallback to the bundled 10k is a real failure mode. This route serves the
- * committed 10k **by design** — `examples-server`'s dataset registry imports `wines` from
- * `@filter-enginez/mock-data/wine`, the default tier — so pointing the shared suite here would fail
- * correctly against a route behaving exactly as designed. `svelte-wine-server.spec.ts` stands outside
+ * `wineFlow.ts` asserts positively that the footer reads `full corpus`, because the worker tier must
+ * boot the 150,000-wine tier. This route serves the 10,000-wine default tier **by design** —
+ * `examples-server`'s dataset registry imports `wines` from `@filter-enginez/mock-data/wine`, the
+ * default tier, to fit the deployment's per-request CPU and memory limits — so pointing the shared
+ * suite here would fail correctly against a route behaving exactly as designed. `svelte-wine-server.spec.ts` stands outside
  * the shared suite for the same reason: a different tier.
  *
  * ## What this vertical proves that SvelteKit's does not
@@ -40,6 +40,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 import { DATASET_PARAM } from '../../packages/examples-shared/src/compare/links.js';
+import { SERVER_WINE_TIER_LABEL } from '../../packages/examples-shared/src/wine/wineCorpusTier.js';
 import {
 	ACTIVE_CHIP,
 	clickFirstFacetChip,
@@ -81,13 +82,13 @@ test.describe('vanilla /wine-server — the engine across a process boundary', (
 		expect(await settledCount(page, SETTLED)).toBeGreaterThan(0);
 	});
 
-	test('reports the committed tier in its footer, not the worker route’s full corpus', async ({ page }) => {
+	test('reports the server tier in its footer, not the worker route’s full corpus', async ({ page }) => {
 		// **Asserted POSITIVELY and specifically**, for the same reason the worker route asserts the
 		// opposite string: the two wine routes report different counts, and a footer that said nothing
 		// would leave a visitor comparing them with no way to know why. `getByRole('contentinfo')`
 		// rather than `locator('footer')` — the devtools surface renders its own `<footer>`, so the bare
 		// tag selector resolves to two elements and dies on strict mode.
-		await expect(page.getByRole('contentinfo')).toContainText('committed 10k tier');
+		await expect(page.getByRole('contentinfo')).toContainText(SERVER_WINE_TIER_LABEL);
 	});
 
 	test('its Compare button offers the wine-server comparison, not the browser-tier one', async ({ page }) => {

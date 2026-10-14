@@ -193,7 +193,7 @@ const Header = (props: {
 				borderBottom: '1px solid var(--gray-3)',
 			}}
 		>
-			{/* `'worker'` is not decoration — this route boots the 130k corpus into a Comlink worker, as
+			{/* `'worker'` is not decoration — this route boots the 150k corpus into a Comlink worker, as
 			    every other wine route reports. Without it the header would claim a main-thread engine, and the
 			    shared e2e wine suite, whose boot wait is `subtitle('Wine', id, 'worker')`, would time out on
 			    an app that booted fine. */}

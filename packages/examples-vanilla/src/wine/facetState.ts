@@ -11,7 +11,7 @@
  * hydrating a shared link are all the same code path as a click.
  *
  * **Wine is worker-backed, and the same code would be visibly wrong.** `.core` mutations are
- * fire-and-forget; the rule map only reassigns after an awaited round trip against 130k records. A
+ * fire-and-forget; the rule map only reassigns after an awaited round trip against 150k records. A
  * control repainted from the engine would therefore flicker the chip back OFF, or snap the slider
  * handle backwards, for the length of that trip on every interaction.
  *

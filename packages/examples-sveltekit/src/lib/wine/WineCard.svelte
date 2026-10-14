@@ -9,6 +9,8 @@
 
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 
+	import { formatVintage } from '@filter-enginez/examples-shared/wine-domain';
+
 	const { wine }: { wine: Wine } = $props();
 
 	/**
@@ -42,7 +44,7 @@
 				class="fe-wine-card__color"
 				style="background: {COLOR_CHIP[wine.color]}"
 			></span>
-			<span class="fe-wine-card__vintage">{wine.vintage}</span>
+			<span class="fe-wine-card__vintage">{formatVintage(wine.vintage)}</span>
 		</div>
 		<div class="fe-wine-card__points" title="Wine Enthusiast points">{wine.points} pts</div>
 	</div>

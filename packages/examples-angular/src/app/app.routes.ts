@@ -299,7 +299,7 @@ export const routes: Routes = [
 		resolve: { [REAL_ESTATE_ROUTE_DATA_KEY]: realEstateResolver },
 	},
 	{
-		// NO RESOLVER, and that is the one route here where the idiom does not fit. A 130k worker boot
+		// NO RESOLVER, and that is the one route here where the idiom does not fit. A 150k worker boot
 		// takes seconds, and a resolver that blocks navigation would leave the landing page frozen for
 		// all of it. The page boots and renders its own progress instead — see `WineBootStore`.
 		loadComponent: async () => (await import('./pages/wine-page.component.js')).WinePageComponent,

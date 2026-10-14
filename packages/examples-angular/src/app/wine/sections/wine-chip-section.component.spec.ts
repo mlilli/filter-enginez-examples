@@ -6,7 +6,7 @@
  * The selection is a `linkedSignal` over the committed rule, not a `computed`. Every other Angular
  * panel in this repo derives read-only and is right to; `real-estate-filter-panel.component.ts` even
  * states that as the house rule. Wine is the exception because it is worker-backed: `.core` mutations
- * are fire-and-forget and `activeRules$` only re-emits after a round trip against 130k records, so a
+ * are fire-and-forget and `activeRules$` only re-emits after a round trip against 150k records, so a
  * `computed` would flick the chip back OFF for the length of that trip.
  *
  * **That failure is invisible to every other gate.** It typechecks, it lints, it renders, and it only

@@ -103,9 +103,9 @@ vi.mock('@filter-enginez/examples-shared/wine-core', () => ({
 	bootWineAsyncEngine: async (): Promise<unknown> => {
 		await Promise.resolve();
 
-		return { asyncEngine: {}, meta: { source: 'full-corpus-ndjson' }};
+		return { asyncEngine: {}, meta: { source: 'synthetic-full-tier' }};
 	},
-	describeWineCorpusTier: (): string => 'full corpus',
+	describeWineCorpusTier: (): string => 'full corpus · synthetic',
 	getWineBootProgressSnapshot: (): null => null,
 	subscribeWineBootProgress: (): (() => void) => () => undefined,
 }));
@@ -162,7 +162,7 @@ describe('vanilla wine page — repaint triggers', () => {
 		// expression subscription without its first-emission skip makes boot request the bundle TWICE
 		// — once from `activeRules` and once from an expression that has not changed.
 		//
-		// The second request is a real round trip against 130k records on the worker tier, and its
+		// The second request is a real round trip against 150,000 records on the worker tier, and its
 		// settle repaints every panel section a few hundred milliseconds after the page already
 		// looks interactive. In e2e that shows as a chip detaching from the DOM mid-click; the
 		// user-visible version is a panel that flickers once, just as you reach for it.

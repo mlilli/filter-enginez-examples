@@ -10,7 +10,7 @@
  * is available only because those routes filter on the MAIN THREAD, where a write settles in the
  * same frame.
  *
- * Wine is worker-backed. The rule map lags a full round trip against 130k records, so a control
+ * Wine is worker-backed. The rule map lags a full round trip against 150k records, so a control
  * repainted from it would flicker off and snap backwards on every interaction. Each section
  * therefore paints locally and ADOPTS the engine's value when it genuinely changes — see
  * `facetState.ts`, which is where that pattern and its one subtlety live.

@@ -32,6 +32,16 @@
  * `barHeightPercent` (the shared function bound as a field, because it needs nothing from `this`)
  * exist purely to reach them.
  *
+ * ### Scales
+ *
+ * The optional `scale` input (a `SliderScale`) decides how values sit on the track: positions go out
+ * through `toFraction`, pointer positions come back through `fromFraction` and snap to `step`, so the
+ * thumbs, dim bands and bars agree. No scale means `linearSliderScale(baseline)` — the slider books and
+ * real estate always had. Wine's price and vintage pass a log scale, because on a linear track their
+ * everyday range is a sliver at one end; there the arrow keys move about one percent of the track
+ * (`stepScaledValue`, never less than one `step`) instead of one `step`. Each thumb's `aria-valuetext`
+ * is the formatted value, so a screen reader hears `$1,250` or `NV`, not the raw number.
+ *
  * The bounds contract is imported from `examples-shared/bounds` rather than `/books-domain`: this is a
  * dataset-neutral control and it renders real estate too, so taking its types from a dataset address
  * would teach the next reader it belongs to books.
@@ -56,7 +66,11 @@ import {
 	histogramBarClassName,
 	histogramBarHeightPercent,
 	type HistogramBucket,
+	linearSliderScale,
 	type NumericBounds,
+	type SliderScale,
+	snapToStep,
+	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 
 /** The committed bounds this control emits. */
@@ -117,6 +131,7 @@ type ActiveHandle = 'lower' | 'upper' | null;
 					[attr.aria-valuemin]="baseline().min"
 					[attr.aria-valuemax]="baseline().max"
 					[attr.aria-valuenow]="displayLower()"
+					[attr.aria-valuetext]="formatValue(displayLower())"
 					[style.--fe-thumb-pct]="pct(displayLower())"
 					(pointerdown)="startDrag('lower', $event)"
 					(keydown)="onKeydown('lower', $event)"
@@ -129,6 +144,7 @@ type ActiveHandle = 'lower' | 'upper' | null;
 					[attr.aria-valuemin]="baseline().min"
 					[attr.aria-valuemax]="baseline().max"
 					[attr.aria-valuenow]="displayUpper()"
+					[attr.aria-valuetext]="formatValue(displayUpper())"
 					[style.--fe-thumb-pct]="pct(displayUpper())"
 					(pointerdown)="startDrag('upper', $event)"
 					(keydown)="onKeydown('upper', $event)"
@@ -181,10 +197,11 @@ export class RangeSliderComponent {
 	 * Optional distribution bars above the track.
 	 *
 	 * @remarks
-	 * Buckets come from the engine's predictive-disable bundle via `fieldHistogram`, so they reflect the
-	 * corpus under the OTHER active filters — a shape that moves as you filter, not a static picture of
-	 * the whole dataset. Leave it unset to render no overlay, which is what a panel should do before its
-	 * first bundle resolves.
+	 * Buckets come from the engine's predictive-disable bundle (via `fieldHistogram`, or
+	 * `wineSliderHistogram` for wine), so they reflect the corpus under the OTHER active filters — a
+	 * shape that moves as you filter, not a static picture of the whole dataset. The bars are equal
+	 * slices of the TRACK, so under a non-linear {@link scale} they must already be sliced for it. Leave
+	 * it unset to render no overlay, which is what a panel should do before its first bundle resolves.
 	 */
 	public readonly histogram = input<readonly HistogramBucket[]>();
 
@@ -193,6 +210,15 @@ export class RangeSliderComponent {
 
 	/** Display string → value. */
 	public readonly parse = input<(raw: string) => number>();
+
+	/**
+	 * How values are laid out on the track; linear over {@link baseline} when unset.
+	 *
+	 * @remarks
+	 * Must be built over the same {@link baseline}, with the {@link histogram} sliced for it, or the
+	 * bars and the thumbs disagree.
+	 */
+	public readonly scale = input<SliderScale>();
 
 	/** Snap increment. */
 	public readonly step = input<number>(1);
@@ -218,6 +244,11 @@ export class RangeSliderComponent {
 	/** The available zone, defaulting to the baseline when the engine has no projection. */
 	protected readonly effectiveAvailable = computed<NumericBounds>(
 		() => this.available() ?? this.baseline(),
+	);
+
+	/** The scale in force — the caller's, or a linear one over the baseline. See {@link scale}. */
+	protected readonly trackScale = computed<SliderScale>(
+		() => this.scale() ?? linearSliderScale(this.baseline()),
 	);
 
 	/** Committed upper bound, clamped into the available zone (and resolving `Infinity`). */
@@ -329,30 +360,29 @@ export class RangeSliderComponent {
 	protected readonly barHeightPercent = histogramBarHeightPercent;
 
 	/**
-	 * Position a value on the track, in percent of the BASELINE span.
+	 * Position a value on the track, in percent of the BASELINE span, through the {@link trackScale}.
+	 *
+	 * @remarks
+	 * The one value-to-position conversion in the control: the thumbs, the lit selection and the dim
+	 * bands all come through here, so they cannot disagree about where a value sits. Both scales clamp
+	 * to `0..1` and map a degenerate baseline to `0`.
 	 *
 	 * @param value - A value in baseline coordinates.
 	 * @returns A 0-100 percentage, clamped.
 	 */
 	protected pct(value: number): number {
-		const span = this.baseline().max - this.baseline().min;
-
-		if (span <= 0) {
-			return 0;
-		}
-
-		return Math.max(0, Math.min(100, ((value - this.baseline().min) / span) * 100));
+		return this.trackScale().toFraction(value) * 100;
 	}
 
-	/** Keyboard nudges: arrows by one step, Home/End to the available extremes. */
+	/** Keyboard nudges: arrows by `stepScaledValue` (see the module remarks), Home/End to the extremes. */
 	protected onKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
 		const current = handle === 'lower' ? this.displayLower() : this.displayUpper();
 		let next: number | null = null;
 
 		if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
-			next = current - this.step();
+			next = stepScaledValue(this.trackScale(), current, -1, this.step());
 		} else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
-			next = current + this.step();
+			next = stepScaledValue(this.trackScale(), current, 1, this.step());
 		} else if (event.key === 'Home') {
 			next = this.effectiveAvailable().min;
 		} else if (event.key === 'End') {
@@ -503,23 +533,19 @@ export class RangeSliderComponent {
 		}
 	};
 
-	/** Snap to {@link step}, then clamp into the available zone. */
+	/** Snap to {@link step} (`snapToStep` also trims float noise: `13.3`, not `13.299…`), then clamp. */
 	private _snapClamp(value: number): number {
-		const step = this.step();
-		const snapped = step > 0 ? Math.round(value / step) * step : value;
-
 		return Math.max(
 			this.effectiveAvailable().min,
-			Math.min(snapped, this.effectiveAvailable().max),
+			Math.min(snapToStep(value, this.step()), this.effectiveAvailable().max),
 		);
 	}
 
-	/** Translate a viewport x-coordinate into a snapped, clamped value. */
+	/** Translate a viewport x-coordinate, through the {@link trackScale}, into a snapped, clamped value. */
 	private _valueFromPointer(clientX: number): number {
 		const rect = this._track().nativeElement.getBoundingClientRect();
 		const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
-		const span = this.baseline().max - this.baseline().min;
 
-		return this._snapClamp(this.baseline().min + Math.max(0, Math.min(1, ratio)) * span);
+		return this._snapClamp(this.trackScale().fromFraction(ratio));
 	}
 }

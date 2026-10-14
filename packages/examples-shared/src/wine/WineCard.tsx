@@ -25,6 +25,8 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { memo } from 'react';
 
+import { formatVintage } from './wine-domain/vintage.js';
+
 /**
  * Props for `<WineCard />`.
  */
@@ -71,7 +73,7 @@ const WineCardInner = ({ wine }: WineCardProps): React.ReactElement => {
 						className="fe-wine-card__color"
 						style={{ background: colorChip }}
 					/>
-					<span className="fe-wine-card__vintage">{wine.vintage}</span>
+					<span className="fe-wine-card__vintage">{formatVintage(wine.vintage)}</span>
 				</div>
 				<div className="fe-wine-card__points" title="Wine Enthusiast points">{wine.points} pts</div>
 			</div>

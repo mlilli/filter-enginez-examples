@@ -3,7 +3,7 @@
 	 * `<ResultCount>` — the animated result count, shared by every dataset.
 	 *
 	 * @remarks
-	 * The roll is not decoration. On a 130k corpus a filter can move the count by tens of thousands,
+	 * The roll is not decoration. On a 150k corpus a filter can move the count by tens of thousands,
 	 * and a number that simply teleports gives no sense of MAGNITUDE — 12,431 → 89 and 12,431 → 11,902
 	 * look identical as instant swaps. Easing over 600ms makes the size of the change legible without
 	 * anyone reading both numbers.

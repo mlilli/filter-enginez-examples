@@ -22,7 +22,7 @@
     "@filter-enginez/core": "0.0.2",
     "@filter-enginez/examples-server": "workspace:*",
     "@filter-enginez/examples-shared": "workspace:*",
-    "@filter-enginez/mock-data": "0.0.2",
+    "@filter-enginez/mock-data": "0.1.0",
     "@filter-enginez/reactive-signals": "0.0.2",
     "@filter-enginez/svelte-signals": "0.0.2",
     "@filter-enginez/ui-styles": "workspace:*",

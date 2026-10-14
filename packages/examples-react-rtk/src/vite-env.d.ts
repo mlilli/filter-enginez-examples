@@ -22,8 +22,9 @@ interface ImportMetaEnv {
 	/**
 	 * Which wine dataset tier to boot.
 	 *
-	 *   - `'full'` (default when unset) — the full ~130k Kaggle corpus, streamed in a Web Worker.
-	 *   - `'default'` — the bundled ~10k stratified tier, built on the main thread.
+	 *   - `'full'` (default when unset) — the 150,000-wine full tier, built in a Web Worker (the local
+	 *     real review corpus instead, where `pnpm link:wine-corpus` has linked one).
+	 *   - `'default'` — the 10,000-wine default tier, built on the main thread.
 	 *
 	 * Set at dev/build time, e.g. `pnpm dev:rtk:default` (which sets `VITE_WINE_TIER=default`).
 	 */

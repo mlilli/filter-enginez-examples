@@ -30,12 +30,13 @@ afterEach(cleanup);
 /**
  * A wine boot-progress snapshot.
  *
- * @param loaded - Records parsed so far.
- * @param total - Expected total.
- * @returns The snapshot, with the tier the worker route reports.
+ * @param loaded - Records generated so far.
+ * @param total - The tier's exact total.
+ * @returns The snapshot, with the tier the worker route reports by default: the 150,000 synthetic
+ *   wines, whose total is known before the first one is generated.
  */
 function progressOf(loaded: number, total: number): WineBootProgress {
-	return { loaded, source: 'full-corpus-ndjson', total };
+	return { isTotalEstimated: false, loaded, source: 'synthetic-full-tier', total };
 }
 
 /**
@@ -65,8 +66,19 @@ describe('WineBootScreen', () => {
 		expect(caption(container)).not.toContain('constructing filter index');
 	});
 
-	it('counts bottles against the tier total while streaming', () => {
-		const { container } = render(WineBootScreen, { progress: progressOf(40_000, 130_000) });
+	it('counts bottles against the exact tier total while generating', () => {
+		const { container } = render(WineBootScreen, { progress: progressOf(40_000, 150_000) });
+
+		expect(caption(container)).toBe('Loaded 40,000 of 150,000 bottles');
+	});
+
+	it('marks the total as an estimate only when the snapshot says it is one', () => {
+		// The local real corpus streams without knowing its length, so its total is a guess. The flag
+		// has to survive the trip from the progress stream to the shared builder; a component that
+		// rebuilt the snapshot without it would drop the tilde here and pass every exact-total case.
+		const { container } = render(WineBootScreen, {
+			progress: { isTotalEstimated: true, loaded: 40_000, source: 'full-corpus-ndjson', total: 130_000 },
+		});
 
 		expect(caption(container)).toBe('Loaded 40,000 of ~130,000 bottles');
 	});
@@ -74,16 +86,16 @@ describe('WineBootScreen', () => {
 	it('names the indexing pause once the last row lands', () => {
 		// The third state, which Vue and Angular still do without: a caption frozen on the final count
 		// reads as a hang at the moment a user reaches for reload.
-		const { container } = render(WineBootScreen, { progress: progressOf(130_000, 130_000) });
+		const { container } = render(WineBootScreen, { progress: progressOf(150_000, 150_000) });
 
-		expect(caption(container)).toBe('130,000 bottles loaded · constructing filter index');
+		expect(caption(container)).toBe('150,000 bottles loaded · constructing filter index');
 	});
 
 	it('puts the live count in the accent span, and nothing else', () => {
 		// The half of the caption that is this component's business. The shared module marks which
 		// segment is a live number; what an accent looks like is Svelte's decision, and this is the only
 		// place that records it.
-		const { container } = render(WineBootScreen, { progress: progressOf(40_000, 130_000) });
+		const { container } = render(WineBootScreen, { progress: progressOf(40_000, 150_000) });
 		const values = [...container.querySelectorAll('.fe-boot-caption__value')].map((node) => node.textContent);
 
 		expect(values).toEqual(['40,000']);
@@ -101,18 +113,29 @@ describe('WineBootScreen', () => {
 		expect(caption(container)).toBe('Connecting to the filter server');
 	});
 
-	it('warns when the worker landed on the bundled tier instead of the full corpus', () => {
-		// Unrelated to the caption and unique to this vertical, but it sits in the same component and had
-		// the same amount of test coverage as everything else here, which was none.
+	it('names the switch when the 10,000-wine tier booted on the main thread', () => {
+		// Unrelated to the caption and unique to this vertical, but it sits in the same component. The
+		// `'default-tier'` source only happens when `VITE_WINE_TIER=default` is set, so the warning
+		// names that variable rather than a missing file.
 		const { container } = render(WineBootScreen, {
-			progress: { loaded: 10_000, source: 'default-tier', total: 10_000 },
+			progress: { isTotalEstimated: false, loaded: 10_000, source: 'default-tier', total: 10_000 },
 		});
+		const warning = container.querySelector('.fe-wine-boot__warn')?.textContent ?? '';
 
-		expect(container.querySelector('.fe-wine-boot__warn')?.textContent).toContain('bundled 10k tier');
+		expect(warning).toContain('10,000-wine default tier');
+		expect(warning).toContain('VITE_WINE_TIER');
 	});
 
-	it('does not warn on the full corpus', () => {
-		const { container } = render(WineBootScreen, { progress: progressOf(130_000, 130_000) });
+	it('does not warn on the full tier', () => {
+		const { container } = render(WineBootScreen, { progress: progressOf(150_000, 150_000) });
+
+		expect(container.querySelector('.fe-wine-boot__warn')).toBeNull();
+	});
+
+	it('does not warn on the low-memory tier, which the device chose rather than a setting', () => {
+		const { container } = render(WineBootScreen, {
+			progress: { isTotalEstimated: false, loaded: 10_000, source: 'low-memory-tier', total: 10_000 },
+		});
 
 		expect(container.querySelector('.fe-wine-boot__warn')).toBeNull();
 	});

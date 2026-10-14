@@ -21,7 +21,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { uniqueSorted } from './index.js';
+import { orderTreeByFrequency, rankByFrequency, shortlistVocabulary, uniqueSorted } from './index.js';
 
 describe('uniqueSorted', () => {
 	it('sorts and de-duplicates', () => {
@@ -58,5 +58,69 @@ describe('uniqueSorted', () => {
 		// list; by locale it sorts as 'U', where a reader would look for it. Bare letters here rather
 		// than real varietal names, so the assertion is about collation and nothing else.
 		expect(uniqueSorted(['A', 'Z', 'Ü'])).toEqual(['A', 'Ü', 'Z']);
+	});
+});
+
+describe('rankByFrequency', () => {
+	it('puts the most frequent values first, ties alphabetical', () => {
+		expect(rankByFrequency(['Merlot', 'Pinot Noir', 'Merlot', 'Abouriou', 'Pinot Noir', 'Merlot', 'Gamay'])).toEqual([
+			'Merlot',
+			'Pinot Noir',
+			'Abouriou',
+			'Gamay',
+		]);
+	});
+
+	it('drops empty and non-string values', () => {
+		expect(rankByFrequency(['', 'a', 3, null, 'a'])).toEqual(['a']);
+	});
+});
+
+describe('shortlistVocabulary', () => {
+	const ranked = ['a', 'b', 'c', 'd', 'e'];
+
+	it('keeps the leading values', () => {
+		expect(shortlistVocabulary(ranked, [], 2)).toEqual(['a', 'b']);
+	});
+
+	it('keeps a selected value from beyond the limit, in rank order', () => {
+		// A rare value selected through a shared link must still have a chip to clear it from.
+		expect(shortlistVocabulary(ranked, ['e', 'a'], 2)).toEqual(['a', 'b', 'e']);
+	});
+
+	it('returns a short vocabulary whole', () => {
+		expect(shortlistVocabulary(ranked, [], 9)).toBe(ranked);
+	});
+});
+
+describe('orderTreeByFrequency', () => {
+	const tree = {
+		children: [
+			{ id: 'Argentina', label: 'Argentina' },
+			{
+				children: [
+					{ id: 'US|Oregon', label: 'Oregon' },
+					{ id: 'US|California', label: 'California' },
+				],
+				id: 'US',
+				label: 'US',
+			},
+			{ id: 'Austria', label: 'Austria' },
+		],
+		id: 'origin',
+	};
+
+	it('orders every level by the records at or beneath each node', () => {
+		const ordered = orderTreeByFrequency(tree, ['US|California', 'US|California', 'US|Oregon', 'US', 'Austria', 'Argentina', 'Austria']);
+
+		expect(ordered.children.map((node) => node.id)).toEqual(['US', 'Austria', 'Argentina']);
+		expect(ordered.children[0]?.children?.map((node) => node.id)).toEqual(['US|California', 'US|Oregon']);
+	});
+
+	it('breaks ties by label and leaves the input untouched', () => {
+		const ordered = orderTreeByFrequency(tree, []);
+
+		expect(ordered.children.map((node) => node.id)).toEqual(['Argentina', 'Austria', 'US']);
+		expect(tree.children.map((node) => node.id)).toEqual(['Argentina', 'US', 'Austria']);
 	});
 });

@@ -1,37 +1,37 @@
 /**
- * Tests for the wine worker's three-tier corpus resolution.
+ * Tests for the wine worker's corpus resolution.
  *
  * @remarks
  * This logic lives outside `wine.worker.ts` so it is testable: that file calls
  * `exposeFilterEngineWorker` at module load, so importing it needs a real worker `self`.
  *
- * What is being protected: the chain falls back by design, so a broken NDJSON tier serves the 10k
- * bundled tier and looks completely healthy — while every performance claim the demo exists to
- * demonstrate becomes untrue.
- *
- * **The fallback is not silent.** It emits one `console.warn` naming both remedies, because a missing
- * corpus symlink otherwise looks like an engine problem rather than a setup one. The UI still renders
- * fine and nothing errors, so the tests below are the only thing that can see a BROKEN tier; the
- * warning only covers an ABSENT one.
+ * What is being protected: the chain falls through by design — a missing real corpus costs one 404 and
+ * the synthetic tier takes over — so a BROKEN real-corpus source looks exactly like an absent one. The
+ * tests below are the only thing that can tell the two apart.
  *
  * `fetch` is stubbed rather than mocked at the module boundary, so the real stream-reading loop runs
  * against real `ReadableStream`s — including chunk boundaries that split a record in half, which is
  * the reason the buffering code exists.
  */
 
-import type { Wine } from '@filter-enginez/mock-data/wine';
-
-import { afterEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import {
+	DEFAULT_TIER_SIZE,
+	FULL_WINE_TIER_SIZE,
+	generateWineRange,
+	type Wine,
+} from '@filter-enginez/mock-data/wine/generator';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
-	describeWineCorpusTier,
-	EXPECTED_FULL_CORPUS_SIZE,
+	EXPECTED_REAL_CORPUS_SIZE,
+	generateSyntheticWines,
 	loadWineCorpus,
 	PROGRESS_REPORT_EVERY,
+	SYNTHETIC_CHUNK_SIZE,
 	tryLoadJsonFullCorpus,
 	tryStreamNdjson,
-	type WineCorpusSource,
 } from './wineCorpusLoader.js';
+import { describeWineCorpusTier, type WineCorpusSource } from './wineCorpusTier.js';
 
 /**
  * A stand-in wine record.
@@ -99,7 +99,7 @@ describe('tryStreamNdjson', () => {
 	});
 
 	it('reassembles a record split across chunk boundaries', async () => {
-		// The entire reason the buffer exists. A 130k-line file arrives in network-sized chunks that
+		// The entire reason the buffer exists. A 130,000-line file arrives in network-sized chunks that
 		// have no idea where records end; dropping the partial tail would silently lose a record at
 		// every chunk boundary — thousands of them, with no error anywhere.
 		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse(['{"id":1}\n{"i', 'd":2}\n{"id":3}\n']) });
@@ -116,7 +116,7 @@ describe('tryStreamNdjson', () => {
 	});
 
 	it('skips a malformed line and keeps the rest', async () => {
-		// Documented intent: one bad row must not cost the user the other 129,906.
+		// Documented intent: one bad row must not cost the user the rest.
 		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse(['{"id":1}\nNOT JSON\n{"id":3}\n']) });
 
 		expect(await tryStreamNdjson()).toEqual([wine(1), wine(3)]);
@@ -135,30 +135,28 @@ describe('tryStreamNdjson', () => {
 	});
 
 	it('reports the REAL count as the total once the stream is done, not the estimate', async () => {
-		// Not `EXPECTED_FULL_CORPUS_SIZE`. The boot caption enters its "constructing filter index" state
+		// Not `EXPECTED_REAL_CORPUS_SIZE`. The boot caption enters its "constructing filter index" state
 		// on `loaded >= total`, so a final report of `(1, 129_907)` would leave the screen claiming a load
-		// still in progress forever — the frozen-count reading the third state exists to prevent. The
-		// constant equals the corpus on disk, so the estimate is right by coincidence rather than by
-		// construction; a regenerated corpus of a different size would take the state away in all six
-		// verticals with nothing going red.
+		// still in progress forever — the frozen-count reading the third state exists to prevent. And the
+		// final total is a count, so it is no longer flagged as an estimate.
 		const onProgress = vi.fn();
 
 		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse(['{"id":1}\n']) });
 		await tryStreamNdjson(onProgress);
 
-		expect(onProgress).toHaveBeenLastCalledWith(1, 1, 'full-corpus-ndjson');
+		expect(onProgress).toHaveBeenLastCalledWith(1, 1, 'full-corpus-ndjson', false);
 	});
 
 	it('reports intermediate progress every PROGRESS_REPORT_EVERY records', async () => {
-		// Drives the loader's "Loaded N of ~130k" caption. If this never fired, the animation would sit
-		// at zero for the whole parse and look hung.
+		// Drives the loader's "Loaded N of ~129,907" caption. If this never fired, the animation would
+		// sit at zero for the whole parse and look hung. The intermediate totals are estimates, and say so.
 		const onProgress = vi.fn();
 		const body = Array.from({ length: PROGRESS_REPORT_EVERY }, (_unused, index) => `{"id":${index}}`).join('\n');
 
 		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse([`${body}\n`]) });
 		await tryStreamNdjson(onProgress);
 
-		expect(onProgress).toHaveBeenCalledWith(PROGRESS_REPORT_EVERY, EXPECTED_FULL_CORPUS_SIZE, 'full-corpus-ndjson');
+		expect(onProgress).toHaveBeenCalledWith(PROGRESS_REPORT_EVERY, EXPECTED_REAL_CORPUS_SIZE, 'full-corpus-ndjson', true);
 	});
 
 	it.each([
@@ -181,7 +179,7 @@ describe('tryLoadJsonFullCorpus', () => {
 		stubFetch({ '/data-real-full.json': () => ({ ok: true, text: async () => Promise.resolve('[{"id":1},{"id":2}]') }) });
 
 		expect(await tryLoadJsonFullCorpus(onProgress)).toEqual([wine(1), wine(2)]);
-		expect(onProgress).toHaveBeenCalledWith(2, 2, 'full-corpus-json');
+		expect(onProgress).toHaveBeenCalledWith(2, 2, 'full-corpus-json', false);
 	});
 
 	it.each([
@@ -197,121 +195,134 @@ describe('tryLoadJsonFullCorpus', () => {
 	});
 });
 
-describe('loadWineCorpus', () => {
-	const fallback = [wine(90), wine(91)];
+/**
+ * The synthetic full tier, generated once for the whole file.
+ *
+ * @remarks
+ * 150,000 records take a second or two to generate. Every test that needs the full tier awaits this
+ * one promise rather than paying that again; the loader never mutates what it returns.
+ */
+let fullTierPromise: Promise<{ readonly source: WineCorpusSource; readonly wines: readonly Wine[] }> | null = null;
 
-	/**
-	 * Silence the default-tier warning by default.
-	 *
-	 * @remarks
-	 * Spied rather than left to print: the fallback is the expected outcome in six of the tests
-	 * below, so an unsilenced warn buries the suite's real output under repeated paragraphs. The
-	 * test that owns the behavior re-reads the spy rather than turning it off.
-	 *
-	 * @returns The spy, so a test can assert on it.
-	 */
-	const spyOnFallbackWarning = (): MockInstance<(...args: readonly unknown[]) => void> =>
-		vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+/**
+ * Load the full tier with every real-corpus fetch failing, once.
+ *
+ * @returns The memoized result.
+ */
+async function loadSyntheticFullTier(): Promise<{ readonly source: WineCorpusSource; readonly wines: readonly Wine[] }> {
+	stubFetch({});
+	fullTierPromise ??= loadWineCorpus('full');
 
-	it('warns, with both remedies, when it falls back to the bundled tier', async () => {
-		// Without the warning, a missing corpus symlink makes both fetches 404 and the tier drop below
-		// WORKER_THRESHOLD with nothing anywhere saying so. The remedies are asserted because "corpus
-		// unavailable" alone is not actionable.
-		const warn = spyOnFallbackWarning();
+	return fullTierPromise;
+}
 
-		stubFetch({});
-		await loadWineCorpus(fallback);
+describe('generateSyntheticWines', () => {
+	it('reports after every chunk, with the exact total and no estimate flag', () => {
+		// "Loaded N of 150,000" on the boot screen: an exact total, so no tilde.
+		const onProgress = vi.fn();
+		const count = SYNTHETIC_CHUNK_SIZE * 2 + 7;
 
-		expect(warn).toHaveBeenCalledTimes(1);
+		generateSyntheticWines(count, 'synthetic-full-tier', onProgress);
 
-		const [message] = warn.mock.calls[0] ?? [];
-
-		expect(String(message)).toContain('regen:wine:real --accept-data-license');
-		expect(String(message)).toContain('pnpm link:wine-corpus');
-		expect(String(message)).toContain('WORKER_THRESHOLD');
+		expect(onProgress.mock.calls).toEqual([
+			[SYNTHETIC_CHUNK_SIZE, count, 'synthetic-full-tier', false],
+			[SYNTHETIC_CHUNK_SIZE * 2, count, 'synthetic-full-tier', false],
+			[count, count, 'synthetic-full-tier', false],
+		]);
 	});
 
-	it('stays quiet when a full-corpus tier lands', async () => {
-		const warn = spyOnFallbackWarning();
+	it('yields exactly the records of a single-call generation, stamped with the tier', () => {
+		// Chunking must not change a single record: the default tier is a prefix of the full tier, and
+		// the six apps must agree with every other consumer of the same seed.
+		const count = SYNTHETIC_CHUNK_SIZE + 3;
 
-		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse(['{"id":1}\n']) });
-		await loadWineCorpus(fallback);
-
-		expect(warn).not.toHaveBeenCalled();
+		expect(generateSyntheticWines(count, 'synthetic-full-tier')).toEqual(generateWineRange(0, count, undefined, 'full'));
+		expect(generateSyntheticWines(count, 'low-memory-tier')).toEqual(generateWineRange(0, count, undefined, 'default'));
 	});
 
-	it('prefers the ndjson tier when it lands', async () => {
-		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse(['{"id":1}\n']) });
-
-		await expect(loadWineCorpus(fallback)).resolves.toEqual({ source: 'full-corpus-ndjson', wines: [wine(1)]});
-	});
-
-	it('falls through to the json tier when ndjson is unavailable', async () => {
-		stubFetch({ '/data-real-full.json': () => ({ ok: true, text: async () => Promise.resolve('[{"id":7}]') }) });
-
-		await expect(loadWineCorpus(fallback)).resolves.toEqual({ source: 'full-corpus-json', wines: [wine(7)]});
-	});
-
-	it('falls back to the bundled tier when neither full corpus is available', async () => {
-		spyOnFallbackWarning();
-		stubFetch({});
-
-		await expect(loadWineCorpus(fallback)).resolves.toEqual({ source: 'default-tier', wines: fallback });
-	});
-
-	it.each([
-		['ndjson', { '/data-real-full.ndjson': (): unknown => ndjsonResponse([]) }],
-		['json', { '/data-real-full.json': (): unknown => ({ ok: true, text: async () => Promise.resolve('[]') }) }],
-	])('treats an EMPTY %s corpus as unavailable rather than as success', async (_tier, routes) => {
-		// The case worth the most here. A truncated or half-written regen leaves a valid-but-empty
-		// file; accepting it would boot the app showing zero wines instead of falling back to the 10k
-		// tier — and "zero results" looks like a filter bug, not a data-loading bug, so it would be
-		// chased in entirely the wrong place.
-		spyOnFallbackWarning();
-		stubFetch(routes);
-
-		await expect(loadWineCorpus(fallback)).resolves.toMatchObject({ source: 'default-tier' });
-	});
-
-	it('reports the default tier through onProgress so the loader can finish', async () => {
-		// Without this the caption would stall at its last real value and never reach 100%.
+	it('reports nothing for an empty request', () => {
 		const onProgress = vi.fn();
 
-		spyOnFallbackWarning();
-		stubFetch({});
-		await loadWineCorpus(fallback, onProgress);
+		expect(generateSyntheticWines(0, 'synthetic-full-tier', onProgress)).toEqual([]);
+		expect(onProgress).not.toHaveBeenCalled();
+	});
+});
 
-		expect(onProgress).toHaveBeenCalledWith(fallback.length, fallback.length, 'default-tier' satisfies WineCorpusSource);
+describe('loadWineCorpus', () => {
+	it('prefers the ndjson real corpus when it lands', async () => {
+		stubFetch({ '/data-real-full.ndjson': () => ndjsonResponse(['{"id":1}\n']) });
+
+		await expect(loadWineCorpus('full')).resolves.toEqual({ source: 'full-corpus-ndjson', wines: [wine(1)]});
+	});
+
+	it('falls through to the json real corpus when ndjson is unavailable', async () => {
+		stubFetch({ '/data-real-full.json': () => ({ ok: true, text: async () => Promise.resolve('[{"id":7}]') }) });
+
+		await expect(loadWineCorpus('full')).resolves.toEqual({ source: 'full-corpus-json', wines: [wine(7)]});
+	});
+
+	it('generates the 150,000-wine synthetic tier when no real corpus is available', async () => {
+		// The deployed state, and a fresh clone's. A regression to any smaller fallback would serve a
+		// different corpus in some apps than in others, and `/compare` would show different counts.
+		const { source, wines } = await loadSyntheticFullTier();
+
+		expect(source).toBe('synthetic-full-tier');
+		expect(wines).toHaveLength(FULL_WINE_TIER_SIZE);
+		expect(wines[0]).toEqual(generateWineRange(0, 1, undefined, 'full')[0]);
+		expect(wines.at(-1)).toEqual(generateWineRange(FULL_WINE_TIER_SIZE - 1, FULL_WINE_TIER_SIZE, undefined, 'full')[0]);
+	});
+
+	it('treats an EMPTY real corpus as unavailable rather than as success', async () => {
+		// A truncated or half-written import leaves a valid-but-empty file; accepting it would boot the
+		// app showing zero wines — and "zero results" looks like a filter bug, not a data-loading bug.
+		const onProgress = vi.fn();
+
+		stubFetch({
+			'/data-real-full.json': (): unknown => ({ ok: true, text: async () => Promise.resolve('[]') }),
+			'/data-real-full.ndjson': (): unknown => ndjsonResponse([]),
+		});
+		const result = await loadWineCorpus('full', onProgress);
+
+		expect(result.source).toBe('synthetic-full-tier');
+		expect(onProgress).toHaveBeenLastCalledWith(FULL_WINE_TIER_SIZE, FULL_WINE_TIER_SIZE, 'synthetic-full-tier', false);
+	});
+
+	it('generates the default tier on a low-memory device, without fetching the real corpus', async () => {
+		const fetchSpy = vi.fn();
+		const onProgress = vi.fn();
+
+		vi.stubGlobal('fetch', fetchSpy);
+		const { source, wines } = await loadWineCorpus('low-memory', onProgress);
+
+		expect(source).toBe('low-memory-tier');
+		expect(wines).toEqual(generateWineRange(0, DEFAULT_TIER_SIZE, undefined, 'default'));
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(onProgress).toHaveBeenLastCalledWith(DEFAULT_TIER_SIZE, DEFAULT_TIER_SIZE, 'low-memory-tier', false);
 	});
 });
 
 describe('describeWineCorpusTier', () => {
 	// Every wine footer renders this string (the two React apps through `describeBootedWineCorpusTier`),
-	// and the shared e2e wine flow (`tests/e2e/wineFlow.ts`) asserts on its exact wording — a check that
-	// FAILS when the corpus is missing rather than passing quietly over the wrong tier. That makes the
-	// literals a contract between six apps and the e2e suite, not cosmetic copy, so they are pinned
-	// here rather than left to whoever edits the function next.
-	// Typed on `it.each` rather than with `satisfies` on each entry: `satisfies` checks the literal
-	// and still widens it to `string` for the callback's parameter, so the source argument would stop
-	// being a `WineCorpusSource` and `tsc` would reject the call.
+	// and the shared e2e wine flow (`tests/e2e/wineFlow.ts`) asserts `full corpus` positively. That
+	// makes the literals a contract between six apps and the e2e suite, not cosmetic copy.
 	it.each<[WineCorpusSource, string]>([
-		['full-corpus-ndjson', 'full corpus'],
-		['full-corpus-json', 'full corpus'],
+		['synthetic-full-tier', 'full corpus · synthetic'],
+		['full-corpus-ndjson', 'full corpus · local real reviews'],
+		['full-corpus-json', 'full corpus · local real reviews'],
+		['default-tier', '10k tier · synthetic'],
+		['low-memory-tier', '10k tier · synthetic · low-memory device'],
 	])('describes %s as %s', (source, expected) => {
 		expect(describeWineCorpusTier(source)).toBe(expected);
 	});
 
-	it('describes the bundled fallback as `bundled 10k tier`', () => {
-		// The one string that must never appear in a healthy run. It is the visible end of the
-		// silent-fallback chain — a missing symlink, a dev server that will not serve one, an HTML
-		// error page parsed as records all land here, and a working app over a smaller corpus looks
-		// exactly like a working app.
-		expect(describeWineCorpusTier('default-tier')).toBe('bundled 10k tier');
-	});
+	it('says `full corpus` for exactly the 150,000-wine and real tiers', () => {
+		// The e2e assertion's premise: the phrase appears on a full boot and never on a 10k one.
+		const sources: readonly WineCorpusSource[] = ['default-tier', 'full-corpus-json', 'full-corpus-ndjson', 'low-memory-tier', 'synthetic-full-tier'];
 
-	it('distinguishes the two full-corpus tiers from the fallback', () => {
-		// Guards the shape, not just the values: a rewrite that returned one constant would satisfy
-		// each case above only if it happened to pick that case's string, but this fails outright.
-		expect(describeWineCorpusTier('full-corpus-ndjson')).not.toBe(describeWineCorpusTier('default-tier'));
+		expect(sources.filter((source) => describeWineCorpusTier(source).includes('full corpus'))).toEqual([
+			'full-corpus-json',
+			'full-corpus-ndjson',
+			'synthetic-full-tier',
+		]);
 	});
 });

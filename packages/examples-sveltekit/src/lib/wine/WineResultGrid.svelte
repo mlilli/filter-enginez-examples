@@ -3,7 +3,7 @@
 	 * `<WineResultGrid>` — the wine result cards, windowed.
 	 *
 	 * @remarks
-	 * **Windowed on purpose.** The wine corpus is ~130k rows and an unfiltered result set is most of
+	 * **Windowed on purpose.** The wine corpus is 150,000 rows and an unfiltered result set is most of
 	 * them. Rendering every match would build hundreds of thousands of DOM nodes and lock the tab —
 	 * which would look like the ENGINE being slow, when the engine answered in milliseconds and the
 	 * cost is entirely in the paint. So the grid renders a page at a time and grows on demand.

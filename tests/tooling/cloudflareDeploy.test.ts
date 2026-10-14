@@ -364,6 +364,29 @@ describe('the landing page', () => {
 		expect(required.filter((url) => !page.includes(`href="${url}"`))).toEqual([]);
 	});
 
+	it('lists exactly the six demo apps in the demo grid, one card each, at the id the apps link to', () => {
+		// Every app's "All demos" link points at `/#demos`, so the section must keep that id; and the grid
+		// holds the six apps and nothing else, so six cards fill one, two or three columns with no orphan.
+		const page = readRepoFile('packages/site/index.html');
+		const demos = /<section id="demos"[\s\S]*?<\/section>/u.exec(page)?.[0] ?? '';
+		const cardTargets = [...demos.matchAll(/<a class="fe-landing__card[^"]*" href="([^"]+)"/gu)].map(([, href]) => href ?? '');
+		const appHomes = [...PRODUCTION_ORIGINS.values()].map((origin) => `${origin}/`);
+
+		expect(demos, 'no <section id="demos"> on the home page').not.toBe('');
+		expect(cardTargets.slice().sort()).toEqual(appHomes.slice().sort());
+	});
+
+	it('groups the hero’s four actions two and two, each group named', () => {
+		const page = readRepoFile('packages/site/index.html');
+		const actions = /<div class="hero-actions">([\s\S]*?)<div class="install">/u.exec(page)?.[1] ?? '';
+		const groups = [...actions.matchAll(/role="group" aria-labelledby="([^"]+)"[\s\S]*?<\/ul>/gu)];
+
+		expect(groups.map((group) => [...group[0].matchAll(/<a class="hero-actions__link/gu)].length)).toEqual([2, 2]);
+		for (const [, labelId] of groups) {
+			expect(actions, `the label #${labelId ?? ''} of a hero group`).toContain(`id="${labelId ?? ''}"`);
+		}
+	});
+
 	it('declares the apex as canonical, an absolute Open Graph image, and parseable structured data', () => {
 		const page = readRepoFile('packages/site/index.html');
 		const structuredData = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/u.exec(page)?.[1] ?? '';

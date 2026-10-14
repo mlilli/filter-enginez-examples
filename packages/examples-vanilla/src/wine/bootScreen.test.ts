@@ -26,7 +26,7 @@ import { createWineBootScreen } from './bootScreen.js';
 describe('createWineBootScreen', () => {
 	it('passes the loader label through, so the graphic is not announced unnamed', () => {
 		// `createBootLoader` is a `role="img"`, so an empty name announces an unlabelled graphic where
-		// the entire page content should be — for the several seconds a 130k stream takes.
+		// the entire page content should be — for the several seconds a 150k boot takes.
 		// `indicators.test.ts` asserts the loader honors a name it is given; this asserts the screen
 		// gives it one, which is the half that could regress here.
 		const { element } = createWineBootScreen('Loading wine reviews');

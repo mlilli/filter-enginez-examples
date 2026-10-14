@@ -32,6 +32,7 @@
  * design, which is exactly why it counts versions instead of holding a boolean.
  */
 
+import type { InSetRule } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
@@ -40,9 +41,11 @@ import {
 	COLOR_ORDER,
 	commitExpression,
 	deriveSelectedPresetIds,
+	EMPTY_SELECTION,
 	type OriginNodeSpec,
 	type PickerTreeNode,
 	SWEETNESS_ORDER,
+	visibleVarietalChips,
 	type WineChipVocabularies,
 } from '@filter-enginez/examples-shared/wine-domain';
 import { useEngineRefs } from '@filter-enginez/vue-signals';
@@ -82,12 +85,19 @@ const props = withDefaults(
  * @remarks
  * **NOT `SLIDER_STEPS`.** That record is the grid the BASELINE BOUNDS are rounded outward onto, and it
  * is all zeros deliberately — padding price by 5 once turned a $4 corpus minimum into a displayed $0.
- * Conflating the two, via a `|| 1` fallback, silently snapped the price slider to $1 where React snaps
- * to $5.
+ * The two are unrelated knobs.
+ *
+ * Price snaps to whole dollars, as React's does. Its track is log-scaled, so near the floor one dollar
+ * is a visible stretch of track and a coarser step would make $8 or $12 unreachable by drag; the arrow
+ * keys still cross the tail quickly, because on a log track a press moves about one percent of the
+ * track (never less than one step) rather than one dollar.
  */
-const DRAG_STEPS = { abv: 0.1, points: 1, price: 5, vintage: 1 } as const;
+const DRAG_STEPS = { abv: 0.1, points: 1, price: 1, vintage: 1 } as const;
 
-const { expression } = useEngineRefs(props.engine);
+// Both from one `useEngineRefs` call, in `setup()`, where their teardown registers.
+const engineRefs = useEngineRefs(props.engine);
+const { expression } = engineRefs;
+const varietalRule = engineRefs.rule('varietal');
 
 /** The preset ids the committed expression implies. */
 const committedPresets = computed(() => deriveSelectedPresetIds(expression.value));
@@ -113,8 +123,26 @@ watch(committedPresets, (next) => {
 /** The color chips the corpus actually contains, in canonical order. */
 const colorOptions = computed(() => COLOR_ORDER.filter((entry) => props.vocabularies.color.includes(entry)));
 
-/** Capped at 60 — the vocabulary runs to hundreds, and the group scrolls. */
-const varietalOptions = computed(() => props.vocabularies.varietal.slice(0, 60));
+/**
+ * The committed varietal selection — read here only to decide which varietal chips render.
+ *
+ * @remarks
+ * `<WineChipSection>` owns the selection itself; this is a read. `EMPTY_SELECTION` keeps one array
+ * identity while no rule is set, so an unrelated settle does not recompute the chip list.
+ */
+const selectedVarietals = computed<readonly string[]>(
+	() => (varietalRule.value as InSetRule<string> | undefined)?.config.set ?? EMPTY_SELECTION,
+);
+
+/**
+ * The varietal chips: the most-reviewed `VARIETAL_CHIP_LIMIT`, plus any selected varietal beyond them.
+ *
+ * @remarks
+ * The vocabulary is ranked most-reviewed first and runs to hundreds of grapes, so the group shows the
+ * top of it and scrolls. `visibleVarietalChips` keeps a selected rare grape on screen too — one
+ * restored from a shared `?f` link still gets a chip the user can see and clear.
+ */
+const varietalOptions = computed(() => visibleVarietalChips(props.vocabularies.varietal, selectedVarietals.value));
 
 const bodyOptions = computed(() => BODY_ORDER.filter((entry) => props.vocabularies.body.includes(entry)));
 
@@ -138,26 +166,6 @@ function leaveExpressionMode(): void {
  */
 function handleSelectedChange(next: readonly string[]): void {
 	activePresets.value = next;
-}
-
-/**
- * Render a price as a whole dollar amount.
- *
- * @param price - The slider value.
- * @returns The label.
- */
-function formatPrice(price: number): string {
-	return `$${String(Math.round(price))}`;
-}
-
-/**
- * Render an ABV percentage to one decimal.
- *
- * @param abv - The slider value.
- * @returns The label.
- */
-function formatAbv(abv: number): string {
-	return `${abv.toFixed(1)}%`;
 }
 </script>
 
@@ -185,7 +193,6 @@ function formatAbv(abv: number): string {
 				<WineRangeSection
 					:engine="engine"
 					field="priceUsd"
-					:format="formatPrice"
 					label="Price (USD)"
 					:leave-expression-mode="leaveExpressionMode"
 					rule-id="price"
@@ -245,7 +252,6 @@ function formatAbv(abv: number): string {
 				<WineRangeSection
 					:engine="engine"
 					field="abv"
-					:format="formatAbv"
 					label="ABV (%)"
 					:leave-expression-mode="leaveExpressionMode"
 					rule-id="abv"

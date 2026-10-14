@@ -27,22 +27,16 @@
 
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	// The neutral subpath, not `./books-domain` — this is a WINE route deriving wine vocabularies, and
-	// `./vocabulary` exists so a generic helper never needs a cross-dataset import.
-	import { uniqueSorted } from '@filter-enginez/examples-shared/vocabulary';
 	import {
-		buildOriginNodeSpecs,
-		deriveBaselineBounds,
+		deriveWineFacets,
 		FALLBACK_BOUNDS,
 		type NumericBounds,
 		type OriginNodeSpec,
 		type PickerTreeNode,
-		SLIDER_FIELD_GETTERS,
-		SLIDER_STEPS,
 		type SliderFieldId,
 		type WineChipVocabularies,
 	} from '@filter-enginez/examples-shared/wine-domain';
-	import { buildOriginTree, type Wine } from '@filter-enginez/mock-data/wine';
+	import { type Wine } from '@filter-enginez/mock-data/wine';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
 	import WineBootScreen from '$lib/wine/WineBootScreen.svelte';
 	import WineServerFallback from '$lib/wine/WineServerFallback.svelte';
@@ -61,6 +55,8 @@
 	let originSpecs = $state.raw<readonly OriginNodeSpec[]>([]);
 	let originTree = $state.raw<PickerTreeNode | null>(null);
 	let baselines = $state.raw<Record<SliderFieldId, NumericBounds>>(FALLBACK_BOUNDS);
+	// The footer's tier label, read from the boot module so it arrives with the engine.
+	let corpusTier = $state('');
 	let booting = $state(true);
 	let bootError = $state<string | null>(null);
 	// Only true AFTER the client mounts. Gates the boot screen so the SSR / no-JS pass renders the
@@ -71,44 +67,27 @@
 	/** Teardown for the address-bar sync (client-only; `null` until wired in `onMount`). */
 	let stopUrlSync: (() => void) | null = null;
 
-	/**
-	 * Derive one slider's baseline bounds from the corpus.
-	 *
-	 * @param field - The slider's field id.
-	 * @param corpus - The booted corpus.
-	 * @returns Tight bounds over the real data.
-	 */
-	function derive(field: SliderFieldId, corpus: readonly Wine[]): NumericBounds {
-		return deriveBaselineBounds(corpus.map(SLIDER_FIELD_GETTERS[field]), FALLBACK_BOUNDS[field], SLIDER_STEPS[field]);
-	}
-
 	onMount(async () => {
 		// The client is now driving — swap the SSR fallback for the branded boot loader (see `isMounted`).
 		isMounted = true;
 		try {
 			// Dynamic — see the docblock. Kept on ONE line: wrapped, the formatter adds a trailing comma
 			// inside `import(...)`, which Svelte's parser rejects as a syntax error.
-			const { bootWineServerEngine } = await import('@filter-enginez/examples-shared/wine-server-core');
+			const { bootWineServerEngine, SERVER_WINE_TIER_LABEL } = await import('@filter-enginez/examples-shared/wine-server-core');
 			const booted = await bootWineServerEngine({ baseUrl: '/wine-server' });
 			// The transport pulled the corpus at boot, so the sync `.core` shim hands back a resident copy.
 			const corpus = booted.core.getSourceData();
 
-			vocabularies = {
-				body: uniqueSorted(corpus.map((wine) => wine.body)),
-				color: uniqueSorted(corpus.map((wine) => wine.color)),
-				sweetness: uniqueSorted(corpus.map((wine) => wine.sweetness)),
-				varietal: uniqueSorted(corpus.map((wine) => wine.varietal)),
-			};
-			// `buildOriginTree` returns a root without a `label` (nothing renders the root), structurally
-			// narrower than `PickerTreeNode`. React + `/wine` cast here for the same reason.
-			originTree = buildOriginTree(corpus) as unknown as PickerTreeNode;
-			originSpecs = buildOriginNodeSpecs(originTree);
-			baselines = {
-				abv: derive('abv', corpus),
-				points: derive('points', corpus),
-				price: derive('price', corpus),
-				vintage: derive('vintage', corpus),
-			};
+			// The same shared derivation as `/wine`, so the two routes cannot drift: varietals ranked
+			// most-reviewed first, the origin tree ordered by wine count at every level, and the slider
+			// baselines tight over the resident corpus.
+			const facets = deriveWineFacets(corpus);
+
+			vocabularies = facets.vocabularies;
+			originTree = facets.originTree;
+			originSpecs = facets.originSpecs;
+			baselines = facets.baselines;
+			corpusTier = SERVER_WINE_TIER_LABEL;
 			// Hydrate from a shared `?f=` link BEFORE wiring the write-back, so the restore is not
 			// immediately overwritten by an export of the neutral state. Same ordering as every other route.
 			const urlConfig = readConfigFromUrl();
@@ -148,6 +127,7 @@
 	<WineView
 		{baselines}
 		compareDataset="wine-server"
+		{corpusTier}
 		{engine}
 		{originSpecs}
 		{originTree}

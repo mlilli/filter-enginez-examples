@@ -38,3 +38,21 @@ export {
 	type HistogramBucket,
 	sliderBucketCount,
 } from './filters/range/histogram.js';
+export {
+	createSliderScale,
+	FINE_HISTOGRAM_BUCKET_CAP,
+	fineHistogramQuery,
+	type HistogramQuery,
+	linearSliderScale,
+	LOG_KEYBOARD_FRACTION,
+	LOG_SOFTENING_GRID_STEPS,
+	type LogScaleAnchor,
+	logSliderScale,
+	rebinHistogram,
+	scaledBucketCount,
+	SLIDER_POSITION_RESOLUTION,
+	type SliderScale,
+	type SliderScaleSpec,
+	snapToStep,
+	stepScaledValue,
+} from './filters/range/scale.js';

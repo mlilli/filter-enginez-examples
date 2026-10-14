@@ -9,7 +9,7 @@
  * navigation is invisible. **That is also why neither of those routes has a boot screen** — neither
  * needs one.
  *
- * Wine needs one. 130k records over a Comlink worker takes seconds, and a blocking resolver would mean
+ * Wine needs one. 150k records over a Comlink worker takes seconds, and a blocking resolver would mean
  * clicking "Wine" on the landing page does nothing at all for that whole time — no spinner, no page,
  * no feedback. Strictly worse than the other five verticals, and it would make the boot-progress
  * pub/sub that `bootWineAsyncEngine` reports through unreachable, since nothing would be rendered to
@@ -144,9 +144,9 @@ export class WineBootStore {
 	 * this in the same order for the same reason.
 	 *
 	 * **The corpus is read from the RESIDENT MIRROR, never re-fetched.** `createRxJsEngineFromAsync`
-	 * pulls the ~110 MB corpus across the Comlink boundary exactly once at boot and keeps it — that is
+	 * pulls the whole corpus across the Comlink boundary exactly once at boot and keeps it — that is
 	 * the adapter's stated bandwidth contract. Calling `asyncEngine.getSourceData()` here would be a
-	 * SECOND full structured-clone of 130k records, which does not fail: it just doubles an already
+	 * SECOND full structured-clone of 150k records, which does not fail: it just doubles an already
 	 * multi-second boot, and it is invisible in code review because the call reads perfectly sensibly.
 	 *
 	 * **A `?f` link is loaded BEFORE the engine is wrapped**, matching every other route: `loadConfig`
@@ -182,9 +182,9 @@ export class WineBootStore {
 			const engine = await createRxJsEngineFromAsync<Wine>(asyncEngine);
 
 			// `engine.core.getSourceData()`, NOT `asyncEngine.getSourceData()`. The adapter above already
-			// pulled the ~110 MB corpus across the Comlink boundary exactly once and holds a resident
+			// pulled the whole corpus across the Comlink boundary exactly once and holds a resident
 			// mirror — its own comment calls that the bandwidth contract. Asking the WORKER again is a
-			// second full structured-clone of 130k records, which does not fail, it just doubles the boot.
+			// second full structured-clone of 150k records, which does not fail, it just doubles the boot.
 			this.facets.set(deriveWineFacets(engine.core.getSourceData()));
 			this.wineCount.set(meta.wineCount);
 			this.bootMs.set(meta.bootMs);

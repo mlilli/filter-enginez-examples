@@ -11,7 +11,7 @@
  *
  * Predictive disable needs one bundle per engine change and exactly one fetcher. A panel fetching its
  * own would re-request on every section's re-render, and each section fetching its own facet would
- * turn one round trip into thirteen — across a Comlink boundary, against 130k records. So the loop
+ * turn one round trip into thirteen — across a Comlink boundary, against 150k records. So the loop
  * lives here and the result is provided as a `shallowRef` the sections inject.
  *
  * A failed fetch keeps the PREVIOUS bundle. Predictive disable is an enhancement: slightly stale hints
@@ -290,7 +290,7 @@ function handleRemove(ruleId: string): void {
 				· {{ sourceData.length.toLocaleString() }} bottles resident<template v-if="corpusTier">
 					({{ corpusTier }})</template>
 			</span>
-			<span>Kaggle wine reviews · filtered entirely client-side</span>
+			<span>Wine reviews · filtered entirely client-side</span>
 		</footer>
 	</div>
 </template>

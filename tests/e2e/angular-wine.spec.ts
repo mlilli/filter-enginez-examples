@@ -11,7 +11,7 @@
  *
  * `/books` and `/real-estate` resolve their engines before activation, so those routes have no
  * intermediate render at all. Wine's page renders a `<fe-brain-synapse>` loader while the worker
- * streams ~130k records, and that loader is the whole justification for skipping the resolver. A
+ * builds 150k records, and that loader is the whole justification for skipping the resolver. A
  * spec that only waited for the settled header would go green over a route that showed a blank page
  * for eight seconds.
  *

@@ -62,3 +62,15 @@ export {
 	sliderBucketCount,
 } from './filters/range/histogram.js';
 export type { HistogramBarTier, HistogramBucket } from './filters/range/histogram.js';
+export {
+	createSliderScale,
+	fineHistogramQuery,
+	linearSliderScale,
+	logSliderScale,
+	rebinHistogram,
+	scaledBucketCount,
+	SLIDER_POSITION_RESOLUTION,
+	snapToStep,
+	stepScaledValue,
+} from './filters/range/scale.js';
+export type { HistogramQuery, LogScaleAnchor, SliderScale, SliderScaleSpec } from './filters/range/scale.js';

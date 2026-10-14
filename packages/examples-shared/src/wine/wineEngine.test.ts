@@ -13,17 +13,23 @@
  */
 
 import { wines as defaultTierWines } from '@filter-enginez/mock-data/wine';
+import { FULL_WINE_TIER_SIZE } from '@filter-enginez/mock-data/wine/generator';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as WineEngine from './wineEngine.js';
 
-import { describeWineCorpusTier } from './wineCorpusLoader.js';
+import { describeWineCorpusTier } from './wineCorpusTier.js';
 
 /** The module's public surface, as returned by a fresh import. */
 type WineEngineModule = typeof WineEngine;
 
 /** The worker's progress callback, as `bootWineAsyncEngine` hands it over in `factoryCallbacks`. */
-type ProgressReporter = (loaded: number, total: number, source: WineEngine.WineBootProgress['source']) => void;
+type ProgressReporter = (
+	loaded: number,
+	total: number,
+	source: WineEngine.WineBootProgress['source'],
+	isTotalEstimated: boolean,
+) => void;
 
 /**
  * Import a FRESH copy of the module so `cachedBoot` and the progress singleton reset.
@@ -128,14 +134,14 @@ describe('describeBootedWineCorpusTier', () => {
 
 		await wineEngine.bootWineEngine();
 
-		// `beforeEach` pins `VITE_WINE_TIER=default`, so this run genuinely IS the bundled tier —
+		// `beforeEach` pins `VITE_WINE_TIER=default`, so this run genuinely IS the default tier —
 		// the string is read back from a real boot rather than from a stubbed source.
-		expect(wineEngine.describeBootedWineCorpusTier()).toBe('bundled 10k tier');
+		expect(wineEngine.describeBootedWineCorpusTier()).toBe('10k tier · synthetic');
 	});
 
 	it('tracks a FULL-corpus source, not just the default tier', async () => {
 		// **The case that makes the other two mean something.** Every boot reachable in jsdom lands on
-		// `default-tier`, so a version that ignored the snapshot and hardcoded `'bundled 10k tier'`
+		// `default-tier`, so a version that ignored the snapshot and hardcoded the default-tier label
 		// passed both cases above — verified by mutation, which is the only reason this exists.
 		//
 		// The worker path is where a different source comes from. `bootWineAsyncEngine` hands the
@@ -164,11 +170,19 @@ describe('describeBootedWineCorpusTier', () => {
 
 		expect(captured.onProgress, 'the boot must hand the worker an onProgress callback').not.toBeNull();
 
-		captured.onProgress?.(129_907, 129_907, 'full-corpus-ndjson');
+		captured.onProgress?.(FULL_WINE_TIER_SIZE, FULL_WINE_TIER_SIZE, 'synthetic-full-tier', false);
 
-		expect(wineEngine.describeBootedWineCorpusTier()).toBe('full corpus');
-		// And it is the SHARED mapping, not a second copy of the same two literals.
-		expect(wineEngine.describeBootedWineCorpusTier()).toBe(describeWineCorpusTier('full-corpus-ndjson'));
+		expect(wineEngine.describeBootedWineCorpusTier()).toBe('full corpus · synthetic');
+		// And it is the SHARED mapping, not a second copy of the same literals.
+		expect(wineEngine.describeBootedWineCorpusTier()).toBe(describeWineCorpusTier('synthetic-full-tier'));
+		// The estimate flag travels with the snapshot, so the caption can print `~` for it alone.
+		captured.onProgress?.(8_000, 129_907, 'full-corpus-ndjson', true);
+		expect(wineEngine.getWineBootProgressSnapshot()).toEqual({
+			isTotalEstimated: true,
+			loaded: 8_000,
+			source: 'full-corpus-ndjson',
+			total: 129_907,
+		});
 
 		vi.doUnmock('@filter-enginez/worker-bridge');
 	});
@@ -239,10 +253,42 @@ describe('bootWineEngine', () => {
 	});
 });
 
+describe('FULL_TIER_SIZE', () => {
+	it('matches the full tier the worker generates', async () => {
+		// A local copy, so the main thread does not bundle the generator to read one number. This is
+		// what keeps the copy honest.
+		const wineEngine = await loadModule();
+
+		expect(wineEngine.FULL_TIER_SIZE).toBe(FULL_WINE_TIER_SIZE);
+	});
+});
+
+describe('the worker tier request', () => {
+	it.each([
+		[8, 'full'],
+		[1, 'low-memory'],
+	] as const)('asks the worker for the %s-GB device\'s tier (%s)', async (deviceMemory, expected) => {
+		// The tier is decided on the main thread and sent as plain data. Every app reaches the worker
+		// through this one call, which is what makes all six boot the same tier on one device.
+		const wrapInWorker = vi.fn(async () => Promise.resolve({ getSourceData: vi.fn(async () => Promise.resolve([])) }));
+
+		vi.doMock('@filter-enginez/worker-bridge', () => ({ wrapInWorker }));
+		vi.stubGlobal('navigator', { deviceMemory });
+
+		const wineEngine = await loadModule();
+
+		await wineEngine.bootWineAsyncEngine({ spawnWorker: vi.fn(() => ({ terminate: vi.fn() })) as never });
+
+		expect(wrapInWorker).toHaveBeenCalledWith(expect.objectContaining({ factoryOptions: { tier: expected }}));
+
+		vi.doUnmock('@filter-enginez/worker-bridge');
+	});
+});
+
 describe('bootWineAsyncEngine', () => {
 	it('refuses to boot without a worker spawner, naming the missing option', async () => {
 		// The whole guard. There is no main-thread fallback on this boot, so a missing `spawnWorker` has
-		// nowhere to degrade to — and degrading silently is exactly what must not happen: a 130k
+		// nowhere to degrade to — and degrading silently is exactly what must not happen: a 150k
 		// main-thread boot "works" while freezing the tab and retiring the point of the vertical.
 		const wineEngine = await loadModule();
 

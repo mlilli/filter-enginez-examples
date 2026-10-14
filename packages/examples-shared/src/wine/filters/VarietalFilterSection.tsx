@@ -4,7 +4,8 @@
  *
  * @remarks
  * Distinct from the generic `<ChipFilterSection />` on two counts: the vocabulary is data-derived
- * (every varietal in the corpus, sorted) rather than a hand-ordered constant, and the control is a
+ * (every varietal in the corpus, most-reviewed first — `rankWineVarietals`) rather than a hand-ordered
+ * constant, and the control is a
  * `CheckboxList` (dozens-to-hundreds of options) rather than a chip group. The optimistic-state +
  * `sameSelection` re-sync pattern is the same as the chip sections.
  *
@@ -21,6 +22,7 @@ import { useCallback, useMemo } from 'react';
 import { useSeedAndAdopt } from '../../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
+import { rankWineVarietals } from '../wine-domain/facets.js';
 import { useBundleChipExclusion } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
@@ -35,17 +37,9 @@ export const VarietalFilterSection = (): React.ReactElement => {
 	const [selected, setSelected] = useSeedAndAdopt(engineSelected, sameSelection);
 
 	// Varietal vocabulary derived from the full sourceData so the list shows every varietal in the
-	// corpus, with bundle data telling us which are currently reachable.
+	// corpus, most-reviewed first, with bundle data telling us which are currently reachable.
 	const sourceData = engine.core.getSourceData();
-	const allVarietals = useMemo(() => {
-		const set = new Set<string>();
-
-		for (const wine of sourceData) {
-			set.add(wine.varietal);
-		}
-
-		return Array.from(set).sort();
-	}, [sourceData]);
+	const allVarietals = useMemo(() => rankWineVarietals(sourceData), [sourceData]);
 
 	const exclusion = useBundleChipExclusion('varietal');
 

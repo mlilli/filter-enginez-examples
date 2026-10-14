@@ -46,6 +46,11 @@ import { WineApp } from './wine/WineApp.js';
 export interface DatasetBootProgress {
 	readonly loaded: number;
 	readonly total: number;
+	/**
+	 * Whether `total` is an estimate, which the loader caption marks with `~`. Only the wine route's
+	 * local real corpus streams without knowing its length; every other total is exact.
+	 */
+	readonly isTotalEstimated?: boolean;
 }
 
 /**
@@ -89,7 +94,7 @@ export interface DatasetEntry {
 	readonly tagline: string;
 }
 
-/** The wine dataset. Boots the 130k corpus in a worker (see `examples-shared/wine`). */
+/** The wine dataset. Boots the 150,000-wine tier in a worker (see `examples-shared/wine`). */
 const wine: DatasetEntry = {
 	bootAndWire: async (): Promise<BootedDataset> => {
 		const bundle = await bootWineEngine({ spawnWorker: spawnWineWorker });
@@ -105,7 +110,7 @@ const wine: DatasetEntry = {
 	subscribeProgress: subscribeWineBootProgress,
 	supportsUrlState: true,
 	tagline:
-		'≈130k Kaggle wine reviews — a cascading origin hierarchy, points / price / ABV ranges, and typo-tolerant tasting-note search.',
+		'150,000 synthetic wine reviews — a cascading origin hierarchy, points / price / ABV ranges, and typo-tolerant tasting-note search.',
 };
 
 /** Books. Boots the bundled default tier on the main thread (see `examples-shared/books`). */

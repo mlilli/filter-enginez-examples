@@ -3,12 +3,13 @@
  * browser's own timing is too noisy to trust (throttled tab, coarse timer, busy CPU).
  *
  * @remarks
- * These are the `simulate-per-option` cells at the 10k tier, lifted verbatim from
- * `benchmarks/results.json` (generated 2026-07-08 by `pnpm bench:write`, tinybench mean latency).
- * That scenario sweeps all three toggles the widget exposes — bitmap × exclusion-graph ×
- * memoization — so the eight cells map one-to-one onto the widget's eight reachable configurations.
- * The all-off cell (≈28.9 ms) is the naive baseline; the all-on cell (≈0.087 ms) is the fully-stacked
- * result, a ~334× span. If the harness is re-run, refresh these from the new `results.json`.
+ * These are the `simulate-per-option` cells at the 10k tier, measured with the engine repository's
+ * tinybench harness (`benchmarks/`, run with `--tiers=10k --scenarios=simulate-per-option`) on
+ * 2026-10-13, over the 10,000-wine default tier of the realistic synthetic generator. That scenario
+ * sweeps all three toggles the widget exposes — bitmap × exclusion-graph × memoization — so the eight
+ * cells map one-to-one onto the widget's eight reachable configurations. The all-off cell (≈38.5 ms)
+ * is the naive baseline; the all-on cell (≈0.092 ms) is the fully-stacked result, a ~418× span. If
+ * the harness is re-run, refresh these from its output.
  *
  * @packageDocumentation
  */
@@ -49,14 +50,14 @@ export function configKey(config: BenchmarkConfig): BenchmarkConfigKey {
  * Keyed by {@link configKey} (`bitmap · exclusionGraph · memoization`).
  */
 export const REFERENCE_MS_BY_CONFIG: Readonly<Record<BenchmarkConfigKey, number>> = {
-	'000': 28.932, // bitmap:off · exclGraph:off · simCache:off — fully naive
-	'001': 0.0828, // bitmap:off · exclGraph:off · simCache:on
-	'010': 27.822, // bitmap:off · exclGraph:lazy · simCache:off
-	'011': 0.0828, // bitmap:off · exclGraph:lazy · simCache:on
-	100: 10.317, // bitmap:on · exclGraph:off · simCache:off
-	101: 0.0827, // bitmap:on · exclGraph:off · simCache:on
-	110: 10.488, // bitmap:on · exclGraph:lazy · simCache:off
-	111: 0.0867, // bitmap:on · exclGraph:lazy · simCache:on — fully stacked
+	'000': 38.4699, // bitmap:off · exclGraph:off · simCache:off — fully naive
+	'001': 0.093, // bitmap:off · exclGraph:off · simCache:on
+	'010': 39.3831, // bitmap:off · exclGraph:lazy · simCache:off
+	'011': 0.0941, // bitmap:off · exclGraph:lazy · simCache:on
+	100: 16.6045, // bitmap:on · exclGraph:off · simCache:off
+	101: 0.0927, // bitmap:on · exclGraph:off · simCache:on
+	110: 16.52, // bitmap:on · exclGraph:lazy · simCache:off
+	111: 0.092, // bitmap:on · exclGraph:lazy · simCache:on — fully stacked
 };
 
 /** The naive baseline (all layers off) — the always-parked reference bar. */
@@ -66,7 +67,7 @@ export const NAIVE_BASELINE_MS = REFERENCE_MS_BY_CONFIG['000'];
 export const REFERENCE_CORPUS_SIZE = 10_000;
 
 /** Human label for the reference provenance (no fabricated machine specs — just the honest source). */
-export const REFERENCE_LABEL = 'reference bench · 10k wines · 2026-07-08';
+export const REFERENCE_LABEL = 'reference bench · 10k wines · 2026-10-13';
 
 /** Look up the reference mean-ms for a configuration. */
 export function referenceMsFor(config: BenchmarkConfig): number {

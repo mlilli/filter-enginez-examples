@@ -12,7 +12,7 @@
  *
  * **1. The busy version must bump BEFORE the write.** `markUserAction` is what makes the "computing"
  * indicator light on the same frame the user clicks. Bumping after the write — or forgetting it —
- * leaves the indicator dark through a round trip that can take hundreds of milliseconds over 130k
+ * leaves the indicator dark through a round trip that can take hundreds of milliseconds over 150k
  * rows, so the UI looks frozen and the click looks ignored.
  *
  * **2. `engine.core` reads LAG on the worker tier.** A synchronous read taken right after a write

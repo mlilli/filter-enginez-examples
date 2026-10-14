@@ -74,7 +74,7 @@ describe('createNumberField', () => {
 	it('does NOT commit while typing', () => {
 		// Typing "95" passes through "9" first. Committing per keystroke would filter for scores above
 		// nine and briefly show the whole corpus — and on wine's worker tier each intermediate value is
-		// a full Comlink round trip against 130k records.
+		// a full Comlink round trip against 150k records.
 		type(mount(), '9', false);
 
 		expect(onChange).not.toHaveBeenCalled();

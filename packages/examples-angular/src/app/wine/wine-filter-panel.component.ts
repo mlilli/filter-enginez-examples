@@ -40,9 +40,14 @@
  * there is no reset registry — the header's "Clear all" and the smart-filter chip's × both just call
  * `clearAllWineFilters`, and these chips go out on their own.
  *
+ * The panel also READS the committed varietal selection, without owning it: the varietal group shows
+ * the most-reviewed `VARIETAL_CHIP_LIMIT` chips, and `visibleVarietalChips` needs the selection to keep
+ * a rarer varietal that arrived through a shared link on screen, where it can be seen and cleared.
+ *
  * @packageDocumentation
  */
 
+import type { InSetRule } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { ChangeDetectionStrategy, Component, computed, input, linkedSignal } from '@angular/core';
@@ -53,9 +58,11 @@ import {
 	COLOR_ORDER,
 	commitExpression,
 	deriveSelectedPresetIds,
+	EMPTY_SELECTION,
 	type OriginNodeSpec,
 	type PickerTreeNode,
 	SWEETNESS_ORDER,
+	visibleVarietalChips,
 	type WineChipVocabularies,
 } from '@filter-enginez/examples-shared/wine-domain';
 
@@ -76,33 +83,10 @@ import { WineSmartFiltersComponent } from './wine-smart-filters.component.js';
  * @remarks
  * **NOT `SLIDER_STEPS`.** That record is the grid the BASELINE BOUNDS are rounded outward onto, and it
  * is all zeros deliberately — padding price by 5 once turned a $4 corpus minimum into a displayed $0.
- * Conflating the two, via a `|| 1` fallback, silently snapped the price slider to $1 where React snaps
- * to $5.
+ * These are drag and keyboard granularity, matching React's panel: price snaps to whole dollars, which
+ * the log-scaled price track can place by hand at the dense low end.
  */
-const DRAG_STEPS = { abv: 0.1, points: 1, price: 5, vintage: 1 } as const;
-
-/** The varietal vocabulary runs to hundreds; the group scrolls, and this is where it stops. */
-const VARIETAL_CAP = 60;
-
-/**
- * Render a price as a whole dollar amount.
- *
- * @param price - The slider value.
- * @returns The label.
- */
-function formatPrice(price: number): string {
-	return `$${String(Math.round(price))}`;
-}
-
-/**
- * Render an ABV percentage to one decimal.
- *
- * @param abv - The slider value.
- * @returns The label.
- */
-function formatAbv(abv: number): string {
-	return `${abv.toFixed(1)}%`;
-}
+const DRAG_STEPS = { abv: 0.1, points: 1, price: 1, vintage: 1 } as const;
 
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -153,7 +137,6 @@ function formatAbv(abv: number): string {
 				>
 					<fe-wine-range-section
 						field="priceUsd"
-						[format]="formatPrice"
 						label="Price (USD)"
 						[leaveExpressionMode]="leaveExpressionMode"
 						ruleId="price"
@@ -206,7 +189,6 @@ function formatAbv(abv: number): string {
 
 					<fe-wine-range-section
 						field="abv"
-						[format]="formatAbv"
 						label="ABV (%)"
 						[leaveExpressionMode]="leaveExpressionMode"
 						ruleId="abv"
@@ -255,15 +237,24 @@ export class WineFilterPanelComponent {
 	/** Bound into the template. */
 	protected readonly dragSteps = DRAG_STEPS;
 
-	/** Bound into the template; see {@link formatPrice}. */
-	protected readonly formatPrice = formatPrice;
-
-	/** Bound into the template; see {@link formatAbv}. */
-	protected readonly formatAbv = formatAbv;
-
 	private readonly _engine = injectFilterEngine<Wine>();
 
+	private readonly _activeRules = toSignal(this._engine.activeRules$, { requireSync: true });
+
 	private readonly _expression = toSignal(this._engine.expression$, { requireSync: true });
+
+	/**
+	 * The committed varietal selection — a read, for {@link varietalOptions} only.
+	 *
+	 * @remarks
+	 * The chip section owns the painted selection; this lags it by a round trip, which is harmless here
+	 * because only a selection BEYOND the chip limit changes the options, and that arrives through a
+	 * link or a config load rather than a click. `EMPTY_SELECTION` keeps the absent case
+	 * reference-stable, so an unrelated facet's settle does not rebuild the chip list.
+	 */
+	private readonly _selectedVarietals = computed<readonly string[]>(
+		() => (this._activeRules().get('varietal') as InSetRule<string> | undefined)?.config.set ?? EMPTY_SELECTION,
+	);
 
 	/** The preset ids the committed expression implies. */
 	private readonly _committedPresets = computed(() =>
@@ -297,12 +288,19 @@ export class WineFilterPanelComponent {
 		SWEETNESS_ORDER.filter((entry) => this.vocabularies().sweetness.includes(entry)),
 	);
 
-	/** Capped — the vocabulary runs to hundreds, and the group scrolls. */
+	/**
+	 * The varietal chips: the most-reviewed `VARIETAL_CHIP_LIMIT`, plus any selected varietal ranked
+	 * below them.
+	 *
+	 * @remarks
+	 * The vocabulary runs to hundreds and arrives ranked by wine count (`deriveWineFacets`), so the
+	 * chips shown are the varieties most wines are, and the group scrolls.
+	 */
 	protected readonly varietalOptions = computed(() =>
-		this.vocabularies().varietal.slice(0, VARIETAL_CAP),
+		visibleVarietalChips(this.vocabularies().varietal, this._selectedVarietals()),
 	);
 
-	/** Carries the FULL vocabulary size, not the capped one — the heading is a fact about the corpus. */
+	/** Carries the FULL vocabulary size, not the shown one — the heading is a fact about the corpus. */
 	protected readonly varietalLabel = computed(
 		() => `Varietal (${String(this.vocabularies().varietal.length)})`,
 	);

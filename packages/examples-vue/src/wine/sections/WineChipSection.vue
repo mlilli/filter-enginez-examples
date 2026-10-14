@@ -15,7 +15,7 @@
  *
  * This is the one panel in the repo where a read-only derivation is **wrong**, and the reason is the
  * worker. Wine's `.core` mutations are fire-and-forget: `activeRules` only reassigns after an awaited
- * round trip against 130k records. A `computed` off the rule would therefore flicker the chip back OFF
+ * round trip against 150k records. A `computed` off the rule would therefore flicker the chip back OFF
  * for the length of that trip on every click. Real estate derives outright and is right to — it
  * filters on the main thread, where the settle lands in the same frame.
  *

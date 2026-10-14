@@ -131,9 +131,10 @@ pnpm size             # brand bundle-size budgets (after a build)
 pnpm test:e2e         # Playwright across the apps (local only; see below)
 ```
 
-CI ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) runs everything above except `test:e2e`. The end-to-end
-suite needs the real wine corpus, which CI does not have, so it runs locally. Before the first run, install the browser
-with `pnpm exec playwright install chromium` and stop any running dev servers.
+CI ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) runs everything above except `test:e2e`, which runs
+locally: it starts every app's dev server and drives a real browser, against the real wine corpus where one is linked
+(see below) and the synthetic wines otherwise. Before the first run, install the browser with
+`pnpm exec playwright install chromium` and stop any running dev servers.
 
 ### Deployment
 
@@ -173,8 +174,9 @@ apps, write its corpus files into the build first:
 
 ## Local-only data
 
-Everything shipped from this project uses **synthetic** data. The wine demos can also run on the real Kaggle "Wine
-Reviews" dataset (about 130,000 records), but only on your machine:
+Everything shipped from this project uses **synthetic** data: the wine demos generate 150,000 synthetic wines in a Web
+Worker, and the server-backed wine pages serve the 10,000-wine default tier. The wine demos can also run on the real
+Kaggle "Wine Reviews" dataset (about 130,000 records), but only on your machine:
 
 ```bash
 cd ../filter-enginez
@@ -186,7 +188,7 @@ pnpm link:wine-corpus     # links the corpus into each app's static-asset direct
 
 That dataset is licensed **CC BY-NC-SA 4.0** (attribution, non-commercial, share-alike) and its review text belongs to
 WineEnthusiast. It is gitignored, never published, and every app's production build strips it, so anything deployed runs
-on synthetic data. The end-to-end suite needs it linked. See [`NOTICE.md`](./NOTICE.md) for the full terms.
+on synthetic data. See [`NOTICE.md`](./NOTICE.md) for the full terms.
 
 ## Contributing and security
 

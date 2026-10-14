@@ -189,7 +189,7 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 	// **The first emission is SKIPPED, and that is not a micro-optimization.** `@preact/signals-core`
 	// invokes a subscriber immediately with the current value, so without this guard boot issues a
 	// SECOND bundle fetch for a state the `activeRules` subscription above has already requested —
-	// a redundant round trip against 130k records, whose settle then repaints every section a few
+	// a redundant round trip against 150k records, whose settle then repaints every section a few
 	// hundred milliseconds after the page looks ready. In `tests/e2e` that shows as a chip detaching
 	// from the DOM mid-click, because the repaint lands between locating it and clicking. The
 	// user-visible version is a panel that flickers once, shortly after it appears interactive.

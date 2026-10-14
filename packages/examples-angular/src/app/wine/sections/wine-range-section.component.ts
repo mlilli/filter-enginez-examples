@@ -2,8 +2,12 @@
  * `<fe-wine-range-section>` — one `RangeRule` slider with predictive bounds and a histogram.
  *
  * @remarks
- * Price, points and ABV are the same facet three times over, differing only in field, label, format
- * and drag step.
+ * Price, points and ABV are the same facet three times over, differing only in field, label and drag
+ * step. Everything else is keyed off the rule id in `wine-domain`, the declarations every app's wine
+ * panel reads: the track's scale (`wineSliderScale` — log for price, linear for points and ABV), the
+ * bars sliced for that scale (`wineSliderHistogram`), and the readout format and typed-text parser
+ * (`WINE_SLIDER_TEXT`, so price reads `$1,250` and accepts it back). Taking any of them as an input
+ * would let one app's price slider drift from the other five.
  *
  * **The handle span is a writable derived, not a `computed`** — the pattern `adopted-rule-state.ts`
  * establishes and documents at length. The slider makes the reason especially visible: on the worker
@@ -27,8 +31,10 @@ import {
 	commitRule,
 	FALLBACK_BOUNDS,
 	fieldBounds,
-	fieldHistogram,
 	type SliderFieldId,
+	WINE_SLIDER_TEXT,
+	wineSliderHistogram,
+	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
 
 import { type RangeSliderChange, RangeSliderComponent } from '../../controls/range-slider.component.js';
@@ -45,9 +51,11 @@ import { injectWineBundle } from '../wine-bundle.js';
 				[ariaLabel]="sliderLabel()"
 				[available]="available()"
 				[baseline]="baseline()"
-				[format]="format()"
+				[format]="text().format"
 				[histogram]="histogram()"
 				[label]="label()"
+				[parse]="text().parse"
+				[scale]="scale()"
 				[step]="step()"
 				[valueMax]="valueMax()"
 				[valueMin]="valueMin()"
@@ -59,9 +67,6 @@ import { injectWineBundle } from '../wine-bundle.js';
 export class WineRangeSectionComponent {
 	/** The `Wine` property the `RangeRule` constrains — `priceUsd` for the `price` rule. */
 	public readonly field = input.required<string>();
-
-	/** Value → display string. Omitted for points, which reads as a bare number. */
-	public readonly format = input<(value: number) => string>();
 
 	public readonly label = input.required<string>();
 
@@ -102,6 +107,19 @@ export class WineRangeSectionComponent {
 		() => this._bundle?.baselines[this.ruleId()] ?? FALLBACK_BOUNDS[this.ruleId()],
 	);
 
+	/**
+	 * How the track lays out this field's values.
+	 *
+	 * @remarks
+	 * Log for price, whose bottles crowd the bottom of a $4–$3,000+ range; linear for points and ABV.
+	 * Built over the same {@link baseline} the slider receives, which is what keeps the thumbs and the
+	 * bars on one axis.
+	 */
+	protected readonly scale = computed(() => wineSliderScale(this.ruleId(), this.baseline()));
+
+	/** This field's shared readout format and typed-text parser. */
+	protected readonly text = computed(() => WINE_SLIDER_TEXT[this.ruleId()]);
+
 	/** The lower handle — the committed bound, or the baseline edge when this facet carries no rule. */
 	protected readonly valueMin = computed(() => this.span()?.min ?? this.baseline().min);
 
@@ -125,9 +143,15 @@ export class WineRangeSectionComponent {
 		() => fieldBounds(this._currentBundle(), this.ruleId()) ?? undefined,
 	);
 
-	/** This field's distribution — where the data sits inside the available zone. */
+	/**
+	 * This field's distribution — where the data sits inside the available zone.
+	 *
+	 * @remarks
+	 * Already sliced into equal pieces of the TRACK by `wineSliderHistogram`: on a log-scaled field the
+	 * engine's equal-width value buckets would put every bar in the wrong place.
+	 */
 	protected readonly histogram = computed(() =>
-		fieldHistogram(this._currentBundle(), this.ruleId(), this.valueMin(), this.valueMax()),
+		wineSliderHistogram(this._currentBundle(), this.ruleId(), this.baseline(), this.valueMin(), this.valueMax()),
 	);
 
 	/**

@@ -14,9 +14,11 @@
  *
  * Color, body and sweetness render in their canonical order filtered by what the corpus actually
  * contains — never raw vocabulary order, which is derivation order and would put `dessert` between
- * `red` and `white` depending on which wine streamed first. Varietal is capped at 60 and scrolls;
- * the full vocabulary runs to hundreds, and its label carries the true count so the cap is visible
- * rather than silent.
+ * `red` and `white` depending on which wine streamed first. Varietal shows the
+ * `VARIETAL_CHIP_LIMIT` most-reviewed varieties (the vocabulary arrives ranked by wine count) and
+ * scrolls; the full vocabulary runs to hundreds, and its label carries the true count so the limit is
+ * visible rather than silent. A selected varietal beyond the limit keeps its chip, so a rare grape
+ * selected through a shared link can still be cleared where it is shown.
  *
  * @packageDocumentation
  */
@@ -35,6 +37,7 @@ import {
 	deriveOriginSelection,
 	sameSelection,
 	SWEETNESS_ORDER,
+	visibleVarietalChips,
 	type WineFacets,
 } from '@filter-enginez/examples-shared/wine-domain';
 
@@ -49,20 +52,23 @@ import { createFacetAdopter } from './facetState.js';
 /** Scroll-viewport height for the origin tree — matches every other vertical's picker. */
 const ORIGIN_TREE_HEIGHT = '14rem';
 
-/** The varietal cap. The vocabulary runs to hundreds; the group scrolls. */
-const VARIETAL_CAP = 60;
-
 /** The four chip facets. */
 export type WineChipFacetId = 'body' | 'color' | 'sweetness' | 'varietal';
 
 /**
  * The chip options for one facet, in display order.
  *
+ * @remarks
+ * Varietal's depend on the selection — `visibleVarietalChips` appends a selected varietal ranked
+ * beyond the limit — so its options are recomputed on every repaint; the other three are fixed by
+ * the corpus.
+ *
  * @param facetId - Which chip facet.
  * @param facets - The corpus-derived vocabularies.
+ * @param selected - The facet's current selection.
  * @returns The candidate values.
  */
-function chipOptions(facetId: WineChipFacetId, facets: WineFacets): readonly string[] {
+function chipOptions(facetId: WineChipFacetId, facets: WineFacets, selected: readonly string[]): readonly string[] {
 	const { vocabularies } = facets;
 
 	switch (facetId) {
@@ -73,7 +79,7 @@ function chipOptions(facetId: WineChipFacetId, facets: WineFacets): readonly str
 		case 'sweetness':
 			return SWEETNESS_ORDER.filter((entry) => vocabularies.sweetness.includes(entry));
 		default:
-			return vocabularies.varietal.slice(0, VARIETAL_CAP);
+			return visibleVarietalChips(vocabularies.varietal, selected);
 	}
 }
 
@@ -81,7 +87,7 @@ function chipOptions(facetId: WineChipFacetId, facets: WineFacets): readonly str
  * The section heading for one chip facet.
  *
  * @remarks
- * Varietal's carries its FULL vocabulary size rather than the capped list's length, so a user seeing
+ * Varietal's carries its FULL vocabulary size rather than the shown list's length, so a user seeing
  * sixty chips under a heading that says several hundred knows the list is a sample. That is why the
  * label is not simply derivable from the facet id.
  *
@@ -114,7 +120,6 @@ export function createChipSection(
 	context: WineSectionContext,
 ): WineSection {
 	const { facets, host, leaveExpressionMode } = context;
-	const options = chipOptions(facetId, facets);
 	const selection = createFacetAdopter<readonly string[]>(
 		committedSet(host.core.getRules(), facetId),
 		sameSelection,
@@ -141,7 +146,7 @@ export function createChipSection(
 			selection.adopt(committedSet(rules, facetId));
 			chips.update({
 				exclusion: chipExclusionMap(bundle, facetId),
-				options,
+				options: chipOptions(facetId, facets, selection.value()),
 				selected: selection.value(),
 			});
 		},

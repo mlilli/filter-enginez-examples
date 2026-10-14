@@ -12,7 +12,7 @@
  * That rule is right for real estate and **wrong for wine**, and the difference is the worker. Real
  * estate filters on the main thread, so a commit and its settle land in the same frame and a pure
  * derivation never visibly lags. Wine's `.core` mutations are fire-and-forget across a Comlink
- * boundary: `activeRules$` only re-emits after an awaited round trip against 130k records. A pure
+ * boundary: `activeRules$` only re-emits after an awaited round trip against 150k records. A pure
  * `computed` off the rule would therefore flick the clicked chip back OFF — or snap a dragged slider
  * handle backwards — for the length of that trip, on every single interaction.
  *

@@ -5,7 +5,7 @@
  * @remarks
  * **Why not the shared `<ResultGrid>`.** That component pages on an `IntersectionObserver` sentinel:
  * scroll to the bottom and the next batch appears. Right for books and real estate, wrong here. Wine
- * is the worker tier, so each expansion crosses a Comlink boundary against 130k records, and an
+ * is the worker tier, so each expansion crosses a Comlink boundary against 150k records, and an
  * expansion the user did not ask for is an expansion they cannot decline. The button makes the cost
  * theirs to spend.
  *

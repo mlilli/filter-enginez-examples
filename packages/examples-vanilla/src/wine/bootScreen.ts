@@ -10,7 +10,7 @@
  * ## Why a loader rather than a bare `<p>`
  *
  * Every vertical renders `<BrainSynapse width={520}>` here. A single line of text would make a
- * ~130k-record stream look like nothing happening — indistinguishable, for the several seconds it
+ * 150k-record boot look like nothing happening — indistinguishable, for the several seconds it
  * takes, from a page that failed to boot.
  *
  * **The synapse is the right loader, and which one it is carries meaning.** The three are a taxonomy:

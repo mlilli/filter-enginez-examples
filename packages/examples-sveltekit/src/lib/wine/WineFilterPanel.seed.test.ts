@@ -133,9 +133,13 @@ describe('<WineFilterPanel> over an engine with pre-existing rules', () => {
 	it('checks the origin node a committed inSetOfSets rule describes', async () => {
 		// End-to-end over `deriveOriginSelection`: the rule stores LEAF-ID SETS, and only matching those
 		// back against the flattened specs recovers which node the user picked. A branch is the hard
-		// case — its set is the union of its children's, which no single leaf can produce.
+		// case — its set is its own id plus its children's, which no single leaf can produce. The set is
+		// read off the built specs rather than restated, so it is exactly what selecting France commits.
+		const franceIds = ORIGIN_SPECS.find((spec) => spec.value === 'France')?.leafIds ?? [];
+
+		expect(franceIds).toEqual(['France', 'France|Bordeaux', 'France|Burgundy']);
 		const { getByRole } = renderSeededPanel((core) => {
-			core.addRule('origin', inSetofSets<string>('originId', [['France|Bordeaux', 'France|Burgundy']]));
+			core.addRule('origin', inSetofSets<string>('originId', [franceIds]));
 		});
 
 		await waitFor(() => {

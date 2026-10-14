@@ -43,15 +43,20 @@
  *   4. **Track + dimmed-outside-available overlay + selected fill** — three-layer geometry.
  *   5. **Concentric-ring thumbs** — 16px circles with cyan border + haze halo + drop-shadow.
  *   6. **Editable min/max text inputs** — gray-2 background, gray-5 border, mono tabular-nums.
+ *
+ * **Scales.** An optional `scale` (`scale.ts`) lays values out on the track; `useScaledSliderControl`
+ * runs Radix over it. Thumbs carry `aria-valuetext`, so a log track still announces values.
  */
 
 import { Slider } from 'radix-ui';
-import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
+import { type Dispatch, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { HistogramBucket } from './histogram.js';
 
 import { clampToBounds, type NumericBounds } from './bounds.js';
 import { RangeHistogram } from './RangeHistogram.js';
+import { type SliderScale, stepScaledValue } from './scale.js';
+import { arrowKeyDirection, useScaledSliderControl } from './useScaledSliderControl.js';
 
 /**
  * Default readout formatter: the number's plain string form.
@@ -142,10 +147,14 @@ export interface RangeSliderProps {
 	readonly ariaLabel?: string;
 	/**
 	 * Optional pre-computed histogram (from `computeHistogram(...)`) to render above the track
-	 * as a distribution overlay. Omit to skip the overlay (cleaner for tiny ranges).
+	 * as a distribution overlay. Omit to skip the overlay. Under a non-linear `scale`, pass slices of
+	 * the TRACK (`rebinHistogram`): the bars are drawn at equal widths.
 	 */
 	readonly histogram?: readonly HistogramBucket[];
+	/** How values sit on the track; linear over `baseline` by default. Build it over that baseline. */
+	readonly scale?: SliderScale;
 }
+
 
 /**
  * Canonical dual-handle range slider with three-layer semantics + editable text inputs.
@@ -174,10 +183,15 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 		label,
 		onChange,
 		parse = parseAsFloat,
+		scale,
 		step = 1,
 		valueMax,
 		valueMin,
 	} = props;
+
+	// The track's scale and Radix's coordinates for it (value space on a linear track).
+	const { domain, fromControl, isPositionBased, toControl, trackScale } = useScaledSliderControl(scale, baseline, step);
+	const upperThumbRef = useRef<HTMLSpanElement | null>(null);
 
 	// `available` defaults to the full baseline when the consumer hasn't computed a filtered-
 	// except-self subset yet (e.g., during the first render before the effect runs). This
@@ -305,12 +319,14 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 
 	const handleValueChange = useCallback(
 		(next: number[]): void => {
-			const [rawMin, rawMax] = next;
+			const [controlMin, controlMax] = next;
 
 			/* v8 ignore next 3 -- defensive: Radix always passes a two-element value array, so neither is undefined */
-			if (rawMin === undefined || rawMax === undefined) {
+			if (controlMin === undefined || controlMax === undefined) {
 				return;
 			}
+			const rawMin = fromControl(controlMin);
+			const rawMax = fromControl(controlMax);
 			// Constrain to the AVAILABLE zone — handles can't enter dimmed territory.
 			const constrainedMin = Math.max(effectiveAvailable.min, Math.min(rawMin, effectiveAvailable.max));
 			const constrainedMax = Math.max(effectiveAvailable.min, Math.min(rawMax, effectiveAvailable.max));
@@ -320,22 +336,45 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 			dragValueRef.current = nextDrag;
 			setDragValue(nextDrag);
 		},
-		[effectiveAvailable],
+		[effectiveAvailable, fromControl],
 	);
 
 	// Keyboard commit path — Radix reliably fires `onValueCommit` for keyboard stepping (a
 	// different, working internal path than the pointer drag). Route it through `commitValues`.
 	const handleValueCommit = useCallback(
 		(next: number[]): void => {
-			const [rawMin, rawMax] = next;
+			const [controlMin, controlMax] = next;
 
 			/* v8 ignore next 3 -- defensive: Radix always passes a two-element value array, so neither is undefined */
-			if (rawMin === undefined || rawMax === undefined) {
+			if (controlMin === undefined || controlMax === undefined) {
 				return;
 			}
-			commitValues(rawMin, rawMax);
+			commitValues(fromControl(controlMin), fromControl(controlMax));
 		},
-		[commitValues],
+		[commitValues, fromControl],
+	);
+
+	// Arrow keys on a position-based track step ~1% of it, not one Radix position (`stepScaledValue`).
+	const handleKeyDown = useCallback(
+		(event: KeyboardEvent<HTMLSpanElement>): void => {
+			const direction = arrowKeyDirection(event.key);
+
+			if (!isPositionBased || direction === undefined) {
+				return;
+			}
+			event.preventDefault();
+			// The upper thumb when focused; otherwise the lower, as Radix's own handler would step.
+			if (event.target !== upperThumbRef.current) {
+				const nextLower = stepScaledValue(trackScale, displayLower, direction, step);
+
+				commitValues(Math.min(nextLower, displayUpper), displayUpper);
+			} else {
+				const nextUpper = stepScaledValue(trackScale, displayUpper, direction, step);
+
+				commitValues(displayLower, Math.max(nextUpper, displayLower));
+			}
+		},
+		[commitValues, displayLower, displayUpper, isPositionBased, step, trackScale],
 	);
 
 	// Pointer drag-end commit path — fires on the reliable `lostpointercapture` / `pointerup`
@@ -356,15 +395,7 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 	// Convert baseline-coordinate values to 0..100% track positions. Used to absolutely-
 	// position the two dimmed-overlay rectangles (left dim from baseline.min to available.min,
 	// right dim from available.max to baseline.max).
-	const baselineSpan = baseline.max - baseline.min;
-	const pctFromValue = (v: number): number => {
-		/* v8 ignore next 3 -- defensive: a degenerate min === max baseline can't reach the Radix slider (Radix requires min < max) */
-		if (baselineSpan <= 0) {
-			return 0;
-		}
-
-		return ((v - baseline.min) / baselineSpan) * 100;
-	};
+	const pctFromValue = (v: number): number => trackScale.toFraction(v) * 100;
 	const availableMinPct = Math.max(0, Math.min(100, pctFromValue(effectiveAvailable.min)));
 	const availableMaxPct = Math.max(0, Math.min(100, pctFromValue(effectiveAvailable.max)));
 
@@ -428,12 +459,13 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 			{/* The actual Radix Slider: track, range fill, thumbs */}
 			<Slider.Root
 				className="fe-range-slider__root"
-				value={[displayLower, displayUpper]}
-				min={baseline.min}
-				max={baseline.max}
-				step={step}
+				value={[toControl(displayLower), toControl(displayUpper)]}
+				min={domain.min}
+				max={domain.max}
+				step={domain.step}
 				onValueChange={handleValueChange}
 				onValueCommit={handleValueCommit}
+				onKeyDown={handleKeyDown}
 				// Pointer-drag commit: `onPointerUp` is composed by Radix (ours runs before its
 				// slide-end); `onLostPointerCapture` bubbles from the captured thumb. Either fires
 				// `commitValues` from the drag ref; `lastSentRef` de-dupes the overlap.
@@ -452,11 +484,14 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 				<Slider.Thumb
 					className="fe-range-slider__thumb"
 					aria-label={ariaLabel ? `${ariaLabel} lower bound` : `${label} lower bound`}
+					aria-valuetext={format(displayLower)}
 				/>
 				{/* Upper handle */}
 				<Slider.Thumb
+					ref={upperThumbRef}
 					className="fe-range-slider__thumb"
 					aria-label={ariaLabel ? `${ariaLabel} upper bound` : `${label} upper bound`}
+					aria-valuetext={format(displayUpper)}
 				/>
 			</Slider.Root>
 

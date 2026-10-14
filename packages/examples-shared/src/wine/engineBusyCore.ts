@@ -10,7 +10,7 @@
  * Real estate is split the same way; books, with no non-React consumer of its busy state, is not.
  *
  * **This indicator does more work than books'.** The books engine is synchronous and main-thread, so a
- * commit and its settle land in the same frame and the indicator never visibly lights. Wine runs 130k
+ * commit and its settle land in the same frame and the indicator never visibly lights. Wine runs 150k
  * records behind a Comlink worker, where every mutation is a round trip of real, visible duration. The
  * predicate is `userActionVersion > resolvedVersion`, which is monotonic — clicks landing DURING a
  * round trip push the user version further ahead, so the indicator stays lit through a burst instead

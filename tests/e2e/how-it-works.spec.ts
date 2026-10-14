@@ -36,8 +36,8 @@ const PAGE_URL = siteUrl('/how-it-works');
 /** The landing site's home page, where every app's header logomark leads in development. */
 const SITE_HOME_URL = siteUrl('/');
 
-/** The landing page's "How the engine works" link, in its hero's row of actions. */
-const HERO_LINK = { name: 'How the engine works' } as const;
+/** The home page's link to this page, in its hero's actions (the "Learn the engine" group). */
+const HERO_LINK = { exact: true, name: 'How it works' } as const;
 
 /** The page's `<h1>`. */
 const HERO = { level: 1, name: 'How the engine works' } as const;

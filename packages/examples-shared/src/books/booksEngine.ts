@@ -2,7 +2,7 @@
  * Books engine boot — the **signals-surface** wrapper.
  *
  * @remarks
- * Unlike wine (a 130k corpus that streams into a Web Worker), the books vertical runs the ~10k
+ * Unlike wine (a 150k corpus built inside a Web Worker), the books vertical runs the ~10k
  * default tier directly on the main thread: fast to build, no worker to wire. The public API mirrors
  * `wineEngine` (`bootBooksEngine` + `subscribe`/`getSnapshot` progress + the `BooksEngineBundle`) so
  * the RTK dataset registry treats every dataset uniformly.

@@ -12,13 +12,16 @@
  * removed pill, a URL restore — must beat a stale in-flight drag, or the thumb silently disagrees
  * with the engine.
  *
+ * The `scale` suite pins the optional log track wine's price and vintage use: positions, pointer
+ * presses and arrow keys all go through the same scale, and a slider given no scale keeps the linear
+ * mapping books and real estate rely on.
+ *
  * @packageDocumentation
  */
 
-import type { HistogramBucket } from '@filter-enginez/examples-shared/bounds';
-
 import { Component, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { createSliderScale, type HistogramBucket, type SliderScale } from '@filter-enginez/examples-shared/bounds';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { type RangeSliderChange, RangeSliderComponent } from './range-slider.component.js';
@@ -32,6 +35,7 @@ import { type RangeSliderChange, RangeSliderComponent } from './range-slider.com
 			[baseline]="baseline()"
 			[available]="available()"
 			[histogram]="histogram()"
+			[scale]="scale()"
 			[step]="step()"
 			[valueMin]="valueMin()"
 			[valueMax]="valueMax()"
@@ -47,6 +51,8 @@ class HostComponent {
 	public readonly available = signal<{ max: number; min: number } | undefined>(undefined);
 	/** The distribution overlay's buckets; unset renders no overlay. */
 	public readonly histogram = signal<undefined | readonly HistogramBucket[]>(undefined);
+	/** The track's scale; unset means the slider's linear default. */
+	public readonly scale = signal<SliderScale | undefined>(undefined);
 	/** Snap increment. */
 	public readonly step = signal(1);
 	/** Committed lower bound. */
@@ -90,6 +96,40 @@ describe('RangeSliderComponent', () => {
 		field.value = text;
 		field.dispatchEvent(new Event('input'));
 		field.dispatchEvent(new Event('blur'));
+		fixture.detectChanges();
+	};
+
+	/** Press an arrow key on one thumb and let the commit propagate. */
+	const pressKey = (index: number, key: string): void => {
+		thumbs()[index]?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key }));
+		fixture.detectChanges();
+	};
+
+	/**
+	 * Give the track a 200px layout box at x = 0, which jsdom does not lay out.
+	 *
+	 * @remarks
+	 * The control reads the track's `getBoundingClientRect()` to turn a pointer x into a share of the
+	 * track; jsdom reports a zero-width box, which the control treats as "the left end".
+	 */
+	const layOutTrack = (): void => {
+		const track = fixture.nativeElement.querySelector('.fe-range-slider__track') as HTMLElement;
+
+		track.getBoundingClientRect = (): DOMRect => DOMRect.fromRect({ height: 8, width: 200, x: 0, y: 0 });
+	};
+
+	/**
+	 * Press the track at `clientX` and release, the gesture a plain click on the track makes.
+	 *
+	 * @remarks
+	 * `MouseEvent` stands in for `PointerEvent`, which jsdom does not implement; the control reads only
+	 * `clientX` and `preventDefault()`, both of which a `MouseEvent` carries under the same event type.
+	 */
+	const clickTrack = (clientX: number): void => {
+		const track = fixture.nativeElement.querySelector('.fe-range-slider__track') as HTMLElement;
+
+		track.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX }));
+		window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX }));
 		fixture.detectChanges();
 	};
 
@@ -243,6 +283,15 @@ describe('RangeSliderComponent', () => {
 			expect(inputs()[1]?.value).toBe('75 pp');
 		});
 
+		it('announces each thumb through aria-valuetext, in the formatted form', () => {
+			host.valueMin.set(25);
+			host.valueMax.set(75);
+			fixture.detectChanges();
+
+			expect(thumbs()[0]?.getAttribute('aria-valuetext')).toBe('25 pp');
+			expect(thumbs()[1]?.getAttribute('aria-valuetext')).toBe('75 pp');
+		});
+
 		it('re-seeds the inputs when the committed value changes externally', () => {
 			// This is what makes "Clear all", pill removal and URL restore reach into the slider: the
 			// text mirrors are seeded FROM the committed inputs, so a change arriving from the engine
@@ -255,6 +304,104 @@ describe('RangeSliderComponent', () => {
 			fixture.detectChanges();
 
 			expect(inputs()[0]?.value).toBe('0 pp');
+		});
+	});
+
+	describe('scale', () => {
+		/** A price-like baseline: a $4 floor and a long tail to $3,242. */
+		const priceBaseline = { max: 3242, min: 4 } as const;
+
+		/** The log scale wine's price slider uses, anchored at its dense minimum, over a $1 grid. */
+		const priceScale = (): SliderScale => createSliderScale({ anchor: 'min', kind: 'log' }, priceBaseline, 1);
+
+		/** Put the host on the price-like log track with the full range selected. */
+		const useLogTrack = (): void => {
+			host.baseline.set(priceBaseline);
+			host.scale.set(priceScale());
+			host.valueMin.set(priceBaseline.min);
+			host.valueMax.set(priceBaseline.max);
+			fixture.detectChanges();
+		};
+
+		it('keeps the linear mapping when no scale is given', () => {
+			// Books and real estate pass no scale; their thumbs must sit where they always have.
+			host.valueMin.set(25);
+			fixture.detectChanges();
+
+			expect(leftPct(0)).toBeCloseTo(25, 5);
+		});
+
+		it('positions thumbs through a log scale, giving the dense end most of the track', () => {
+			useLogTrack();
+			host.valueMin.set(30);
+			fixture.detectChanges();
+
+			expect(leftPct(0)).toBeCloseTo(priceScale().toFraction(30) * 100, 5);
+			// $30 is under 1% of the way along a linear $4–$3,242 track; the log track gives it over a fifth.
+			expect(leftPct(0)).toBeGreaterThan(20);
+			expect(leftPct(1)).toBeCloseTo(100, 5);
+		});
+
+		it('maps a track press back through the scale and snaps it to the step', () => {
+			useLogTrack();
+			layOutTrack();
+			clickTrack(100);
+
+			// The press at mid-track lands on the log scale's midpoint value, snapped to whole dollars —
+			// about $174 — nowhere near the linear midpoint of $1,623.
+			const expected = Math.round(priceScale().fromFraction(0.5));
+
+			expect(host.commits().at(-1)).toEqual({ max: priceBaseline.max, min: expected });
+			expect(expected).toBeLessThan(400);
+		});
+
+		it('maps a track press linearly when no scale is given', () => {
+			layOutTrack();
+			clickTrack(50);
+
+			expect(host.commits().at(-1)).toEqual({ max: 100, min: 25 });
+		});
+
+		it('moves about one percent of the track per arrow press on a log track', () => {
+			useLogTrack();
+			host.valueMin.set(100);
+			fixture.detectChanges();
+			pressKey(0, 'ArrowRight');
+
+			const next = host.commits().at(-1)?.min ?? Number.NaN;
+			const moved = priceScale().toFraction(next) - priceScale().toFraction(100);
+
+			// Several dollars at $100, not the single dollar a value-space step would move.
+			expect(next).toBeGreaterThan(101);
+			// One $1 grid step is about 0.2% of the track here, so the snap keeps the move within that of 1%.
+			expect(moved).toBeGreaterThan(0.008);
+			expect(moved).toBeLessThan(0.012);
+		});
+
+		it('moves back down by the same rule', () => {
+			useLogTrack();
+			host.valueMax.set(1000);
+			fixture.detectChanges();
+			pressKey(1, 'ArrowLeft');
+
+			const next = host.commits().at(-1)?.max ?? Number.NaN;
+
+			expect(next).toBeLessThan(1000);
+			expect(priceScale().toFraction(1000) - priceScale().toFraction(next)).toBeCloseTo(0.01, 2);
+		});
+
+		it('never moves less than one step, even where one percent of the track rounds to nothing', () => {
+			// At the anchor of a 0–10,000 log track, one percent is under a dollar, which a $5 step would
+			// snap straight back to 0. The press must still move the thumb.
+			host.baseline.set({ max: 10_000, min: 0 });
+			host.scale.set(createSliderScale({ anchor: 'min', kind: 'log' }, { max: 10_000, min: 0 }, 1));
+			host.step.set(5);
+			host.valueMin.set(0);
+			host.valueMax.set(10_000);
+			fixture.detectChanges();
+			pressKey(0, 'ArrowRight');
+
+			expect(host.commits().at(-1)).toEqual({ max: 10_000, min: 5 });
 		});
 	});
 

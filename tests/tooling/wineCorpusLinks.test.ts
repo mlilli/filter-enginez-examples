@@ -11,11 +11,10 @@
  *      file to git, and committing one would put a broken path in the repo for everyone who has not
  *      generated the corpus.
  *
- * The failure this guards is quiet in the worst way. `loadWineCorpus` treats an unavailable tier as
- * "fall back to the bundled 10k default", and 10k is BELOW `WORKER_THRESHOLD` — so a missing link
- * means the app boots, filters correctly, and simply never uses the worker. Nothing errors. The tier
- * you were trying to demonstrate is just absent, and the only tell is a boot that finishes suspiciously
- * fast.
+ * The failure this guards is quiet. `loadWineCorpus` treats an unavailable real corpus as "generate
+ * the synthetic tier instead" — so a missing link means the app boots, filters correctly, and runs on
+ * synthetic wines rather than the real reviews you linked. Nothing errors; the footer's tier label is
+ * the only tell.
  *
  * The symlink syscalls themselves are not tested here; that is OS behavior. What is tested is the
  * bookkeeping that drifts when another vertical grows a wine route.

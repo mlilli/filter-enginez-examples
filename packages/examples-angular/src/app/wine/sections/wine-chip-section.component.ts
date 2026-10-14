@@ -16,7 +16,7 @@
  * `adoptCommittedRule` carries the whole argument and the trap that comes with it; read it before
  * changing anything here. The short version: this is the worker tier, `.core` mutations are
  * fire-and-forget, and a read-only `computed` would flick the clicked chip back off for the length of
- * a 130k-record round trip.
+ * a 150k-record round trip.
  *
  * `EMPTY_SELECTION` rather than an inline `?? []` because the projection must be reference-stable for
  * the absent case — a fresh `[]` every evaluation reads as a change and makes this section adopt on

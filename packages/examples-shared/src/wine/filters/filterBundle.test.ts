@@ -49,12 +49,13 @@ function histogram(counts: readonly number[], edges: readonly number[]): {
 }
 
 describe('buildOriginNodeSpecs', () => {
-	it('gives each node every descendant leaf, so selecting a country implies its regions', () => {
+	it('gives each node its own id and every id beneath it, so selecting a country implies its regions', () => {
 		const byValue = new Map(buildOriginNodeSpecs(ORIGIN_TREE).map((s) => [s.value, s.leafIds]));
 
-		// Italy's leaves include the subregion two levels down, not just its direct children.
-		expect(new Set(byValue.get('IT'))).toEqual(new Set(['IT-PIE', 'IT-VEN-VAL']));
-		expect(byValue.get('FR')).toEqual(['FR-BOR']);
+		// Italy's set includes the subregion two levels down, not just its direct children — and the
+		// intermediate ids too, which wines whose origin stops at that level carry.
+		expect(new Set(byValue.get('IT'))).toEqual(new Set(['IT', 'IT-PIE', 'IT-VEN', 'IT-VEN-VAL']));
+		expect(byValue.get('FR')).toEqual(['FR', 'FR-BOR']);
 	});
 
 	it('gives a leaf a single-element set — the shape the bundle expects', () => {
@@ -69,7 +70,7 @@ describe('buildOriginNodeSpecs', () => {
 		// own descendants. Getting this wrong makes mid-tree nodes permanently unselectable.
 		const byValue = new Map(buildOriginNodeSpecs(ORIGIN_TREE).map((s) => [s.value, s.leafIds]));
 
-		expect(byValue.get('IT-VEN')).toEqual(['IT-VEN-VAL']);
+		expect(byValue.get('IT-VEN')).toEqual(['IT-VEN', 'IT-VEN-VAL']);
 	});
 
 	it('excludes the synthetic root, which is not a selectable node', () => {

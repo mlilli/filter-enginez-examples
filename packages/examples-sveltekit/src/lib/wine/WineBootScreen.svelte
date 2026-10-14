@@ -20,6 +20,15 @@
 	 * including the zero-total guard that keeps `{ loaded: 0, total: 0 }` from announcing a finished
 	 * load that has not started. One mutation in that module turns this component's suite red along
 	 * with theirs.
+	 *
+	 * The progress snapshot reaches the shared builder unchanged, `isTotalEstimated` included, so the
+	 * caption prints `~` before the total only while the local real corpus streams — the one source
+	 * that cannot know its length up front.
+	 *
+	 * **The warning line** appears only on the `'default-tier'` source: the 10,000-wine tier booted on
+	 * the main thread because `VITE_WINE_TIER=default` is set. That is a development switch, and a
+	 * page quietly running a fifteenth of the corpus without a worker would misrepresent the demo, so
+	 * the screen names the switch.
 	 */
 
 	import type { WineBootProgress } from '@filter-enginez/examples-shared/wine-core';
@@ -63,8 +72,9 @@
 
 	{#if progress?.source === 'default-tier'}
 		<p class="fe-wine-boot__warn">
-			Serving the bundled 10k tier — the full corpus is not linked, so the worker tier is not in
-			play. Run <code>pnpm link:wine-corpus</code>.
+			Serving the 10,000-wine default tier on the main thread (<code>VITE_WINE_TIER=default</code>),
+			so the worker tier is not in play. Unset <code>VITE_WINE_TIER</code> to generate the 150,000
+			wines in the worker.
 		</p>
 	{/if}
 </div>

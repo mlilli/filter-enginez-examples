@@ -3,8 +3,8 @@
  *
  * @remarks
  * The wine twin of `svelte-books-server.spec.ts`. This
- * route's SvelteKit server tier runs the isomorphic engine IN-PROCESS over the committed 10k wine
- * corpus (no separate `serve:api`, no proxy, no 130k asset dependency — unlike `/wine`). Two layers,
+ * route's SvelteKit server tier runs the isomorphic engine IN-PROCESS over the 10,000-wine default tier
+ * (no separate `serve:api`, no proxy, no 150,000-wine worker boot — unlike `/wine`). Two layers,
  * both exercised here:
  *
  *   1. **JS-on (live engine).** The client boots a server-backed engine and renders the exact same
@@ -18,6 +18,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { DATASET_PARAM } from '../../packages/examples-shared/src/compare/links.js';
+import { SERVER_WINE_TIER_LABEL } from '../../packages/examples-shared/src/wine/wineCorpusTier.js';
 import {
 	ACTIVE_CHIP,
 	clickFirstFacetChip,
@@ -63,6 +64,15 @@ test.describe('SvelteKit /wine-server — live (JS-on) server-backed flow', () =
 
 	test('boots the live engine from the server and renders a non-empty result set', async ({ page }) => {
 		expect(await settledCount(page, SETTLED)).toBeGreaterThan(0);
+	});
+
+	test('reports the server tier and where it filters in its footer', async ({ page }) => {
+		// The 10,000-wine server tier next to `/wine`'s 150,000: a footer that said nothing, or that
+		// claimed client-side filtering, would leave a visitor comparing the two counts with no reason.
+		const footer = page.getByRole('contentinfo');
+
+		await expect(footer).toContainText(SERVER_WINE_TIER_LABEL);
+		await expect(footer).toContainText('filtered on the server');
 	});
 
 	test('its Compare button offers the wine-server comparison, not the browser-tier one', async ({ page }) => {

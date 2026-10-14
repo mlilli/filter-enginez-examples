@@ -60,7 +60,7 @@ const [FIRST_PRESET, SECOND_PRESET] = WINE_SMART_FILTERS;
  *
  * @remarks
  * Follows `examples-shared`'s `commit.test.ts`: the strip decides WHICH engine calls to make and in
- * what order, and reads nothing back but `getExpression`. A real engine would add a 130k corpus and
+ * what order, and reads nothing back but `getExpression`. A real engine would add a 150k corpus and
  * a worker round trip without sharpening one assertion.
  *
  * @returns The fake host.
@@ -196,7 +196,7 @@ describe('single-select mode', () => {
 	it('paints the chip IMMEDIATELY, without waiting for the engine to settle', () => {
 		// The rule this whole route is built on: `.core` mutations are fire-and-forget and the
 		// expression lands a worker round trip later. Painting from the engine would blank the chip
-		// between click and settle, on every click, against 130k records.
+		// between click and settle, on every click, against 150k records.
 		const { chip, lit } = mountStrip();
 
 		chip(FIRST_PRESET?.label ?? '').click();

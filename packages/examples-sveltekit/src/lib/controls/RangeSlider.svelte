@@ -21,6 +21,21 @@
 	 * the other five apps, and it tiers off the drag-aware DISPLAYED handle values rather than the
 	 * committed ones, so the bars repaint mid-drag.
 	 *
+	 * ### The scale
+	 *
+	 * The optional `scale` (a `SliderScale` from `examples-shared/bounds`) decides where a value sits on
+	 * the track. Every value → position conversion here goes through `scale.toFraction`, every pointer
+	 * position → value conversion through `scale.fromFraction` (then onto the `step` grid), and the arrow
+	 * keys move a thumb by `stepScaledValue`. With no scale the slider builds a linear one over its
+	 * baseline, and a linear scale reproduces the plain proportional track exactly, so books and real
+	 * estate — which pass none — keep the slider they always had.
+	 *
+	 * A log scale exists for heavy-tailed fields such as wine prices, where a linear track would squeeze
+	 * every everyday bottle into the first sliver of the control. There one arrow press moves a thumb
+	 * about one percent of the TRACK (never less than one `step`), because a value-sized step would take
+	 * thousands of presses to cross the tail. Each thumb also carries `aria-valuetext`, so a screen
+	 * reader announces the formatted value (`$25`, `NV`) rather than the raw number.
+	 *
 	 * Radix is replaced with a hand-rolled pointer + keyboard slider — a Filter EngineZ signal-driven
 	 * Svelte app can't reuse React's Radix control, so this reproduces the geometry + behavior natively.
 	 */
@@ -29,7 +44,11 @@
 		histogramBarClassName,
 		histogramBarHeightPercent,
 		type HistogramBucket,
+		linearSliderScale,
 		type NumericBounds,
+		type SliderScale,
+		snapToStep,
+		stepScaledValue,
 	} from '@filter-enginez/examples-shared/bounds';
 
 	interface Props {
@@ -46,8 +65,16 @@
 		 * Buckets come from the engine's predictive-disable bundle via `bundleHistogramToBuckets`, so
 		 * they reflect the corpus under the OTHER active filters — a shape that moves as you filter,
 		 * not a static picture of the whole dataset.
+		 *
+		 * The bars are equal-width slices of the TRACK, so under a non-linear `scale` they must already
+		 * be sliced for that scale (`wineSliderHistogram` does this for the wine sliders).
 		 */
 		readonly histogram?: readonly HistogramBucket[];
+		/**
+		 * How values map onto the track. Defaults to a linear scale over `baseline`, which is the plain
+		 * proportional track; pass a log scale for a heavy-tailed field. See the component docblock.
+		 */
+		readonly scale?: SliderScale;
 		/** Step granularity. Defaults to 1. */
 		readonly step?: number;
 		/** Current lower handle value. */
@@ -73,6 +100,7 @@
 		label,
 		onChange,
 		parse = (raw: string) => parseFloat(raw),
+		scale,
 		step = 1,
 		valueMax,
 		valueMin,
@@ -108,22 +136,29 @@
 	let trackEl = $state<HTMLDivElement | null>(null);
 	let activeHandle: 'lower' | 'upper' | null = null;
 
-	const baselineSpan = $derived(baseline.max - baseline.min);
+	/**
+	 * The scale the track is drawn with — the caller's, or a linear one over the baseline.
+	 *
+	 * @remarks
+	 * Rebuilt when the baseline changes, so a caller that passes no scale still gets a track spanning
+	 * the current baseline. A degenerate baseline (min equal to max) maps every value to position 0.
+	 */
+	const trackScale = $derived<SliderScale>(scale ?? linearSliderScale(baseline));
 
-	/** Convert a baseline-coordinate value to a 0..100% track position. */
+	/** Convert a value to a 0..100% track position, through the scale. */
 	function pct(value: number): number {
-		if (baselineSpan <= 0) {
-			return 0;
-		}
-
-		return Math.max(0, Math.min(100, ((value - baseline.min) / baselineSpan) * 100));
+		return trackScale.toFraction(value) * 100;
 	}
 
-	/** Snap a raw value to the step grid, then clamp into the available zone. */
+	/**
+	 * Snap a raw value to the step grid, then clamp into the available zone.
+	 *
+	 * @remarks
+	 * `snapToStep` also trims the float noise a multiply leaves (`0.1 * 135` is not `13.5`), so a
+	 * committed ABV reads back as the number the readout shows.
+	 */
 	function snapClamp(value: number): number {
-		const snapped = step > 0 ? Math.round(value / step) * step : value;
-
-		return Math.max(effectiveAvailable.min, Math.min(snapped, effectiveAvailable.max));
+		return Math.max(effectiveAvailable.min, Math.min(snapToStep(value, step), effectiveAvailable.max));
 	}
 
 	const availableMinPct = $derived(pct(effectiveAvailable.min));
@@ -154,7 +189,14 @@
 		onChange({ max: nextMax, min: nextMin });
 	}
 
-	/** Map a pointer clientX to a snapped, clamped value on the track. */
+	/**
+	 * Map a pointer clientX to a snapped, clamped value on the track.
+	 *
+	 * @remarks
+	 * The pointer's share of the track width is a track POSITION, so it is read back through the scale
+	 * (`fromFraction`) before it is snapped to `step` — on a log track the same pixel distance covers a
+	 * few dollars near the anchor and hundreds in the tail.
+	 */
 	function valueFromPointer(clientX: number): number {
 		if (trackEl === null) {
 			return safeLower;
@@ -162,7 +204,7 @@
 		const rect = trackEl.getBoundingClientRect();
 		const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
 
-		return snapClamp(baseline.min + Math.max(0, Math.min(1, ratio)) * baselineSpan);
+		return snapClamp(trackScale.fromFraction(Math.max(0, Math.min(1, ratio))));
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
@@ -246,7 +288,7 @@
 	}
 
 	/** Arrow-key → step direction (-1 / +1); 0 for keys that don't step. */
-	function keyboardDelta(key: string): number {
+	function keyboardDelta(key: string): -1 | 0 | 1 {
 		if (key === 'ArrowLeft' || key === 'ArrowDown') {
 			return -1;
 		}
@@ -257,7 +299,13 @@
 		return 0;
 	}
 
-	/** Keyboard stepping on a thumb — arrows nudge by `step`, Home/End jump to the available bounds. */
+	/**
+	 * Keyboard stepping on a thumb — arrows nudge, Home/End jump to the available bounds.
+	 *
+	 * @remarks
+	 * An arrow press moves by `stepScaledValue`: exactly one `step` on a linear track, about one percent
+	 * of the track (never less than one `step`) on a log track. `commit` then snaps and clamps.
+	 */
 	function handleKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
 		const delta = keyboardDelta(event.key);
 
@@ -266,7 +314,7 @@
 		}
 		event.preventDefault();
 		const current = handle === 'lower' ? displayLower : displayUpper;
-		let next = current + delta * step;
+		let next = delta === 0 ? current : stepScaledValue(trackScale, current, delta, step);
 
 		if (event.key === 'Home') {
 			next = effectiveAvailable.min;
@@ -350,6 +398,7 @@
 			aria-valuemin={baseline.min}
 			aria-valuemax={baseline.max}
 			aria-valuenow={displayLower}
+			aria-valuetext={format(displayLower)}
 			style:--fe-thumb-pct={pct(displayLower)}
 			onpointerdown={(event) => startDrag('lower', event)}
 			onkeydown={(event) => handleKeydown('lower', event)}
@@ -362,6 +411,7 @@
 			aria-valuemin={baseline.min}
 			aria-valuemax={baseline.max}
 			aria-valuenow={displayUpper}
+			aria-valuetext={format(displayUpper)}
 			style:--fe-thumb-pct={pct(displayUpper)}
 			onpointerdown={(event) => startDrag('upper', event)}
 			onkeydown={(event) => handleKeydown('upper', event)}

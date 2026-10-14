@@ -10,23 +10,27 @@
  * ### Derived from the WORKER's corpus, and that is not the same as "the booted corpus"
  *
  * Real estate boots on the main thread, so its resolver reads `core.getSourceData()` and is done. Wine
- * runs 130k records behind Comlink, so the corpus lives in the worker and reaching it is an awaited
+ * runs 150,000 records behind Comlink, so the corpus lives in the worker and reaching it is an awaited
  * `getSourceData()` round trip — one transfer of the whole corpus, which is why {@link deriveWineFacets}
  * takes the records rather than the engine and the caller decides when to pay for them.
  *
- * The alternative is worse than it looks. `buildOriginTree()` defaults to the bundled 10k import, so a
- * tree built from it would silently omit every region that exists only in the 130k the worker actually
- * holds — a picker missing entries, with correct-looking counts on the ones it shows.
+ * The alternative is worse than it looks. Any tree or vocabulary built from a corpus other than the
+ * one the worker holds — the bundled 10k tier, say — would silently omit every region and grape that
+ * exists only in the 150k tier: a picker missing entries, with correct-looking counts on the ones it
+ * shows. `deriveWineFacets` also does the ordering every app shares — the origin tree by wine count at
+ * every level, the varietals most-reviewed first — so this app never sorts them itself.
  *
  * `FALLBACK_BOUNDS` has the same trap in the other direction. It is a pre-boot PLACEHOLDER, not a
- * ceiling: using it as the live baseline would make every wine over $400, and every vintage outside
- * 2008–2024, unreachable the moment someone touched those sliders.
+ * ceiling: it matches the synthetic 150k tier's extents, but the local real corpus, when linked,
+ * reaches further, and using the placeholder as the live baseline would make those bottles
+ * unreachable the moment someone touched a slider.
  *
  * ### The vocabularies are capped nowhere
  *
- * `varietal` runs to hundreds of entries and the panel slices it to 60 for display. That slice belongs
- * to the panel, not here, because the heading reports the FULL size — "Varietal (312)" over sixty
- * chips is the honest rendering, and it needs both numbers.
+ * `varietal` runs to hundreds of entries and the panel shows the most-reviewed
+ * `VARIETAL_CHIP_LIMIT` of them as chips (`visibleVarietalChips`). That cut belongs to the panel, not
+ * here, because the heading reports the FULL size — "Varietal (312)" over sixty chips is the honest
+ * rendering, and it needs both numbers.
  *
  * @packageDocumentation
  */

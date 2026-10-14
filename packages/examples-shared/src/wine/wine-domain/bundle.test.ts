@@ -20,8 +20,8 @@ import type { PickerTreeNode } from '@filter-enginez/react-ui/bounds';
 
 import { describe, expect, it } from 'vitest';
 
-import { buildOriginNodeSpecs, buildWineBundleQuery, deriveOriginSelection, wineFieldMeta } from './bundle.js';
-import { FALLBACK_BOUNDS } from './filterConfig.js';
+import { buildOriginNodeSpecs, buildWineBundleQuery, deriveOriginSelection, wineFieldMeta, wineSliderHistogram } from './bundle.js';
+import { FALLBACK_BOUNDS, wineSliderScale } from './filterConfig.js';
 
 const VOCABULARIES = {
 	body: ['full', 'light'],
@@ -99,25 +99,32 @@ describe('buildWineBundleQuery', () => {
 		// Asserted as LITERALS, deliberately. The predecessor of this test compared each count to the
 		// `FIELD_BUCKET_COUNTS` entry the query was built from, which passes for any table at all.
 		//
-		// These are the four counts `sliderBucketCount` yields over FALLBACK_BOUNDS:
-		//   price   [0, 400] at $0.01     → 40,001 positions, capped at the dense 84
-		//   points  [80, 100] at 1        → 21, one bar per point
-		//   abv     [5, 25] at 0.1        → 201 positions, capped at 84
-		//   vintage [2008, 2024] at 1     → 17, one bar per year (a runtime baseline reaching back to
-		//                                   the 1940s caps at 84 instead)
+		// These are the four counts over FALLBACK_BOUNDS (the 150,000-wine tier's extents):
+		//   price   [4, 3242] at $1 → log-scaled: one fine bucket per whole dollar, 3,239
+		//   points  [80, 100] at 1  → 21, one bar per point
+		//   abv     [5.5, 22] at 0.1 → 166 positions, capped at 84
+		//   vintage [1911, 2025] at 1 → log-scaled: one fine bucket per year, 115
 		const byRule = new Map(query.fields.map((field) => [field.ruleId, field.bucketCount]));
 
-		expect(byRule.get('price')).toBe(84);
+		expect(byRule.get('price')).toBe(3239);
 		expect(byRule.get('points')).toBe(21);
 		expect(byRule.get('abv')).toBe(84);
-		expect(byRule.get('vintage')).toBe(17);
+		expect(byRule.get('vintage')).toBe(115);
 	});
 
-	it('passes the baselines through as the fields\' extents', () => {
+	it('passes a linear field\'s baseline through as its extents', () => {
+		const abv = query.fields.find((field) => field.ruleId === 'abv');
+
+		expect(abv?.baselineMin).toBe(FALLBACK_BOUNDS.abv.min);
+		expect(abv?.baselineMax).toBe(FALLBACK_BOUNDS.abv.max);
+	});
+
+	it('centers a log-scaled field\'s fine buckets on its value grid', () => {
+		// Half a step beyond each end, so every whole-dollar price sits mid-bucket.
 		const price = query.fields.find((field) => field.ruleId === 'price');
 
-		expect(price?.baselineMin).toBe(FALLBACK_BOUNDS.price.min);
-		expect(price?.baselineMax).toBe(FALLBACK_BOUNDS.price.max);
+		expect(price?.baselineMin).toBe(FALLBACK_BOUNDS.price.min - 0.5);
+		expect(price?.baselineMax).toBe(FALLBACK_BOUNDS.price.max + 0.5);
 	});
 
 	it('gives points one bucket per integer over its 80-100 baseline', () => {
@@ -132,12 +139,13 @@ describe('buildWineBundleQuery', () => {
 });
 
 describe('buildOriginNodeSpecs', () => {
-	it('rolls every descendant leaf up to its ancestors', () => {
-		// THE assertion. Italy's spec must carry all three of its leaves, not its own id.
+	it('rolls every descendant id up to its ancestors, with the node\'s own id first', () => {
+		// THE assertion. Italy's spec must carry its leaves — and its own id and the intermediate ones,
+		// which wines whose origin stops above a leaf carry.
 		const specs = buildOriginNodeSpecs(TREE);
 		const italy = specs.find((spec) => spec.value === 'IT');
 
-		expect(italy?.leafIds).toEqual(['IT-PIE', 'IT-VEN-VAL']);
+		expect(italy?.leafIds).toEqual(['IT', 'IT-PIE', 'IT-VEN', 'IT-VEN-VAL']);
 	});
 
 	it('emits parents BEFORE their descendants', () => {
@@ -172,7 +180,7 @@ describe('buildOriginNodeSpecs', () => {
 	});
 
 	it('carries a mid-level branch its own subtree only', () => {
-		expect(buildOriginNodeSpecs(TREE).find((spec) => spec.value === 'IT-VEN')?.leafIds).toEqual(['IT-VEN-VAL']);
+		expect(buildOriginNodeSpecs(TREE).find((spec) => spec.value === 'IT-VEN')?.leafIds).toEqual(['IT-VEN', 'IT-VEN-VAL']);
 	});
 
 	it('returns nothing for a childless root', () => {
@@ -256,14 +264,24 @@ describe('deriveOriginSelection', () => {
 		expect(deriveOriginSelection(commitFor(['IT-PIE', 'FR']), SPECS)).toEqual(['IT-PIE', 'FR']);
 	});
 
-	it('resolves an AMBIGUOUS set to the shallowest node', () => {
-		// `FR` has exactly one leaf beneath it, so `FR` and `FR-BOR` commit the identical set — the
-		// projection to leaf ids is lossy here and no committed rule can distinguish them. The picker's
-		// compact model holds the HIGHEST selected node per branch, so the country is the right answer;
-		// returning the region would render a country selection one level too deep, and the next click
-		// would then de-cascade from the wrong node.
-		expect(leafSetsAreIdentical(SPECS, 'FR', 'FR-BOR')).toBe(true);
+	it('keeps a branch with a single child distinct from that child', () => {
+		// `FR` has exactly one leaf beneath it. Because a branch's set carries its own id too, `FR` and
+		// `FR-BOR` commit different sets, and each reads back as itself — a country selection never
+		// renders one level too deep, which would make the next click de-cascade from the wrong node.
+		expect(leafSetsAreIdentical(SPECS, 'FR', 'FR-BOR')).toBe(false);
 		expect(deriveOriginSelection(commitFor(['FR']), SPECS)).toEqual(['FR']);
+		expect(deriveOriginSelection(commitFor(['FR-BOR']), SPECS)).toEqual(['FR-BOR']);
+	});
+
+	it('resolves a set two specs share to the shallowest node', () => {
+		// Built specs never share a set, but a hand-written list can. First match in pre-order wins,
+		// which is the shallowest node — the picker's compact model holds the highest selected node.
+		const shared = [
+			{ depth: 0, label: 'France', leafIds: ['FR-BOR'], value: 'FR' },
+			{ depth: 1, label: 'Bordeaux', leafIds: ['FR-BOR'], value: 'FR-BOR' },
+		];
+
+		expect(deriveOriginSelection([['FR-BOR']], shared)).toEqual(['FR']);
 	});
 
 	it('is order-independent within a committed set', () => {
@@ -317,3 +335,56 @@ function leafSetsAreIdentical(
  * `filter-bundle/bundleReaders.test.ts`, where they live. Nothing about them is wine's: the bundle
  * carries a histogram for every queried field, and the chip readers take the rule id as an argument,
  * which those suites exercise with a second group. */
+
+describe('wineSliderHistogram', () => {
+	/**
+	 * A bundle whose price and points fields carry the given histograms.
+	 *
+	 * @param price - The price field's fine histogram.
+	 * @param points - The points field's histogram.
+	 * @returns A `FilterBundle`-shaped stub.
+	 */
+	function bundleWith(
+		price: FilterBundle['fields'][number]['histogram'],
+		points: FilterBundle['fields'][number]['histogram'],
+	): FilterBundle {
+		return {
+			chipGroups: [],
+			fields: [
+				{ bounds: { max: 100, min: 4 }, fieldKey: 'priceUsd', histogram: price, ruleId: 'price' },
+				{ bounds: { max: 100, min: 80 }, fieldKey: 'points', histogram: points, ruleId: 'points' },
+			],
+		} as unknown as FilterBundle;
+	}
+
+	const PRICE_BASELINE = { max: 103, min: 4 };
+
+	/** One fine bucket per whole dollar from $4 to $103, each holding one wine. */
+	const FINE_PRICE = {
+		bucketEdges: Float64Array.from({ length: 101 }, (_unused, index) => 3.5 + index),
+		counts: Uint32Array.from({ length: 100 }, () => 1),
+	};
+
+	const POINTS = { bucketEdges: Float64Array.from([80, 90, 100]), counts: Uint32Array.from([3, 5]) };
+
+	it('slices a log-scaled field into equal track slices, losing no wine', () => {
+		const bars = wineSliderHistogram(bundleWith(FINE_PRICE, POINTS), 'price', PRICE_BASELINE, 4, 103) ?? [];
+		const scale = wineSliderScale('price', PRICE_BASELINE);
+
+		expect(bars.length).toBeGreaterThan(1);
+		expect(bars.reduce((sum, bar) => sum + bar.count, 0)).toBe(100);
+		expect(scale.toFraction(bars[1]?.bucketMin ?? 0)).toBeCloseTo(1 / bars.length, 9);
+		// The dense end gets more bars than its share of the value range.
+		expect(bars.filter((bar) => bar.bucketMax <= 30).length).toBeGreaterThan(bars.length / 3);
+	});
+
+	it('passes a linear field through unchanged', () => {
+		const bars = wineSliderHistogram(bundleWith(FINE_PRICE, POINTS), 'points', { max: 100, min: 80 }, 80, 100);
+
+		expect(bars?.map((bar) => bar.count)).toEqual([3, 5]);
+	});
+
+	it('reports no overlay before the bundle arrives', () => {
+		expect(wineSliderHistogram(null, 'price', PRICE_BASELINE, 4, 103)).toBeUndefined();
+	});
+});

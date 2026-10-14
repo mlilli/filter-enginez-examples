@@ -44,3 +44,5 @@ export async function bootWineServerEngine(options?: HttpFilterEngineOptions): P
 }
 
 export { createHttpFilterEngine, type HttpFilterEngineOptions } from '../books/serverEngine.js';
+// The server routes' footer label, here so a route needs only this subpath to say which tier it serves.
+export { SERVER_WINE_TIER_LABEL } from './wineCorpusTier.js';

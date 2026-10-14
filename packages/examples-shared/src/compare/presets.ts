@@ -242,9 +242,9 @@ const WINE_PRESETS: readonly [ComparePreset, ...ComparePreset[]] = [
  *
  * **`wine-server` REFERENCES `WINE_PRESETS` rather than forking it, and that is a correctness
  * argument before it is a DRY one.** Both server-tier routes filter the corpus
- * `@filter-enginez/examples-server` holds — `wines`, the committed 10k — which is the same corpus
- * `core.test.ts` already validates the wine presets against, for the unrelated reason that the 130k
- * tier is gitignored and would make that gate machine-dependent. A forked list would need the
+ * `@filter-enginez/examples-server` holds — `wines`, the 10,000-wine default tier — and `core.test.ts`
+ * validates the wine presets against both that corpus and the 150,000-wine tier the browser routes
+ * generate. A forked list would need the
  * identical "narrows, but not to zero" validation written a second time, and could drift from the
  * states the browser tier demonstrates — which would quietly undermine the one claim the
  * `wine-server` rows exist to make.

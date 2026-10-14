@@ -48,7 +48,7 @@
 	let vocabularies = $state.raw<WineChipVocabularies>({ body: [], color: [], sweetness: [], varietal: []});
 	// The origin hierarchy, flattened for the `inSetOfSets` bundle group. Derived from the BOOTED
 	// corpus, not the bundled default: `buildOriginTree()` defaults to the 10k import, which would
-	// produce a tree that does not match the 130k the worker actually holds.
+	// produce a tree that does not match the 150k the worker actually holds.
 	let originSpecs = $state.raw<readonly OriginNodeSpec[]>([]);
 
 	/**
@@ -61,8 +61,9 @@
 	 */
 	let originTree = $state.raw<PickerTreeNode | null>(null);
 	// Slider baselines, derived from the corpus. FALLBACK_BOUNDS is a pre-boot PLACEHOLDER, not a
-	// ceiling — using it as the live baseline would make every wine over $400 and every vintage
-	// outside 2008-2024 unreachable the moment a user touched those sliders.
+	// ceiling — it holds the 150k tier's extents, and using it as the live baseline would make any
+	// wine outside them unreachable on another corpus (the local real one) the moment a user touched
+	// those sliders.
 	let baselines = $state.raw<Record<SliderFieldId, NumericBounds>>(FALLBACK_BOUNDS);
 	let progress = $state.raw<WineBootProgress | null>(null);
 	/** Which corpus tier booted (from `meta.source`), for the footer. */
@@ -123,8 +124,9 @@
 			stopUrlSync = startEngineUrlSync(booted);
 			engine = booted;
 		} catch (error) {
-			// A failed boot is usually the worker failing to spawn or the corpus 404ing. Surfacing it
-			// beats an indefinite boot screen, which reads as a hang.
+			// A failed boot is usually the worker failing to spawn (or, with the local real corpus
+			// linked, its file failing to load). Surfacing it beats an indefinite boot screen, which
+			// reads as a hang.
 			bootError = error instanceof Error ? error.message : String(error);
 		}
 	});
@@ -145,8 +147,9 @@
 		<p class="fe-wine-error__title">The wine engine did not boot</p>
 		<p class="fe-wine-error__detail">{bootError}</p>
 		<p class="fe-wine-error__hint">
-			The corpus is generated and linked separately — try <code>pnpm regen:wine:real</code> then
-			<code>pnpm link:wine-corpus</code>.
+			The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the
+			worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
+			tier on the main thread instead.
 		</p>
 	</div>
 {:else if engine}

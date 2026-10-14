@@ -32,20 +32,21 @@
  * @packageDocumentation
  */
 
+import { FULL_TIER_SIZE } from '@filter-enginez/examples-shared/wine-core';
+
 /**
  * Records the wine route boots with.
  *
  * @remarks
- * `129_907` is the full Kaggle corpus and routes to the worker; `10_000` is the bundled default tier
- * and routes to the main thread, because `bootSignalsEngine` sends `size === threshold` to the main
- * thread by its boundary rule.
+ * The full tier, 150,000 wines, which routes to the worker: the worker builds the local real corpus
+ * where one is linked, and otherwise generates the synthetic tier, exactly as in the five Vite apps.
+ * Read from `wine-core` rather than restated, so Angular cannot boot a different tier from the others.
  *
- * **Set this to `10_000` to develop without the full corpus.** The 130k NDJSON is generated locally
- * (`pnpm regen:wine:real`) and symlinked (`pnpm link:wine-corpus`); without it the worker's fallback
- * chain lands on the bundled tier anyway, but it does so after two failed fetches and a boot screen
- * that looks stuck. This is the Angular equivalent of `VITE_WINE_TIER=default`.
+ * **Set this to `10_000` to boot the default tier on the main thread** — the Angular equivalent of
+ * `VITE_WINE_TIER=default`. `bootSignalsEngine` sends `size === threshold` to the main thread by its
+ * boundary rule.
  */
-export const WINE_DATASET_SIZE = 129_907;
+export const WINE_DATASET_SIZE: number = FULL_TIER_SIZE;
 
 /**
  * Spawn the wine corpus worker, the Angular way.

@@ -2,7 +2,7 @@
  * Tests for the wine panel's bundle-consuming hooks and its async fetch path.
  *
  * @remarks
- * The wine demo is the **worker-backed** vertical: its 130k-row corpus lives behind Comlink, so this
+ * The wine demo is the **worker-backed** vertical: its 150k-row corpus lives behind Comlink, so this
  * panel's fetch takes the async branch that the main-thread books panel never touches. That branch
  * carries the busy indicator's contract as well as the bundle's, and the two interact in a way worth
  * pinning down.

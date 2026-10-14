@@ -15,7 +15,7 @@
 
 import type { FilterBundle, FilterBundleFieldMeta } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
-import type { NumericBounds } from '@filter-enginez/react-ui';
+import type { HistogramBucket, NumericBounds } from '@filter-enginez/react-ui';
 
 import { type ExclusionMap, useFilterEngine, useLastChange } from '@filter-enginez/react-signals';
 import { createContext, use, useEffect, useMemo, useState } from 'react';
@@ -30,14 +30,15 @@ import {
 	type OriginNodeSpec,
 	type WineBundleQuery,
 	wineFieldMeta,
+	wineSliderHistogram,
 } from '../wine-domain/bundle.js';
 
 export {
 	buildOriginNodeSpecs,
 	bundleHistogramToBuckets,
-	FIELD_VALUE_STEPS,
 	type OriginNodeSpec,
 } from '../wine-domain/bundle.js';
+export { FIELD_VALUE_STEPS } from '../wine-domain/filterConfig.js';
 
 /**
  * Shape provided through `FilterBundleContext`. The bundle is `null` during the first render
@@ -125,6 +126,37 @@ export function useBundleFieldMeta(ruleId: SliderFieldId): FilterBundleFieldMeta
 	const ctx = use(FilterBundleContext);
 
 	return wineFieldMeta(ctx?.bundle ?? null, ruleId);
+}
+
+/** One shared empty bar list, so a slider without a bundle keeps a stable `histogram` prop. */
+const EMPTY_HISTOGRAM: readonly HistogramBucket[] = [];
+
+/**
+ * One slider's histogram bars, sliced for its scale.
+ *
+ * @remarks
+ * The React face of `wineSliderHistogram`, which every wine panel in every app reads its bars
+ * through: a log-scaled field's fine histogram is summed into equal slices of its track here, so the
+ * React sliders draw the same bars as the other five apps.
+ *
+ * @param ruleId - The slider's field id.
+ * @param baseline - The slider's baseline bounds.
+ * @param selectedMin - The slider's lower handle.
+ * @param selectedMax - The slider's upper handle.
+ * @returns The bars, or an empty list before the first bundle settles.
+ */
+export function useBundleSliderHistogram(
+	ruleId: SliderFieldId,
+	baseline: NumericBounds,
+	selectedMin: number,
+	selectedMax: number,
+): readonly HistogramBucket[] {
+	const ctx = use(FilterBundleContext);
+
+	return useMemo(
+		() => wineSliderHistogram(ctx?.bundle ?? null, ruleId, baseline, selectedMin, selectedMax) ?? EMPTY_HISTOGRAM,
+		[ctx, ruleId, baseline, selectedMin, selectedMax],
+	);
 }
 
 /**

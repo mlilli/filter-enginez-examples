@@ -197,7 +197,7 @@ export class TimeTravelControlsComponent {
 	 *
 	 * @remarks
 	 * Marks busy BEFORE the engine call, so the computing indicator lights on the click's own frame.
-	 * An undo over 130k rows costs what the filter it reverses cost; skipping this makes the app look
+	 * An undo over 150k rows costs what the filter it reverses cost; skipping this makes the app look
 	 * frozen for the duration rather than busy.
 	 */
 	protected handleUndo(): void {

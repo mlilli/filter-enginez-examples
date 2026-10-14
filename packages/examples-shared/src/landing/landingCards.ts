@@ -106,10 +106,10 @@ const DATASET_ROUTES: readonly DatasetCard[] = [
 		recordNoun: 'books',
 	},
 	{
-		// The worker sentence holds for every card this catalog produces: all six apps boot the full
-		// wine tier on a worker.
+		// The worker sentence holds for every card this catalog produces: all six apps generate the
+		// 150,000-wine tier in a worker and filter it there.
 		blurb:
-			'About 130k Kaggle wine reviews — a cascading origin hierarchy, points, price and ABV ranges, and typo-tolerant tasting-note search. The worker-backed tier: every filter is a Comlink round trip.',
+			'150,000 synthetic wine reviews — a cascading origin hierarchy, points, price and ABV ranges, and typo-tolerant tasting-note search. The worker-backed tier: the wines are generated and filtered in a Web Worker, and every filter is a Comlink round trip.',
 		href: '/wine',
 		id: 'wine',
 		label: 'Wine reviews',
@@ -119,11 +119,12 @@ const DATASET_ROUTES: readonly DatasetCard[] = [
 		// Phrased for every vertical that serves this route, as `/books-server` above is: SvelteKit
 		// filters in its own server tier, vanilla over HTTP with no SSR.
 		//
-		// **The committed-corpus clause is load-bearing:** `examples-server` filters the 10k tier while
-		// `/wine` boots 130k, so a visitor comparing result counts between the two cards needs it to
-		// know why they differ.
+		// **The 10,000-wine clause is load-bearing:** `examples-server` filters the 10,000-wine default
+		// tier while `/wine` boots 150,000, so a visitor comparing result counts between the two cards
+		// needs it to know why they differ — and why the server holds fewer: the deployment's Workers
+		// Free plan allows 10 ms of CPU and 128 MB of memory per request.
 		blurb:
-			'The exact same wine app, but the browser never filters — every mutation round-trips to a server running the isomorphic engine over the committed corpus.',
+			'The exact same wine app over 10,000 synthetic wines, and the browser never filters — every mutation round-trips to a server running the isomorphic engine. The server holds 10,000 wines rather than 150,000 so each request fits its host\'s 10 ms CPU and 128 MB memory limits.',
 		href: '/wine-server',
 		id: 'wine-server',
 		label: 'Wine · server-filtered',

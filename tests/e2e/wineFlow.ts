@@ -156,7 +156,7 @@ export interface WineVerticalSpec {
  * @returns Nothing; resolves once the live header and result count are painted.
  */
 export async function waitForWineBoot(page: Page, id: VerticalId): Promise<void> {
-	// The worker streams and parses ~130k records behind the boot screen; the live header appears
+	// The worker builds 150,000 records behind the boot screen; the live header appears
 	// only once the view mounts.
 	await expect(page.getByText(subtitle('Wine', id, 'worker'))).toBeVisible({ timeout: 60_000 });
 	await expect(page.locator(RESULT_COUNT)).toBeVisible();
@@ -219,7 +219,7 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 			// the results grid exists to churn. Installing it here rather than inside the caption case is
 			// what keeps that case from needing a second navigation — `addInitScript` only applies to
 			// loads that have not happened yet, so a case that installed it itself would have to re-boot
-			// a 130k worker to be able to look, and the suite is already the slow half of `test:e2e`.
+			// a 150k worker to be able to look, and the suite is already the slow half of `test:e2e`.
 			await installBootCaptionRecorder(page);
 			await bootWineApp(page, spec);
 		});
@@ -228,27 +228,25 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 			expect(await settledCount(page, WINE_SETTLED)).toBeGreaterThan(0);
 		});
 
-		test('boots the FULL corpus rather than falling back to the bundled tier', async ({ page }) => {
-			// **This assertion exists because that fallback is silent.** `loadWineCorpus` tries the full
-			// corpus, and anything that stops it serving — a missing symlink, a dev server that will not
-			// serve a symlink, an HTML error page parsed as records — drops to the bundled 10k tier with
-			// NO error at all. Every other gate stays green, because a working app over a smaller corpus
-			// looks exactly like a working app.
+		test('boots the FULL tier rather than a 10,000-wine one', async ({ page }) => {
+			// **This assertion exists because a smaller tier looks healthy.** Every `/wine` route must boot
+			// the full tier — the local real corpus where linked, otherwise the 150,000 synthetic wines —
+			// so `/compare` shows the same counts in all six apps. A route left on the 10,000-wine default
+			// tier (`VITE_WINE_TIER=default`, or the low-memory tier on a small device) filters correctly,
+			// and every other gate stays green, because a working app over a smaller corpus looks exactly
+			// like a working app.
 			//
-			// **Asserted POSITIVELY, and that is the whole design.** `not.toContainText('bundled 10k
-			// tier')` passes just as happily against an app that stopped reporting a tier at all — and
+			// **Asserted POSITIVELY, and that is the whole design.** A negative assertion on the 10k label
+			// passes just as happily against an app that stopped reporting a tier at all — and
 			// `describeBootedWineCorpusTier` returns `''` when it has nothing to say, so that is a
 			// reachable state rather than a hypothetical one. Requiring the string that means success
-			// fails on both the wrong tier and on silence.
+			// fails on both the wrong tier and on silence. Every full-tier label contains `full corpus`
+			// and no 10k label does (`wineCorpusLoader.test.ts` pins both).
 			//
 			// `getByRole('contentinfo')`, NOT `locator('footer')`: the devtools surface renders its own
 			// `<footer class="fe-devtools-timeline">` inside a labelled region, so the bare tag selector
 			// resolves to two elements and dies on strict mode — an assertion that never evaluates is
 			// not a stricter test, it is an absent one. Only a top-level `<footer>` carries the role.
-			//
-			// **It makes the generated corpus a hard prerequisite of this suite** (`pnpm regen:wine:real`,
-			// `pnpm link:wine-corpus`), deliberately: a run without it fails loudly rather than passing
-			// quietly over the wrong tier.
 			await expect(page.getByRole('contentinfo')).toContainText('full corpus');
 		});
 
@@ -280,7 +278,7 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 
 		test('a clicked chip STAYS lit across the worker round trip', async ({ page }, testInfo) => {
 			// The browser-side twin of each vertical's own flicker guard. Those simulate the mid-flight
-			// engine; this drives a real Comlink round trip against ~130k records, which is the only
+			// engine; this drives a real Comlink round trip against 150,000 records, which is the only
 			// place the actual latency exists. A read-only derivation would un-tick the chip here for a
 			// few hundred milliseconds — long enough to see, short enough that a spec asserting only the
 			// final state would never notice.

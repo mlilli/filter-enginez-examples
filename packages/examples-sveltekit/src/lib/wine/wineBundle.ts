@@ -17,7 +17,7 @@
  *
  * **Why `$state.raw` matters over there.** The bundle carries `Uint32Array` result indices and
  * `Float64Array` histogram edges. Svelte's deep reactive proxy does not preserve typed-array
- * semantics, and proxying 130k indices is ruinously slow besides — the same trap that makes the ENGINE
+ * semantics, and proxying 150k indices is ruinously slow besides — the same trap that makes the ENGINE
  * need `$state.raw`, for the same reason.
  *
  * The context is read through a GETTER rather than handed over as a value: context is captured once at

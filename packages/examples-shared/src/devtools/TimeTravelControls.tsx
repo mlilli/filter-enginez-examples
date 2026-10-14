@@ -38,7 +38,7 @@ export interface TimeTravelControlsProps {
 	 *
 	 * @remarks
 	 * A prop because the busy tracker is per-dataset. Undo and redo are engine mutations like any
-	 * other — an undo over 130k rows takes exactly as long as the filter it reverses, and skipping this
+	 * other — an undo over 150k rows takes exactly as long as the filter it reverses, and skipping this
 	 * makes the app look frozen for the duration rather than busy.
 	 */
 	readonly markBusy: () => void;

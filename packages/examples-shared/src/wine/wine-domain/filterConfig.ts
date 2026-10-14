@@ -22,7 +22,11 @@
  */
 
 import type { Wine, WineBody, WineColor, WineSweetness } from '@filter-enginez/mock-data/wine';
-import type { NumericBounds } from '@filter-enginez/react-ui/bounds';
+
+import { createSliderScale, type NumericBounds, type SliderScale, type SliderScaleSpec } from '@filter-enginez/react-ui/bounds';
+
+import { shortlistVocabulary } from '../../vocabulary/index.js';
+import { formatVintage, parseVintage } from './vintage.js';
 
 // ─── Static option vocabularies ──────────────────────────────────────────────
 // Hand-ordered to match the design system's natural progressions, not alphabetical.
@@ -104,17 +108,131 @@ export const SLIDER_STEPS: Record<SliderFieldId, number> = {
 
 /**
  * Safety-net bounds used only before the engine's sourceData is available (early-paint moment,
- * source-data-empty edge case). By design nothing is hardcoded once data
- * loads — the derivation supplants these on every render after boot. The numbers reflect
- * plausible defaults so the slider doesn't render as a degenerate single-point line during the
- * brief pre-derivation window.
+ * source-data-empty edge case). Nothing is hardcoded once data loads — the derivation supplants these
+ * on every render after boot.
  *
- * A PLACEHOLDER, not a ceiling: `deriveBaselineBounds` does not clamp to these, which is what
- * keeps the $800 bottles and the 1945 vintages reachable once the corpus lands.
+ * The numbers are the extents of the 150,000-wine tier every deployed wine page boots, so on those
+ * pages the track does not move when the corpus lands. `facets.test.ts` derives them from the
+ * generator and fails if they drift.
+ *
+ * A PLACEHOLDER, not a ceiling: `deriveBaselineBounds` does not clamp to these, which is what keeps
+ * every bottle reachable whatever corpus lands.
  */
 export const FALLBACK_BOUNDS = {
-	abv: { max: 25, min: 5 },
+	abv: { max: 22, min: 5.5 },
 	points: { max: 100, min: 80 },
-	price: { max: 400, min: 0 },
-	vintage: { max: 2024, min: 2008 },
+	price: { max: 3242, min: 4 },
+	vintage: { max: 2025, min: 1911 },
 } as const satisfies Record<SliderFieldId, NumericBounds>;
+
+/**
+ * The grid each slider field's VALUES fall on, as generated into the corpus.
+ *
+ * @remarks
+ * Feeds `sliderBucketCount` / `scaledBucketCount`, which never ask for finer bars than the data has
+ * positions, and softens the log scales (see {@link SLIDER_SCALE_SPECS}). Read off the generator:
+ * `priceUsd` is whole dollars, `points` whole numbers, `abv` one decimal, `vintage` a year. (The local
+ * real review corpus carries cents; on a whole-dollar grid its price bars are merely a little coarser.)
+ *
+ * **Not the same numbers as a slider `step`**, which is drag granularity — see `sliderBucketCount`'s
+ * own remarks.
+ */
+export const FIELD_VALUE_STEPS: Record<SliderFieldId, number> = {
+	abv: 0.1,
+	points: 1,
+	price: 1,
+	vintage: 1,
+} as const;
+
+/**
+ * How each wine slider lays its values on the track — the one declaration all six apps read.
+ *
+ * @remarks
+ * **Price and vintage are heavy-tailed, so they are log-scaled** (`createSliderScale` in
+ * `@filter-enginez/react-ui/bounds` documents the scale). Half of all wines cost under $30 and a few
+ * cost thousands, so price is anchored at its minimum; nearly every vintage is from the last twenty
+ * years and a few are a century old, so vintage is anchored at its maximum. On a linear track either
+ * would squeeze almost every wine into a sliver at one end.
+ *
+ * **Points and ABV stay linear.** Scores spread across 80–100 without a tail, and alcohol clusters
+ * around 13% with fortified wines a separate, visible group near 20% — a log track would distort
+ * both rather than reveal anything.
+ */
+export const SLIDER_SCALE_SPECS: Readonly<Record<SliderFieldId, SliderScaleSpec>> = {
+	abv: { kind: 'linear' },
+	points: { kind: 'linear' },
+	price: { anchor: 'min', kind: 'log' },
+	vintage: { anchor: 'max', kind: 'log' },
+};
+
+/**
+ * Build one wine slider's scale over its baseline.
+ *
+ * @param field - The slider's field id.
+ * @param baseline - The slider's baseline bounds — the same object passed to the slider.
+ * @returns The scale to hand to the slider and to {@link wineSliderHistogram}.
+ */
+export function wineSliderScale(field: SliderFieldId, baseline: NumericBounds): SliderScale {
+	return createSliderScale(SLIDER_SCALE_SPECS[field], baseline, FIELD_VALUE_STEPS[field]);
+}
+
+/**
+ * How many varietal chips a chip-group panel shows.
+ *
+ * @remarks
+ * The SvelteKit, Vue, Angular and vanilla panels render varietals as wrapping chips, and hundreds of
+ * chips would push every section below off the panel. Sixty of the most-reviewed varieties cover
+ * about nine wines in ten. The React panels render a scrolling checkbox list instead and show every
+ * varietal, most-reviewed first, in the same order.
+ */
+export const VARIETAL_CHIP_LIMIT = 60;
+
+/**
+ * The varietal chips a chip-group panel renders.
+ *
+ * @remarks
+ * The first {@link VARIETAL_CHIP_LIMIT} of the ranked vocabulary, plus any selected varietal beyond
+ * them, so a rare grape selected through a shared link still has a chip to clear it from.
+ *
+ * @param rankedVarietals - The varietal vocabulary, most-reviewed first (`WineFacets.vocabularies`).
+ * @param selected - The varietals currently selected.
+ * @returns The chips to render, in rank order.
+ */
+export function visibleVarietalChips(rankedVarietals: readonly string[], selected: readonly string[]): readonly string[] {
+	return shortlistVocabulary(rankedVarietals, selected, VARIETAL_CHIP_LIMIT);
+}
+
+/** How one wine slider shows its values and reads typed ones back. */
+export interface WineSliderText {
+	/** Value → readout text, for the header summary and the editable bound fields. */
+	readonly format: (value: number) => string;
+	/** Typed text → value; `NaN` for text that is not one, which the sliders revert. */
+	readonly parse: (raw: string) => number;
+}
+
+/**
+ * Read a number from typed text, ignoring the decorations its readout adds.
+ *
+ * @param raw - The typed text, e.g. `$1,250` or `13.5 %`.
+ * @returns The number, or `NaN`.
+ * @internal
+ */
+function parseDecoratedNumber(raw: string): number {
+	return Number.parseFloat(raw.replace(/[$%,\s]/gu, ''));
+}
+
+/**
+ * The readout format and the typed-text parser of each wine slider — shared, so every app shows
+ * `$1,250`, `13.5%` and `NV` the same way and accepts the same text back.
+ *
+ * @remarks
+ * Every parser strips what its formatter adds. A field that shows `$1,250` and parses with a bare
+ * `parseFloat` reads it as `NaN` and reverts, which looks like the field refusing the user's edit.
+ */
+export const WINE_SLIDER_TEXT: Readonly<Record<SliderFieldId, WineSliderText>> = {
+	abv: { format: (value) => `${value.toFixed(1)}%`, parse: parseDecoratedNumber },
+	points: { format: (value) => value.toFixed(0), parse: parseDecoratedNumber },
+	price: { format: (value) => `$${Math.round(value).toLocaleString('en-US')}`, parse: parseDecoratedNumber },
+	vintage: { format: formatVintage, parse: parseVintage },
+};
+

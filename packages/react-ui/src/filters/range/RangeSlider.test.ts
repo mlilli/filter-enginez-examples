@@ -17,6 +17,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { HistogramBucket } from './histogram.js';
 
 import { RangeSlider, type RangeSliderProps } from './RangeSlider.js';
+import { logSliderScale, SLIDER_POSITION_RESOLUTION } from './scale.js';
 
 beforeAll(() => {
 	// Radix's `react-use-size` observes the thumb with a ResizeObserver, which jsdom does not
@@ -290,5 +291,89 @@ describe('RangeSlider — Radix keyboard + drag-end', () => {
 
 		fireEvent.pointerUp(root);
 		expect(onChange).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('RangeSlider — log scale', () => {
+	/** A price-shaped slider: a $4 floor, a long tail, a log track softened by ten dollars. */
+	const PRICE_BASELINE = { max: 3242, min: 4 } as const;
+	const PRICE_SCALE = logSliderScale(PRICE_BASELINE, 'min', 10);
+
+	/**
+	 * Render a log-scaled price slider.
+	 *
+	 * @param overrides - Prop overrides.
+	 * @returns The render result.
+	 */
+	function renderLog(overrides: Partial<RangeSliderProps> = {}): ReturnType<typeof render> {
+		return renderSlider({
+			baseline: PRICE_BASELINE,
+			format: FORMAT,
+			scale: PRICE_SCALE,
+			valueMax: 3242,
+			valueMin: 4,
+			...overrides,
+		});
+	}
+
+	it('runs Radix over track positions and announces the value, not the position', () => {
+		renderLog({ valueMax: 100, valueMin: 27 });
+		const [lowerThumb, upperThumb] = screen.getAllByRole('slider');
+
+		expect(lowerThumb?.getAttribute('aria-valuemax')).toBe(String(SLIDER_POSITION_RESOLUTION));
+		expect(lowerThumb?.getAttribute('aria-valuenow')).toBe(String(Math.round(PRICE_SCALE.toFraction(27) * SLIDER_POSITION_RESOLUTION)));
+		expect(lowerThumb?.getAttribute('aria-valuetext')).toBe('27');
+		expect(upperThumb?.getAttribute('aria-valuetext')).toBe('100');
+	});
+
+	it('steps a thumb by about one percent of the track per arrow key', () => {
+		const onChange = vi.fn();
+
+		renderLog({ onChange, valueMax: 3242, valueMin: 1000 });
+		const [lowerThumb] = screen.getAllByRole('slider');
+
+		fireEvent.keyDown(lowerThumb as HTMLElement, { key: 'ArrowRight' });
+
+		const committed = (onChange.mock.calls[0]?.[0] as { min: number } | undefined)?.min ?? 0;
+
+		// A $1 step would have been 1001; one percent of a log track from $1,000 is far more.
+		expect(committed).toBeGreaterThan(1030);
+		expect(PRICE_SCALE.toFraction(committed) - PRICE_SCALE.toFraction(1000)).toBeCloseTo(0.01, 2);
+	});
+
+	it('moves the upper thumb down, and never below the lower one', () => {
+		const onChange = vi.fn();
+
+		renderLog({ onChange, valueMax: 5, valueMin: 5 });
+		const [, upperThumb] = screen.getAllByRole('slider');
+
+		fireEvent.keyDown(upperThumb as HTMLElement, { key: 'ArrowLeft' });
+
+		// Already at the lower thumb: the step is clamped there, which is no change, so nothing commits.
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('steps the lower thumb for an arrow key that reaches the root from elsewhere, as Radix does', () => {
+		const onChange = vi.fn();
+		const { container } = renderLog({ onChange, valueMax: 3242, valueMin: 1000 });
+
+		fireEvent.keyDown(container.querySelector('.fe-range-slider__root') as HTMLElement, { key: 'ArrowRight' });
+
+		const committed = (onChange.mock.calls[0]?.[0] as { max: number; min: number } | undefined) ?? { max: 0, min: 0 };
+
+		expect(committed.max).toBe(3242);
+		expect(PRICE_SCALE.toFraction(committed.min) - PRICE_SCALE.toFraction(1000)).toBeCloseTo(0.01, 2);
+	});
+
+	it('leaves keys that are not arrows to Radix', () => {
+		const onChange = vi.fn();
+
+		renderLog({ onChange, valueMax: 3242, valueMin: 1000 });
+		const [lowerThumb] = screen.getAllByRole('slider');
+
+		fireEvent.keyDown(lowerThumb as HTMLElement, { key: 'Home' });
+
+		// Radix's Home: the lower thumb to the start of the track, converted back to a value.
+		expect(onChange).toHaveBeenCalledWith({ max: 3242, min: 4 });
 	});
 });

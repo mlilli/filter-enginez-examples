@@ -13,12 +13,17 @@
  * The second test covers the case the `null`-versus-`min === 0` distinction exists for: an absent rule
  * must render the full baseline track, and it must do so without being confusable with a genuine
  * selection whose lower bound happens to be zero.
+ *
+ * The last pins what the section hands its slider from the shared wine declarations — the track scale
+ * and the readout text — so this app's price track matches every other app's.
  */
 
+import type { SliderScale } from '@filter-enginez/examples-shared/bounds';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { range, type RangeRule } from '@filter-enginez/core';
+import { FALLBACK_BOUNDS, WINE_SLIDER_TEXT, wineSliderScale } from '@filter-enginez/examples-shared/wine-domain';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { shallowRef } from 'vue';
@@ -115,5 +120,21 @@ describe('<WineRangeSection>', () => {
 		// Back to the full baseline track — which is what "no constraint" means, and why an absent rule
 		// is `null` rather than `{ min: 0 }`.
 		expect(handlePositions(wrapper)).not.toEqual([20, 60]);
+	});
+
+	it('lays price on the shared log scale, with the shared readout and parser', () => {
+		ruleRef.value = undefined;
+
+		const slider = mountSection().findComponent(RangeSlider);
+		// Typed lint cannot see through a `.vue` component's prop types; the cast names the contract.
+		const scale = slider.props('scale') as SliderScale | undefined;
+		const expected = wineSliderScale('price', FALLBACK_BOUNDS.price);
+
+		expect(scale?.kind).toBe('log');
+		expect(scale?.toFraction(25)).toBeCloseTo(expected.toFraction(25), 9);
+		expect(slider.props('format')).toBe(WINE_SLIDER_TEXT.price.format);
+		expect(slider.props('parse')).toBe(WINE_SLIDER_TEXT.price.parse);
+		// The readout the user sees, through that formatter: thousands separated.
+		expect(slider.find('.fe-range-slider__summary').text()).toBe('$4 — $3,242');
 	});
 });

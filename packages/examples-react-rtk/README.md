@@ -9,7 +9,7 @@ calls. Dev server: `http://127.0.0.1:5174`. Live at [react-rtk.filterenginez.com
 | Route           | What it shows                                                                                                |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
 | `/`             | Landing hub: one card per dataset route                                                                      |
-| `/wine`         | About 130,000 wine reviews filtered in a Web Worker through `worker-bridge`; smart-filter presets            |
+| `/wine`         | 150,000 synthetic wine reviews filtered in a Web Worker through `worker-bridge`; smart-filter presets        |
 | `/books`        | About 10,000 books on the main thread: curated, range, chip and fuzzy-search filters with predictive disable |
 | `/books-config` | The same books corpus with the whole panel generated from a JSON `FilterEngineConfig`                        |
 | `/books-server` | The books UI over an HTTP engine; every filter round-trips to `examples-server` (run `pnpm dev:api` first)   |

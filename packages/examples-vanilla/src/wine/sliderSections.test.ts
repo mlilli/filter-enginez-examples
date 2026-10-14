@@ -71,6 +71,7 @@ import {
 	range,
 	type RangeRule,
 } from '@filter-enginez/core';
+import { NON_VINTAGE_YEAR } from '@filter-enginez/examples-shared/wine-domain';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { makeWine } from '../test-support/wineFixture.js';
@@ -95,6 +96,18 @@ const DATA: readonly Wine[] = [
 ];
 
 const mountPanel = createWinePanelMounter(DATA);
+
+/**
+ * A second corpus whose youngest wine is non-vintage, for the `NV` case alone.
+ *
+ * @remarks
+ * Kept apart from {@link DATA} so no other case's baselines or counts move: the vintage baseline here
+ * runs 2015 to the non-vintage year, and only the `NV` reading is asserted against it.
+ */
+const mountNonVintagePanel = createWinePanelMounter([
+	makeWine({ id: 'vintage', vintage: 2015 }),
+	makeWine({ id: 'non-vintage', vintage: NON_VINTAGE_YEAR }),
+]);
 
 /**
  * One slider thumb, by the accessible name `createRangeSlider` builds from the facet's `ariaLabel`.
@@ -209,8 +222,9 @@ describe('the range sliders', () => {
 		const rule = core.getRules().get('price') as RangeRule | undefined;
 
 		expect(rule?.field).toBe('priceUsd');
-		// Baseline 20–40, drag step 5 for price: the lower handle steps 20 → 25.
-		expect(rule?.config).toEqual({ max: 40, min: 25 });
+		// Baseline 20–40, drag step 1 for price on a log track: one percent of this narrow track is a
+		// fraction of a dollar, so the press moves the floor of one whole step, 20 → 21.
+		expect(rule?.config).toEqual({ max: 40, min: 21 });
 		expect(core.getResultCount()).toBe(2);
 	});
 
@@ -242,7 +256,8 @@ describe('the range sliders', () => {
 		// path is guarded twice and only the second guard is observable here.
 		//
 		// ⚠ That is NOT an argument for deleting the first one. `valueMax` also feeds
-		// `fieldHistogram(bundle, ruleId, valueMin, valueMax)`, which the slider does not re-clamp, and
+		// `wineSliderHistogram(bundle, ruleId, baseline, valueMin, valueMax)`, which the slider does not
+		// re-clamp, and
 		// no test in this package ever combines an infinite committed maximum with a RESOLVED bundle —
 		// the one suite that resolves one (`pages/winePage.test.ts`) never commits an open-ended span.
 		// So "unobservable" here is scoped to the paths tests exercise; it is not evidence the guard is
@@ -294,6 +309,32 @@ describe('the vintage slider', () => {
 		});
 
 		expect(handles(root, 'Filter by vintage year')).toEqual([2016, 2019]);
+	});
+
+	it('reads the non-vintage year as NV, and reads a typed NV back as that year', () => {
+		// The non-vintage year is a number to the engine and `NV` to a person. Both directions matter:
+		// a field showing `NV` that parsed as `NaN` would silently revert on blur, which reads as the
+		// field ignoring the user.
+		const { core, root } = mountNonVintagePanel();
+		const upper = thumb(root, 'Filter by vintage year', 'upper');
+		const lowerField = root.querySelector<HTMLInputElement>(
+			'input[aria-label="Vintage lower bound (editable)"]',
+		);
+
+		expect(upper.getAttribute('aria-valuenow')).toBe(String(NON_VINTAGE_YEAR));
+		expect(upper.getAttribute('aria-valuetext')).toBe('NV');
+		expect(root.querySelector<HTMLInputElement>('input[aria-label="Vintage upper bound (editable)"]')?.value).toBe('NV');
+
+		if (lowerField === null) {
+			throw new Error('expected the vintage lower-bound field');
+		}
+		lowerField.value = 'nv';
+		lowerField.dispatchEvent(new FocusEvent('blur'));
+
+		const rule = core.getRules().get('vintage') as InSetRule<number> | undefined;
+
+		expect(rule?.config.set).toEqual([NON_VINTAGE_YEAR]);
+		expect(core.getResultCount()).toBe(1);
 	});
 });
 

@@ -79,7 +79,7 @@ describe('debounced commit', () => {
 	});
 
 	it('coalesces a burst of keystrokes into ONE commit', () => {
-		// The reason the hook exists. Six keystrokes against a 130k-record engine is six full filter
+		// The reason the hook exists. Six keystrokes against a 150k-record engine is six full filter
 		// passes; the user only ever wanted the last one.
 		const commit = vi.fn();
 		const { result } = renderHook(() => useTypeaheadSearch({ commit, ruleQuery: '' }));

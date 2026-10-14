@@ -38,7 +38,7 @@ const props = defineProps<{
 	 *
 	 * @remarks
 	 * A prop because the busy tracker is per-dataset. Undo and redo are engine mutations like any
-	 * other — an undo over 130k rows costs what the filter it reverses cost — and skipping this makes
+	 * other — an undo over 150k rows costs what the filter it reverses cost — and skipping this makes
 	 * the app look frozen for the duration rather than busy.
 	 */
 	markBusy: () => void;

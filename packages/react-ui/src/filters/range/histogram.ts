@@ -305,7 +305,7 @@ export function histogramBarClassName(
  * **Two-tier minimum.** An EMPTY bucket clamps to 4% — a tiny visible nub
  * that keeps the bucket's position legible against the row baseline while reading unmistakably as
  * "nothing here". A populated one clamps to 18%, meaningfully taller, because at corpus scale a
- * single item maps to ~0% (1/130,000) and would otherwise be indistinguishable from empty.
+ * single item maps to ~0% (1/150,000) and would otherwise be indistinguishable from empty.
  *
  * @param bucket - The bucket.
  * @returns Its height in percent, in `[4, 100]`.

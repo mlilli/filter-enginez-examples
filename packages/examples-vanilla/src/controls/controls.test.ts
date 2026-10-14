@@ -257,7 +257,7 @@ describe('createSearchInput', () => {
 		// would be observed only for as long as real estate keeps a description search. That is the
 		// accidental-coverage shape: a branch covered by something unrelated staying the way it is.
 		//
-		// On wine's 130k worker tier the cost of losing this is one full Comlink round trip per
+		// On wine's 150k worker tier the cost of losing this is one full Comlink round trip per
 		// character, so it is worth an assertion that names it rather than one that implies it.
 		const { field, onChange, onCommit } = mountSearch('');
 
@@ -344,7 +344,7 @@ describe('createSearchInput', () => {
 
 	it('adopts an external change but never clobbers what the user is actively typing', () => {
 		// The guard `update` opens with, and the reason this control reads the field before writing it.
-		// A repaint is not user input: `/wine` repaints on every settle of a 130k-record worker round
+		// A repaint is not user input: `/wine` repaints on every settle of a 150k-record worker round
 		// trip, and an unconditional `field.value = value` resets the caret to the end of the box each
 		// time — which nobody reports as a render bug, only as a keyboard that occasionally jumps.
 		//

@@ -27,6 +27,20 @@
  * The bounds contract comes from `examples-shared/bounds`, not `/books-domain`: this control also
  * renders real estate and wine, and a dataset address on a neutral control misleads the next reader.
  *
+ * ### Scales
+ *
+ * The optional `scale` in the render state (a `SliderScale` from `examples-shared/bounds`) decides
+ * where a value sits on the track. Every value-to-position conversion goes through
+ * `scale.toFraction`, every pointer position comes back through `scale.fromFraction` and is snapped to
+ * `step`, and the arrow keys move a thumb by `stepScaledValue`. With no scale the slider builds
+ * `linearSliderScale(baseline)`, under which all three reduce to the plain proportional arithmetic and
+ * a one-`step` arrow press — so books and real estate, which pass none, get the slider they always had.
+ *
+ * A heavy-tailed field passes a log scale instead (wine price and vintage): the dense end of the data
+ * gets most of the track, and an arrow press moves about one percent of the track rather than one
+ * `step`, which would take thousands of presses to cross the tail. Each thumb's `aria-valuetext` is the
+ * formatted value, so assistive technology announces `$25` or `NV` rather than a bare number.
+ *
  * @packageDocumentation
  */
 
@@ -34,7 +48,11 @@ import {
 	histogramBarClassName,
 	histogramBarHeightPercent,
 	type HistogramBucket,
+	linearSliderScale,
 	type NumericBounds,
+	type SliderScale,
+	snapToStep,
+	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 
@@ -51,10 +69,23 @@ export interface RangeSliderState {
 	 *
 	 * @remarks
 	 * Part of the state, not the options: the buckets come from the engine's predictive-disable bundle
-	 * via `fieldHistogram` and change on every commit. Omitting them hides the overlay entirely, which
-	 * is what a panel should render before its first bundle resolves.
+	 * and change on every commit. Omitting them hides the overlay entirely, which is what a panel should
+	 * render before its first bundle resolves.
+	 *
+	 * The bars are drawn at equal widths, so each bucket must be an equal slice of the TRACK. Under a
+	 * linear scale that is an equal slice of the value range; under any other the caller passes buckets
+	 * already sliced for its scale (wine's `wineSliderHistogram`).
 	 */
 	readonly histogram?: readonly HistogramBucket[];
+	/**
+	 * How values sit on the track. Defaults to `linearSliderScale(baseline)`.
+	 *
+	 * @remarks
+	 * Part of the state rather than the options because a scale is built over a baseline, and the
+	 * baseline arrives here. Build it over the SAME baseline passed alongside it, or the thumbs and the
+	 * bars land under different values.
+	 */
+	readonly scale?: SliderScale;
 	/** Current lower handle value. */
 	readonly valueMin: number;
 	/** Current upper handle value. `Infinity` displays as the available max. */
@@ -95,6 +126,7 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 
 	// ── Current state, held locally so pointer/keyboard math can read it synchronously ──
 	let baseline: NumericBounds = { max: 1, min: 0 };
+	let scale: SliderScale = linearSliderScale(baseline);
 	let available: NumericBounds = baseline;
 	let safeLower = 0;
 	let safeUpper = 1;
@@ -125,22 +157,21 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		return dragValue?.[1] ?? safeUpper;
 	}
 
-	/** Convert a baseline-coordinate value to a 0..100% track position. */
+	/**
+	 * Convert a baseline-coordinate value to a 0..100% track position.
+	 *
+	 * @remarks
+	 * Through the scale, so the dim bands, the selected segment, the thumbs and the bars all place a
+	 * value at the same spot. The scale already clamps to the track and maps a degenerate baseline to
+	 * `0`, which is what the hand-written proportion here used to do.
+	 */
 	function pct(value: number): number {
-		const span = baseline.max - baseline.min;
-
-		if (span <= 0) {
-			return 0;
-		}
-
-		return Math.max(0, Math.min(100, ((value - baseline.min) / span) * 100));
+		return scale.toFraction(value) * 100;
 	}
 
 	/** Snap a raw value to the step grid, then clamp into the available zone. */
 	function snapClamp(value: number): number {
-		const snapped = step > 0 ? Math.round(value / step) * step : value;
-
-		return Math.max(available.min, Math.min(snapped, available.max));
+		return Math.max(available.min, Math.min(snapToStep(value, step), available.max));
 	}
 
 	/**
@@ -211,7 +242,13 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		}
 	}
 
-	/** Place a thumb and update its ARIA value. */
+	/**
+	 * Place a thumb and update its ARIA value.
+	 *
+	 * @remarks
+	 * `aria-valuenow` stays numeric, as the slider role requires; `aria-valuetext` carries the formatted
+	 * value, which is what a screen reader announces — `$25` and `NV` rather than `25` and `2025`.
+	 */
 	function positionThumb(thumb: HTMLElement, percent: number, value: number): void {
 		// `--fe-thumb-pct` (unitless) rather than `left`, so the shared `--positioned` class can inset
 		// the thumb to keep it inside the track — see ui-styles. A raw `left: %` overflowed at the ends.
@@ -219,6 +256,7 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		thumb.setAttribute('aria-valuemin', String(baseline.min));
 		thumb.setAttribute('aria-valuemax', String(baseline.max));
 		thumb.setAttribute('aria-valuenow', String(value));
+		thumb.setAttribute('aria-valuetext', format(value));
 	}
 
 	/** Commit a candidate `[min, max]`, clamped + ordered. No-ops when unchanged. */
@@ -235,12 +273,19 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		onChange({ max: nextMax, min: nextMin });
 	}
 
-	/** Map a pointer clientX to a snapped, clamped value on the track. */
+	/**
+	 * Map a pointer clientX to a snapped, clamped value on the track.
+	 *
+	 * @remarks
+	 * The pointer gives a track position; the scale turns it into a value. Snapping happens in VALUE
+	 * space, after the conversion — on a log track a position-space grid would round $4 and $5 to the
+	 * same place near the anchor and skip hundreds of dollars per pixel in the tail.
+	 */
 	function valueFromPointer(clientX: number): number {
 		const rect = track.getBoundingClientRect();
 		const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
 
-		return snapClamp(baseline.min + Math.max(0, Math.min(1, ratio)) * (baseline.max - baseline.min));
+		return snapClamp(scale.fromFraction(Math.max(0, Math.min(1, ratio))));
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
@@ -285,6 +330,10 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 	 * together would be equidistant, and the tie could pick `upper` — dragging the top of the range down
 	 * past the bottom, which `commit` then silently re-orders into something the user did not ask for.
 	 *
+	 * "Nearest" is measured along the TRACK, through the scale, because that is the distance the user
+	 * sees. On a linear track it is the value distance scaled by a constant, so the choice is unchanged;
+	 * on a log track a $40 gap near the floor can look wider than a $400 one in the tail.
+	 *
 	 * @param value - The value under the pointer.
 	 * @returns The handle to move.
 	 */
@@ -296,19 +345,29 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 			return 'upper';
 		}
 
-		return value - displayLower() <= displayUpper() - value ? 'lower' : 'upper';
+		const position = scale.toFraction(value);
+
+		return position - scale.toFraction(displayLower()) <= scale.toFraction(displayUpper()) - position
+			? 'lower'
+			: 'upper';
 	}
 
-	/** Keyboard stepping — arrows nudge by `step`, Home/End jump to the available bounds. */
+	/**
+	 * Keyboard stepping — arrows nudge by one scaled step, Home/End jump to the available bounds.
+	 *
+	 * @remarks
+	 * `stepScaledValue` is one `step` on a linear track and about one percent of the track (never less
+	 * than one `step`) on a log track, so a keyboard user crosses either in a bounded number of presses.
+	 */
 	function handleKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
-		const delta = keyboardDelta(event.key);
+		const direction = keyboardDirection(event.key);
 
-		if (delta === 0 && event.key !== 'Home' && event.key !== 'End') {
+		if (direction === 0 && event.key !== 'Home' && event.key !== 'End') {
 			return;
 		}
 		event.preventDefault();
 		const current = handle === 'lower' ? displayLower() : displayUpper();
-		let next = current + delta * step;
+		let next = direction === 0 ? current : stepScaledValue(scale, current, direction, step);
 
 		if (event.key === 'Home') {
 			next = available.min;
@@ -401,6 +460,7 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		element,
 		update: (state) => {
 			baseline = state.baseline;
+			scale = state.scale ?? linearSliderScale(state.baseline);
 			available = state.available ?? state.baseline;
 			histogram = state.histogram ?? [];
 			safeUpper = Number.isFinite(state.valueMax) ? Math.min(state.valueMax, available.max) : available.max;
@@ -442,7 +502,7 @@ function createBoundInput(ariaLabel: string, modifier: string): HTMLInputElement
  *
  * @internal
  */
-function keyboardDelta(key: string): number {
+function keyboardDirection(key: string): -1 | 0 | 1 {
 	if (key === 'ArrowLeft' || key === 'ArrowDown') {
 		return -1;
 	}

@@ -15,7 +15,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { formatVintageRange, vintageBoundsFromSet, vintageYearsFromRange } from './vintage.js';
+import {
+	formatVintage,
+	formatVintageRange,
+	NON_VINTAGE_YEAR,
+	parseVintage,
+	vintageBoundsFromSet,
+	vintageYearsFromRange,
+} from './vintage.js';
 
 const BASELINE = { max: 2024, min: 2008 };
 
@@ -105,5 +112,25 @@ describe('formatVintageRange', () => {
 		// The boundary the generic formatter treats specially (it lists two values in full), so it is
 		// the case most likely to diverge if this ever delegates back to it.
 		expect(formatVintageRange([2019, 2020])).toBe('2019 – 2020');
+	});
+});
+
+describe('non-vintage wines', () => {
+	it('shows the non-vintage year as NV and every other year as itself', () => {
+		expect(formatVintage(NON_VINTAGE_YEAR)).toBe('NV');
+		expect(formatVintage(2024)).toBe('2024');
+	});
+
+	it('reads NV back as the non-vintage year, in any case', () => {
+		expect(parseVintage('NV')).toBe(NON_VINTAGE_YEAR);
+		expect(parseVintage(' nv ')).toBe(NON_VINTAGE_YEAR);
+		expect(parseVintage('2,019')).toBe(2019);
+		expect(parseVintage('old')).toBeNaN();
+	});
+
+	it('ends a range reaching the non-vintage year with NV', () => {
+		// "2015 and younger, non-vintage included" — the span the slider's right end selects.
+		expect(formatVintageRange([2015, 2016, NON_VINTAGE_YEAR])).toBe('2015 – NV');
+		expect(formatVintageRange([NON_VINTAGE_YEAR])).toBe('NV');
 	});
 });

@@ -42,6 +42,7 @@
 	 * whose controls do not match its results.
 	 */
 
+	import type { InSetRule } from '@filter-enginez/core';
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
@@ -49,9 +50,11 @@
 		BODY_ORDER,
 		COLOR_ORDER,
 		deriveSelectedPresetIds,
+		EMPTY_SELECTION,
 		type OriginNodeSpec,
 		type PickerTreeNode,
 		SWEETNESS_ORDER,
+		visibleVarietalChips,
 		type WineChipVocabularies,
 	} from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores } from '@filter-enginez/svelte-signals';
@@ -90,11 +93,27 @@
 	} = $props();
 
 	/**
-	 * The engine's expression store, subscribed once at init. The engine is a prop that is never
-	 * reassigned — the route renders the view only after boot resolves — so capturing it is intended.
+	 * The engine's stores — the expression and the varietal rule — subscribed once at init. The engine
+	 * is a prop that is never reassigned — the route renders the view only after boot resolves — so
+	 * capturing it is intended.
 	 */
 	// svelte-ignore state_referenced_locally
-	const { expression } = createEngineStores(engine);
+	const engineStores = createEngineStores(engine);
+	const { expression } = engineStores;
+
+	/**
+	 * The committed varietal selection — read here only to decide which varietal chips render.
+	 *
+	 * @remarks
+	 * The varietal vocabulary is ranked most-reviewed first and runs to hundreds of grapes, so the panel
+	 * renders the top `VARIETAL_CHIP_LIMIT` as chips. `visibleVarietalChips` keeps any SELECTED varietal
+	 * beyond that limit on screen too: a rare grape restored from a shared `?f` link still gets a chip
+	 * the user can see and clear. `<WineChipSection>` owns the selection itself; this is a read.
+	 */
+	const varietalRule = engineStores.rule('varietal');
+	const selectedVarietals = $derived(
+		($varietalRule as InSetRule<string> | undefined)?.config.set ?? EMPTY_SELECTION,
+	);
 
 	/**
 	 * The lit preset chips — the panel's ONE piece of control state, because it is the one facet that
@@ -119,10 +138,14 @@
 	 * @remarks
 	 * NOT `SLIDER_STEPS`. That record is the grid the BASELINE BOUNDS are rounded outward onto, and it
 	 * is all zeros deliberately (padding price by 5 once turned a $4 corpus minimum into a displayed
-	 * $0). Reusing it here conflated two unrelated knobs and, via a `|| 1` fallback, silently snapped
-	 * the price slider to $1 where React snaps to $5.
+	 * $0). The two are unrelated knobs.
+	 *
+	 * Price snaps to whole dollars, as React's does. Its track is log-scaled, so near the floor one
+	 * dollar is a visible stretch of track and a coarser step would make $8 or $12 unreachable by drag;
+	 * the arrow keys still cross the tail quickly, because on a log track a press moves about one
+	 * percent of the track (never less than one step) rather than one dollar.
 	 */
-	const DRAG_STEPS = { abv: 0.1, points: 1, price: 5, vintage: 1 } as const;
+	const DRAG_STEPS = { abv: 0.1, points: 1, price: 1, vintage: 1 } as const;
 
 	/** Drop any active preset — a facet edit means the user is back in flat-map mode. */
 	function leaveExpressionMode(): void {
@@ -179,7 +202,6 @@
 				{engine}
 				{leaveExpressionMode}
 				field="priceUsd"
-				format={(price) => `$${Math.round(price)}`}
 				label="Price (USD)"
 				ruleId="price"
 				step={DRAG_STEPS.price}
@@ -211,7 +233,7 @@
 				{engine}
 				{leaveExpressionMode}
 				label={`Varietal (${vocabularies.varietal.length})`}
-				options={vocabularies.varietal.slice(0, 60)}
+				options={visibleVarietalChips(vocabularies.varietal, selectedVarietals)}
 				ruleId="varietal"
 				scrollable
 			/>
@@ -224,7 +246,6 @@
 				{engine}
 				{leaveExpressionMode}
 				field="abv"
-				format={(abv) => `${abv.toFixed(1)}%`}
 				label="ABV (%)"
 				ruleId="abv"
 				step={DRAG_STEPS.abv}

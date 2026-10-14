@@ -8,7 +8,7 @@
 # biggest lever on its wall time — but a guess is not a basis for changing the gate everything
 # depends on, and there are real reasons parallelism could bite here:
 #
-#   * Each wine test boots a ~130k-record corpus over a Comlink worker. N workers means N concurrent
+#   * Each wine test boots a 150k-record corpus over a Comlink worker. N workers means N concurrent
 #     116 MB streams and N bitmap-index builds. Memory, not CPU, may be the binding constraint.
 #   * `svelte-wine-server.spec.ts` documents that its boot can race the Vite DEV server's on-demand
 #     SSR transforms and return a transient 500. Concurrency makes that strictly worse — which is why

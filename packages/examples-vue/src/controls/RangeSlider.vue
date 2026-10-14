@@ -28,12 +28,34 @@
  *
  * Radix is replaced with a hand-rolled pointer + keyboard slider — a Filter EngineZ signal-driven Vue
  * app can't reuse React's Radix control, so this reproduces the geometry + behavior natively.
+ *
+ * ### Scales
+ *
+ * The optional `scale` (a `SliderScale` from the `examples-shared/bounds` subpath) decides where a
+ * value sits on the track. Every value → track conversion in this file goes through
+ * `scale.toFraction`, and every track → value conversion through `scale.fromFraction` and then
+ * `snapToStep`, so the thumbs, the selected fill, the dimmed bands and a pointer press all agree on one
+ * mapping. A heavy-tailed field passes a log scale: wine prices run from a few dollars to thousands with
+ * half the bottles under $30, and on a linear track that everyday range would be the first sliver of
+ * the control.
+ *
+ * The arrow keys step through `stepScaledValue`. On a linear track that is exactly one `step`; on a log
+ * track it is about one percent of the track, never less than one `step`, because a one-dollar step is
+ * right at $8 and takes thousands of presses to cross the tail.
+ *
+ * With no `scale` the slider uses `linearSliderScale(baseline)`, which is the plain proportional
+ * mapping — the books and real-estate sliders pass none and behave exactly as a linear slider always
+ * has.
  */
 import {
 	histogramBarClassName,
 	histogramBarHeightPercent,
 	type HistogramBucket,
+	linearSliderScale,
 	type NumericBounds,
+	type SliderScale,
+	snapToStep,
+	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
@@ -49,10 +71,15 @@ const props = withDefaults(
 		 * Optional distribution bars above the track.
 		 *
 		 * @remarks
-		 * Buckets come from the engine's predictive-disable bundle via `fieldHistogram`, so they reflect
-		 * the corpus under the OTHER active filters — a shape that moves as you filter, not a static
-		 * picture of the whole dataset. Omit it (or pass `undefined`) to render no overlay at all, which
-		 * is what a panel should do before its first bundle resolves.
+		 * Buckets come from the engine's predictive-disable bundle, so they reflect the corpus under the
+		 * OTHER active filters — a shape that moves as you filter, not a static picture of the whole
+		 * dataset. Omit it (or pass `undefined`) to render no overlay at all, which is what a panel should
+		 * do before its first bundle resolves.
+		 *
+		 * The bars render at equal widths, so each bucket must be an equal slice of the TRACK. Under a
+		 * linear scale that is the engine's equal-width histogram (`fieldHistogram`); under a log scale
+		 * it is the fine histogram summed into track slices (`rebinHistogram`, which
+		 * `wineSliderHistogram` applies for every wine slider).
 		 */
 		histogram?: readonly HistogramBucket[];
 		/** Step granularity. Defaults to 1. */
@@ -65,6 +92,14 @@ const props = withDefaults(
 		format?: (value: number) => string;
 		/** Raw input string → number. Defaults to `parseFloat`. */
 		parse?: (raw: string) => number;
+		/**
+		 * How values sit on the track. Defaults to `linearSliderScale(baseline)`.
+		 *
+		 * @remarks
+		 * Build it over the SAME baseline passed here (for wine, `wineSliderScale(field, baseline)`);
+		 * a scale over a different extent would put the thumbs and the bars in different places.
+		 */
+		scale?: SliderScale;
 		/** Accessible name for the slider group. Not `ariaLabel` — see `<ResultGrid>`'s `listLabel`. */
 		sliderLabel?: string;
 	}>(),
@@ -73,6 +108,7 @@ const props = withDefaults(
 		format: (n: number) => n.toString(),
 		histogram: undefined,
 		parse: (raw: string) => parseFloat(raw),
+		scale: undefined,
 		sliderLabel: undefined,
 		step: 1,
 	},
@@ -119,20 +155,37 @@ watch(
 const trackEl = ref<HTMLDivElement | null>(null);
 let activeHandle: 'lower' | 'upper' | null = null;
 
-const baselineSpan = computed(() => props.baseline.max - props.baseline.min);
+/**
+ * The mapping the track is drawn with — the caller's `scale`, or linear over the baseline.
+ *
+ * @remarks
+ * A `computed`, so a linear default is rebuilt only when the baseline changes. The linear scale maps a
+ * degenerate baseline (max ≤ min) to `0`, which is the guard this file once spelled out by hand.
+ */
+const trackScale = computed<SliderScale>(() => props.scale ?? linearSliderScale(props.baseline));
 
-/** Convert a baseline-coordinate value to a 0..100% track position. */
+/**
+ * Convert a value to a 0..100% track position, through the scale.
+ *
+ * @param value - A value in the baseline's units.
+ * @returns Its position on the track, clamped to `0..100`.
+ */
 function pct(value: number): number {
-	if (baselineSpan.value <= 0) {
-		return 0;
-	}
-
-	return Math.max(0, Math.min(100, ((value - props.baseline.min) / baselineSpan.value) * 100));
+	return Math.max(0, Math.min(100, trackScale.value.toFraction(value) * 100));
 }
 
-/** Snap a raw value to the step grid, then clamp into the available zone. */
+/**
+ * Snap a raw value to the step grid, then clamp into the available zone.
+ *
+ * @remarks
+ * `snapToStep` rather than a bare `Math.round(value / step) * step`: the bare form leaves float noise
+ * on a fractional step (`132 * 0.1` is `13.200000000000001`), which then reaches the committed rule.
+ *
+ * @param value - The raw value.
+ * @returns The value on the step grid, inside the available zone.
+ */
 function snapClamp(value: number): number {
-	const snapped = props.step > 0 ? Math.round(value / props.step) * props.step : value;
+	const snapped = snapToStep(value, props.step);
 
 	return Math.max(effectiveAvailable.value.min, Math.min(snapped, effectiveAvailable.value.max));
 }
@@ -166,7 +219,16 @@ function commit(rawMin: number, rawMax: number): void {
 	emit('change', { max: nextMax, min: nextMin });
 }
 
-/** Map a pointer clientX to a snapped, clamped value on the track. */
+/**
+ * Map a pointer clientX to a snapped, clamped value on the track.
+ *
+ * @remarks
+ * The pointer gives a track FRACTION; the scale turns it into a value. Under a log scale the same
+ * pixel distance is a few dollars near the floor and hundreds in the tail, which is the point.
+ *
+ * @param clientX - The pointer's viewport x coordinate.
+ * @returns The value under the pointer, on the step grid and inside the available zone.
+ */
 function valueFromPointer(clientX: number): number {
 	if (trackEl.value === null) {
 		return safeLower.value;
@@ -174,7 +236,7 @@ function valueFromPointer(clientX: number): number {
 	const rect = trackEl.value.getBoundingClientRect();
 	const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
 
-	return snapClamp(props.baseline.min + Math.max(0, Math.min(1, ratio)) * baselineSpan.value);
+	return snapClamp(trackScale.value.fromFraction(Math.max(0, Math.min(1, ratio))));
 }
 
 function handlePointerMove(event: PointerEvent): void {
@@ -219,6 +281,11 @@ function startDrag(handle: 'lower' | 'upper', event: PointerEvent): void {
  * would be equidistant, and the tie could pick `upper` — dragging the top of the range down past the
  * bottom, which `commit` then silently re-orders into something the user did not ask for.
  *
+ * "Nearest" means nearest ON SCREEN. Under a log scale, value distance and track distance disagree —
+ * $20 to $60 is a long stretch of track and $600 to $640 a short one — so a non-linear track compares
+ * track fractions. A linear track keeps comparing values, which picks the same thumb without the
+ * float rounding a fraction subtraction would add to an exact tie.
+ *
  * @param value - The value under the pointer.
  * @returns The handle to move.
  */
@@ -229,8 +296,11 @@ function pickHandle(value: number): 'lower' | 'upper' {
 	if (value >= displayUpper.value) {
 		return 'upper';
 	}
+	const position = trackScale.value.kind === 'linear' ? (v: number): number => v : trackScale.value.toFraction;
 
-	return value - displayLower.value <= displayUpper.value - value ? 'lower' : 'upper';
+	return position(value) - position(displayLower.value) <= position(displayUpper.value) - position(value)
+		? 'lower'
+		: 'upper';
 }
 
 /**
@@ -263,7 +333,7 @@ onUnmounted(() => {
 });
 
 /** Arrow-key → step direction (-1 / +1); 0 for keys that don't step. */
-function keyboardDelta(key: string): number {
+function keyboardDelta(key: string): -1 | 0 | 1 {
 	if (key === 'ArrowLeft' || key === 'ArrowDown') {
 		return -1;
 	}
@@ -274,7 +344,18 @@ function keyboardDelta(key: string): number {
 	return 0;
 }
 
-/** Keyboard stepping on a thumb — arrows nudge by `step`, Home/End jump to the available bounds. */
+/**
+ * Keyboard stepping on a thumb — arrows nudge through `stepScaledValue`, Home/End jump to the available
+ * bounds.
+ *
+ * @remarks
+ * `stepScaledValue` is exactly `current ± step` on a linear track. On a log track it moves about one
+ * percent of the track, never less than one `step`, so a press always moves the thumb and the tail is
+ * a hundred presses away rather than thousands.
+ *
+ * @param handle - Which thumb has focus.
+ * @param event - The keydown.
+ */
 function handleKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
 	const delta = keyboardDelta(event.key);
 
@@ -283,7 +364,7 @@ function handleKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
 	}
 	event.preventDefault();
 	const current = handle === 'lower' ? displayLower.value : displayUpper.value;
-	let next = current + delta * props.step;
+	let next = delta === 0 ? current : stepScaledValue(trackScale.value, current, delta, props.step);
 
 	if (event.key === 'Home') {
 		next = effectiveAvailable.value.min;
@@ -363,6 +444,7 @@ function handleInputKeydown(which: 'lower' | 'upper', event: KeyboardEvent): voi
 				:aria-valuemin="baseline.min"
 				:aria-valuemax="baseline.max"
 				:aria-valuenow="displayLower"
+				:aria-valuetext="format(displayLower)"
 				:style="{ left: `${pct(displayLower)}%` }"
 				@pointerdown="startDrag('lower', $event)"
 				@keydown="handleKeydown('lower', $event)"
@@ -375,6 +457,7 @@ function handleInputKeydown(which: 'lower' | 'upper', event: KeyboardEvent): voi
 				:aria-valuemin="baseline.min"
 				:aria-valuemax="baseline.max"
 				:aria-valuenow="displayUpper"
+				:aria-valuetext="format(displayUpper)"
 				:style="{ left: `${pct(displayUpper)}%` }"
 				@pointerdown="startDrag('upper', $event)"
 				@keydown="handleKeydown('upper', $event)"

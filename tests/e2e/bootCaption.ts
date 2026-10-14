@@ -165,14 +165,19 @@ export async function readBootCaptions(page: Page): Promise<RecordedCaption[]> {
  */
 export function expectBootCaption(captions: readonly RecordedCaption[], recordNoun: string): void {
 	const idle = bootCaptionText(bootCaptionParts(null, { recordNoun }));
-	const streaming = new RegExp(`^Loaded [\\d,]+ of ~[\\d,]+ ${recordNoun}$`, 'u');
+	// `~` only before an estimated total: the local real corpus streams without knowing its length,
+	// while the synthetic tier's 150,000 is exact.
+	const streaming = new RegExp(`^Loaded [\\d,]+ of ~?[\\d,]+ ${recordNoun}$`, 'u');
 	const indexing = new RegExp(`^[\\d,]+ ${recordNoun} loaded · constructing filter index$`, 'u');
 
 	// The cross-check, and it runs first on purpose. Everything below asserts a rendered page against
 	// these three shapes; if a shape has diverged from the module the whole case becomes an elaborate
 	// way of asserting last month's copy, and it would do so silently.
-	expect(bootCaptionText(bootCaptionParts({ loaded: 40_000, total: 130_000 }, { recordNoun }))).toMatch(streaming);
-	expect(bootCaptionText(bootCaptionParts({ loaded: 130_000, total: 130_000 }, { recordNoun }))).toMatch(indexing);
+	expect(bootCaptionText(bootCaptionParts({ loaded: 40_000, total: 150_000 }, { recordNoun }))).toMatch(streaming);
+	expect(
+		bootCaptionText(bootCaptionParts({ isTotalEstimated: true, loaded: 40_000, total: 129_907 }, { recordNoun })),
+	).toMatch(streaming);
+	expect(bootCaptionText(bootCaptionParts({ loaded: 150_000, total: 150_000 }, { recordNoun }))).toMatch(indexing);
 
 	// The vacuity guard. An empty list means the caption never rendered — a real failure, and one that
 	// would otherwise sail through every assertion below without evaluating any of them.
@@ -199,8 +204,9 @@ export function expectBootCaption(captions: readonly RecordedCaption[], recordNo
 		}
 	}
 
-	// Without the indexing state `/wine` sits frozen on `130,000 / 130,000` for the whole bitmap-index
-	// build — the hang-reading failure the third state exists to prevent. Asserted as "reached", because the pause is real on a 130k worker boot.
+	// Without the indexing state `/wine` sits frozen on `150,000 / 150,000` for the whole bitmap-index
+	// build — the hang-reading failure the third state exists to prevent. Asserted as "reached", because
+	// the pause is real on a 150k worker boot.
 	expect(
 		captions.some((caption) => indexing.test(caption.text)),
 		'the caption never reached its indexing state — nothing narrates the pause before a usable index',

@@ -12,7 +12,7 @@
 	 * search is just bad" rather than as a broken field name.
 	 *
 	 * **Typing alone does not filter.** On the worker tier every keystroke would be a round trip over
-	 * 130k rows, so the rule commits on blur / Enter instead. An empty query REMOVES the rule rather
+	 * 150k rows, so the rule commits on blur / Enter instead. An empty query REMOVES the rule rather
 	 * than committing a permissive one — the panel's contract for every facet.
 	 *
 	 * ### A writable `$derived`, not a mirror and not a plain `$state`

@@ -19,7 +19,7 @@
  *     defines none of Vite's `import.meta.env` constants either.
  *
  * The worker tier THROWS when `spawnWorker` is missing rather than falling back to the main thread —
- * a silent 130k main-thread boot works, freezes the tab, and retires the point of the vertical.
+ * a silent 150k main-thread boot works, freezes the tab, and retires the point of the vertical.
  *
  * ### Under SvelteKit, import it DYNAMICALLY
  *
@@ -33,18 +33,19 @@
  */
 
 export { buildWineEngine } from './buildWineEngine.js';
+// The corpus LOADER is deliberately not exported here: it imports the synthetic generator and runs in
+// the worker. This subpath is main-thread code, so it carries only the source names and their labels.
 export {
 	describeWineCorpusTier,
-	EXPECTED_FULL_CORPUS_SIZE,
-	loadWineCorpus,
-	PROGRESS_REPORT_EVERY,
+	SERVER_WINE_TIER_LABEL,
 	type WineCorpusSource,
-	type WineWorkerCallbacks,
-} from './wineCorpusLoader.js';
+	type WineWorkerTier,
+} from './wineCorpusTier.js';
 export {
 	bootWineAsyncEngine,
 	bootWineEngine,
 	describeBootedWineCorpusTier,
+	FULL_TIER_SIZE,
 	getWineBootProgressSnapshot,
 	subscribeWineBootProgress,
 	type WineAsyncEngineBundle,
@@ -52,3 +53,4 @@ export {
 	type WineBootProgress,
 	type WineEngineBundle,
 } from './wineEngine.js';
+export { LOW_MEMORY_DEVICE_GIGABYTES, resolveWineWorkerTier } from './wineMemoryTier.js';

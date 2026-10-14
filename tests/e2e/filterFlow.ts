@@ -13,7 +13,7 @@
  *
  * Each spec still owns its own boot helper, because "booted" is a per-vertical signal — a subtitle
  * naming that vertical (`subtitle('Books', 'sveltekit', 'server')`, via `./subtitles.js`) and a
- * per-vertical patience (a main-thread books corpus in 30s; a worker streaming 130k wines, or an
+ * per-vertical patience (a main-thread books corpus in 30s; a worker building 150k wines, or an
  * Angular route resolver pulling a corpus over HTTP, in 45–60s). The subtitle strings are derived
  * rather than written out — see `./subtitles.ts`. Two traps live in those helpers:
  *

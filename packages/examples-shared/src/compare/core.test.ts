@@ -22,6 +22,7 @@ import { createFilterEngine } from '@filter-enginez/core';
 import { books } from '@filter-enginez/mock-data/books';
 import { listings } from '@filter-enginez/mock-data/real-estate';
 import { wines } from '@filter-enginez/mock-data/wine';
+import { FULL_WINE_TIER_SIZE, generateWines } from '@filter-enginez/mock-data/wine/generator';
 import { createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
 import { describe, expect, it } from 'vitest';
 
@@ -59,11 +60,9 @@ const PROD_LOCATION = { hostname: 'vue.filterenginez.com', origin: 'https://vue.
 const CORPORA: Readonly<Record<CompareDataset, readonly unknown[]>> = {
 	books: books,
 	'real-estate': listings,
-	// The stratified ~10k sample, NOT the 130k tier the app streams. The big corpus is generated,
-	// gitignored and loaded asynchronously; a preset that narrows on the sample narrows on the full
-	// set too, and requiring provisioned data to run a unit test would make this gate
-	// machine-dependent.
-	wine: wines,
+	// The 150,000-wine tier every browser `/wine` route generates — the exact records the six apps
+	// filter, from the same seeded generator, so the gate needs no provisioned data.
+	wine: generateWines(FULL_WINE_TIER_SIZE, undefined, 'full'),
 	// The same records, and for once that is not an approximation: `examples-server` — which BOTH
 	// server-tier routes reach, SvelteKit in-process and vanilla over HTTP — registers wine with
 	// `sourceData: wines`, this very array. So the presets are validated against exactly the corpus

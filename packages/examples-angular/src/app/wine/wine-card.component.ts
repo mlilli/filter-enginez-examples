@@ -11,12 +11,16 @@
  * `role="img"` with the color's name is what keeps it from being a decorative square to a screen
  * reader.
  *
+ * The vintage goes through the shared `formatVintage`, so a non-vintage bottle reads `NV` rather than
+ * the placeholder year the corpus stores for it, exactly as on every other app's card.
+ *
  * @packageDocumentation
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { formatVintage } from '@filter-enginez/examples-shared/wine-domain';
 
 /** Swatch fills, matching every other vertical's card. */
 const COLOR_CHIP: Record<Wine['color'], string> = {
@@ -45,7 +49,7 @@ const VISIBLE_NOTE_CAP = 4;
 						[style.background]="swatch()"
 						[attr.title]="wine().color"
 					></span>
-					<span class="fe-wine-card__vintage">{{ wine().vintage }}</span>
+					<span class="fe-wine-card__vintage">{{ vintageLabel() }}</span>
 				</div>
 				<div class="fe-wine-card__points" title="Wine Enthusiast points">
 					{{ wine().points }} pts
@@ -84,6 +88,9 @@ const VISIBLE_NOTE_CAP = 4;
 })
 export class WineCardComponent {
 	public readonly wine = input.required<Wine>();
+
+	/** The vintage as printed: the year, or `NV` for a non-vintage bottle. */
+	protected readonly vintageLabel = computed(() => formatVintage(this.wine().vintage));
 
 	/** The swatch fill for this wine's color. */
 	protected readonly swatch = computed(() => COLOR_CHIP[this.wine().color]);

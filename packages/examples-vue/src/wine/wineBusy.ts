@@ -7,7 +7,7 @@
  * are app-local and bump the tracker they made. Wine's commit helpers are NOT app-local — they live in
  * `@filter-enginez/examples-shared/wine-domain` and bump `wineBusyCore.tracker`. A second tracker here
  * would be advanced by nothing, so `useBusy` would read `false` forever and **nothing would error**.
- * The symptom is a wine panel that never shows it is computing, on the one route where a 130k worker
+ * The symptom is a wine panel that never shows it is computing, on the one route where a 150k worker
  * round trip makes that visibly wrong. SvelteKit's equivalent carries the same warning.
  *
  * The tracker is exported rather than a ready-made boolean because `useBusy` registers a scope

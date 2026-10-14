@@ -23,6 +23,47 @@
 import type { NumericBounds } from '@filter-enginez/react-ui/bounds';
 
 /**
+ * The `vintage` value a non-vintage wine carries.
+ *
+ * @remarks
+ * Most Champagne and Port blends several harvests and names none. `@filter-enginez/mock-data` stores
+ * such a wine with the year after the youngest possible vintage — 2025 — so the field stays a number
+ * the vintage filter can select, no harvest year collides with it, and it sorts as the youngest. Every
+ * place a vintage is SHOWN reads it as `NV` through {@link formatVintage}; the generated names already
+ * do ("Maison Roux NV Brut Champagne").
+ */
+export const NON_VINTAGE_YEAR = 2025;
+
+/** What a non-vintage wine's vintage reads as, wherever a vintage is shown. */
+export const NON_VINTAGE_LABEL = 'NV';
+
+/**
+ * Show a vintage year.
+ *
+ * @param year - The `vintage` value.
+ * @returns `NV` for {@link NON_VINTAGE_YEAR}, otherwise the year.
+ */
+export function formatVintage(year: number): string {
+	return year === NON_VINTAGE_YEAR ? NON_VINTAGE_LABEL : year.toFixed(0);
+}
+
+/**
+ * Read a vintage typed into a slider's bound field.
+ *
+ * @remarks
+ * The inverse of {@link formatVintage}, so a field showing `NV` commits as itself rather than as
+ * `NaN`. Case-insensitive; spaces and thousands separators are ignored.
+ *
+ * @param raw - The field's text.
+ * @returns The year, {@link NON_VINTAGE_YEAR} for `NV`, or `NaN` for anything else.
+ */
+export function parseVintage(raw: string): number {
+	const cleaned = raw.replace(/[\s,]/gu, '');
+
+	return cleaned.toUpperCase() === NON_VINTAGE_LABEL ? NON_VINTAGE_YEAR : Number.parseInt(cleaned, 10);
+}
+
+/**
  * Materialize a slider span into the year set the `InSetRule` carries.
  *
  * @remarks
@@ -102,10 +143,11 @@ export function vintageBoundsFromSet(set: readonly number[], baseline: NumericBo
  *
  * @param set - The committed years; assumed non-empty, since an empty set is not a constraint and its
  *   caller has already returned `null`.
- * @returns `2019` for a single year, `2015 – 2022` for a span.
+ * @returns `2019` for a single year, `2015 – 2022` for a span; a non-vintage end reads `NV`
+ *   (`2015 – NV`: 2015 and younger, non-vintage included).
  */
 export function formatVintageRange(set: readonly number[]): string {
 	const { max, min } = vintageBoundsFromSet(set, { max: 0, min: 0 });
 
-	return min === max ? String(min) : `${String(min)} – ${String(max)}`;
+	return min === max ? formatVintage(min) : `${formatVintage(min)} – ${formatVintage(max)}`;
 }

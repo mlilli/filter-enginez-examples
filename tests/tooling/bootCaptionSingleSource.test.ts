@@ -6,7 +6,7 @@
  * shows it while a dataset boots. Worded per screen, the copies disagree in ways no single vertical
  * can see: a copy without the zero-total guard announces `{ loaded: 0, total: 0 }` as "0 books
  * loaded · constructing filter index", a finished load that has not started, and a two-state copy
- * with no indexing state leaves the screen frozen on `130,000 / 130,000 bottles` for the whole
+ * with no indexing state leaves the screen frozen on `150,000 / 150,000 bottles` for the whole
  * bitmap-index build — the hang-reading failure the third state exists to prevent.
  *
  * Each screen is self-consistent; a disagreement only exists BETWEEN them. That is the same shape as

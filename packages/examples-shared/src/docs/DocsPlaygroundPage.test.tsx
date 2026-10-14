@@ -14,7 +14,10 @@ vi.mock('@filter-enginez/mock-data/books', () => ({
 	books: [{ id: 1, pageCount: 300, publicationYear: 2015, title: 'A Book' }],
 }));
 vi.mock('@filter-enginez/mock-data/wine', () => ({
-	wines: [{ color: 'red', id: 1, points: 95, price: 20, title: 'A Wine' }],
+	wines: [
+		{ color: 'red', id: 1, points: 95, priceUsd: 20, title: 'A Wine' },
+		{ color: 'red', id: 2, points: 95, priceUsd: 400, title: 'A Dear Wine' },
+	],
 }));
 
 afterEach(cleanup);
@@ -32,7 +35,11 @@ describe('DocsPlaygroundPage', () => {
 		fireEvent.change(screen.getByLabelText('dataset'), { target: { value: 'wine' }});
 		fireEvent.click(screen.getByRole('button', { name: /run/i }));
 
-		expect(await screen.findByText(/of 1 wine match/)).toBeTruthy();
+		// The preset's price range must name the field wines carry (`priceUsd`): over a field the records
+		// lack, a range matches nothing, and the count would read 0 of 2.
+		const count = await screen.findByText(/of 2 wine match/);
+
+		expect(count.textContent.replace(/\s+/gu, ' ')).toContain('1 of 2 wine match');
 	});
 
 	it('surfaces an error for invalid JSON', async () => {

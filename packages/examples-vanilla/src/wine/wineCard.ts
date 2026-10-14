@@ -15,6 +15,7 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { el } from '@filter-enginez/examples-shared/dom';
+import { formatVintage } from '@filter-enginez/examples-shared/wine-domain';
 
 /**
  * Swatch fills, matching every other vertical's card.
@@ -74,7 +75,8 @@ export function wineCard(wine: Wine): HTMLElement {
 								className: 'fe-wine-card__color',
 								style: { background: COLOR_CHIP[wine.color] },
 							}),
-							el('span', { className: 'fe-wine-card__vintage', text: String(wine.vintage) }),
+							// `NV` for a non-vintage wine, whose vintage field holds a placeholder year.
+							el('span', { className: 'fe-wine-card__vintage', text: formatVintage(wine.vintage) }),
 						],
 						className: 'fe-wine-card__meta',
 					}),

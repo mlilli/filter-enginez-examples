@@ -28,7 +28,7 @@
  *
  * There are five boot-progress types in this repo — `WineBootProgress`, `BooksBootProgress`,
  * `BooksConfigBootProgress`, `RealEstateBootProgress` and the React apps' `DatasetBootProgress` —
- * and every one of them is assignable to the two fields this reads. Depending on any single one
+ * and every one of them is assignable to the fields this reads. Depending on any single one
  * would make a books route import a wine type to render a caption. {@link BootProgress} is the
  * intersection, declared here so the caption owns its own input.
  *
@@ -51,8 +51,18 @@ export const DEFAULT_IDLE_CAPTION = 'Spinning up worker thread';
 export interface BootProgress {
 	/** Records parsed so far. */
 	readonly loaded: number;
-	/** Expected total. Best-effort: a stream that has not reported a length yet reports `0`. */
+	/** The total. A stream that has not reported a length yet reports `0`. */
 	readonly total: number;
+	/**
+	 * Whether `total` is an estimate rather than a count. Absent means exact.
+	 *
+	 * @remarks
+	 * Only one source in the repo estimates: the local real wine corpus, streamed line by line, which
+	 * cannot know its own length until it ends. Every other total is known before the first record — a
+	 * server's page envelope reports it, and a generator is asked for a fixed number — so the caption
+	 * prints `~` only when a reporter says the number is a guess.
+	 */
+	readonly isTotalEstimated?: boolean;
 }
 
 /**
@@ -109,7 +119,10 @@ export function bootCaptionParts(
 		return [
 			{ kind: 'text', text: 'Loaded ' },
 			{ kind: 'value', text: loaded },
-			{ kind: 'text', text: ` of ~${progress.total.toLocaleString()} ${options.recordNoun}` },
+			{
+				kind: 'text',
+				text: ` of ${progress.isTotalEstimated === true ? '~' : ''}${progress.total.toLocaleString()} ${options.recordNoun}`,
+			},
 		];
 	}
 

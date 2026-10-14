@@ -8,6 +8,9 @@
  * the full baseline is treated as "no constraint" (empty set). This is why vintage can't share the
  * generic `<RangeFilterSection />` (which targets continuous `RangeRule`s).
  *
+ * The track is log-scaled toward the youngest vintage (`SLIDER_SCALE_SPECS`), and the non-vintage
+ * year at its right end reads `NV` in the readouts and the editable fields.
+ *
  * @packageDocumentation
  */
 
@@ -15,13 +18,14 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { inSet, type InSetRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
-import { type HistogramBucket, type NumericBounds, RangeSlider } from '@filter-enginez/react-ui';
+import { type NumericBounds, RangeSlider } from '@filter-enginez/react-ui';
 import { useCallback, useMemo } from 'react';
 
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
+import { WINE_SLIDER_TEXT, wineSliderScale } from '../wine-domain/filterConfig.js';
 import { vintageBoundsFromSet, vintageYearsFromRange } from '../wine-domain/vintage.js';
-import { bundleHistogramToBuckets, useBundleFieldMeta } from './filterBundle.js';
+import { useBundleFieldMeta, useBundleSliderHistogram } from './filterBundle.js';
 import { EMPTY_SELECTION, useBaselineBounds } from './filterConfig.js';
 
 /**
@@ -42,13 +46,9 @@ export const VintageFilterSection = (): React.ReactElement => {
 	const selected = rule?.config.set ?? EMPTY_SELECTION;
 	const { max: currentMax, min: currentMin } = vintageBoundsFromSet(selected, baseline);
 
-	// One bucket per year — per-vintage distribution view matching the actual discreteness.
-	const histogram = useMemo<readonly HistogramBucket[]>(
-		() => fieldMeta !== null
-			? bundleHistogramToBuckets(fieldMeta.histogram, currentMin, currentMax)
-			: [],
-		[fieldMeta, currentMin, currentMax],
-	);
+	// Log-scaled toward the youngest vintage, with the bars sliced to match.
+	const scale = useMemo(() => wineSliderScale('vintage', baseline), [baseline]);
+	const histogram = useBundleSliderHistogram('vintage', baseline, currentMin, currentMax);
 
 	const handleChange = useCallback((next: { max: number; min: number; }): void => {
 		// The slider already painted its committed position, so no optimistic paint — flip the
@@ -74,9 +74,10 @@ export const VintageFilterSection = (): React.ReactElement => {
 				valueMin={currentMin}
 				valueMax={currentMax}
 				onChange={handleChange}
-				format={(n) => n.toFixed(0)}
-				parse={(raw) => parseInt(raw.replace(/[\s,]/g, ''), 10)}
+				format={WINE_SLIDER_TEXT.vintage.format}
+				parse={WINE_SLIDER_TEXT.vintage.parse}
 				histogram={histogram}
+				scale={scale}
 				ariaLabel="Vintage year range"
 			/>
 		</section>

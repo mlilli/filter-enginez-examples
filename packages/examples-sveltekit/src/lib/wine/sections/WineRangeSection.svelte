@@ -5,7 +5,7 @@
 	 * @remarks
 	 * The Svelte counterpart to React's `<RangeFilterSection />`, and extracted for the same reason real
 	 * estate has `<RangeFacetSection>`: written out in the panel these were three near-identical
-	 * twenty-line blocks whose only real variation is a label, a field key and a formatter.
+	 * twenty-line blocks whose only real variation is a label, a field key and a step.
 	 *
 	 * **Vintage is deliberately NOT covered here.** It is an `InSetRule` of discrete years wearing a
 	 * slider, so its rule construction and its inverse are a different pair of conversions entirely —
@@ -39,7 +39,13 @@
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 	import { range, type RangeRule } from '@filter-enginez/core';
-	import { FALLBACK_BOUNDS, fieldBounds, fieldHistogram } from '@filter-enginez/examples-shared/wine-domain';
+	import {
+		FALLBACK_BOUNDS,
+		fieldBounds,
+		WINE_SLIDER_TEXT,
+		wineSliderHistogram,
+		wineSliderScale,
+	} from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores } from '@filter-enginez/svelte-signals';
 	import RangeSlider from '$lib/controls/RangeSlider.svelte';
 
@@ -49,7 +55,6 @@
 	const {
 		engine,
 		field,
-		format,
 		label,
 		leaveExpressionMode,
 		ruleId,
@@ -58,8 +63,6 @@
 		engine: SignalsEngine<Wine>;
 		/** The `Wine` property the `RangeRule` constrains — `priceUsd` for the `price` rule. */
 		field: string;
-		/** Value → display string. Omitted for points, which reads as a bare number. */
-		format?: (value: number) => string;
 		label: string;
 		leaveExpressionMode: () => void;
 		/** Rule id — also the key into the shared baselines and the bundle's field metadata. */
@@ -111,17 +114,41 @@
 	 */
 	const available = $derived(fieldBounds(bundle, ruleId) ?? undefined);
 
-	/** This field's distribution — where the data sits inside the available zone. */
-	const histogram = $derived(fieldHistogram(bundle, ruleId, valueMin, valueMax));
+	/**
+	 * How this field's values lay out on the track — log for price, linear for points and ABV.
+	 *
+	 * @remarks
+	 * Read from the declaration all six apps share (`wineSliderScale`), so a price of $25 sits at the
+	 * same point of the track here as on every other app's wine page.
+	 */
+	const scale = $derived(wineSliderScale(ruleId, baseline));
+
+	/**
+	 * This field's distribution — where the data sits inside the available zone.
+	 *
+	 * @remarks
+	 * `wineSliderHistogram` returns the bars already sliced for the field's scale. The bars are
+	 * equal-width slices of the track, so a log track needs log-spaced value buckets under it; the
+	 * engine's own equal-width buckets would pile every everyday bottle into the first bar.
+	 */
+	const histogram = $derived(wineSliderHistogram(bundle, ruleId, baseline, valueMin, valueMax));
+
+	/**
+	 * How the readouts show this field's values and read typed ones back (`$1,250`, `13.5%`), from
+	 * the table every app's wine panel shares — so a field showing `$1,250` also accepts `$1,250`.
+	 */
+	const sliderText = $derived(WINE_SLIDER_TEXT[ruleId]);
 </script>
 
 <section>
 	<RangeSlider
 		{available}
 		{baseline}
-		{format}
+		format={sliderText.format}
 		{histogram}
 		{label}
+		parse={sliderText.parse}
+		{scale}
 		{step}
 		{valueMax}
 		{valueMin}

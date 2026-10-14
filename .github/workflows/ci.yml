@@ -17,9 +17,10 @@
 # the lockfile and the pin change together. `tests/tooling/engineRefPinned.test.ts` checks the
 # file's shape; the first step below refuses a placeholder.
 #
-# ⚠ NO E2E JOB. The wine suites assert against the real 130k-record corpus, which is
-# CC BY-NC-SA 4.0 data that never leaves a developer's machine (see NOTICE.md), so CI cannot
-# have it. `pnpm test:e2e` runs locally, where the corpus can be imported.
+# ⚠ NO E2E JOB. `pnpm test:e2e` runs locally: it starts every app's dev server and drives a real
+# browser. Where the real wine corpus is linked (CC BY-NC-SA 4.0 data that never leaves a
+# developer's machine; see NOTICE.md) the wine suites run against it, otherwise against the
+# 150,000 synthetic wines.
 #
 # 🟢 DEPLOYMENT. On a push to `main`, once `gates` is green, the `deploy` job ships every package
 # that has a `wrangler.jsonc` to Cloudflare Workers — one matrix entry per site, listed by
