@@ -6,15 +6,15 @@
  * Both hosts are custom domains of the one Worker (`wrangler.jsonc`), and `run_worker_first: true`
  * routes every request through it before any asset is matched — otherwise `www.filterenginez.com/`
  * would be answered straight from the assets and never redirect. The cost is one Worker invocation per
- * request to a site of three HTML pages, their stylesheets and scripts, and a few images.
+ * request to a site of four HTML pages, their stylesheets and scripts, and a few images.
  *
  * The redirect is a 301 that keeps the path and the query string, so a `www.` link to any page lands
  * on the same page at the canonical host, and search engines fold the two hosts into one.
  *
  * A page other than the home page is published at one extensionless path ({@link PAGE_PATHS}), the URL
  * its `<link rel="canonical">` and the sitemap name. Workers static assets already serve
- * `how-it-works.html` there and answer `/how-it-works.html` and `/how-it-works/` with a temporary
- * (307) redirect to it; since every request reaches this Worker first anyway, those two spellings get
+ * `how-it-works.html` there (and `compare.html` at `/compare`) and answer `/how-it-works.html` and
+ * `/how-it-works/` with a temporary (307) redirect to it; since every request reaches this Worker first anyway, those two spellings get
  * a permanent 301 here instead, which is what tells a search engine the move is for good. The redirect
  * stays on the request's own host, so a local `wrangler dev` keeps working.
  *
@@ -41,11 +41,11 @@ export const WWW_HOST = `www.${CANONICAL_HOST}`;
  * One per HTML entry in `vite.config.ts` other than `index.html` and `404.html`;
  * `tests/tooling/cloudflareDeploy.test.ts` checks this list against those entries and the sitemap.
  */
-export const PAGE_PATHS: readonly string[] = ['/how-it-works'];
+export const PAGE_PATHS: readonly string[] = ['/compare', '/how-it-works'];
 
 /**
- * The non-canonical spellings of each page (`/how-it-works.html`, `/how-it-works/`) and the canonical
- * path each redirects to.
+ * The non-canonical spellings of each page (`/how-it-works.html`, `/how-it-works/`, `/compare.html`,
+ * `/compare/`) and the canonical path each redirects to.
  *
  * @remarks
  * A `Map`, because the key is an untrusted request path and an object lookup would also answer for

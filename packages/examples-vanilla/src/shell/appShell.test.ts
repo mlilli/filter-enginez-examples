@@ -30,6 +30,7 @@
  * @packageDocumentation
  */
 
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { el } from '@filter-enginez/examples-shared/dom';
 import { describe, expect, it } from 'vitest';
 
@@ -93,7 +94,7 @@ function mountShell(state: BreakpointState) {
 		panelElement,
 		resultsGridElement: el('div', { className: 'fe-result-grid' }),
 		resultsHeaderElement: el('div', { className: 'fe-results-header' }),
-		subtitle: 'Books · signals',
+		subtitle: appHeaderSubtitle('Books', 'vanilla', 'signals'),
 	});
 
 	const collapse = shell.element.querySelector<HTMLElement>('.fe-filter-collapse');

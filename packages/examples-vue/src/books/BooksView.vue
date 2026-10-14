@@ -14,14 +14,13 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
  * apps. The engine is booted + held in `shallowRef` by the route (`BooksPage.vue`) and handed here as a
  * prop.
  */
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { provideFilterEngine, useBusy, useEngineRefs } from '@filter-enginez/vue-signals';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { RouterLink } from 'vue-router';
 
 import DevtoolsPanel from '../controls/DevtoolsPanel.vue';
 import TimeTravelControls from '../controls/TimeTravelControls.vue';
+import AppHeaderBrand from '../shell/AppHeaderBrand.vue';
 import CompareLinkButton from '../url/CompareLinkButton.vue';
 import CopyLinkButton from '../url/CopyLinkButton.vue';
 import UrlFormatToggle from '../url/UrlFormatToggle.vue';
@@ -84,13 +83,7 @@ const isEngineBusy = useBusy(booksBusyTracker);
 <template>
 	<div class="fe-books-app">
 		<header class="fe-books-app__header">
-			<RouterLink to="/" class="fe-books-app__brand" aria-label="Filter EngineZ — back to the dataset hub">
-				<img src="/mark.svg" alt="" width="36" height="36" class="fe-books-app__mark" />
-				<span class="fe-books-app__wordmark">
-					<span class="fe-books-app__name">Filter EngineZ</span>
-					<span class="fe-books-app__subtitle">{{ verticalSubtitle('Books', 'vue') }}</span>
-				</span>
-			</RouterLink>
+			<AppHeaderBrand page="Books" />
 			<div class="fe-books-app__url-controls">
 				<!-- Time travel is an ENGINE feature, not a React one; only the view is per-framework.
 				     Same three controls, same icons, same order as React. -->

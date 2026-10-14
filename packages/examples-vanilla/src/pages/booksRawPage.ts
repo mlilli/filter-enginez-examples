@@ -24,10 +24,10 @@
  */
 
 import { initializeBitmapAcceleration, type RuleId } from '@filter-enginez/core';
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { buildBooksEngine } from '@filter-enginez/examples-shared/books-core';
 import { safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
 import { el } from '@filter-enginez/examples-shared/dom';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { books as defaultBooks } from '@filter-enginez/mock-data/books';
 
 import type { RouteTeardown } from '../router.js';
@@ -78,7 +78,7 @@ export async function renderBooksRawPage(container: HTMLElement): Promise<RouteT
 		footnote: 'filter-enginez · books demo · vanilla + bare core (coarse subscribe, no adapter)',
 		headerControls: [...devtools.headerControls, formatToggle.element, copyLink.element, compareLink.element],
 		resultsInsetElement: devtools.panelElement,
-		subtitle: verticalSubtitle('Books', 'vanilla', 'bare-core'),
+		subtitle: appHeaderSubtitle('Books', 'vanilla', 'bare-core'),
 	});
 
 	container.append(view.element);

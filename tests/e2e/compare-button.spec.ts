@@ -1,10 +1,12 @@
 /**
- * The header **Compare** button — the inbound half of `/compare`.
+ * The header **Compare** button — the inbound half of the comparison page.
  *
  * @remarks
- * `compare.spec.ts` and `compare-shells.spec.ts` both start ON the comparison page and prove things
- * about the six links leaving it. This spec tests the way in: filter a dataset route, press Compare,
- * and require that the state you were looking at is the state the page receives.
+ * `compare.spec.ts` and `compare-page.spec.ts` both start ON the comparison page, on the landing site,
+ * and prove things about the links leaving it. This spec tests the way in: filter a dataset route,
+ * press Compare, and require that the state you were looking at is the state the page receives. The
+ * button links across origins — from the app's dev server to the site's (`SITE.devOrigin`) — so every
+ * press here is a full cross-document navigation.
  *
  * ### The last assertion is the whole point
  *
@@ -18,7 +20,7 @@
  *
  * ### Where byte-identity STOPS holding, and why that is not a bug
  *
- * It holds across `/compare` → the button → `/compare`. It does **not** survive a dataset route's
+ * It holds across the comparison page → the button → the comparison page. It does **not** survive a dataset route's
  * boot: the seed arrives as
  * `h~{"label":"fiction · published 2000–2025","rules":[…],"version":1}` and the address bar a moment
  * later reads `h~{"version":1,"rules":[…]}`.
@@ -77,9 +79,9 @@
  * needing only the boot subtitle, which `subtitles.ts` already derives from the registry. A new
  * vertical joins it through the registry, rather than by a copy of this file.
  *
- * It also closes a circle the other two specs each cover half of: `compare-shells.spec.ts` proves
- * the six outbound links agree, `compare.spec.ts` proves they work, and this takes the state one of
- * them produced, carries it into a dataset route, and brings it back — through the store the four
+ * It also closes a circle the other two specs each cover half of: `compare-page.spec.ts` proves the
+ * outbound links are right, `compare.spec.ts` proves they work, and this takes the state the page
+ * produced, carries it into a dataset route, and brings it back — through the store the four
  * non-React shells had to grow because `history.replaceState` fires no event.
  *
  * @packageDocumentation
@@ -87,13 +89,11 @@
 
 import { expect, type Locator, type Page, test } from '@playwright/test';
 
-import { DATASET_ROUTES, URL_STATE_PARAM } from '../../packages/examples-shared/src/compare/links.js';
-import {
-	COMPARE_BUTTON_LABEL,
-	COMPARE_ROUTE,
-} from '../../packages/examples-shared/src/compare/target.js';
-import { vertical, VERTICALS } from '../../packages/examples-shared/src/verticals/verticals.js';
+import { DATASET_PARAM, DATASET_ROUTES, URL_STATE_PARAM } from '../../packages/examples-shared/src/compare/links.js';
+import { COMPARE_BUTTON_LABEL } from '../../packages/examples-shared/src/compare/target.js';
+import { COMPARE_PATH, vertical, VERTICALS } from '../../packages/examples-shared/src/verticals/verticals.js';
 import { BOOKS_ARRIVAL } from './booksArrival.js';
+import { COMPARE_STATE_VALUE, openComparePage } from './comparePage.js';
 import {
 	ACTIVE_CHIP,
 	clickFirstFacetChip,
@@ -102,14 +102,27 @@ import {
 	RESULT_COUNT,
 	settledCount,
 } from './filterFlow.js';
+import { SITE_BASE_URL } from './siteBase.js';
 import { subtitle } from './subtitles.js';
 
 /* `URL_STATE_PARAM` is imported rather than spelled out. Taking `DATASET_ROUTES` from `links.ts` puts
    that module in the Playwright program anyway, and once it is there, a local literal would be a
    second copy of a shared constant for no benefit. */
 
-/** The serialized state as `/compare` renders it back. */
-const COMPARE_STATE_VALUE = '.fe-compare__state-value';
+/**
+ * Whether a URL is the comparison page on the landing site.
+ *
+ * @remarks
+ * Origin AND path: the button leaves the app for the site's dev server, and a button that kept a
+ * same-origin `/compare` href would land on the app's own `/compare` address, which serves no
+ * comparison page — a path match alone would not tell the two apart.
+ *
+ * @param url - The URL to test.
+ * @returns `true` for the site's comparison page, whatever its query.
+ */
+function isSiteComparePage(url: URL): boolean {
+	return url.origin === SITE_BASE_URL && url.pathname === COMPARE_PATH;
+}
 
 /** The button under test. Resolved by role + accessible name, never by class. */
 function compareButton(page: Page): Locator {
@@ -244,7 +257,7 @@ test.describe('the header Compare button', () => {
 		).toBe(hasState ? null : 'true');
 	});
 
-	test('carries the filtered state to /compare byte-for-byte', async ({ page }, testInfo) => {
+	test('carries the filtered state to the comparison page byte-for-byte', async ({ page }, testInfo) => {
 		await bootBooksApp(page);
 		const full = await settledCount(page);
 
@@ -269,15 +282,17 @@ test.describe('the header Compare button', () => {
 			'true',
 		);
 
-		// Captured BEFORE the click: landing on /compare replaces the URL being measured.
+		// Captured BEFORE the click: landing on the comparison page replaces the URL being measured.
 		const carried = new URL(page.url()).searchParams.get(URL_STATE_PARAM);
 
 		await button.click();
+		// A cross-origin navigation to the landing site; see the loop below for why the URL is waited on
+		// rather than read straight after the click.
+		await page.waitForURL(isSiteComparePage, { timeout: 15_000 });
 
 		const landed = new URL(page.url());
 
-		expect(landed.pathname).toBe(COMPARE_ROUTE);
-		expect(landed.searchParams.get('dataset'), 'the button lost the dataset on the way').toBe('books');
+		expect(landed.searchParams.get(DATASET_PARAM), 'the button lost the dataset on the way').toBe('books');
 		expect(
 			landed.searchParams.get(URL_STATE_PARAM),
 			'the state changed between the address bar and the href — something re-encoded it',
@@ -318,18 +333,15 @@ test.describe('the Compare button — an inbound link, in every shell that has o
 		test(`${shell.id}: arriving with a state offers to compare exactly that state`, async ({ page }) => {
 			// Take the state from the comparison page's own preset rather than hand-rolling one: a
 			// literal here would be a second copy of `presets.ts`, and `presets.test.ts` already loads
-			// every preset into a real engine over the real corpus.
-			await page.goto(`${COMPARE_ROUTE}?dataset=books`);
-
-			const seed = await page.locator(COMPARE_STATE_VALUE).textContent();
-
-			expect(seed, 'the comparison page rendered no state to seed with').toBeTruthy();
+			// every preset into a real engine over the real corpus. `openComparePage` requires the
+			// readout non-empty.
+			const seed = await openComparePage(page, `?${DATASET_PARAM}=books`);
 
 			// The origin comes from the registry, which `tests/tooling/devServerPorts.test.ts` already
 			// pins against `playwright.config.ts` — so a port change cannot drift out from under this.
 			const target = new URL(`${vertical(shell.id).devOrigin}/books`);
 
-			target.searchParams.set(URL_STATE_PARAM, seed ?? '');
+			target.searchParams.set(URL_STATE_PARAM, seed);
 			await page.goto(target.toString());
 			await expect(page.getByText(subtitle('Books', shell.id, shell.tier))).toBeVisible({
 				timeout: shell.bootTimeoutMs,
@@ -354,16 +366,14 @@ test.describe('the Compare button — an inbound link, in every shell that has o
 
 			await button.click();
 
-			// `page.url()` immediately after the click is not safe to read, and SvelteKit is the shell
-			// that proves it. Its router intercepts a same-origin link and `preventDefault`s it, so
-			// there is no browser navigation for Playwright's click to have waited on, and the address
-			// bar updates only once its async load resolves — the click "succeeded" and the URL was
-			// still `/books`. The other shells take a full document load and happen to be current by
-			// the time the next line runs, which is luck rather than a guarantee.
+			// `page.url()` immediately after the click is not safe to read. The click returns once the
+			// navigation has STARTED, and the comparison page is on another origin — the landing site's
+			// dev server — so the address bar can still read `/books` while that document loads. Reading
+			// it then would be luck rather than a guarantee.
 			//
-			// `waitForURL` covers both mechanisms, so this needs no per-shell branch: it settles for a
-			// cross-document navigation and for a `pushState` alike.
-			await page.waitForURL((url) => url.pathname === COMPARE_ROUTE, { timeout: 15_000 });
+			// `waitForURL` on the site's origin and path settles once the comparison page is the page,
+			// and it fails naming the URL actually reached if the button pointed anywhere else.
+			await page.waitForURL(isSiteComparePage, { timeout: 15_000 });
 
 			const landed = new URL(page.url());
 			const landedState = landed.searchParams.get(URL_STATE_PARAM);

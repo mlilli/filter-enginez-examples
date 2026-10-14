@@ -180,17 +180,18 @@ function exchangeIcon(): SVGElement {
 }
 
 /**
- * Build the header Compare button — the link that carries this route's filter state to `/compare`.
+ * Build the header Compare button — the link that carries this route's filter state to the comparison
+ * page on the landing site, `filterenginez.com/compare`.
  *
  * @remarks
- * Copy link beside it hands a state to another PERSON; this hands it to another APP. Every decision
+ * Copy link beside it hands a state to another PERSON; this hands it to every APP. Every decision
  * comes from `@filter-enginez/examples-shared/compare-core`; this function contributes DOM and
  * nothing else.
  *
  * **It subscribes rather than reading the URL when clicked.** This app drives the address bar with
  * `history.replaceState`, which fires no event, and the write is debounced — so a click-time read
- * could find nothing milliseconds after a filter landed and send the visitor to `/compare` with a
- * preset instead of their own state. {@link subscribeSerializedFilterState} is the source, and it
+ * could find nothing milliseconds after a filter landed and send the visitor to the comparison page
+ * with a preset instead of their own state. {@link subscribeSerializedFilterState} is the source, and it
  * fires immediately with the current value, so the first paint is already correct.
  *
  * **An anchor with `aria-disabled`, never the `disabled` attribute** — anchors do not honor it, and
@@ -199,11 +200,9 @@ function exchangeIcon(): SVGElement {
  * listener, and the accessible NAME carries the reason rather than the action.
  *
  * **The href is absolute, which is what keeps the hand-rolled router out of it.** That router
- * intercepts a click only when the href starts with `/` — the rule that forced this app's
- * `/compare` toggles to be `/compare?…` rather than a bare `?…`. Here the same rule works in our
- * favor for free: `compareTargetHref` returns a full URL, so the browser owns the navigation and no
- * opt-out is needed. Under the `paths` production layout that absolute URL is also the only correct
- * answer, since each vertical is served beneath its own base.
+ * intercepts a click only when the href starts with `/`, and `compareTargetHref` returns a full URL on
+ * the landing site's origin — the deployed apex, or the local site server in development — so the
+ * browser owns the navigation and no opt-out is needed.
  *
  * @param dataset - Which dataset this route filters.
  * @returns The control, re-targeting itself whenever the serialized state changes.
@@ -226,7 +225,6 @@ export function createCompareLinkButton(dataset: CompareDataset): HeaderControl 
 		const description = isComparable ? compareButtonTitle(dataset) : compareEmptyHint(dataset);
 
 		element.href = compareTargetHref({
-			currentVerticalId: 'vanilla',
 			dataset,
 			location: window.location,
 			serialized,

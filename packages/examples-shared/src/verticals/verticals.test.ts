@@ -4,9 +4,9 @@
  * @remarks
  * This module is DATA, so most of it cannot be wrong in a way a unit test would catch — a wrong
  * blurb is a wrong blurb. What these cases pin is the part that can silently rot: the registry
- * claiming a route or an origin that the repo does not actually have. `/compare` will render links
- * from `routes`, so an entry that lies produces a 404 in a page whose entire purpose is showing that
- * the six agree.
+ * claiming a route or an origin that the repo does not actually have. The comparison page renders
+ * links from `routes`, so an entry that lies produces a 404 in a page whose entire purpose is showing
+ * that the six agree.
  *
  * The dev ORIGINS are pinned elsewhere, in `tests/tooling/devServerPorts.test.ts`, and the production
  * hosts in `tests/tooling/cloudflareDeploy.test.ts` (against each app's `wrangler.jsonc`), deliberately
@@ -20,6 +20,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	COMPARE_PATH,
+	DEMOS_SECTION_ID,
 	HOW_IT_WORKS_PATH,
 	SITE,
 	stackLabel,
@@ -39,17 +41,17 @@ describe('VERTICALS', () => {
 
 	it('gives every vertical a unique dev origin', () => {
 		// Two entries on one port is the bug `devServerPorts.test.ts` exists for, arriving from the
-		// other direction: here it would make two rows of `/compare` link to the same app.
+		// other direction: here it would make two rows of the comparison page link to the same app.
 		const origins = VERTICALS.map((entry) => entry.devOrigin);
 
 		expect(new Set(origins).size).toBe(origins.length);
 	});
 
 	it('gives every vertical its own HTTPS subdomain of filterenginez.com, as a bare origin', () => {
-		// Each app is a separate site, so two entries on one host would make two rows of `/compare`
-		// open the same app. "Bare origin" is the part a typo breaks quietly: a trailing slash or a path
-		// here doubles up with the route `/compare` appends (`…com//books`), and `new URL(...).origin`
-		// round-trips only a value with neither.
+		// Each app is a separate site, so two entries on one host would make two rows of the comparison
+		// page open the same app. "Bare origin" is the part a typo breaks quietly: a trailing slash or a
+		// path here doubles up with the route the comparison page appends (`…com//books`), and
+		// `new URL(...).origin` round-trips only a value with neither.
 		const origins = VERTICALS.map((entry) => entry.productionOrigin);
 
 		expect(new Set(origins).size).toBe(origins.length);
@@ -59,12 +61,17 @@ describe('VERTICALS', () => {
 		}
 	});
 
-	it('lists /books and /compare everywhere', () => {
-		// The two routes every vertical has. `/compare` uses books as its shared-state dataset for
-		// exactly this reason, so if one vertical ever drops it, the comparison page loses its subject.
+	it('lists /books everywhere', () => {
+		// The one route every vertical has. The comparison page uses books as its default dataset for
+		// exactly this reason, so if one vertical ever drops it, that page loses its subject.
 		for (const entry of VERTICALS) {
 			expect(entry.routes, `${entry.id} should serve /books`).toContain('/books');
-			expect(entry.routes, `${entry.id} should serve /compare`).toContain('/compare');
+		}
+	});
+
+	it('lists no /compare: the comparison is one page on the landing site, not a route per app', () => {
+		for (const entry of VERTICALS) {
+			expect(entry.routes, entry.id).not.toContain(COMPARE_PATH);
 		}
 	});
 
@@ -79,6 +86,8 @@ describe('VERTICALS', () => {
 		expect(SITE.devOrigin).toMatch(/^http:\/\/127\.0\.0\.1:\d{4,5}$/u);
 		expect(VERTICALS.map((entry) => entry.devOrigin)).not.toContain(SITE.devOrigin);
 		expect(HOW_IT_WORKS_PATH).toBe('/how-it-works');
+		expect(COMPARE_PATH).toBe('/compare');
+		expect(DEMOS_SECTION_ID).toBe('demos');
 	});
 
 	it('starts every route with a slash and lists none twice', () => {

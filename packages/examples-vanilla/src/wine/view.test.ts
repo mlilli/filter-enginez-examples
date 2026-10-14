@@ -35,6 +35,7 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { createFilterEngine, type FilterEngine, type InSetRule } from '@filter-enginez/core';
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { describe, expect, it } from 'vitest';
 
 import { makeWine } from '../test-support/wineFixture.js';
@@ -75,7 +76,7 @@ interface MountedWineView {
  */
 function mountView(data: readonly Wine[] = DATA): MountedWineView {
 	const core = createFilterEngine<Wine>({ sourceData: data });
-	const view = createWineView(core, { footnote: 'test', subtitle: 'test' });
+	const view = createWineView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);

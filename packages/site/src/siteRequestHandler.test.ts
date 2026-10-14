@@ -58,16 +58,25 @@ describe('handleSiteRequest', () => {
 });
 
 describe('canonical page paths', () => {
-	it('lists the how-it-works page, so the cases below are not vacuous', () => {
-		expect(PAGE_PATHS).toEqual(['/how-it-works']);
+	it('lists the compare and how-it-works pages, so the cases below are not vacuous', () => {
+		expect(PAGE_PATHS).toEqual(['/compare', '/how-it-works']);
 	});
 
-	it.each(['/how-it-works.html', '/how-it-works/'])('permanently redirects %s to /how-it-works, keeping the query', async (path) => {
+	it.each([
+		['/how-it-works.html', '/how-it-works'],
+		['/how-it-works/', '/how-it-works'],
+		['/compare.html', '/compare'],
+		['/compare/', '/compare'],
+	])('permanently redirects %s to %s, keeping the query', async (path, canonical) => {
 		const { assetsFetch, environment } = fakeEnvironment();
-		const response = await handleSiteRequest(new Request(`https://${CANONICAL_HOST}${path}?ref=x#benchmark`), environment);
+		// The compare page's whole input is its query, so the query surviving the redirect is the point.
+		const response = await handleSiteRequest(
+			new Request(`https://${CANONICAL_HOST}${path}?dataset=wine&f=h~%7B%7D#benchmark`),
+			environment,
+		);
 
 		expect(response.status).toBe(301);
-		expect(response.headers.get('location')).toBe(`https://${CANONICAL_HOST}/how-it-works?ref=x`);
+		expect(response.headers.get('location')).toBe(`https://${CANONICAL_HOST}${canonical}?dataset=wine&f=h~%7B%7D`);
 		expect(assetsFetch).not.toHaveBeenCalled();
 	});
 

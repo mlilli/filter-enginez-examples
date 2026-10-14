@@ -18,6 +18,7 @@
 import type { Book } from '@filter-enginez/mock-data/books';
 
 import { createFilterEngine, type FilterEngine } from '@filter-enginez/core';
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -49,7 +50,7 @@ function makeBook(overrides: { readonly id: string } & Partial<Book>): Book {
 		publicationYear: 2000,
 		publisher: 'Test House',
 		subjects: ['adventure'],
-		subtitle: '',
+		subtitle: appHeaderSubtitle(''),
 		tier: 'default',
 		title: 'Untitled',
 		...overrides,
@@ -70,7 +71,7 @@ const DATA: readonly Book[] = [
  */
 function mountView(): { core: FilterEngine<Book>; repaint: () => void; root: HTMLElement } {
 	const core = createFilterEngine<Book>({ sourceData: DATA });
-	const view = createBooksView(core, { footnote: 'test', subtitle: 'test' });
+	const view = createBooksView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -191,7 +192,7 @@ describe('framework-less <BooksView> parity', () => {
  */
 function mountOneBook(overrides: { readonly id: string } & Partial<Book>): HTMLElement {
 	const core = createFilterEngine<Book>({ sourceData: [makeBook(overrides)]});
-	const view = createBooksView(core, { footnote: 'test', subtitle: 'test' });
+	const view = createBooksView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -333,7 +334,7 @@ function mountForTeardown(): {
 } {
 	const media = installMatchMedia(DESKTOP_MEDIA_QUERY, true);
 	const core = createFilterEngine<Book>({ sourceData: MANY });
-	const view = createBooksView(core, { footnote: 'test', subtitle: 'test' });
+	const view = createBooksView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);

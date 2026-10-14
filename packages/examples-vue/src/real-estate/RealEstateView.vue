@@ -40,16 +40,15 @@ import {
  * in from `onMounted` and passed down as a component. Until it resolves the panel renders its other
  * thirteen sections, which is a better first paint than blocking all of them on a map.
  */
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { provideFilterEngine, useBusy, useEngineRefs } from '@filter-enginez/vue-signals';
 import { type Component, computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
-import { RouterLink } from 'vue-router';
 
 import ComputingIndicator from '../brand/ComputingIndicator.vue';
 import DevtoolsPanel from '../controls/DevtoolsPanel.vue';
 import ResultsHeader from '../controls/ResultsHeader.vue';
 import TimeTravelControls from '../controls/TimeTravelControls.vue';
+import AppHeaderBrand from '../shell/AppHeaderBrand.vue';
 import CompareLinkButton from '../url/CompareLinkButton.vue';
 import CopyLinkButton from '../url/CopyLinkButton.vue';
 import UrlFormatToggle from '../url/UrlFormatToggle.vue';
@@ -204,13 +203,7 @@ const isDevtoolsOpen = ref(false);
 <template>
 	<div class="fe-books-app">
 		<header class="fe-books-app__header">
-			<RouterLink to="/" class="fe-books-app__brand" aria-label="Filter EngineZ — back to the dataset hub">
-				<img src="/mark.svg" alt="" width="36" height="36" class="fe-books-app__mark" />
-				<span class="fe-books-app__wordmark">
-					<span class="fe-books-app__name">Filter EngineZ</span>
-					<span class="fe-books-app__subtitle">{{ verticalSubtitle('Real estate', 'vue') }}</span>
-				</span>
-			</RouterLink>
+			<AppHeaderBrand page="Real estate" />
 			<div class="fe-books-app__url-controls">
 				<TimeTravelControls
 					:engine="props.engine"

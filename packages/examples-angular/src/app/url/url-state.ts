@@ -126,8 +126,8 @@ export const urlFormat = signal<UrlFormat>(readInitialFormat());
  * The header Compare button is its consumer, and it needs both WHETHER there is state (to
  * decide whether it is inert) and WHAT it is (to build its href). Reading `window.location.search`
  * on click would satisfy neither: writes are debounced by {@link WRITE_DEBOUNCE_MS}, so a click
- * inside that window finds nothing and sends the visitor to `/compare` with a preset instead of
- * their own filters — no error anywhere, and a page that looks entirely correct.
+ * inside that window finds nothing and sends the visitor to the comparison page with a preset
+ * instead of their own filters — no error anywhere, and a page that looks entirely correct.
  *
  * **A `signal`, not a `BehaviorSubject`.** This app reads engine state through `toSignal(...)`
  * everywhere; a component consuming a raw subject would be the only one of its kind, and would need

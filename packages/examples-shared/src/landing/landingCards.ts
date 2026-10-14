@@ -10,9 +10,9 @@
  * invisible — and no gate notices a card that was never written.
  *
  * So the cards are **derived from `vertical(id).routes`**, the repo's single statement of what each
- * app serves, which `/compare` reads too. A route a vertical serves cannot fail to appear on its
- * landing page, because the landing page reads the same list `/compare` does. Every card is
- * therefore a link to a working route.
+ * app serves, which the comparison page reads too. A route a vertical serves cannot fail to appear on
+ * its landing page, because the landing page reads the same list the comparison page does. Every card
+ * is therefore a link to a working route.
  *
  * ## A route with no catalog entry THROWS
  *
@@ -55,7 +55,7 @@ export interface DatasetCard {
  * does not recognize as an error. An allowlist of what to ignore fails loudly on a new dataset; a
  * denylist of what to include fails silently.
  */
-const NON_DATASET_ROUTES: ReadonlySet<string> = new Set(['/compare', '/docs']);
+const NON_DATASET_ROUTES: ReadonlySet<string> = new Set(['/docs']);
 
 /**
  * Every dataset route any vertical serves, in the order the hub presents them.

@@ -5,9 +5,10 @@
  * Rendered by `<DatasetRoute>` inside `<FilterEngineProvider>`, so every pane below has a booted
  * books engine in context and none of them boots anything themselves.
  *
- * The topbar is its own rather than the books app chrome, because `/lab` is a route SURFACE (like
- * `/compare` and the 404) rather than a dataset view — same reason its CSS block is `fe-lab*` and not
- * a dataset-prefixed name.
+ * The header is the compact one every page without dataset controls carries (the hub, the 404): the
+ * shared header brand, naming the page `Lab`, plus a link back to `/books`. It is not the books app
+ * chrome, because `/lab` is a route SURFACE rather than a dataset view — same reason its CSS block is
+ * `fe-lab*` and not a dataset-prefixed name.
  *
  * ⚠ **The three panes are written out** rather than mapped over a config, because the three differ in every way that would matter to a shared container — one owns
  * a picker, one owns a recording effect, one owns a row-per-candidate list — and the only thing they
@@ -18,7 +19,7 @@
  * @packageDocumentation
  */
 
-import { Mark } from '@filter-enginez/brand';
+import { AppHeaderBrand, HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header';
 import { Link } from 'react-router';
 
 import { SimilarityPane } from './SimilarityPane.js';
@@ -31,13 +32,8 @@ import { SuggestionPane } from './SuggestionPane.js';
 export const LabPage = (): React.ReactElement => {
 	return (
 		<div className="fe-lab">
-			<header className="fe-lab__topbar">
-				<Link to="/" className="fe-lab__brand" aria-label="Filter EngineZ — back to the dataset hub">
-					<span className="fe-lab__brand-mark" aria-hidden="true">
-						<Mark size={28} />
-					</span>
-					<span className="fe-lab__brand-word">Filter EngineZ</span>
-				</Link>
+			<header className="fe-books-app__header">
+				<AppHeaderBrand page={HEADER_PAGE_LABELS.lab} verticalId="react-plain" />
 				<Link to="/books" className="fe-lab__back">
 					← books
 				</Link>

@@ -12,16 +12,14 @@
  * @packageDocumentation
  */
 
-import { Mark } from '@filter-enginez/brand';
+import { AppHeaderBrand } from '@filter-enginez/examples-shared/app-header';
 import { DevtoolsPanel, TimeTravelControls } from '@filter-enginez/examples-shared/devtools';
 import { captureCurrentVersion, markResolvedAtLeast, markUserAction, RealEstateFilterPanel, RealEstateResultGrid, useIsEngineBusy } from '@filter-enginez/examples-shared/real-estate';
 import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
 import { useLastChange } from '@filter-enginez/react-signals';
 import { FilterDrawer } from '@filter-enginez/react-ui';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 
 import { RealEstateResultsHeader } from './RealEstateResultsHeader.js';
 
@@ -127,7 +125,8 @@ const FiltersTrigger = (props: { readonly onOpen: () => void }): React.ReactElem
 };
 
 /**
- * Page header — brand identity (mark + wordmark), a link back to the dataset hub.
+ * Page header — the shared header brand (the way home, back to this app's hub, and to every other
+ * demo) beside the page's controls.
  *
  * @internal
  */
@@ -143,28 +142,7 @@ const Header = (props: {
 			className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6 lg:py-4"
 			style={{ background: 'var(--gray-0)', borderBottom: '1px solid var(--gray-3)' }}
 		>
-			<Link
-				to="/"
-				className="flex items-center gap-3 min-w-0"
-				style={{ textDecoration: 'none' }}
-				aria-label="Filter EngineZ — back to the dataset hub"
-			>
-				<Mark size={36} animated />
-				<div className="hidden min-[360px]:flex flex-col leading-tight">
-					<span
-						className="text-base font-semibold tracking-wider uppercase"
-						style={{ color: 'var(--gray-11)', fontFamily: 'var(--font-display)', letterSpacing: '0.14em' }}
-					>
-						Filter EngineZ
-					</span>
-					<span
-						className="text-xs uppercase"
-						style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)', letterSpacing: '0.12em' }}
-					>
-						{verticalSubtitle('Real estate', 'react-plain')}
-					</span>
-				</div>
-			</Link>
+			<AppHeaderBrand page="Real estate" verticalId="react-plain" />
 			{/* The full header cluster, in the same order as every other route: URL format, copy link,
 			    then time travel. `?f=` sync runs in `DatasetRoute`; these controls are
 			    what let the user SEE and copy the link it maintains. */}
@@ -177,7 +155,7 @@ const Header = (props: {
 				/>
 				<UrlFormatToggle />
 				<CopyLinkButton />
-				<CompareLinkButton dataset="real-estate" verticalId="react-plain" />
+				<CompareLinkButton dataset="real-estate" />
 			</div>
 		</header>
 	);

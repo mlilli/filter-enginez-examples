@@ -1,5 +1,5 @@
 /**
- * The `/compare` strings whose truth depends on how many verticals serve the dataset.
+ * The comparison strings whose truth depends on how many verticals serve the dataset.
  *
  * @remarks
  * Three user-facing strings name how many apps a comparison reaches. Not every dataset is served by
@@ -68,7 +68,7 @@ export function compareEmptyHint(dataset: CompareDataset): string {
  * The comparison page's `<h1>`.
  *
  * @remarks
- * Derived here for the count, and shared so every shell says the same thing. It reads from the
+ * Derived here for the count, beside the button's strings that share its failure mode. It reads from the
  * same count as {@link compareListLabel}, so a `?dataset=wine-server` page's heading and its list's
  * accessible name always agree — a sighted reader and a screen-reader user hear the same number,
  * the "never color alone" accessibility rule applied to prose.

@@ -1,17 +1,16 @@
 /**
- * The `/compare` slice, React-free — reachable as `@filter-enginez/examples-shared/compare-core`.
+ * The comparison slice, React-free — reachable as `@filter-enginez/examples-shared/compare-core`.
  *
  * @remarks
- * Everything `/compare` needs that is not a component: which datasets it covers, where each vertical
- * lives, how one serialized state becomes a link per serving vertical, and the ready-made states for
- * a cold visit.
- * Framework-free and DOM-free by construction — {@link CompareLocation} is structural, so nothing
- * here reads a global.
+ * Everything the comparison page at `filterenginez.com/compare` and the Compare button in every app
+ * need that is not markup: which datasets it covers, where each vertical and the landing site live,
+ * how one serialized state becomes a link per serving vertical, the URL that carries a visitor's state
+ * to the page, and the ready-made states for a cold visit.
  *
- * The split follows `notfound/core.ts`: the two React apps consume the
- * component from `../compare`, and the four non-React verticals build their own shells over exactly
- * this module. That is the only shape that reaches all six — `docsRoute` and `notFoundRoute` are
- * `RouteObject`s, which only react-router can mount.
+ * Framework-free and DOM-free by construction — {@link CompareLocation} is structural, so nothing
+ * here reads a global. That is what lets one module serve all six apps' buttons, in five framework
+ * idioms, and the landing site's page, which renders at build time under Node and again in the
+ * browser.
  *
  * @packageDocumentation
  */

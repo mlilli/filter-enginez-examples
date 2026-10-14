@@ -29,12 +29,10 @@ framework-shaped.
 | `/books-server` | The same panel, header and cards over an HTTP-backed engine; the browser runs no filtering                |
 | `/real-estate`  | Property listings: geo-radius search on a Leaflet map, a location hierarchy and must-have features        |
 | `/wine`         | About 130,000 wine reviews filtered in a Web Worker, with its own boot progress screen                    |
-| `/compare`      | One filter state, linked across every app that serves the dataset                                         |
 | Anything else   | The shared "filtered to zero" 404 page over `examples-shared/notfound-core`                               |
 
-The landing hub's "How the engine works" link leads to
-[filterenginez.com/how-it-works](https://filterenginez.com/how-it-works), the one page all six demos share; this app's
-`/about` redirects there.
+This app's `/about` redirects to [filterenginez.com/how-it-works](https://filterenginez.com/how-it-works) and its
+`/compare` to [filterenginez.com/compare](https://filterenginez.com/compare), pages all six demos share.
 
 Every dataset route keeps its filter state in a shareable URL; `/books`, `/real-estate` and `/wine` also offer undo,
 redo and time travel through the devtools panel.

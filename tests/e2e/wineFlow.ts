@@ -11,16 +11,15 @@
  * shareable-URL round-trip and an axe scan — so the question "which cases does this vertical run"
  * has one answer.
  *
- * The precedent is `compare.spec.ts`, which asserts the same thing of all six verticals and whose
- * docblock calls the parameterized form the reason a new shell "only has to make its own `/compare`
- * produce the same six links".
+ * The precedent is `compare.spec.ts`, which asserts the same thing of all six verticals by iterating
+ * the registry, so a new vertical joins it without a new spec file.
  *
  * ## This module owns the CASES; it does not own the ROSTER
  *
  * Each spec file calls {@link describeWineVertical} explicitly, so a vertical cannot join the suite
  * without someone writing its file. That is the opposite of `compare.spec.ts`, which iterates a
- * registry, and it is deliberate: a `/compare` page is a shell over shared code, while a wine route
- * is a real build with a worker, a thirteen-section panel and its own boot path.
+ * registry, and it is deliberate: there each vertical contributes one link to follow, while a wine
+ * route is a real build with a worker, a thirteen-section panel and its own boot path.
  *
  * ## All SIX verticals
  *

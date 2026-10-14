@@ -1,0 +1,20 @@
+// Type-checks the compare page's code (`tsc --noEmit -p src/compare`, part of the package's
+// `typecheck`) and serves ESLint's typed lint for it. Browser code, so the DOM library; bundler
+// resolution, because Vite owns the build. References the sibling packages' composite build configs so
+// cross-package imports resolve to their built `.d.ts`, as in the framework-free demo app.
+//
+// `compareView.ts` is here too: it builds strings, touches no DOM and runs under Node inside the Vite
+// config as well as in the browser, and is tested beside the page that uses it.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": []
+  },
+  "include": ["**/*"],
+  "exclude": [],
+  "references": [{ "path": "../../../examples-shared/tsconfig.build.json" }]
+}

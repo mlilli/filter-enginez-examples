@@ -36,8 +36,8 @@
  * @packageDocumentation
  */
 
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import {
 	bootWineAsyncEngine,
 	describeWineCorpusTier,
@@ -92,6 +92,6 @@ export async function renderWinePage(container: HTMLElement): Promise<RouteTeard
 		compareDataset: 'wine',
 		engine,
 		footnote: `filter-enginez · wine demo · vanilla + reactive-signals over a Comlink worker · ${describeWineCorpusTier(meta.source)}`,
-		subtitle: verticalSubtitle('Wine', 'vanilla', 'worker'),
+		subtitle: appHeaderSubtitle('Wine', 'vanilla', 'worker'),
 	});
 }

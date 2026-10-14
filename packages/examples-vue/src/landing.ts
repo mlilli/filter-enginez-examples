@@ -7,7 +7,7 @@
  * binding that names the vertical.
  *
  * **Why the roster is derived, not hand-listed:** a hand-listed roster can silently omit a route that
- * works but is then reachable only by typing the URL. Deriving from the same array `/compare` reads
+ * works but is then reachable only by typing the URL. Deriving from the same array the comparison page reads
  * makes that class of gap structurally impossible.
  *
  * @packageDocumentation

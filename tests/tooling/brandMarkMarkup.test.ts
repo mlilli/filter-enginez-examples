@@ -3,8 +3,8 @@
  *
  * @remarks
  * The failure this guards is a typographic lookalike of the mark in the slot reserved for the mark:
- * `<span class="fe-lab__brand-mark" aria-hidden="true">Z</span>`, a literal letter that `ui-styles`
- * styles into a 28x28 bordered box in Orbitron. It reads as a logo at a glance.
+ * `<span class="fe-books-app__mark" aria-hidden="true">Z</span>`, a literal letter that a stylesheet
+ * sets into a small bordered box in Orbitron. It reads as a logo at a glance.
  *
  * No other gate sees it. `tests/tooling/brandAssets.test.ts` pins the asset BYTES and has nothing to
  * say, because the impersonation lives in CSS rather than in an asset — the files it compares stay
@@ -17,8 +17,8 @@
  *
  * ### What this file deliberately does not cover
  *
- * The React landing and dataset headers render `<Mark size={72} animated />` with no `fe-*` class at
- * all, so they offer nothing to key on. They are also incapable of the failure: a `<Mark>` element
+ * The React landing heroes render `<Mark size={72} animated />` with no `fe-*` class at all, so they
+ * offer nothing to key on. They are also incapable of the failure: a `<Mark>` element
  * cannot be a glyph. The slots enumerated here are the ones where markup names a mark and something
  * else could be sitting in it.
  *
@@ -46,17 +46,14 @@ const MARK_CLASS_PATTERN = /fe-[a-z0-9-]+__(?:brand-)?mark\b/gu;
  * The slots that must hold the logomark.
  *
  * @remarks
- * Two shapes, and the difference matters to nothing here but is worth knowing: `__brand-mark` is a
- * WRAPPER whose child is the mark, while `fe-books-app__mark` and `fe-landing__mark` sit on the mark
- * element itself. Both are satisfied by a real-mark token within {@link SEARCH_WINDOW} characters,
- * which is why this file measures proximity rather than parsing five markup dialects.
+ * `fe-books-app__mark` is the header brand's mark in every app, the documentation and the lab;
+ * `fe-landing__mark` is the hub hero's. Both sit on the mark element itself (an `<img>` of
+ * `/mark.svg`, or React's `<Mark className="…">`), and both are satisfied by a real-mark token within
+ * {@link SEARCH_WINDOW} characters, which is why this file measures proximity rather than parsing five
+ * markup dialects. A `__brand-mark` WRAPPER class whose child is the mark would be satisfied the same
+ * way, should one return.
  */
-const BRAND_MARK_CLASSES = [
-	'fe-books-app__mark',
-	'fe-docs__brand-mark',
-	'fe-lab__brand-mark',
-	'fe-landing__mark',
-] as const;
+const BRAND_MARK_CLASSES = ['fe-books-app__mark', 'fe-landing__mark'] as const;
 
 /**
  * Mark-shaped class names that are NOT brand marks.
@@ -216,26 +213,22 @@ function allSlots(): readonly LocatedBrandMarkSlot[] {
 	});
 }
 
-/** A lab-page header with a text glyph in the brand-mark slot — the impersonation this file rejects. */
+/** A header brand with a text glyph in the brand-mark slot — the impersonation this file rejects. */
 const IMPERSONATION_FIXTURE = `
-	<header className="fe-lab__topbar">
-		<a className="fe-lab__brand" href="/">
-			<span className="fe-lab__brand-mark" aria-hidden="true">Z</span>
-			<span className="fe-lab__brand-word">Filter EngineZ</span>
+	<nav className="fe-books-app__brand" aria-label="Filter EngineZ">
+		<a className="fe-books-app__home" href="https://filterenginez.com/" aria-label="Filter EngineZ home">
+			<span className="fe-books-app__mark" aria-hidden="true">Z</span>
 		</a>
-	</header>
+	</nav>
 `;
 
 /** The same markup with a real mark, so the control is two-sided rather than merely pessimistic. */
 const CORRECTED_FIXTURE = `
-	<header className="fe-lab__topbar">
-		<a className="fe-lab__brand" href="/">
-			<span className="fe-lab__brand-mark" aria-hidden="true">
-				<Mark size={28} />
-			</span>
-			<span className="fe-lab__brand-word">Filter EngineZ</span>
+	<nav className="fe-books-app__brand" aria-label="Filter EngineZ">
+		<a className="fe-books-app__home" href="https://filterenginez.com/" aria-label="Filter EngineZ home">
+			<Mark size={36} animated className="fe-books-app__mark" />
 		</a>
-	</header>
+	</nav>
 `;
 
 describe('brand mark markup', () => {

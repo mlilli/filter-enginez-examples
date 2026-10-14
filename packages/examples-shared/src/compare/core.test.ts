@@ -1,6 +1,6 @@
 /**
- * Coverage for the `/compare` core — origins (the verticals' and the landing site's), links, presets, and
- * the portability round-trip.
+ * Coverage for the comparison core — origins (the verticals' and the landing site's), links, presets,
+ * and the portability round-trip.
  *
  * @remarks
  * Everything on the `core.js` barrel except the header button's URL construction, which has its own
@@ -8,8 +8,8 @@
  *
  * Of the suites below, two earn their keep beyond the obvious:
  *
- * - **Route existence** turns the registry's `routes` docblock ("Not aspirational — `/compare` links
- *   only to these") into something enforced. A vertical that dropped `/books` would otherwise produce
+ * - **Route existence** turns the registry's `routes` docblock ("Not aspirational — the comparison
+ *   page links only to these") into something enforced. A vertical that dropped `/books` would otherwise produce
  *   a quietly five-row table; here it produces a failure that names it.
  * - **Preset loading** is the rot-guard for the decision to hand-author states. A renamed rule id
  *   yields an empty result set rather than an error at runtime, so the assertion is on the RESULT
@@ -27,6 +27,7 @@ import { describe, expect, it } from 'vitest';
 
 import { HOW_IT_WORKS_PATH, SITE, type VerticalId, VERTICALS } from '../verticals/verticals.js';
 import {
+	allDemosUrl,
 	COMPARE_DATASETS,
 	COMPARE_PRESETS,
 	type CompareDataset,
@@ -40,6 +41,8 @@ import {
 	resolveCompareState,
 	resolveSiteOrigin,
 	resolveVerticalOrigin,
+	siteHomeUrl,
+	siteUrl,
 	URL_STATE_PARAM,
 } from './core.js';
 
@@ -119,7 +122,7 @@ describe('deploymentLayout', () => {
 	});
 });
 
-describe('resolveSiteOrigin and howItWorksUrl', () => {
+describe('resolveSiteOrigin and the landing-site URLs', () => {
 	it('resolves the landing site from the page location, like a vertical', () => {
 		expect(resolveSiteOrigin(DEV_LOCATION)).toBe(SITE.devOrigin);
 		expect(resolveSiteOrigin(PROD_LOCATION)).toBe(SITE.productionOrigin);
@@ -132,6 +135,22 @@ describe('resolveSiteOrigin and howItWorksUrl', () => {
 		expect(howItWorksUrl(PROD_LOCATION)).toBe('https://filterenginez.com/how-it-works');
 		expect(howItWorksUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5181/how-it-works');
 		expect(howItWorksUrl(DEV_LOCATION, 'production')).toBe(`${SITE.productionOrigin}${HOW_IT_WORKS_PATH}`);
+	});
+
+	it('points every header’s logo at the home page, and "All demos" at its demo list', () => {
+		// Literals again: `#demos` is the id of the landing page's demo section, which no type ties to
+		// this string, so the deployed URL is pinned exactly.
+		expect(siteHomeUrl(PROD_LOCATION)).toBe('https://filterenginez.com/');
+		expect(siteHomeUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5181/');
+		expect(allDemosUrl(PROD_LOCATION)).toBe('https://filterenginez.com/#demos');
+		expect(allDemosUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5181/#demos');
+		expect(allDemosUrl(DEV_LOCATION, 'production')).toBe('https://filterenginez.com/#demos');
+		expect(siteHomeUrl(PROD_LOCATION, 'dev')).toBe(`${SITE.devOrigin}/`);
+	});
+
+	it('resolves any site path against the same origin', () => {
+		expect(siteUrl('/compare', PROD_LOCATION)).toBe('https://filterenginez.com/compare');
+		expect(siteUrl('/compare', PROD_LOCATION, 'dev')).toBe('http://127.0.0.1:5181/compare');
 	});
 
 	it('gives the site an origin no vertical uses', () => {
@@ -210,17 +229,6 @@ describe('compareLinks', () => {
 		expect(new URL(first?.href ?? '').searchParams.get(URL_STATE_PARAM)).toBe(SAMPLE_STATE);
 	});
 
-	it('marks the current vertical rather than omitting it', () => {
-		const links = compareLinks({
-			currentVerticalId: 'vue',
-			dataset: 'books',
-			location: DEV_LOCATION,
-			serialized: SAMPLE_STATE,
-		});
-
-		expect(links.filter((link) => link.isCurrent).map((link) => link.vertical.id)).toEqual(['vue']);
-	});
-
 	it('links every row to that vertical’s deployed subdomain when the page is deployed', () => {
 		// No `layout` passed: this is the production call shape, detected from the host alone.
 		const links = compareLinks({ dataset: 'books', location: PROD_LOCATION, serialized: SAMPLE_STATE });
@@ -260,9 +268,9 @@ describe('hasComparableState', () => {
 });
 
 describe('readCompareDataset', () => {
-	// The narrowing every shell needs and none of them should own. It lives in `compare-core` because
-	// the alternative is six restatements of one query contract, and a shell that disagreed would not
-	// fail loudly: its toggles would silently snap back to the default on every click.
+	// The narrowing the page and every Compare button share. It lives in `compare-core` because the
+	// alternative is a restatement of one query contract on each side, and a side that disagreed would
+	// not fail loudly: the page's toggles would silently snap back to the default on every click.
 	it.each(COMPARE_DATASETS)('passes %s through unchanged', (dataset) => {
 		expect(readCompareDataset(dataset)).toBe(dataset);
 	});
@@ -275,8 +283,8 @@ describe('readCompareDataset', () => {
 		['an unknown dataset', 'whiskey'],
 		['a renamed-away id', 'realestate'],
 		// A dataset id is compared with `===`, so nothing here is case-insensitive or trimmed. Pinning
-		// that is the point: a shell tempted to "help" by lower-casing would diverge from the five
-		// others in a way only a cross-vertical test could see.
+		// that is the point: a reader tempted to "help" by lower-casing would diverge from the writers
+		// in a way only a cross-vertical test could see.
 		['different casing', 'Books'],
 		[' a padded value', ' books'],
 	])('falls back to the first dataset for %s', (_label, raw) => {
@@ -296,8 +304,8 @@ describe('resolveCompareState', () => {
 	const INBOUND = 'h~{"version":1,"rules":[]}';
 
 	it('returns an inbound ?f= BYTE-FOR-BYTE, in every format', () => {
-		// The invariant the whole page rests on, and the reason this lives in one module rather than in
-		// five shells: a shell that decoded and re-encoded would still render six working links, and
+		// The invariant the whole page rests on, and the reason this lives in the shared core rather than
+		// in the page: a page that decoded and re-encoded would still render six working links, and
 		// would quietly be demonstrating that an EQUIVALENT state travels rather than the visitor's own.
 		// That is a violation that looks exactly like success, so it is asserted against every format
 		// the reader might have selected — including the two the inbound value is NOT written in.
@@ -372,7 +380,7 @@ describe('resolveCompareState', () => {
 		const encoded = [asked('compact'), asked('human-readable'), asked('json-base64')];
 
 		// Three distinct encodings of one state. Equality here would mean the format argument was being
-		// dropped and every shell silently served one format — which no other assertion would notice,
+		// dropped and the page silently served one format — which no other assertion would notice,
 		// because all three decode back to the same config.
 		expect(new Set(encoded).size).toBe(3);
 		for (const serialized of encoded) {
@@ -420,7 +428,7 @@ describe('portability — the claim the page exists to make', () => {
 	it.each(['human-readable', 'compact', 'json-base64'] as const)(
 		'decodes a %s-encoded preset with a serializer that was never told the format',
 		(format) => {
-			// This is the mechanism `/compare` demonstrates: every vertical wraps `createTaggedSerializer`,
+			// This is the mechanism the comparison page demonstrates: every vertical wraps `createTaggedSerializer`,
 			// whose decode sniffs the `h~` / `c~` / `b~` prefix. So a link built by the Angular app, in
 			// whichever format that visitor had selected, opens correctly in the framework-less one.
 			// `[0]` is non-nullable because the preset lists are typed non-empty, so no `toBeDefined()`

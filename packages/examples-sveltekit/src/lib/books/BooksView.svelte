@@ -13,19 +13,20 @@
 	 * @remarks
 	 * Deviations from React (all deliberate): the count renders directly
 	 * rather than through the 600ms rAF tick; the mobile drawer is an inline collapse rather than an
-	 * off-canvas `FilterDrawer`; the brand `<Mark>` + URL-state controls (React-only) are omitted; and
-	 * the search inputs commit on blur / Enter rather than debounced-per-keystroke.
+	 * off-canvas `FilterDrawer`; the header's logomark is the static `/mark.svg` rather than React's
+	 * animated `<Mark>`; and the search inputs commit on blur / Enter rather than debounced-per-keystroke.
 	 */
 
+	import type { EngineTier } from '@filter-enginez/examples-shared/verticals';
 	import type { Book } from '@filter-enginez/mock-data/books';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
 
 	import DevtoolsPanel from '../controls/DevtoolsPanel.svelte';
 	import TimeTravelControls from '../controls/TimeTravelControls.svelte';
+	import AppHeaderBrand from '../shell/AppHeaderBrand.svelte';
 	import CompareLinkButton from '../url/CompareLinkButton.svelte';
 	import CopyLinkButton from '../url/CopyLinkButton.svelte';
 	import UrlFormatToggle from '../url/UrlFormatToggle.svelte';
@@ -36,11 +37,14 @@
 
 	const {
 		engine,
-		subtitle = verticalSubtitle('Books', 'sveltekit'),
+		tier,
 	}: {
 		engine: SignalsEngine<Book>;
-		/** Header subtitle. `/books` keeps the default; `/books-server` names the server tier. */
-		subtitle?: string;
+		/**
+		 * The engine tier the header's subtitle names. `/books` names none (its engine runs on the main
+		 * thread); `/books-server` passes `'server'`.
+		 */
+		tier?: EngineTier;
 	} = $props();
 
 	/** Devtools panel visibility. Hidden by default so a first visit gets a clean page. */
@@ -90,13 +94,7 @@
 
 <div class="fe-books-app">
 	<header class="fe-books-app__header">
-		<a href="/" class="fe-books-app__brand" aria-label="Filter EngineZ — back to the dataset hub">
-			<img src="/mark.svg" alt="" width="36" height="36" class="fe-books-app__mark" />
-			<span class="fe-books-app__wordmark">
-				<span class="fe-books-app__name">Filter EngineZ</span>
-				<span class="fe-books-app__subtitle">{subtitle}</span>
-			</span>
-		</a>
+		<AppHeaderBrand page="Books" {tier} />
 		<div class="fe-books-app__url-controls">
 			<!-- Time travel is an ENGINE feature, not a React one. Same three controls, same icons, same
 			     order as React's header. -->

@@ -17,6 +17,8 @@
 
 	import type { AppliedParams } from '$lib/server/wineServerParams.js';
 
+	import AppHeaderBrand from '$lib/shell/AppHeaderBrand.svelte';
+
 	import type { SsrWineCard } from '../../routes/wine-server/+page.server.js';
 
 	interface Props {
@@ -41,6 +43,12 @@
 	/** The min-points options offered by the no-JS select (Wine Enthusiast 80-100 scale). */
 	const POINTS_OPTIONS = [85, 88, 90, 92, 95] as const;
 </script>
+
+<!-- The app header, as on every page: with JavaScript off this IS the route, so it carries the way home
+     to the landing site and back to the hub like the live view that replaces it. -->
+<header class="fe-books-app__header">
+	<AppHeaderBrand page="Wine" tier="server" />
+</header>
 
 <div class="fe-server-fallback">
 	<header class="fe-server-fallback__banner">

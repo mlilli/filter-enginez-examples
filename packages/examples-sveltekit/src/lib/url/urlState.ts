@@ -6,8 +6,9 @@
  * behavior, but framework-neutral: it drives the address bar through native `window.location` +
  * `history.replaceState` rather than `$app/navigation`. Two reasons: (1) it's SSR-guardable with a
  * single `typeof window` check, and (2) the components that consume it render inside `<BooksView>`,
- * which the component tests mount bare — and the SvelteKit `$app/*` virtual modules don't resolve
- * under the plain-`svelte` vitest config, so importing them there would break the suite.
+ * which the component tests mount bare — and the plain-`svelte` vitest config maps only
+ * `$app/stores` (to a test double), so `$app/navigation` has no module there and importing it would
+ * break the suite.
  *
  * The serializer is the framework-neutral tagged serializer from `@filter-enginez/url-state-router`
  * (imported via its `/serializers` subpath so no `react-router` is dragged in). A tagged value
@@ -80,7 +81,7 @@ export const urlFormat = writable<UrlFormat>(readInitialFormat());
  * decide whether it is inert) and WHAT that state is (to build its href). Reading
  * `window.location.search` when clicked would satisfy neither — writes are debounced by
  * {@link WRITE_DEBOUNCE_MS}, so a click inside that window would find nothing and silently send the
- * visitor to `/compare` with a preset instead of their own filters.
+ * visitor to the comparison page with a preset instead of their own filters.
  *
  * Every function below that KNOWS the parameter's current value publishes it here, which is why
  * there is no module-load read of `window.location`: that would be an SSR hazard and a lie on the

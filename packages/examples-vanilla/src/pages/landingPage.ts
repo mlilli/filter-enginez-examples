@@ -2,7 +2,8 @@
  * `/` — the landing hub for the framework-less vertical.
  *
  * @remarks
- * A brand-forward hero plus one card per dataset. The two books cards are the same UI over the two
+ * The app's compact header (the way home to the landing site, and "All demos"), then a brand-forward
+ * hero plus one card per dataset. The two books cards are the same UI over the two
  * reactive surfaces — the comparison this vertical exists to make — wine is the worker-backed tier,
  * and real estate is the widest panel: fourteen sections, a location hierarchy and a geo-radius map,
  * over the same engine.
@@ -15,11 +16,13 @@
  * @packageDocumentation
  */
 
-import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
+import { appHeaderSubtitle, HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header-core';
 import { el } from '@filter-enginez/examples-shared/dom';
 import { type DatasetCard, landingCards } from '@filter-enginez/examples-shared/landing';
 
 import type { RouteRenderResult } from '../router.js';
+
+import { createPageHeader } from '../shell/appHeader.js';
 
 /**
  * Render the landing hub.
@@ -31,7 +34,10 @@ export function renderLandingPage(container: HTMLElement): RouteRenderResult {
 	const cards = landingCards('vanilla');
 
 	container.append(
-		el('div', {
+		createPageHeader(appHeaderSubtitle(HEADER_PAGE_LABELS.hub, 'vanilla')),
+		// `<main>`, so the hero's own `<header>` sits inside it rather than beside the page header as a
+		// second banner landmark.
+		el('main', {
 			children: [
 				el('div', {
 					children: [
@@ -48,22 +54,6 @@ export function renderLandingPage(container: HTMLElement): RouteRenderResult {
 										'A generic, isomorphic, framework-agnostic TypeScript filter engine: arbitrarily complex '
 										+ 'filters over arbitrarily shaped data, computed client-side. This is the vanilla '
 										+ 'vertical — no framework, no reactive-surface adapter, just hand-written DOM.',
-								}),
-								// The one page on the landing site — another origin, resolved from this page's location
-								// so a local run reaches the local site server. An absolute URL, so the router's
-								// same-origin click interception leaves it to the browser.
-								el('a', {
-									attrs: { href: howItWorksUrl(window.location) },
-									className: 'fe-landing__about',
-									text: 'How the engine works →',
-								}),
-								// Second in the stack, matching every other vertical: what the engine does, then
-								// that it does it everywhere. Cyan because the page is about WHICH state and WHICH
-								// stack — data and identity — never about the engine computing.
-								el('a', {
-									attrs: { href: '/compare' },
-									className: 'fe-landing__compare',
-									text: 'See one filter state in all six stacks →',
 								}),
 								// Counted, not written. "Three demos" outlived being true by one dataset, in the same
 								// commit range that left `/wine` off the grid below it.

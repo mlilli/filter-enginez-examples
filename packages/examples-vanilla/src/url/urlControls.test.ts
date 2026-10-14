@@ -8,6 +8,7 @@
  * an engine and none of that bears on whether the button has a glyph in it.
  */
 
+import { SITE } from '@filter-enginez/examples-shared/verticals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from './urlControls.js';
@@ -258,9 +259,10 @@ describe('createCompareLinkButton', () => {
 		const href = new URL(element.getAttribute('href') ?? '');
 
 		// The hand-rolled router intercepts a click only when the href starts with `/`. An absolute
-		// URL is therefore what leaves navigation to the browser — and under the `paths` production
-		// layout it is the only correct answer anyway, since each vertical sits beneath its own base.
+		// URL is therefore what leaves navigation to the browser — and the page is on another origin,
+		// the landing site (its local server here, since jsdom serves from a loopback host).
 		expect(element.getAttribute('href')?.startsWith('/')).toBe(false);
+		expect(href.origin).toBe(SITE.devOrigin);
 		expect(href.pathname).toBe('/compare');
 		expect(href.searchParams.get('dataset')).toBe('real-estate');
 		expect(href.searchParams.get('f')).toBe(serialized);

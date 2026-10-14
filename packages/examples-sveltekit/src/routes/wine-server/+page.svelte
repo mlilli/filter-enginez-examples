@@ -27,7 +27,6 @@
 
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 	// The neutral subpath, not `./books-domain` — this is a WINE route deriving wine vocabularies, and
 	// `./vocabulary` exists so a generic helper never needs a cross-dataset import.
 	import { uniqueSorted } from '@filter-enginez/examples-shared/vocabulary';
@@ -143,16 +142,16 @@
 </svelte:head>
 
 {#if engine}
-	<!-- `compareDataset` alongside `subtitle`: both are this route saying which tier it is. The
-	     Compare button now offers the two-row `wine-server` comparison — this app in-process against
-	     vanilla over HTTP — rather than sending a visitor to the six-way browser one. -->
+	<!-- `compareDataset` alongside `tier`: both are this route saying which tier it is. The Compare
+	     button offers the two-row `wine-server` comparison — this app in-process against vanilla over
+	     HTTP — rather than the six-way browser one. -->
 	<WineView
 		{baselines}
 		compareDataset="wine-server"
 		{engine}
 		{originSpecs}
 		{originTree}
-		subtitle={verticalSubtitle('Wine', 'sveltekit', 'server')}
+		tier="server"
 		{vocabularies}
 	/>
 {:else if isMounted && bootError === null}

@@ -6,6 +6,8 @@
   "type": "module",
   "license": "Apache-2.0",
   "exports": {
+    "./app-header": "./src/app-header/index.ts",
+    "./app-header-core": "./src/app-header/core.ts",
     "./books": "./src/books/index.ts",
     "./books-boot-core": "./src/books/bootBooksCore.ts",
     "./books-core": "./src/books/core.ts",
@@ -15,7 +17,6 @@
     "./boot-caption": "./src/boot-caption/index.ts",
     "./bounds": "./src/bounds/index.ts",
     "./bundle-readers": "./src/filter-bundle/bundleReaders.ts",
-    "./compare": "./src/compare/index.ts",
     "./compare-core": "./src/compare/core.ts",
     "./data": "./src/data/index.ts",
     "./devtools": "./src/devtools/index.ts",

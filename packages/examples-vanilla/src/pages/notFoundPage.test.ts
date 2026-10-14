@@ -9,6 +9,7 @@
  * @packageDocumentation
  */
 
+import { appHeaderLinks, SITE_HOME_LABEL } from '@filter-enginez/examples-shared/app-header-core';
 import { NOT_FOUND_CHIPS, NOT_FOUND_COPY } from '@filter-enginez/examples-shared/notfound-core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -28,6 +29,18 @@ beforeEach(() => {
 });
 
 describe('404 page', () => {
+	it('carries the app header, with the way home to the landing site and back to this app’s hub', () => {
+		const container = makeContainer();
+
+		renderNotFoundPage(container);
+
+		expect(container.querySelector(`a[aria-label="${SITE_HOME_LABEL}"]`)?.getAttribute('href')).toBe(
+			appHeaderLinks(window.location).homeHref,
+		);
+		expect(container.querySelector('.fe-books-app__hub')?.getAttribute('href')).toBe('/');
+		expect(container.querySelector('.fe-books-app__subtitle')?.textContent).toBe('Not found · Vanilla');
+	});
+
 	it('renders the pinned-zero count, heading, dead-end chips, and CTA home', () => {
 		const container = makeContainer();
 

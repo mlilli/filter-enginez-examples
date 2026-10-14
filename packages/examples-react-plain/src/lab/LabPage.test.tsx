@@ -13,7 +13,9 @@
  * @packageDocumentation
  */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { appHeaderLinks, HEADER_PAGE_LABELS, SITE_HOME_LABEL } from '@filter-enginez/examples-shared/app-header';
+import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,12 +71,20 @@ describe('LabPage', () => {
 		expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Engine capabilities, running');
 	});
 
-	it('gives the brand link an accessible name rather than leaving it to a decorative glyph', () => {
-		// The mark is `aria-hidden`, so without the label the link's accessible name would be the
-		// wordmark alone — or nothing at all, if the wordmark were ever made decorative too.
+	it('carries the shared header, naming the page and linking home and back to the hub', () => {
+		// The compact header every page without dataset controls carries. The brand component has its
+		// own suite; this pins that the lab renders it, as this app, under the page's own label.
 		mountPage();
 
-		expect(screen.getByRole('link', { name: 'Filter EngineZ — back to the dataset hub' })).toBeDefined();
+		const header = screen.getByRole('banner');
+
+		expect(within(header).getByRole('link', { name: SITE_HOME_LABEL }).getAttribute('href')).toBe(
+			appHeaderLinks(window.location).homeHref,
+		);
+		expect(within(header).getByRole('link', { name: 'React plain dataset hub' }).getAttribute('href')).toBe('/');
+		expect(header.querySelector('.fe-books-app__subtitle')?.textContent).toBe(
+			verticalSubtitle(HEADER_PAGE_LABELS.lab, 'react-plain'),
+		);
 	});
 
 	it('links back to /books, which is where the shared engine state comes from', () => {

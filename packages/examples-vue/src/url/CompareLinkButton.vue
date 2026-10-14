@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * `<CompareLinkButton>` — takes the filter state you are looking at to `/compare`.
+ * `<CompareLinkButton>` — takes the filter state you are looking at to the comparison page on the
+ * landing site, `filterenginez.com/compare`.
  *
  * @remarks
  * The Vue port of examples-shared's React `<CompareLinkButton>`. Copy link beside it hands a state to
- * another PERSON; this hands it to another APP. Every decision comes from
+ * another PERSON; this hands it to every APP. Every decision comes from
  * `@filter-enginez/examples-shared/compare-core`, so this file is idiom and nothing else.
  *
  * **The state comes from `serializedFilterState`, not from `window.location`.** This app drives the
@@ -12,11 +13,10 @@
  * arriving — and the write is debounced besides, so a click-time read could find nothing
  * milliseconds after a filter landed and send the visitor to a preset instead of their own state.
  *
- * **A plain `<a>`, not a `<RouterLink>`**, which is the same call `CompareView.vue`'s six row links
- * make and for the same reason: this leaves the SPA. A `RouterLink` to `/compare` would work — the
- * route is in this app — but the href is built as an ABSOLUTE URL by `compareTargetHref`, since
- * under the `paths` production layout each vertical lives beneath its own base. Handing an absolute
- * URL to `RouterLink` is a category error; the browser should own it.
+ * **A plain `<a>`, not a `<RouterLink>`**, because this leaves the app: the comparison page lives on
+ * the landing site, another origin, and `compareTargetHref` builds its ABSOLUTE URL for the deployment
+ * layout this page is served under. Handing an absolute URL to `RouterLink` is a category error; the
+ * browser should own it.
  */
 import {
 	COMPARE_BUTTON_LABEL,
@@ -31,14 +31,13 @@ import { computed } from 'vue';
 import { serializedFilterState } from './urlState.js';
 
 const props = defineProps<{
-	/** Which dataset this route filters — the dataset `/compare` should open on. */
+	/** Which dataset this route filters — the dataset the comparison page should open on. */
 	dataset: CompareDataset;
 }>();
 
 const isComparable = computed(() => hasComparableState(serializedFilterState.value));
 const href = computed(() =>
 	compareTargetHref({
-		currentVerticalId: 'vue',
 		dataset: props.dataset,
 		location: window.location,
 		serialized: serializedFilterState.value,

@@ -12,6 +12,7 @@
  * @packageDocumentation
  */
 
+import { appHeaderSubtitle, HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header-core';
 import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	NOT_FOUND_CHIPS,
@@ -23,6 +24,7 @@ import {
 import type { RouteRenderResult } from '../router.js';
 
 import { createNotFoundLoader } from '../brand/indicators.js';
+import { createPageHeader } from '../shell/appHeader.js';
 
 /**
  * Render the 404 page.
@@ -61,6 +63,7 @@ export function renderNotFoundPage(container: HTMLElement): RouteRenderResult {
 	paintChips();
 
 	container.append(
+		createPageHeader(appHeaderSubtitle(HEADER_PAGE_LABELS.notFound, 'vanilla')),
 		el('main', {
 			children: [
 				el('p', { className: 'fe-notfound__eyebrow', text: NOT_FOUND_COPY.eyebrow }),

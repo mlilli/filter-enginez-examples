@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#0B0A09" />
+		<title>One filter state in six stacks — Filter EngineZ</title>
+		<meta
+			name="description"
+			content="One Filter EngineZ filter state, opened in every demo app that serves its dataset — React with Redux Toolkit, React, SvelteKit, Vue, Angular and plain TypeScript — through the same ?f URL parameter."
+		/>
+		<link rel="canonical" href="https://filterenginez.com/compare" />
+
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Filter EngineZ" />
+		<meta property="og:url" content="https://filterenginez.com/compare" />
+		<meta property="og:title" content="One filter state in six stacks — Filter EngineZ" />
+		<meta
+			property="og:description"
+			content="The same serialized filter state, linked into six front-end stacks over one engine. Open any link and get the identical result set."
+		/>
+		<meta property="og:image" content="https://filterenginez.com/og-card.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="The Filter EngineZ logomark and wordmark on a dark background" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="One filter state in six stacks — Filter EngineZ" />
+		<meta
+			name="twitter:description"
+			content="The same serialized filter state, linked into six front-end stacks over one engine."
+		/>
+		<meta name="twitter:image" content="https://filterenginez.com/og-card.png" />
+		<meta name="twitter:image:alt" content="The Filter EngineZ logomark and wordmark on a dark background" />
+
+		<link rel="stylesheet" href="/src/compare/compare.css" />
+		<script type="module" src="/src/compare/main.ts"></script>
+	</head>
+	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+
+		<header class="fe-books-app__header">
+			<div class="fe-books-app__brand">
+				<a class="fe-books-app__home" href="/" aria-label="Filter EngineZ home">
+					<img class="fe-books-app__mark" src="/mark.svg" alt="" width="36" height="36" />
+				</a>
+				<span class="fe-books-app__wordmark">
+					<a class="fe-books-app__name" href="/" tabindex="-1" aria-hidden="true">Filter EngineZ</a>
+					<span class="fe-books-app__subtitle">Compare</span>
+				</span>
+			</div>
+			<nav aria-label="Project">
+				<ul class="fe-books-app__nav">
+					<li><a class="fe-books-app__nav-link" href="/how-it-works">How it works</a></li>
+					<li><a class="fe-books-app__nav-link" href="/compare" aria-current="page">Compare</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://docs.filterenginez.com/">Docs</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://github.com/mlilli/filter-enginez">GitHub</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://www.npmjs.com/org/filter-enginez">npm</a></li>
+				</ul>
+			</nav>
+		</header>
+
+		<main id="main" class="fe-compare" tabindex="-1">
+			<p class="fe-compare__eyebrow">Engine portability</p>
+			<h1 class="fe-compare__heading" data-compare-heading><!--compare:heading--></h1>
+			<p class="fe-compare__lede">
+				Every demo app reads its state from the same
+				<code>?f</code>
+				parameter, through a serializer whose decode detects its own format tag. A link built here opens in any of them
+				— React, Vue, Svelte, Angular, or no framework at all — and reproduces the identical result set.
+			</p>
+			<div class="fe-compare__view" data-compare-view>
+				<!--compare:view-->
+			</div>
+			<p class="fe-compare__footnote">
+				Each link is a full page load into that app, which reads the state from
+				<code>?f</code>
+				as it boots.
+				<a href="/#demos">Every demo</a>
+			</p>
+		</main>
+
+		<footer class="fe-books-app__footer">
+			<p>
+				Filter EngineZ is open source under the
+				<a href="https://github.com/mlilli/filter-enginez/blob/main/LICENSE.md">Apache License 2.0</a>
+				. The demos run on synthetic data.
+			</p>
+		</footer>
+	</body>
+</html>

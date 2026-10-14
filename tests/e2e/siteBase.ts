@@ -1,11 +1,12 @@
 /**
- * Shared origin for the landing site's e2e spec.
+ * Shared origin for the landing site's e2e specs.
  *
  * @remarks
- * Playwright's single `baseURL` (see `playwright.config.ts`) points at the React RTK app, so the
- * how-it-works spec navigates with absolute URLs built from this origin. It must match the site's
- * `webServer.url` in the Playwright config (and the site's `vite.config.ts` `strictPort` on 5181), and
- * `SITE.devOrigin` in examples-shared's verticals registry, which the apps' landing pages link to.
+ * Playwright's single `baseURL` (see `playwright.config.ts`) points at the React RTK app, so the specs
+ * that drive the landing site — its how-it-works and comparison pages, and every app's header links to
+ * it — navigate with absolute URLs built from this origin. It must match the site's `webServer.url` in
+ * the Playwright config (and the site's `vite.config.ts` `strictPort` on 5181), and `SITE.devOrigin` in
+ * examples-shared's verticals registry, which every app's header and Compare button link to.
  *
  * @packageDocumentation
  */

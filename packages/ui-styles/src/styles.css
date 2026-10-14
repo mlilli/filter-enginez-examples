@@ -110,6 +110,57 @@
 		background-color: transparent;
 		background-image: none;
 	}
+
+	/* ── Text entry never zooms the page on a phone or tablet ──
+	 *
+	 * iOS Safari zooms the whole page in when a focused `input`, `select` or `textarea` computes to a
+	 * font-size below 16px, and leaves the visitor zoomed in after the field blurs. The filter panels
+	 * set their fields at 12–14px, so every search box, number field and select in every app did it.
+	 * Turning zoom off (`maximum-scale`, `user-scalable=no` in the viewport tag) would hide the
+	 * symptom by taking pinch-zoom away from everyone who needs it; this sets the floor instead.
+	 *
+	 * ── When it applies ──
+	 *
+	 * `(pointer: coarse)` is every device whose primary pointer is a finger, at any width, which is
+	 * what reaches an iPad in landscape (1024px and up) that a width query alone would miss. It is the
+	 * same query `.fe-icon-button` uses for its 44px touch size. Not `(hover: none) and
+	 * (pointer: coarse)`: requiring `hover: none` as well would drop touch devices that also report a
+	 * hover-capable input, and those zoom just the same. `(max-width: 1023px)` adds the phone and
+	 * tablet widths below the `lg` breakpoint (`DESKTOP_MIN_WIDTH_PX`, the panel's drawer/sidebar
+	 * switch), so the rule holds at those sizes even where a browser reports a fine pointer.
+	 *
+	 * ── Why `@layer base` and `!important` ──
+	 *
+	 * The field sizes it overrides are unlayered `.fe-*` classes here, Tailwind utilities in
+	 * `@layer utilities` in the two React apps, and inline `<style>` blocks; a normal declaration in a
+	 * layer loses to every one of them. An `!important` declaration in an EARLY layer beats all of those
+	 * — the cascade reverses layer order for important declarations — and `base` comes before every
+	 * layer that sets a font size: the brand tokens open it ahead of Tailwind's `theme`, `components`
+	 * and `utilities` (Tailwind hoists only its `properties` layer above it, which declares nothing
+	 * but `--tw-*` custom properties). Every input in the system is 16px or smaller at desktop sizes,
+	 * so a floor of exactly 16px raises the small ones and changes nothing else.
+	 *
+	 * Text entry only: checkboxes, radios, ranges and buttons do not zoom, and their glyph sizes are
+	 * not this rule's business. `tests/tooling/touchInputZoom.test.ts` pins the rule, and every app's
+	 * stylesheet reaching it. */
+	@media (pointer: coarse), (max-width: 1023px) {
+		input:not(
+			[type='button'],
+			[type='checkbox'],
+			[type='color'],
+			[type='file'],
+			[type='hidden'],
+			[type='image'],
+			[type='radio'],
+			[type='range'],
+			[type='reset'],
+			[type='submit']
+		),
+		select,
+		textarea {
+			font-size: 16px !important;
+		}
+	}
 }
 
 /* ─── Range-slider track tiers ───────────────────────────────────────────────
@@ -2410,38 +2461,11 @@
 	background: var(--gray-0);
 	padding-bottom: var(--space-24);
 }
-.fe-lab__topbar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: var(--space-4) var(--space-6);
-	border-bottom: 1px solid var(--gray-3);
-}
-.fe-lab__brand {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-3);
-}
-/* The lab's topbar mark. It holds the REAL logomark — `<Mark size={28} />` — so this rule
-   is a centering box and nothing more, matching `.fe-books-app__mark` (which carries no rule at all) and the docs
-   topbar's `display: inline-flex; align-items: center`. No border, radius, tint or font
-   declarations: around a real mark they would frame it in a badge no demo has. */
-.fe-lab__brand-mark {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 28px;
-	height: 28px;
-}
-.fe-lab__brand-word {
-	font-family: var(--font-display);
-	font-size: var(--text-base);
-	font-weight: 700;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	color: var(--gray-11);
-}
+/* The lab header's link back to the books demo, beside the shared header brand. */
 .fe-lab__back {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
 	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 	color: var(--gray-8);
@@ -2814,12 +2838,44 @@
 	background: var(--gray-0);
 	border-bottom: 1px solid var(--gray-3);
 }
+/* ── The header brand: the way home, the way back to this app's hub, and every other demo ──
+
+   One family for every header in the system: the dataset routes of all six apps, their hubs, 404s
+   and lab, the documentation, and the landing site's own pages. Markup, left to right:
+
+       <nav class="fe-books-app__brand" aria-label="Filter EngineZ">
+         <a class="fe-books-app__home" href="https://filterenginez.com/" aria-label="Filter EngineZ home">
+           (the logomark, `.fe-books-app__mark`)
+         </a>
+         <span class="fe-books-app__wordmark">
+           <a class="fe-books-app__name" href="…same…" tabindex="-1" aria-hidden="true">Filter EngineZ</a>
+           <span class="fe-books-app__subtitle">Wine · <a class="fe-books-app__hub" href="/">SvelteKit</a> (server)</span>
+         </span>
+         <a class="fe-books-app__nav-link fe-books-app__all-demos" href="https://filterenginez.com/#demos">All demos</a>
+       </nav>
+
+   The logomark link is the one home link a keyboard or screen reader meets; the wordmark repeats it
+   for the pointer only, so the whole brand is a target without announcing the same link twice. The
+   app's name in the subtitle opens this app's own hub. "All demos" shows from the `lg` breakpoint up
+   (1024px, `DESKTOP_MIN_WIDTH_PX`): below it the header already wraps its controls onto a second row,
+   and the logomark alone carries the way home. */
 .fe-books-app__brand {
 	display: flex;
 	align-items: center;
 	gap: 12px;
 	min-width: 0;
-	text-decoration: none;
+}
+.fe-books-app__home {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+	border-radius: var(--radius-md);
+}
+.fe-books-app__mark {
+	display: block;
 }
 /* The header's control cluster — shared by SvelteKit, Vue, vanilla and Angular. (Both React apps
    build their own header in Tailwind; they carry the same `flex-wrap` for the same reason.)
@@ -2902,6 +2958,10 @@
 	letter-spacing: 0.14em;
 	color: var(--gray-11);
 	font-family: var(--font-display);
+	text-decoration: none;
+}
+.fe-books-app__name:hover {
+	color: var(--accent-glow);
 }
 .fe-books-app__subtitle {
 	font-size: 12px;
@@ -2909,6 +2969,65 @@
 	letter-spacing: 0.12em;
 	color: var(--gray-8);
 	font-family: var(--font-mono);
+}
+/* The app's name inside the subtitle, linking to the app's hub. Underlined, because it sits in a run
+   of plain text and color alone must not be what marks it as a link; 24px tall, the WCAG 2.2 minimum
+   target, without growing the header. */
+.fe-books-app__hub {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	color: var(--gray-10);
+	text-decoration: underline;
+	text-decoration-color: var(--gray-6);
+	text-underline-offset: 3px;
+}
+.fe-books-app__hub:hover,
+.fe-books-app__hub[aria-current='page'] {
+	color: var(--accent);
+	text-decoration-color: currentColor;
+}
+/* A text link in a header: "All demos" in the apps, and the landing site's page links. Set like the
+   header's controls (display face, uppercase, tracked), without their outline, so it reads as
+   navigation rather than as one more control. */
+.fe-books-app__nav-link {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 12px;
+	border-radius: var(--radius-md);
+	font-family: var(--font-display);
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	text-decoration: none;
+	white-space: nowrap;
+	color: var(--gray-10);
+	transition:
+		color 150ms ease,
+		background 150ms ease;
+}
+.fe-books-app__nav-link:hover {
+	color: var(--accent);
+	background: var(--gray-2);
+}
+.fe-books-app__nav-link[aria-current='page'] {
+	color: var(--accent);
+}
+/* After `__nav-link`, so this `display` wins at equal specificity. */
+.fe-books-app__all-demos {
+	display: none;
+}
+/* The landing site's row of page links, beside its brand. Wraps rather than overflows on a phone,
+   like `.fe-books-app__url-controls`. */
+.fe-books-app__nav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 4px;
 }
 .fe-books-app__main {
 	flex: 1 1 0%;
@@ -2974,6 +3093,10 @@
 @media (min-width: 1024px) {
 	.fe-books-app__header {
 		padding: 16px 24px;
+	}
+	.fe-books-app__all-demos {
+		display: inline-flex;
+		margin-left: 8px;
 	}
 	.fe-books-app__main {
 		flex-direction: row;
@@ -4369,8 +4492,8 @@
 	}
 }
 
-/* fe-compare — the cross-framework comparison page (`/compare`, examples-shared). One filter state shown
- * as a link into each of the six verticals.
+/* fe-compare — the cross-framework comparison page (`filterenginez.com/compare`, on the landing site).
+ * One filter state shown as a link into each of the six verticals.
  *
  * Dual-accent contract, and this block is a place it would be easy to get wrong: EVERY accent here
  * is cyan, because every accent here refers to DATA or IDENTITY — the state being carried, the
@@ -4401,7 +4524,7 @@
 	font-size: clamp(26px, 4vw, 38px);
 	font-weight: 600;
 	letter-spacing: 0.02em;
-	color: var(--gray-12);
+	color: var(--gray-11);
 }
 
 .fe-compare__lede {
@@ -4456,7 +4579,7 @@
  * each rule is for, so the next rule added to either cannot silently lose. */
 .fe-compare__toggle:not(.fe-compare__toggle--selected):hover {
 	border-color: var(--gray-5);
-	color: var(--gray-12);
+	color: var(--gray-11);
 }
 
 .fe-compare__toggle--selected {

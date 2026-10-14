@@ -1,6 +1,6 @@
 /**
- * `/compare` — the cross-origin click-through, and the one test that actually proves the portability
- * claim.
+ * The comparison page — the cross-origin click-through, and the one test that actually proves the
+ * portability claim.
  *
  * @remarks
  * Every vertical reads its filter state from the same `?f=` param, through a tagged serializer whose
@@ -8,14 +8,15 @@
  * construction; this file is what **navigates those links**. A serializer contract that holds in six
  * separate unit suites and fails across an origin boundary would look exactly like a passing suite.
  *
- * ### What this drives, and why one shell is enough
+ * ### What this drives
  *
- * Every vertical serves `/compare`, and the page's whole output is six links into `/books`; **all six
- * verticals serve `/books` and hydrate `?f=` there**. So the click-through starts from React RTK's
- * `/compare` while the links land in all six. That `/compare` in every shell produces the same six
- * links is `compare-shells.spec.ts`'s claim, not this one's.
+ * The comparison page is one page, on the landing site (`/compare` on :5181), and its markup lives in
+ * `packages/site/src/compare/compareView.ts`. Its whole output is one link per vertical serving the
+ * dataset; **all six verticals serve `/books` and hydrate `?f=` there**. So the click-through opens
+ * the page's books view and follows every row into its app. That the rows point at the right origins
+ * carrying the right state is `compare-page.spec.ts`'s claim, not this one's.
  *
- * ### The three assertions, and the failure each one alone would miss
+ * ### The two assertions, and the failure each one alone would miss
  *
  * 1. **Per-vertical arrival.** Click the row, wait for that app's own boot signal, and require at
  *    least one active-filter pill. The pill is what separates "the app loaded" from "the app loaded
@@ -26,16 +27,13 @@
  *    test. It is deliberately a separate `test` rather than a running comparison inside the loop, so
  *    the report names the claim that broke instead of naming whichever vertical happened to be second.
  *
- * ### The link TABLE lives in `compare-shells.spec.ts`
- *
- * "The six rows point at the right origins carrying the right state" is a claim about every shell, not
- * about React's page — including the far stronger one that all six agree byte-for-byte, which no
- * single-shell test can make. So it is asserted there, across all six.
+ * ### The link TABLE lives in `compare-page.spec.ts`
  *
  * **The two files prove different halves and neither implies the other.** This one proves the links
  * WORK: it boots six destinations and requires one settled result count across them. That one proves
- * the links AGREE. Six identical links that all 404 pass there; six working links that differ per
- * shell pass here.
+ * the table is RIGHT — one row per serving vertical, in registry order, each carrying the state the
+ * page shows. Six correct links that all 404 pass there; six working links into the wrong apps pass
+ * here.
  *
  * ### Why the pills are asserted loosely, and what that leaves uncovered
  *
@@ -55,33 +53,36 @@
  * results column, which is the same at both project viewports. That is trap 1 from `filterFlow.ts`
  * observed by construction rather than by discipline.
  *
- * **It never asserts on markup that could have been server-rendered before the client started.** The
- * SvelteKit vertical is the one that server-renders, and an `expect(...).toBeVisible()` there can
- * resolve at ~0 ms against SSR output (the `svelte-about` axe race). The waits below are on
- * the boot subtitle and then on a SETTLED count, and a settled count is by definition state only the
- * client engine can produce.
+ * **It never asserts on markup that could have been server-rendered before the client started.** Two
+ * pages here are served with content already in them: the comparison page itself, prerendered with
+ * rows linked to the DEPLOYED apps (which is why `openComparePage` waits for the local re-render before
+ * anything is clicked), and SvelteKit's books route, where an `expect(...).toBeVisible()` can resolve at
+ * ~0 ms against SSR output. The waits below are on the boot subtitle and then on a SETTLED count, and a
+ * settled count is by definition state only the client engine can produce.
  *
- * ### Why the two `examples-shared` imports are relative
+ * ### Why the `examples-shared` imports are relative
  *
  * The same reason `./subtitles.ts` gives at length: the package's subpaths point at TypeScript source
  * and Playwright does not transform files under `node_modules`. Both modules reached here —
  * `verticals/verticals.ts` and `compare/links.ts` — have zero external imports (links pulls only
- * `origins.ts` and the registry, both of which import nothing), so the boundary stays where it is.
- * Note that `compare/core.ts` is deliberately NOT the import: its barrel also pulls `presets.ts`,
- * which type-imports `@filter-enginez/core` and would widen the e2e program for values this spec does
- * not need — it takes the page's own default preset instead of naming one.
+ * `origins.ts` and the registry, both of which import nothing outside the package), so the boundary
+ * stays where it is. Note that `compare/core.ts` is deliberately NOT the import: its barrel also pulls
+ * `presets.ts`, which type-imports `@filter-enginez/core` and would widen the e2e program for values
+ * this spec does not need — it takes the page's own default preset instead of naming one.
  *
  * @packageDocumentation
  */
 
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import {
 	type CompareDataset,
+	DATASET_PARAM,
 	DATASET_ROUTES,
 	verticalsServing,
 } from '../../packages/examples-shared/src/compare/links.js';
 import { BOOKS_ARRIVAL } from './booksArrival.js';
+import { COMPARE_LIST, openComparePage } from './comparePage.js';
 import {
 	ACTIVE_CHIP,
 	isMobileProject,
@@ -107,7 +108,7 @@ const DATASET: CompareDataset = 'books';
 const DATASET_LABEL = 'Books';
 
 /**
- * The comparison page, with no preset named.
+ * The comparison page's query: the dataset, with no preset named.
  *
  * @remarks
  * Deliberately no `&preset=`. The page falls back to its first preset, and taking whatever it chose —
@@ -116,13 +117,7 @@ const DATASET_LABEL = 'Books';
  * choice is not load-bearing: `presets.test.ts` loads every preset into a real engine over the real
  * corpus and requires a non-empty result, which is the property this spec depends on.
  */
-const COMPARE_PATH = `/compare?dataset=${DATASET}`;
-
-/** The `<ul>` of vertical rows, so the toggles and the footer link cannot be matched by accident. */
-const COMPARE_LIST = '.fe-compare__list';
-
-/** The serialized state itself, exactly as the six links carry it. */
-const COMPARE_STATE_VALUE = '.fe-compare__state-value';
+const COMPARE_SEARCH = `?${DATASET_PARAM}=${DATASET}`;
 
 /** The toggle currently showing — one per group. */
 const COMPARE_TOGGLE_SELECTED = '.fe-compare__toggle--selected';
@@ -147,7 +142,7 @@ const SETTLED: SettledCountOptions = { intervals: PLAYWRIGHT_POLL_INTERVALS, tim
  * Per-test ceiling.
  *
  * @remarks
- * Above the config's 90s, because one test here is a `/compare` load PLUS a full cross-origin boot of
+ * Above the config's 90s, because one test here is a comparison-page load PLUS a full cross-origin boot of
  * a second app PLUS a settle — and on the two slowest verticals those three add up past the default
  * with no margin. Set per test rather than in the config so the other 24 spec files keep the tighter
  * ceiling, which is what makes a hang there legible.
@@ -167,24 +162,7 @@ const CLICK_THROUGH_TIMEOUT_MS = 120_000;
  */
 const reproducedCounts = new Map<VerticalId, number>();
 
-/**
- * Open the comparison page and wait for it to have a state to compare.
- *
- * @param page - The page under test.
- * @returns The serialized state the page is handing to all six links.
- */
-async function openComparePage(page: Page): Promise<string> {
-	await page.goto(COMPARE_PATH);
-
-	const value = page.locator(COMPARE_STATE_VALUE);
-
-	await expect(value).toBeVisible();
-	await expect(value, 'the comparison page rendered no state to transport').not.toBeEmpty();
-
-	return (await value.textContent()) ?? '';
-}
-
-test.describe.serial('/compare — one filter state, six stacks', () => {
+test.describe.serial('the comparison page — one filter state, six stacks', () => {
 	// Module state outlives a worker's first project. Playwright normally spawns a fresh worker per
 	// project, so this is belt-and-braces — but a parity test that could compare six counts left behind
 	// by the DESKTOP run while claiming to describe the mobile one would be a silent pass, and one line
@@ -193,11 +171,11 @@ test.describe.serial('/compare — one filter state, six stacks', () => {
 		reproducedCounts.clear();
 	});
 
-	// The link TABLE — six rows, right origins, right state — is asserted in `compare-shells.spec.ts`,
-	// because it is a claim about all six shells rather than about React's.
-	// Nothing is lost as an early signal for the chain below: `openComparePage` already requires a
-	// non-empty state readout, and each click resolves a row by the vertical's registry name, so a
-	// broken table fails on the first locator with the name it could not find.
+	// The link TABLE — one row per serving vertical, right origins, right state — is asserted in
+	// `compare-page.spec.ts`. Nothing is lost as an early signal for the chain below: `openComparePage`
+	// already requires a non-empty state readout and rows on the local origins, and each click resolves
+	// a row by the vertical's registry name, so a broken table fails on the first locator with the name
+	// it could not find.
 
 	for (const descriptor of verticalsServing(DATASET)) {
 		const arrival = BOOKS_ARRIVAL[descriptor.id];
@@ -205,7 +183,7 @@ test.describe.serial('/compare — one filter state, six stacks', () => {
 		test(`the ${descriptor.name} link opens its ${DATASET_ROUTES[DATASET]} with the state applied`, async ({ page }) => {
 			test.setTimeout(CLICK_THROUGH_TIMEOUT_MS);
 
-			await openComparePage(page);
+			await openComparePage(page, COMPARE_SEARCH);
 			await page
 				.locator(COMPARE_LIST)
 				// `exact` because accessible-name matching is substring-by-default: a bare `React RTK`
@@ -264,19 +242,17 @@ test.describe.serial('/compare — one filter state, six stacks', () => {
  * stylesheet; and a failure here would abort the serial chain, so one CSS regression would take the
  * portability run down with it and report the wrong thing as broken.
  *
- * One assertion covers all six shells. `.fe-compare__toggle*` lives only in `@filter-enginez/ui-styles`
- * — unlike `.fe-landing__compare`, the React apps carry no inline copy — so every vertical's
- * `/compare` renders through these exact rules. Re-asserting it per shell would be six copies of one
- * contract.
+ * `.fe-compare__toggle*` lives only in `@filter-enginez/ui-styles`, which the landing site's comparison
+ * page loads like every app does, so this asserts the shared rules where they are actually rendered.
  */
-test.describe('/compare — the page\'s own affordances', () => {
+test.describe('the comparison page — its own affordances', () => {
 	test('hovering the SELECTED toggle enhances it rather than replacing it', async ({ page }, testInfo) => {
 	// Hover is a pointer affordance and the mobile project has no pointer. Skipped rather than
 	// asserted-and-hoped: Chromium under device emulation reports `hover: none`, so a pass here
 	// would be measuring the emulator rather than the stylesheet.
 		test.skip(isMobileProject(testInfo), 'hover is a pointer affordance; the mobile project has none');
 
-		await openComparePage(page);
+		await openComparePage(page, COMPARE_SEARCH);
 
 		// The dataset group specifically: the preset group has a selected toggle too, and an unscoped
 		// locator would resolve to two elements and fail strict mode for a reason unrelated to styling.

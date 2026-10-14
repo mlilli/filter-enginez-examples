@@ -38,7 +38,7 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import {
 	injectEngineBusy,
 	injectFilterEngine,
@@ -49,7 +49,6 @@ import {
 	buildRuleSummaries,
 	type FilterSummary,
 } from '@filter-enginez/examples-shared/real-estate-domain';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { type Observable } from 'rxjs';
 
 import { REAL_ESTATE_ROUTE_DATA_KEY, type RealEstateRouteData } from '../app.routes.js';
@@ -65,6 +64,7 @@ import { ListingCardComponent } from '../real-estate/listing-card.component.js';
 import { realEstateBusyStream } from '../real-estate/real-estate-busy.js';
 import { provideRealEstateFacets } from '../real-estate/real-estate-facets.js';
 import { RealEstateFilterPanelComponent } from '../real-estate/real-estate-filter-panel.component.js';
+import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -89,6 +89,7 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
+		AppHeaderBrandComponent,
 		AsyncPipe,
 		DevtoolsPanelComponent,
 		CompareLinkButtonComponent,
@@ -99,7 +100,6 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 		ResultCardDirective,
 		ResultGridComponent,
 		ResultsHeaderComponent,
-		RouterLink,
 		TimeTravelControlsComponent,
 		UrlFormatToggleComponent,
 	],
@@ -112,13 +112,7 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 	template: `
 		<div class="fe-books-app">
 			<header class="fe-books-app__header">
-				<a class="fe-books-app__brand" routerLink="/" aria-label="Filter EngineZ — back to the dataset hub">
-					<img class="fe-books-app__mark" src="/mark.svg" width="36" height="36" alt="" />
-					<span class="fe-books-app__wordmark">
-						<span class="fe-books-app__name">Filter EngineZ</span>
-						<span class="fe-books-app__subtitle">{{ subtitle }}</span>
-					</span>
-				</a>
+				<nav fe-app-header-brand page="Real estate"></nav>
 
 				<div class="fe-books-app__url-controls">
 					<!--
@@ -201,9 +195,6 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 })
 export class RealEstatePageComponent {
 	private readonly _busy = injectEngineBusy();
-
-	/** Header subtitle — the dataset and the stack, from the shared registry. */
-	protected readonly subtitle = verticalSubtitle('Real estate', 'angular');
 
 	/** Devtools panel visibility. Hidden by default so a first visit gets a clean page. */
 	protected readonly isDevtoolsOpen = signal(false);

@@ -16,6 +16,8 @@
  * assertions are a last line of defense, not a first one.
  *
  * Component/directive selector prefix is `fe` (Filter EngineZ), matching `angular.json`'s `prefix`.
+ * Components select by kebab-case element (`fe-books-page`) or, where the host must be a native
+ * element, by kebab-case attribute (`nav[fe-app-header-brand]`).
  *
  * ## Why `base` is re-scoped to `.ts` here
  *
@@ -67,9 +69,12 @@ export default [
 			// declarative component legitimately has no members — the decorator IS the behavior. The rule
 			// assumes a class with no members is a namespace in disguise, which doesn't hold here.
 			'@typescript-eslint/no-extraneous-class': 'off',
+			// Attribute selectors too, for a component whose host must be a native element: the header
+			// brand is `nav[fe-app-header-brand]`, so the shared header markup's `<nav>` is the host
+			// itself rather than a child of a custom element the header's flex row would lay out.
 			'@angular-eslint/component-selector': [
 				'error',
-				{ prefix: 'fe', style: 'kebab-case', type: 'element' },
+				{ prefix: 'fe', style: 'kebab-case', type: ['element', 'attribute'] },
 			],
 			'@angular-eslint/directive-selector': [
 				'error',

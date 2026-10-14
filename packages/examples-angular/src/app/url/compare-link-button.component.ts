@@ -1,11 +1,13 @@
 /**
- * `<fe-compare-link-button>` — takes the filter state you are looking at to `/compare`.
+ * `<fe-compare-link-button>` — opens the comparison page on the landing site, carrying the filter
+ * state you are looking at.
  *
  * @remarks
  * The Angular port of examples-shared's React `<CompareLinkButton>`; every one of the six apps has
- * one. `<fe-copy-link-button>` beside it hands a state to another PERSON; this hands it to
- * another APP. Every decision lives in `@filter-enginez/examples-shared/compare-core`, so this file
- * is idiom and nothing else.
+ * one. `<fe-copy-link-button>` beside it hands a state to another PERSON; this hands it to every
+ * other APP, through the one comparison page at `filterenginez.com/compare` that links the state into
+ * each app serving the dataset. Every decision lives in `@filter-enginez/examples-shared/compare-core`,
+ * so this file is idiom and nothing else.
  *
  * **The state comes from {@link serializedFilterState}, not from `window.location`.** This app drives
  * the address bar with `history.replaceState`, which fires no event, so nothing here could observe
@@ -14,12 +16,11 @@
  *
  * ### Not a `routerLink`, and not a `[queryParams]` binding
  *
- * `compareTargetHref` returns an ABSOLUTE URL, because under the `paths` production layout each
- * vertical is served beneath its own base and a root-relative `/compare` would leave the app and
- * 404. Handing an absolute URL to `routerLink` is a category error; the browser should own it. Vue
- * made the same call for the same reason. Nor is there a `[queryParams]` object to build — which is
- * just as well, since Angular templates cannot express computed keys, the constraint that forced
- * `CompareView`'s toggles to be built as descriptors in the class.
+ * `compareTargetHref` returns an ABSOLUTE URL on the landing site — another origin, resolved from this
+ * page's location so a local run reaches the local site server. Handing a cross-origin URL to
+ * `routerLink` is a category error; the browser should own it. Vue made the same call for the same
+ * reason. Nor is there a `[queryParams]` object to build: the shared module assembles the query, so
+ * the parameter names and their order are written once for all six apps.
  *
  * @packageDocumentation
  */
@@ -81,7 +82,7 @@ import { serializedFilterState } from './url-state.js';
 	`,
 })
 export class CompareLinkButtonComponent {
-	/** Which dataset this route filters — the dataset `/compare` should open on. */
+	/** Which dataset this route filters — the dataset the comparison page opens on. */
 	public readonly dataset = input.required<CompareDataset>();
 
 	/** The visible label. One shared constant, so six shells cannot drift into six synonyms. */
@@ -93,7 +94,6 @@ export class CompareLinkButtonComponent {
 	/** Where the button points. Absolute — see the class docblock. */
 	protected readonly href = computed(() =>
 		compareTargetHref({
-			currentVerticalId: 'angular',
 			dataset: this.dataset(),
 			location: window.location,
 			serialized: serializedFilterState(),

@@ -32,10 +32,9 @@
  */
 
 
-import { Mark } from '@filter-enginez/brand';
+import { AppHeaderBrand } from '@filter-enginez/examples-shared/app-header';
 import { TimeTravelControls } from '@filter-enginez/examples-shared/devtools';
 import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
 import {
 	describeBootedWineCorpusTier,
@@ -47,7 +46,6 @@ import {
 import { useLastChange } from '@filter-enginez/react-signals';
 import { FilterDrawer } from '@filter-enginez/react-ui';
 import { useState } from 'react';
-import { Link } from 'react-router';
 
 import { ResultsHeader } from './ResultsHeader.js';
 
@@ -195,42 +193,11 @@ const Header = (props: {
 				borderBottom: '1px solid var(--gray-3)',
 			}}
 		>
-			<Link
-				to="/"
-				className="flex items-center gap-3 min-w-0"
-				style={{ textDecoration: 'none' }}
-				aria-label="Filter EngineZ — back to the dataset hub"
-			>
-				<Mark size={36} animated />
-				{/* Brand wordmark — hidden on the narrowest phones (< 400px) so the header never
-				    overflows into a horizontal scroll; the mark alone carries identity there. */}
-				<div className="hidden min-[360px]:flex flex-col leading-tight">
-					<span
-						className="text-base font-semibold tracking-wider uppercase"
-						style={{
-							color: 'var(--gray-11)',
-							fontFamily: 'var(--font-display)',
-							letterSpacing: '0.14em',
-						}}
-					>
-						Filter EngineZ
-					</span>
-					<span
-						className="text-xs uppercase"
-						style={{
-							color: 'var(--gray-8)',
-							fontFamily: 'var(--font-mono)',
-							letterSpacing: '0.12em',
-						}}
-					>
-						{/* `'worker'` is not decoration — this route boots the 130k corpus into a Comlink
-						    worker, as every other wine route reports. Without it the header would claim a
-						    main-thread engine, and the shared e2e wine suite, whose boot wait is
-						    `subtitle('Wine', id, 'worker')`, would time out on an app that booted fine. */}
-						{verticalSubtitle('Wine', 'react-plain', 'worker')}
-					</span>
-				</div>
-			</Link>
+			{/* `'worker'` is not decoration — this route boots the 130k corpus into a Comlink worker, as
+			    every other wine route reports. Without it the header would claim a main-thread engine, and the
+			    shared e2e wine suite, whose boot wait is `subtitle('Wine', id, 'worker')`, would time out on
+			    an app that booted fine. */}
+			<AppHeaderBrand page="Wine" tier="worker" verticalId="react-plain" />
 			<div className="flex flex-wrap items-center justify-end gap-2">
 				{/* Undo / redo / devtools toggle — the shared React cluster (icons + keyboard binding)
 				    that every dataset page in both React apps renders. */}
@@ -242,7 +209,7 @@ const Header = (props: {
 				/>
 				<UrlFormatToggle />
 				<CopyLinkButton />
-				<CompareLinkButton dataset="wine" verticalId="react-plain" />
+				<CompareLinkButton dataset="wine" />
 			</div>
 		</header>
 	);

@@ -306,12 +306,6 @@ export const routes: Routes = [
 		path: 'wine',
 	},
 	{
-		// No resolver and no corpus: this route renders links, not results.
-		loadComponent: async () =>
-			(await import('./pages/compare-page.component.js')).ComparePageComponent,
-		path: 'compare',
-	},
-	{
 		loadComponent: async () =>
 			(await import('./pages/not-found-page.component.js')).NotFoundPageComponent,
 		path: '**',

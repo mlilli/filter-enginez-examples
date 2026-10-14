@@ -91,8 +91,9 @@ const DOCS_BASE_URL = 'http://127.0.0.1:5180';
 
 /**
  * The landing site's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5181`, `strictPort`). The
- * how-it-works spec (`how-it-works.spec.ts`) imports this from `tests/e2e/siteBase.ts`, and every app's
- * landing page links here in development — `SITE.devOrigin` in examples-shared's verticals registry.
+ * how-it-works, compare and app-header specs import this from `tests/e2e/siteBase.ts`, and every app's
+ * header and Compare button link here in development — `SITE.devOrigin` in examples-shared's verticals
+ * registry.
  */
 const SITE_BASE_URL = 'http://127.0.0.1:5181';
 
@@ -216,9 +217,9 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/site dev',
-			// The landing site pins `strictPort` on 5181. Its spec (`how-it-works.spec.ts`) targets this
-			// origin via `SITE_BASE_URL` (see `tests/e2e/siteBase.ts`), and the six landing hubs' "How the
-			// engine works" links resolve to it in development.
+			// The landing site pins `strictPort` on 5181. Its specs (how-it-works, compare, app-header) target
+			// this origin via `SITE_BASE_URL` (see `tests/e2e/siteBase.ts`), and every app's header links and
+			// Compare button resolve to it in development.
 			reuseExistingServer: false,
 			timeout: 180_000,
 			url: SITE_BASE_URL,

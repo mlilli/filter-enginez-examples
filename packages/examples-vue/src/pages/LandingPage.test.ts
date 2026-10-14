@@ -1,10 +1,10 @@
 /**
- * Render test for the Vue landing hub — parity with the React/Svelte landing. Confirms the hero
- * wordmark + tagline, the "How the engine works" CTA, and one linked card per dataset route all mount
- * over a test router.
+ * Render test for the Vue landing hub — parity with the React/Svelte landing. Confirms the app
+ * header, the hero wordmark + tagline, and one linked card per dataset route all mount over a test
+ * router.
  */
 
-import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
+import { appHeaderLinks, SITE_HOME_LABEL } from '@filter-enginez/examples-shared/app-header-core';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
@@ -35,24 +35,27 @@ async function mountLanding() {
 }
 
 describe('Vue LandingPage', () => {
-	it('renders the hero wordmark, tagline, and the "how it works" CTA', async () => {
+	it('carries the app header, with the way home to the landing site and the hub marked current', async () => {
+		const wrapper = await mountLanding();
+
+		await flushPromises();
+
+		const header = wrapper.find('header.fe-books-app__header');
+
+		expect(header.find(`a[aria-label="${SITE_HOME_LABEL}"]`).attributes('href')).toBe(
+			appHeaderLinks(window.location).homeHref,
+		);
+		expect(header.find('.fe-books-app__subtitle').element.textContent).toBe('Datasets · Vue');
+		expect(header.find('.fe-books-app__hub').attributes('aria-current')).toBe('page');
+	});
+
+	it('renders the hero wordmark and tagline', async () => {
 		const wrapper = await mountLanding();
 
 		await flushPromises();
 
 		expect(wrapper.find('.fe-landing__wordmark').text()).toBe('Filter EngineZ');
 		expect(wrapper.text()).toContain('This is the Vue vertical.');
-		expect(wrapper.find('.fe-landing__about').text()).toContain('How the engine works');
-	});
-
-	it('links "How the engine works" to the landing site, resolved for this deployment layout', async () => {
-		const wrapper = await mountLanding();
-
-		await flushPromises();
-
-		// jsdom serves from a loopback host, so this is the development layout: the local site server.
-		expect(wrapper.find('.fe-landing__about').attributes('href')).toBe(howItWorksUrl(window.location, 'dev'));
-		expect(wrapper.find('.fe-landing__about').attributes('href')).toBe('http://127.0.0.1:5181/how-it-works');
 	});
 
 	it('renders one linked card per dataset route the app serves', async () => {

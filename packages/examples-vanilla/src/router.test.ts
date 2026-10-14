@@ -388,8 +388,8 @@ describe('link interception', () => {
 	});
 
 	it('ignores a click another handler already claimed', async () => {
-		// `defaultPrevented` is checked first so a control that happens to sit inside a link — the
-		// pattern the compare page uses — keeps its own behavior instead of navigating.
+		// `defaultPrevented` is checked first so a control that refuses its own click — the header
+		// Compare button before any filter is applied — keeps its own behavior instead of navigating.
 		const { container } = await mountRouter('/books', [wordRoute('/books', 'BOOKS'), wordRoute('/wine', 'WINE')]);
 		const link = anchor({ href: '/wine' });
 		const event = new MouseEvent('click', { bubbles: true, button: 0, cancelable: true });

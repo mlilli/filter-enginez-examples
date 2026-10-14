@@ -4,8 +4,8 @@
  * @remarks
  * ## The trap
  *
- * `ui-styles` hides `.fe-books-app__wordmark` below a breakpoint, and the eight React headers do the
- * same with a Tailwind `min-[…]` variant. The `__subtitle` that most e2e specs use as their boot
+ * `ui-styles` hides `.fe-books-app__wordmark` below a breakpoint, in every app's header — the React
+ * apps' included, which render the same element through the shared `<AppHeaderBrand>`. The `__subtitle` that most e2e specs use as their boot
  * signal (`tests/e2e/subtitles.ts` → `getByText(subtitle(…))` → `toBeVisible()`) lives INSIDE that
  * element. So a Playwright project narrower than the breakpoint does not fail one spec — it fails
  * every one of those specs at once, and each reads as "the app never booted" rather than as one
@@ -24,10 +24,12 @@
  *
  * ## The second invariant
  *
- * The CSS breakpoint and the React Tailwind variant are two statements of one design decision, in
- * two languages, across several files. Nothing but this file keeps them together — so they are
- * asserted equal here. A drift between them is invisible in a browser unless
- * you happen to compare a React vertical against a non-React one at exactly the wrong width.
+ * The breakpoint is stated ONCE, in that CSS rule. The eight React headers render the wordmark through
+ * the shared `<AppHeaderBrand>`, which wears the `ui-styles` class rather than restating the breakpoint
+ * as a Tailwind `min-[…]` variant — a second statement of one design decision, in a second language,
+ * that could drift unseen unless someone compared a React vertical with a non-React one at exactly the
+ * wrong width. So this file asserts the React headers render the shared brand and carry no such
+ * variant, and that the shared brand wears the class the rule hides.
  */
 
 // `@playwright/test`, not `playwright-core` — the latter is only a transitive dependency here and
@@ -41,7 +43,7 @@ import { describe, expect, it } from 'vitest';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** The React headers that carry the Tailwind twin of the CSS rule. */
+/** The React dataset headers, each of which must render the shared brand rather than its own wordmark. */
 const REACT_HEADERS = [
 	'packages/examples-react-plain/src/books/BooksApp.tsx',
 	'packages/examples-react-plain/src/books/BooksConfigApp.tsx',
@@ -105,12 +107,19 @@ describe('narrow-viewport boot signal', () => {
 		}
 	});
 
-	it.each(REACT_HEADERS)('%s hides at the same width as ui-styles', (file) => {
-		// Tailwind states it as the width at which the wordmark REAPPEARS, CSS as the last width at
-		// which it is hidden — so they are one apart by construction, and equality here would be the bug.
-		const match = /hidden min-\[(\d+)px\]:flex/u.exec(read(file));
+	it.each(REACT_HEADERS)('%s renders the shared brand, with no breakpoint of its own', (file) => {
+		const source = read(file);
 
-		expect(match, `${file} no longer carries the hidden min-[…]:flex wordmark variant`).not.toBeNull();
-		expect(Number(match?.[1] ?? Number.NaN)).toBe(wordmarkHideBreakpoint() + 1);
+		expect(source, `${file} no longer renders <AppHeaderBrand>`).toContain('<AppHeaderBrand');
+		expect(
+			source,
+			`${file} restates the wordmark breakpoint as a Tailwind min-[…] variant — the CSS rule in ui-styles is the one statement of it`,
+		).not.toMatch(/min-\[\d+px\]:flex/u);
+	});
+
+	it('gives the shared React brand the class the CSS rule hides', () => {
+		expect(read('packages/examples-shared/src/app-header/AppHeaderBrand.tsx')).toContain(
+			'className="fe-books-app__wordmark"',
+		);
 	});
 });

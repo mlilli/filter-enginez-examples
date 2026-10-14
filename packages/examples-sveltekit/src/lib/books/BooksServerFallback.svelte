@@ -13,6 +13,8 @@
 
 	import type { AppliedParams } from '$lib/server/booksServerParams.js';
 
+	import AppHeaderBrand from '$lib/shell/AppHeaderBrand.svelte';
+
 	import type { SsrBookCard } from '../../routes/books-server/+page.server.js';
 
 	interface Props {
@@ -42,6 +44,12 @@
 		return genre.replace(/-/gu, ' ');
 	}
 </script>
+
+<!-- The app header, as on every page: with JavaScript off this IS the route, so it carries the way home
+     to the landing site and back to the hub like the live view that replaces it. -->
+<header class="fe-books-app__header">
+	<AppHeaderBrand page="Books" tier="server" />
+</header>
 
 <div class="fe-server-fallback">
 	<header class="fe-server-fallback__banner">

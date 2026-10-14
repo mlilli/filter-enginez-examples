@@ -3,8 +3,11 @@
  *
  * @remarks
  * A render test. This component sits in the header of every Angular dataset route, so a throw at
- * render fails each of those routes' e2e suites while `/compare`, the landing hub and the 404 stay
- * green — and `ng build` and `ngc` stay clean, because neither RENDERS it. This does.
+ * render fails each of those routes' e2e suites while the landing hub and the 404 stay green — and
+ * `ng build` and `ngc` stay clean, because neither RENDERS it. This does.
+ *
+ * jsdom serves from a loopback host, so the comparison page resolves to the landing site's local
+ * server, {@link SITE}'s `devOrigin`.
  *
  * The point generalizes past this component: a standalone component with no spec is invisible to
  * every gate short of the e2e suite, so its first execution is in front of a browser that
@@ -16,6 +19,7 @@
 import { Component, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { compareButtonTitle, compareEmptyHint } from '@filter-enginez/examples-shared/compare-core';
+import { SITE } from '@filter-enginez/examples-shared/verticals';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CompareLinkButtonComponent } from './compare-link-button.component.js';
@@ -76,22 +80,25 @@ describe('fe-compare-link-button', () => {
 		expect(link().getAttribute('aria-label')).toBe(compareButtonTitle('books'));
 	});
 
-	it('carries the current state to an ABSOLUTE /compare url', () => {
+	it('carries the current state to the comparison page on the landing site', () => {
 		serializedFilterState.set('h~{"version":1,"rules":[]}');
 		fixture.detectChanges();
 
 		const href = new URL(link().href);
 
+		expect(href.origin).toBe(SITE.devOrigin);
 		expect(href.pathname).toBe('/compare');
 		expect(href.searchParams.get('dataset')).toBe('books');
 		expect(href.searchParams.get('f')).toBe('h~{"version":1,"rules":[]}');
 	});
 
-	it('offers a bare /compare when there is nothing to carry', () => {
+	it('offers the bare comparison page when there is nothing to carry', () => {
 		fixture.detectChanges();
 
 		const href = new URL(link().href);
 
+		expect(href.origin).toBe(SITE.devOrigin);
+		expect(href.pathname).toBe('/compare');
 		expect(href.searchParams.get('dataset')).toBe('books');
 		expect(href.searchParams.get('f')).toBeNull();
 	});

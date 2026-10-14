@@ -96,7 +96,7 @@ export const urlFormat = ref<UrlFormat>(readInitialFormat());
  * The header Compare button is the first consumer: it needs both WHETHER there is state (to decide
  * whether it is inert) and WHAT that state is (to build its href). Reading `window.location.search`
  * on click would satisfy neither — writes are debounced by {@link WRITE_DEBOUNCE_MS}, so a click
- * inside that window would find nothing and send the visitor to `/compare` with a preset instead of
+ * inside that window would find nothing and send the visitor to the comparison page with a preset instead of
  * their own filters.
  *
  * A plain `ref`, not `shallowRef`: the value is a string, so there is no object graph for Vue's deep

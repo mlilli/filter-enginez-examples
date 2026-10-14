@@ -16,12 +16,11 @@ apps differ only in how they read engine state, which is the comparison they exi
 | `/books-server` | The books UI over an HTTP engine; every filter round-trips to `examples-server` (run `pnpm dev:api` first)   |
 | `/real-estate`  | Property listings: geo-radius search on a map, a metro-to-neighborhood hierarchy and must-have features      |
 | `/lab`          | What-if projections, nearest-neighbor similarity and suggested next filters, on the live `/books` engine     |
-| `/compare`      | One filter state, linked across every app that serves the dataset                                            |
 | `/docs`         | The shared documentation pages: rule and algorithm reference, playground and API index                       |
 
-The landing hub's "How the engine works" link leads to
-[filterenginez.com/how-it-works](https://filterenginez.com/how-it-works), the one page all six demos share; this app's
-`/about` redirects there. Three of that page's algorithm bands link back into `/lab`.
+How the engine works is explained at [filterenginez.com/how-it-works](https://filterenginez.com/how-it-works), the one
+page all six demos share; this app's `/about` redirects there. Three of that page's algorithm bands link back into
+`/lab`.
 
 Every dataset route keeps its filter state in a shareable URL (`url-state-router`, with a format toggle and copy-link
 button). Every dataset route except `/books-config` also offers undo, redo and time travel through the devtools panel.

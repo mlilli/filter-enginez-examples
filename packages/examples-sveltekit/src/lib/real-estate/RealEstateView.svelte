@@ -43,7 +43,6 @@
 		type RealEstateChipVocabularies,
 		type RealEstateSliderFieldId,
 	} from '@filter-enginez/examples-shared/real-estate-domain';
-	import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
 	import ResultsHeader from '$lib/controls/ResultsHeader.svelte';
@@ -51,6 +50,7 @@
 
 	import DevtoolsPanel from '../controls/DevtoolsPanel.svelte';
 	import TimeTravelControls from '../controls/TimeTravelControls.svelte';
+	import AppHeaderBrand from '../shell/AppHeaderBrand.svelte';
 	import CompareLinkButton from '../url/CompareLinkButton.svelte';
 	import CopyLinkButton from '../url/CopyLinkButton.svelte';
 	import UrlFormatToggle from '../url/UrlFormatToggle.svelte';
@@ -183,13 +183,7 @@
 
 <div class="fe-books-app">
 	<header class="fe-books-app__header">
-		<a href="/" class="fe-books-app__brand" aria-label="Filter EngineZ — back to the dataset hub">
-			<img src="/mark.svg" alt="" width="36" height="36" class="fe-books-app__mark" />
-			<span class="fe-books-app__wordmark">
-				<span class="fe-books-app__name">Filter EngineZ</span>
-				<span class="fe-books-app__subtitle">{verticalSubtitle('Real estate', 'sveltekit')}</span>
-			</span>
-		</a>
+		<AppHeaderBrand page="Real estate" />
 
 		<div class="fe-books-app__url-controls">
 			<TimeTravelControls

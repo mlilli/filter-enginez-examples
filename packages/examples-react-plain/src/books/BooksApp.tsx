@@ -12,16 +12,15 @@
  * @packageDocumentation
  */
 
-import { Mark } from '@filter-enginez/brand';
+import { AppHeaderBrand } from '@filter-enginez/examples-shared/app-header';
 import { BooksFilterPanel, BooksResultGrid, captureCurrentVersion, markResolvedAtLeast, markUserAction, useIsEngineBusy } from '@filter-enginez/examples-shared/books';
 import { DevtoolsPanel, TimeTravelControls } from '@filter-enginez/examples-shared/devtools';
 import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
+import { type EngineTier } from '@filter-enginez/examples-shared/verticals';
 import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
 import { useLastChange } from '@filter-enginez/react-signals';
 import { FilterDrawer } from '@filter-enginez/react-ui';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 
 import { BooksResultsHeader } from './BooksResultsHeader.js';
 
@@ -31,18 +30,21 @@ import { BooksResultsHeader } from './BooksResultsHeader.js';
 export interface BooksAppProps {
 	/** Footer engine label — where filtering runs. Defaults to `main-thread engine`. */
 	readonly engineLabel?: string;
-	/** Header subtitle — names the dataset and the stack. Defaults to the in-browser engine's label. */
-	readonly subtitle?: string;
+	/**
+	 * The engine tier the header subtitle names, e.g. `server`. Omitted for the in-browser engine, whose
+	 * subtitle names the dataset and the app alone.
+	 */
+	readonly tier?: EngineTier;
 }
 
 /**
  * The books page shell.
  */
 export const BooksApp = (props: BooksAppProps = {}): React.ReactElement => {
-	// Defaulted rather than required: `/books` is the ordinary case and should not have to say so.
+	// Optional rather than required: `/books` is the ordinary case and should not have to say so.
 	// `/books-server` renders this EXACT component over an HTTP-backed engine, and the header is the
 	// only place a visitor can tell which one they are looking at (the footer's engine label agrees).
-	const { engineLabel = 'main-thread engine', subtitle = verticalSubtitle('Books', 'react-plain') } = props;
+	const { engineLabel = 'main-thread engine', tier } = props;
 	// Mobile filter-drawer visibility — only meaningful below `lg`, where the sidebar collapses.
 	const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 	// Two-column breakpoint switch — `true` at ≥1024px (static sidebar), `false` below (drawer).
@@ -64,7 +66,7 @@ export const BooksApp = (props: BooksAppProps = {}): React.ReactElement => {
 	return (
 		<div className="min-h-screen flex flex-col">
 			<Header
-				subtitle={subtitle}
+				tier={tier}
 				controlSizePx={isDesktop ? 36 : 44}
 				isDevtoolsOpen={isDevtoolsVisible}
 				onToggleDevtools={() => setIsDevtoolsVisible((visible) => !visible)}
@@ -147,7 +149,8 @@ const FiltersTrigger = (props: { readonly onOpen: () => void }): React.ReactElem
 };
 
 /**
- * Page header — brand identity (mark + wordmark), a link back to the dataset hub.
+ * Page header — the shared header brand (the way home, back to this app's hub, and to every other
+ * demo) beside the page's controls.
  *
  * @internal
  */
@@ -155,37 +158,16 @@ const Header = (props: {
 	readonly controlSizePx: number;
 	readonly isDevtoolsOpen: boolean;
 	readonly onToggleDevtools: () => void;
-	readonly subtitle: string;
+	readonly tier: EngineTier | undefined;
 }): React.ReactElement => {
-	const { controlSizePx, isDevtoolsOpen, onToggleDevtools, subtitle } = props;
+	const { controlSizePx, isDevtoolsOpen, onToggleDevtools, tier } = props;
 
 	return (
 		<header
 			className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6 lg:py-4"
 			style={{ background: 'var(--gray-0)', borderBottom: '1px solid var(--gray-3)' }}
 		>
-			<Link
-				to="/"
-				className="flex items-center gap-3 min-w-0"
-				style={{ textDecoration: 'none' }}
-				aria-label="Filter EngineZ — back to the dataset hub"
-			>
-				<Mark size={36} animated />
-				<div className="hidden min-[360px]:flex flex-col leading-tight">
-					<span
-						className="text-base font-semibold tracking-wider uppercase"
-						style={{ color: 'var(--gray-11)', fontFamily: 'var(--font-display)', letterSpacing: '0.14em' }}
-					>
-						Filter EngineZ
-					</span>
-					<span
-						className="text-xs uppercase"
-						style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)', letterSpacing: '0.12em' }}
-					>
-						{subtitle}
-					</span>
-				</div>
-			</Link>
+			<AppHeaderBrand page="Books" tier={tier} verticalId="react-plain" />
 			<div className="flex flex-wrap items-center justify-end gap-2">
 				<TimeTravelControls
 					controlSizePx={controlSizePx}
@@ -195,7 +177,7 @@ const Header = (props: {
 				/>
 				<UrlFormatToggle />
 				<CopyLinkButton />
-				<CompareLinkButton dataset="books" verticalId="react-plain" />
+				<CompareLinkButton dataset="books" />
 			</div>
 		</header>
 	);

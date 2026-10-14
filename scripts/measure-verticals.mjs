@@ -187,8 +187,8 @@ function measure(relative) {
  *
  * @remarks
  * Kept in step with `examples-shared/verticals` by `tests/tooling/verticalSizes.test.ts`, which
- * asserts one entry per vertical id. Adding a seventh vertical without a row here would leave a blank
- * column on `/compare` rather than an error.
+ * asserts one entry per vertical id. Adding a seventh vertical without a row here would leave it out of
+ * the measurement silently rather than as an error.
  */
 const TREES = [
 	{ id: 'react-rtk', path: 'packages/examples-react-rtk/src' },

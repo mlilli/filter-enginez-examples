@@ -68,14 +68,12 @@ import {
 	signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
 import {
 	injectEngineBusy,
 	injectFilterEngine,
 	provideEngineBusy,
 	provideFilterEngineFactory,
 } from '@filter-enginez/angular-rxjs';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import {
 	buildWineBundleQuery,
 	buildWineFilterSummaries,
@@ -94,6 +92,7 @@ import {
 	type RuleSummarizer,
 } from '../controls/results-header.component.js';
 import { TimeTravelControlsComponent } from '../controls/time-travel-controls.component.js';
+import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -109,6 +108,7 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
+		AppHeaderBrandComponent,
 		AsyncPipe,
 		CompareLinkButtonComponent,
 		CopyLinkButtonComponent,
@@ -117,7 +117,6 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 		ResultCardDirective,
 		ResultGridComponent,
 		ResultsHeaderComponent,
-		RouterLink,
 		TimeTravelControlsComponent,
 		UrlFormatToggleComponent,
 		WineCardComponent,
@@ -139,17 +138,7 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 	template: `
 		<div class="fe-books-app">
 			<header class="fe-books-app__header">
-				<a
-					class="fe-books-app__brand"
-					routerLink="/"
-					aria-label="Filter EngineZ — back to the dataset hub"
-				>
-					<img class="fe-books-app__mark" src="/mark.svg" width="36" height="36" alt="" />
-					<span class="fe-books-app__wordmark">
-						<span class="fe-books-app__name">Filter EngineZ</span>
-						<span class="fe-books-app__subtitle">{{ subtitle }}</span>
-					</span>
-				</a>
+				<nav fe-app-header-brand page="Wine" tier="worker"></nav>
 
 				<div class="fe-books-app__url-controls">
 					<!--
@@ -239,9 +228,6 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 	`,
 })
 export class WineViewComponent {
-	/** Header subtitle — names the tier, so the header says which engine host is answering. */
-	protected readonly subtitle = verticalSubtitle('Wine', 'angular', 'worker');
-
 	/** Read in the template for the footer; public on the store, so bound directly. */
 	protected readonly store = inject(WineBootStore);
 

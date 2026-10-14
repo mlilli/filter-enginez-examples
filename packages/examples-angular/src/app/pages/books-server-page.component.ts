@@ -46,7 +46,6 @@ import {
 	provideEngineBusy,
 	provideFilterEngineFactory,
 } from '@filter-enginez/angular-rxjs';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { type Observable } from 'rxjs';
 
 import { BOOKS_SERVER_ROUTE_DATA_KEY, type BooksServerRouteData } from '../app.routes.js';
@@ -59,6 +58,7 @@ import {
 	ResultGridComponent,
 } from '../controls/result-grid.component.js';
 import { ResultsHeaderComponent } from '../controls/results-header.component.js';
+import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -105,6 +105,7 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
+		AppHeaderBrandComponent,
 		AsyncPipe,
 		BookCardComponent,
 		BooksFilterPanelComponent,
@@ -137,13 +138,7 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 		} @else {
 			<div class="fe-books-app">
 				<header class="fe-books-app__header">
-					<a class="fe-books-app__brand" routerLink="/" aria-label="Filter EngineZ — back to the dataset hub">
-						<img class="fe-books-app__mark" src="/mark.svg" width="36" height="36" alt="" />
-						<span class="fe-books-app__wordmark">
-							<span class="fe-books-app__name">Filter EngineZ</span>
-							<span class="fe-books-app__subtitle">{{ subtitle }}</span>
-						</span>
-					</a>
+					<nav fe-app-header-brand page="Books" tier="server"></nav>
 
 					<div class="fe-books-app__url-controls">
 						<fe-url-format-toggle />
@@ -199,8 +194,6 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 export class BooksServerPageComponent {
 	private readonly _busy = injectEngineBusy();
 
-	/** Header subtitle — the dataset and the stack, from the shared registry. */
-	protected readonly subtitle = verticalSubtitle('Books', 'angular', 'server');
 	private readonly _routeData = injectBooksServerRouteData();
 
 	/** Boot duration, rounded — here it measures the corpus fetch + initial state pull, not a build. */

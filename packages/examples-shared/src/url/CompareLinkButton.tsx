@@ -1,11 +1,13 @@
 /**
- * `<CompareLinkButton>` — takes the filter state you are looking at to the `/compare` page.
+ * `<CompareLinkButton>` — takes the filter state you are looking at to the comparison page on the
+ * landing site, `filterenginez.com/compare`.
  *
  * @remarks
  * The header affordance beside Copy link, and the entry point to the cross-app comparison: Copy
- * link hands the state to another PERSON, this hands it to another APP. Every decision it makes
- * comes from `@filter-enginez/examples-shared/compare-core`, so the four non-React shells' own
- * compare buttons contribute framework idiom and nothing else.
+ * link hands the state to another PERSON, this hands it to every APP. Every decision it makes — the
+ * page's URL for this deployment layout, the dataset and `?f=` it carries — comes from
+ * `@filter-enginez/examples-shared/compare-core`, so the four non-React shells' own compare buttons
+ * contribute framework idiom and nothing else.
  *
  * ### Why the state comes from `useSearchParams` and not `window.location`
  *
@@ -40,14 +42,11 @@ import {
 	hasComparableState,
 	URL_STATE_PARAM,
 } from '../compare/core.js';
-import { type VerticalId } from '../verticals/verticals.js';
 
 /** Props for {@link CompareLinkButton}. */
 export interface CompareLinkButtonProps {
-	/** Which dataset this route filters — the dataset `/compare` should open on. */
+	/** Which dataset this route filters — the dataset the comparison page should open on. */
 	readonly dataset: CompareDataset;
-	/** Which app is rendering. The destination is THIS vertical's `/compare`, not another's. */
-	readonly verticalId: VerticalId;
 }
 
 /**
@@ -57,13 +56,12 @@ export interface CompareLinkButtonProps {
  * @returns The link, inert until the visitor has filtered something.
  */
 export const CompareLinkButton = (props: CompareLinkButtonProps): React.ReactElement => {
-	const { dataset, verticalId } = props;
+	const { dataset } = props;
 	const [searchParams] = useSearchParams();
 
 	const serialized = searchParams.get(URL_STATE_PARAM);
 	const isComparable = hasComparableState(serialized);
 	const href = compareTargetHref({
-		currentVerticalId: verticalId,
 		dataset,
 		// Only `hostname` and `origin` are read, and neither changes within a session — so this is a
 		// constant, not the mutable state the search params are.

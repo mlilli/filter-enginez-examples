@@ -17,7 +17,6 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 import { BrainSynapse } from '@filter-enginez/brand';
 import { bootBooksServerEngine } from '@filter-enginez/examples-shared/books-server-core';
 import { useUrlFormat } from '@filter-enginez/examples-shared/url';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { createTaggedSerializer, FilterEngineUrlSync } from '@filter-enginez/url-state-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -88,7 +87,7 @@ export const BooksServerRoute = (): React.ReactElement => {
 		<Provider store={booted.store}>
 			<FilterEngineProvider engine={booted.engine}>
 				<FilterEngineUrlSync engine={booted.engine.core} asyncConfig={booted.engine.asyncEngine} serializer={urlSerializer} />
-				<BooksApp engineLabel="server engine over HTTP" subtitle={verticalSubtitle('Books', 'react-rtk', 'server')} />
+				<BooksApp engineLabel="server engine over HTTP" tier="server" />
 			</FilterEngineProvider>
 		</Provider>
 	);

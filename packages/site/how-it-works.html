@@ -56,17 +56,23 @@
 	<body>
 		<a class="skip-link" href="#main">Skip to content</a>
 
-		<header class="site-header">
-			<a class="site-header__brand" href="/" aria-label="Filter EngineZ, home">
-				<img class="site-header__mark" src="/mark.svg" alt="" width="40" height="40" />
-				<span class="site-header__wordmark" aria-hidden="true">Filter EngineZ</span>
-			</a>
-			<nav class="site-header__nav" aria-label="Project">
-				<ul>
-					<li><a href="/how-it-works" aria-current="page">How it works</a></li>
-					<li><a href="https://docs.filterenginez.com/">Docs</a></li>
-					<li><a href="https://github.com/mlilli/filter-enginez">GitHub</a></li>
-					<li><a href="https://www.npmjs.com/org/filter-enginez">npm</a></li>
+		<header class="fe-books-app__header">
+			<div class="fe-books-app__brand">
+				<a class="fe-books-app__home" href="/" aria-label="Filter EngineZ home">
+					<img class="fe-books-app__mark" src="/mark.svg" alt="" width="36" height="36" />
+				</a>
+				<span class="fe-books-app__wordmark">
+					<a class="fe-books-app__name" href="/" tabindex="-1" aria-hidden="true">Filter EngineZ</a>
+					<span class="fe-books-app__subtitle">How it works</span>
+				</span>
+			</div>
+			<nav aria-label="Project">
+				<ul class="fe-books-app__nav">
+					<li><a class="fe-books-app__nav-link" href="/how-it-works" aria-current="page">How it works</a></li>
+					<li><a class="fe-books-app__nav-link" href="/compare">Compare</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://docs.filterenginez.com/">Docs</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://github.com/mlilli/filter-enginez">GitHub</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://www.npmjs.com/org/filter-enginez">npm</a></li>
 				</ul>
 			</nav>
 		</header>
@@ -126,11 +132,11 @@
 			</div>
 		</main>
 
-		<footer class="site-footer">
+		<footer class="fe-books-app__footer">
 			<p>
 				Filter EngineZ is open source under the
-				<a href="https://github.com/mlilli/filter-enginez/blob/main/LICENSE.md">Apache License 2.0</a>. The demos run
-				on synthetic data.
+				<a href="https://github.com/mlilli/filter-enginez/blob/main/LICENSE.md">Apache License 2.0</a>
+				. The demos run on synthetic data.
 			</p>
 		</footer>
 	</body>

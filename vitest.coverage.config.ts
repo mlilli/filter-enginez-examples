@@ -213,5 +213,8 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	//     `benchmarkWorkload`, both at 100%, and the page test drives its markup and switches.
 	'**/site/src/how-it-works/main.ts',
 	'**/site/src/how-it-works/benchmarkWidget.ts',
+	// The compare page's module script, the same one-call shell as the how-it-works page's `main.ts`;
+	// what it calls, `comparePage.ts` and `compareView.ts`, is covered.
+	'**/site/src/compare/main.ts',
 	'node_modules/**',
 ];

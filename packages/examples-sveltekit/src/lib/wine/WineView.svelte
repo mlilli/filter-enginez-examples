@@ -13,10 +13,10 @@
 
 	import type { FilterBundle } from '@filter-enginez/core';
 	import type { CompareDataset } from '@filter-enginez/examples-shared/compare-core';
+	import type { EngineTier } from '@filter-enginez/examples-shared/verticals';
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import {
 		buildWineBundleQuery,
@@ -35,6 +35,7 @@
 
 	import DevtoolsPanel from '../controls/DevtoolsPanel.svelte';
 	import TimeTravelControls from '../controls/TimeTravelControls.svelte';
+	import AppHeaderBrand from '../shell/AppHeaderBrand.svelte';
 	import CompareLinkButton from '../url/CompareLinkButton.svelte';
 	import CopyLinkButton from '../url/CopyLinkButton.svelte';
 	import UrlFormatToggle from '../url/UrlFormatToggle.svelte';
@@ -51,7 +52,7 @@
 		engine,
 		originSpecs,
 		originTree,
-		subtitle = verticalSubtitle('Wine', 'sveltekit', 'worker'),
+		tier = 'worker',
 		vocabularies,
 	}: {
 		baselines: Record<SliderFieldId, NumericBounds>;
@@ -60,7 +61,7 @@
 		 * browser-tier comparison; `/wine-server` passes `'wine-server'`, whose two rows are this app's
 		 * in-process server tier and vanilla's over HTTP, the only other vertical serving that route.
 		 *
-		 * **REQUIRED, unlike its neighbors `subtitle` and `corpusTier`, and the asymmetry is
+		 * **REQUIRED, unlike its neighbors `tier` and `corpusTier`, and the asymmetry is
 		 * deliberate.** A default would let a route stay silent about which tier it is, and nothing
 		 * would fail, because a wrong-but-valid comparison target looks exactly like a right one.
 		 * Requiring the prop turns "a route forgot to say" from a silent wrong answer into a compile
@@ -72,9 +73,11 @@
 		engine: SignalsEngine<Wine>;
 		originSpecs: readonly OriginNodeSpec[];
 		originTree: PickerTreeNode | null;
-		/** Header subtitle — names the tier so the server-backed route reads honestly. `/wine` keeps the
-		 * default; `/wine-server` passes the `server` tier instead. */
-		subtitle?: string;
+		/**
+		 * The engine tier the header's subtitle names, so the server-backed route reads honestly.
+		 * `/wine` keeps the default, `'worker'`; `/wine-server` passes `'server'`.
+		 */
+		tier?: EngineTier;
 		vocabularies: WineChipVocabularies;
 	} = $props();
 
@@ -161,14 +164,7 @@
 
 <div class="fe-books-app">
 	<header class="fe-books-app__header">
-		<!-- An ANCHOR, not a div: the brand mark is the route's way back to the dataset hub. -->
-		<a href="/" class="fe-books-app__brand" aria-label="Filter EngineZ — back to the dataset hub">
-			<img src="/mark.svg" alt="" width="36" height="36" class="fe-books-app__mark" />
-			<span class="fe-books-app__wordmark">
-				<span class="fe-books-app__name">Filter EngineZ</span>
-				<span class="fe-books-app__subtitle">{subtitle}</span>
-			</span>
-		</a>
+		<AppHeaderBrand page="Wine" {tier} />
 
 		<div class="fe-books-app__url-controls">
 			<TimeTravelControls

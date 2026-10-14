@@ -3,7 +3,7 @@
  *
  * @remarks
  * Everything here is dataset-neutral. Books and real estate need the same header, the same footer,
- * the same brand link and the same drawer over a different panel and a different grid; a second copy
+ * the same brand links (`appHeader.ts`) and the same drawer over a different panel and a different grid; a second copy
  * would be the file where one route's "Filters" button quietly stops matching the other's.
  *
  * ### The `fe-books-app__*` prefix is a documented misnomer
@@ -31,9 +31,12 @@
  * @packageDocumentation
  */
 
+import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
+
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { type DesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
+import { createAppHeaderBrand } from './appHeader.js';
 
 /** Which main-column layout the route wants. */
 export type AppShellLayout = 'books' | 'sidebar';
@@ -71,8 +74,11 @@ export interface AppShellOptions {
 	readonly resultsInsetElement?: HTMLElement;
 	/** The scrollable results grid. */
 	readonly resultsGridElement: HTMLElement;
-	/** Subtitle under the wordmark — names the dataset and the surface driving this route. */
-	readonly subtitle: string;
+	/**
+	 * Subtitle under the wordmark — names the dataset and the surface driving this route, with the
+	 * app's name linking to the hub (`appHeaderSubtitle`).
+	 */
+	readonly subtitle: AppHeaderSubtitle;
 }
 
 /**
@@ -147,23 +153,7 @@ export function createAppShell(options: AppShellOptions): AppShell {
 		children: [
 			el('header', {
 				children: [
-					el('a', {
-						attrs: { 'aria-label': 'Filter EngineZ — back to the dataset hub', href: '/' },
-						children: [
-							el('img', {
-								attrs: { alt: '', height: 36, src: '/mark.svg', width: 36 },
-								className: 'fe-books-app__mark',
-							}),
-							el('span', {
-								children: [
-									el('span', { className: 'fe-books-app__name', text: 'Filter EngineZ' }),
-									el('span', { className: 'fe-books-app__subtitle', text: subtitle }),
-								],
-								className: 'fe-books-app__wordmark',
-							}),
-						],
-						className: 'fe-books-app__brand',
-					}),
+					createAppHeaderBrand(subtitle),
 					el('div', { children: [...headerControls], className: 'fe-books-app__url-controls' }),
 				],
 				className: 'fe-books-app__header',

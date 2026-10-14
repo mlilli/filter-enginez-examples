@@ -1,19 +1,18 @@
 /**
- * Which state `/compare` is transporting, and where it came from.
+ * Which state the comparison page is transporting, and where it came from.
  *
  * @remarks
- * The one piece of `/compare` that is neither link algebra nor markup: given the three query
- * parameters and the visitor's format preference, decide what goes in the six `?f=` values and what
- * the provenance line says above them.
+ * The one piece of the comparison page that is neither link algebra nor markup: given the three query
+ * parameters and a serializer format, decide what goes in the six `?f=` values and what the
+ * provenance line says above them.
  *
- * ### Why it is here rather than in each shell
+ * ### Why it is here rather than in the page
  *
- * React's `ComparePage.tsx`, SvelteKit's `CompareView.svelte`, and the Vue, Angular and vanilla
- * compare pages all need it, and the rule is not a formatting detail: **an inbound `?f=` must be passed through
- * VERBATIM**, never decoded and re-encoded. A shell that round-tripped it would still work, and would
- * quietly be demonstrating something weaker than the page claims — that an EQUIVALENT state reaches
- * the other five, rather than the visitor's own bytes. A rule whose violation looks like success is
- * exactly the kind that should exist once.
+ * The rule is not a formatting detail: **an inbound `?f=` must be passed through VERBATIM**, never
+ * decoded and re-encoded. A page that round-tripped it would still work, and would quietly be
+ * demonstrating something weaker than it claims — that an EQUIVALENT state reaches the six, rather
+ * than the visitor's own bytes. A rule whose violation looks like success belongs beside the link
+ * algebra it feeds, where `core.test.ts` pins it with no DOM and no page in the way.
  *
  * ### Why `state.ts` and not `links.ts`
  *
@@ -37,7 +36,7 @@ import { COMPARE_PRESETS, findPreset } from './presets.js';
 /** The provenance line shown when the visitor arrived carrying their own state. */
 export const INBOUND_STATE_LABEL = 'from your link';
 
-/** What `/compare` is transporting, and the line describing where it came from. */
+/** What the comparison page is transporting, and the line describing where it came from. */
 export interface CompareState {
 	/** The value every link on the page carries in its `?f=`. */
 	readonly serialized: string;
@@ -54,10 +53,8 @@ export interface CompareStateOptions {
 	 *
 	 * @remarks
 	 * Ignored entirely on the inbound path, which is the point: the visitor's bytes are not re-encoded
-	 * into the reader's preferred format. Taken as a value rather than as an `encode` callback so the
-	 * five shells do not each construct a serializer — the format is the only thing they differ on, and
-	 * each of them holds it in a different reactive primitive (a Svelte store, a Vue ref, an Angular
-	 * signal, a React hook, a plain getter).
+	 * into the page's preferred format. Taken as a value rather than as an `encode` callback, so a
+	 * caller names a format and never constructs a serializer of its own.
 	 */
 	readonly format: BuiltInSerializerName;
 	/** A `?f=` the visitor arrived with. `null` or empty both mean "they came in cold". */

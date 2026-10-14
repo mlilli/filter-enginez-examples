@@ -2,8 +2,9 @@
    filterenginez.com/how-it-works — the "How the engine works" page.
 
    The page's one stylesheet. It imports the site's own `styles.css` first
-   (brand tokens, header, footer), so the cascade order is fixed here rather
-   than by the order the build emits link tags in; everything after that is
+   (`ui-styles` with the brand tokens, the apps' header and footer), so the
+   cascade order is fixed here rather than by the order the build emits link
+   tags in; everything after that is
    what this page adds: the narrative's bands, its sticky table of contents,
    the live benchmark widget, and — imported from `@filter-enginez/ui-styles`
    — the eight algorithm figures, which the documentation site renders over
@@ -19,32 +20,13 @@
 @import '../styles.css';
 @import '@filter-enginez/ui-styles/figures.css';
 
-/* ---- Element defaults this page's markup relies on ------------------------
-   Layered, so every `.fe-*` class below still wins. The site's other pages
-   size and space each element by class; the benchmark's buttons and the
-   bands' paragraphs need the UA margins and control typography reset. */
-@layer base {
-	.fe-about p,
-	.fe-about pre {
-		margin: 0;
-	}
-
-	.fe-about button {
-		margin: 0;
-		background-color: transparent;
-		color: inherit;
-		font: inherit;
-		letter-spacing: inherit;
-	}
-}
-
 /* ---- Page shell ------------------------------------------------------------
-   The page's `<main>`. It spans the viewport rather than the site's content
-   column, because the bands set their own width and the table of contents is
-   pinned to the window's edge. */
+   The page's `<main>`. It spans the viewport, because the bands set their own
+   width and the table of contents is pinned to the window's edge. The UA
+   margins its paragraphs and buttons would carry are reset by `ui-styles`'
+   `@layer base`. */
 main.fe-about {
 	position: relative;
-	max-width: none;
 	padding: 0 0 var(--space-24);
 }
 

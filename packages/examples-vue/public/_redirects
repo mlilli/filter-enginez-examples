@@ -1,5 +1,9 @@
 # Workers static-assets redirects (https://developers.cloudflare.com/workers/static-assets/redirects/).
-# "How the engine works" is one page on the landing site, and this app answers /about with a permanent
-# redirect to it. tests/tooling/cloudflareDeploy.test.ts checks every deployed app does.
+# "How the engine works" and the comparison page are each one page on the landing site, and this app
+# answers its own /about and /compare with a permanent redirect there. A destination with no query string
+# of its own keeps the request's, so an old /compare?dataset=…&f=… link arrives with its filter state.
+# tests/tooling/cloudflareDeploy.test.ts checks every deployed app does both.
 /about https://filterenginez.com/how-it-works 301
 /about/ https://filterenginez.com/how-it-works 301
+/compare https://filterenginez.com/compare 301
+/compare/ https://filterenginez.com/compare 301

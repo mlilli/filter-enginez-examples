@@ -40,6 +40,7 @@
  */
 
 import type { FilterBundle, FilterRule, RuleId } from '@filter-enginez/core';
+import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import type { CompareDataset } from '@filter-enginez/examples-shared/compare-core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
@@ -74,7 +75,7 @@ export interface WineRouteChrome {
 	/** Footer caption — spells out the wiring, so the two tiers are distinguishable at a glance. */
 	readonly footnote: string;
 	/** Subtitle under the wordmark — names the dataset and the tier driving this route. */
-	readonly subtitle: string;
+	readonly subtitle: AppHeaderSubtitle;
 }
 
 /**

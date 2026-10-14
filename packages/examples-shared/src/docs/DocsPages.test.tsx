@@ -1,14 +1,17 @@
 /**
- * Render tests for the docs page templates — home, API reference, the layout shell + nav, the
- * param-routed rule + algorithm pages (including their not-found redirects), and the CodeBlock.
+ * Render tests for the docs page templates — home, API reference, the layout shell + nav + header,
+ * the param-routed rule + algorithm pages (including their not-found redirects), and the CodeBlock.
  *
  * @packageDocumentation
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { AppVerticalContext } from '../app-header/appVerticalContext.js';
+import { HEADER_PAGE_LABELS, SITE_HOME_LABEL } from '../app-header/core.js';
+import { verticalSubtitle } from '../verticals/verticals.js';
 import { AlgorithmDocPage } from './AlgorithmDocPage.js';
 import { CodeBlock } from './CodeBlock.js';
 import { DocsApiPage } from './DocsApiPage.js';
@@ -83,6 +86,40 @@ describe('DocsLayout', () => {
 		// Clicking a nav link fires closeNav + navigates the outlet.
 		fireEvent.click(screen.getAllByText('InSetRule')[0] as HTMLElement);
 		expect(screen.getByText('rule-page')).toBeTruthy();
+	});
+
+	it('names the app it is mounted in, and links back to that app’s hub', () => {
+		const { container } = render(
+			<AppVerticalContext value="react-plain">
+				<MemoryRouter initialEntries={['/docs']}>
+					<Routes>
+						<Route path="/docs" element={<DocsLayout />} />
+					</Routes>
+				</MemoryRouter>
+			</AppVerticalContext>,
+		);
+		const topbar = screen.getByRole('banner');
+
+		expect(within(topbar).getByRole('link', { name: SITE_HOME_LABEL })).toBeTruthy();
+		expect(within(topbar).getByRole('link', { name: 'React plain dataset hub' }).getAttribute('href')).toBe('/');
+		expect(container.querySelector('.fe-books-app__subtitle')?.textContent).toBe(
+			verticalSubtitle(HEADER_PAGE_LABELS.docs, 'react-plain'),
+		);
+	});
+
+	it('names the page alone on the documentation site, which has no hub to link back to', () => {
+		const { container } = render(
+			<MemoryRouter initialEntries={['/docs']}>
+				<Routes>
+					<Route path="/docs" element={<DocsLayout />} />
+				</Routes>
+			</MemoryRouter>,
+		);
+		const topbar = screen.getByRole('banner');
+
+		expect(within(topbar).getByRole('link', { name: SITE_HOME_LABEL })).toBeTruthy();
+		expect(container.querySelector('.fe-books-app__subtitle')?.textContent).toBe(HEADER_PAGE_LABELS.docs);
+		expect(container.querySelector('.fe-books-app__hub')).toBeNull();
 	});
 });
 

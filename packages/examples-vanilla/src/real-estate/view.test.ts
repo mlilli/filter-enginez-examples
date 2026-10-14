@@ -31,6 +31,7 @@
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import { createFilterEngine, type FilterEngine } from '@filter-enginez/core';
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -152,7 +153,7 @@ function mountView(data: readonly Listing[] = DATA): {
 	root: HTMLElement;
 } {
 	const core = createFilterEngine<Listing>({ sourceData: data });
-	const view = createRealEstateView(core, { footnote: 'test', subtitle: 'test' });
+	const view = createRealEstateView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -463,7 +464,7 @@ function mountForTeardown(isDesktopInitially: boolean): {
 } {
 	const media = installMatchMedia(DESKTOP_MEDIA_QUERY, isDesktopInitially);
 	const core = createFilterEngine<Listing>({ sourceData: DATA });
-	const view = createRealEstateView(core, { footnote: 'test', subtitle: 'test' });
+	const view = createRealEstateView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);

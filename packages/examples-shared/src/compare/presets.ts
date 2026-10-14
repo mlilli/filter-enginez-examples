@@ -1,10 +1,10 @@
 /**
- * Hand-authored filter states, so `/compare` means something on a cold visit.
+ * Hand-authored filter states, so the comparison page means something on a cold visit.
  *
  * @remarks
  * The page's primary entry is a link carrying a `?f=` someone produced by filtering. Its NAV entry
  * has no such thing, and with a dataset toggle a stateless arrival is empty in two directions at
- * once — a visitor clicking "Compare" from the landing hub would otherwise be told, twice, that
+ * once — a visitor following the landing site's "Compare" link would otherwise be told, twice, that
  * there is nothing to compare.
  *
  * **These are data that can rot**, and that is the honest cost of the decision. A renamed rule id or
@@ -237,7 +237,7 @@ const WINE_PRESETS: readonly [ComparePreset, ...ComparePreset[]] = [
  * literals with entries and `core.test.ts` requires at least two per dataset. An unreachable branch
  * fails the 100%-coverage gate, and that gate is the one a plain `pnpm test` run does not exercise.
  * The invariant is real — a dataset
- * offering no example state would render `/compare` useless on a cold visit — so it belongs in the
+ * offering no example state would render the comparison page useless on a cold visit — so it belongs in the
  * type rather than in an ignore comment.
  *
  * **`wine-server` REFERENCES `WINE_PRESETS` rather than forking it, and that is a correctness

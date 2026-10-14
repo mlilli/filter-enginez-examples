@@ -2,8 +2,8 @@
 // The Worker runs on the Workers runtime, whose `Request`, `Response` and `URL` are the standard ones
 // Node's types describe, which is also where its tests run — so no DOM library here.
 //
-// The how-it-works page's browser code (`src/how-it-works/`) has its own `tsconfig.json`, with the DOM
-// library, and is excluded below: ESLint's project service picks the nearest `tsconfig.json`, so each
+// The pages' browser code (`src/how-it-works/`, `src/compare/`) has its own `tsconfig.json` per page, with
+// the DOM library, and is excluded below: ESLint's project service picks the nearest `tsconfig.json`, so each
 // file is type-checked against the runtime it actually runs in.
 {
   "$schema": "https://json.schemastore.org/tsconfig",
@@ -13,6 +13,6 @@
     "types": ["node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules", "src/how-it-works"],
+  "exclude": ["dist", "node_modules", "src/compare", "src/how-it-works"],
   "references": []
 }

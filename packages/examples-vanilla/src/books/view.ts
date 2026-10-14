@@ -24,6 +24,7 @@ import type {
 	FilterRule,
 	RuleId,
 } from '@filter-enginez/core';
+import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import type { Book } from '@filter-enginez/mock-data/books';
 
 import { buildRuleSummaries } from '@filter-enginez/examples-shared/books-domain';
@@ -60,7 +61,7 @@ export interface BooksView {
 /** Construction options for the view. */
 export interface BooksViewOptions {
 	/** Subtitle under the wordmark — names which reactive surface is driving this route. */
-	readonly subtitle: string;
+	readonly subtitle: AppHeaderSubtitle;
 	/** Footer caption — spells out the wiring, so the two routes are distinguishable at a glance. */
 	readonly footnote: string;
 	/** Extra nodes for the header's right-hand control cluster (URL-format toggle, copy link). */

@@ -14,9 +14,10 @@
  * app, so someone landing on a screenshot can tell which app they are looking at. Hand-written
  * subtitles per app would mix dataset, framework and engine tier arbitrarily.
  *
- * The **`/compare` page** needs the identical vocabulary plus the origins, because its whole job is
- * "here is this exact filter state, in each of the six". If the header says "Vanilla" and the
- * comparison page says "no framework", the demo has already contradicted itself.
+ * The **comparison page** on the landing site (`filterenginez.com/compare`) needs the identical
+ * vocabulary plus the origins, because its whole job is "here is this exact filter state, in each of
+ * the six". If the header says "Vanilla" and the comparison page says "no framework", the demo has
+ * already contradicted itself.
  *
  * ### The tier is part of the stack label, not a separate field
  *
@@ -83,7 +84,7 @@ export interface VerticalDescriptor {
 	 * cross-app links and the deployment cannot point at different hosts.
 	 */
 	readonly productionOrigin: string;
-	/** Routes this vertical actually serves. Not aspirational — `/compare` links only to these. */
+	/** Routes this vertical actually serves. Not aspirational — the comparison page links only to these. */
 	readonly routes: readonly string[];
 	/** One line for the comparison table, naming what is distinctive rather than repeating the name. */
 	readonly blurb: string;
@@ -105,7 +106,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'react-rtk',
 		name: 'React RTK',
 		productionOrigin: 'https://react-rtk.filterenginez.com',
-		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/compare'],
+		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs'],
 		surface: 'signals',
 	},
 	{
@@ -116,7 +117,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'react-plain',
 		name: 'React plain',
 		productionOrigin: 'https://react.filterenginez.com',
-		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs', '/compare'],
+		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs'],
 		surface: 'signals',
 	},
 	{
@@ -127,7 +128,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'sveltekit',
 		name: 'SvelteKit',
 		productionOrigin: 'https://svelte.filterenginez.com',
-		routes: ['/books', '/books-server', '/wine', '/wine-server', '/real-estate', '/compare'],
+		routes: ['/books', '/books-server', '/wine', '/wine-server', '/real-estate'],
 		surface: 'signals',
 	},
 	{
@@ -138,7 +139,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'vue',
 		name: 'Vue',
 		productionOrigin: 'https://vue.filterenginez.com',
-		routes: ['/books', '/wine', '/real-estate', '/compare'],
+		routes: ['/books', '/wine', '/real-estate'],
 		surface: 'signals',
 	},
 	{
@@ -150,9 +151,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		name: 'Angular',
 		productionOrigin: 'https://angular.filterenginez.com',
 		// Must match `app.routes.ts`: `compareLinks` filters on this array, so a route missing here
-		// would silently drop Angular from that dataset's `/compare` table. `/wine` is pinned by
+		// would silently drop Angular from that dataset's comparison table. `/wine` is pinned by
 		// `tests/tooling/winePanelFacetParity.test.ts`.
-		routes: ['/books', '/books-server', '/wine', '/real-estate', '/compare'],
+		routes: ['/books', '/books-server', '/wine', '/real-estate'],
 		surface: 'rxjs',
 	},
 	{
@@ -163,7 +164,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		id: 'vanilla',
 		name: 'Vanilla',
 		productionOrigin: 'https://vanilla.filterenginez.com',
-		routes: ['/books', '/books-raw', '/wine', '/wine-server', '/real-estate', '/compare'],
+		routes: ['/books', '/books-raw', '/wine', '/wine-server', '/real-estate'],
 		surface: 'none',
 	},
 ];
@@ -172,9 +173,10 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
  * The landing site at the apex, `filterenginez.com` — not a vertical, but a page the verticals link to.
  *
  * @remarks
- * It hosts the one "How the engine works" page every app's landing hub, the documentation and the
- * lab link to, so it needs the same two origins a vertical has, for the same reason: a developer
- * running everything locally must land on the local site, and a visitor on the deployed one. Declared
+ * It hosts the home page every app's header links to, the one "How the engine works" page and the
+ * one comparison page every app's Compare button opens, so it needs the same two origins a vertical
+ * has, for the same reason: a developer running everything locally must land on the local site, and
+ * a visitor on the deployed one. Declared
  * here beside {@link VERTICALS} so one file states every origin a cross-app link can resolve to;
  * `../compare/origins.ts` resolves between the two exactly as it does for a vertical.
  *
@@ -196,6 +198,23 @@ export const SITE: Readonly<Pick<VerticalDescriptor, 'devOrigin' | 'productionOr
  * to it, and Vite's dev server answers it too, so a link built from this path works in every layout.
  */
 export const HOW_IT_WORKS_PATH = '/how-it-works';
+
+/**
+ * The path of the comparison page on {@link SITE} — one filter state, linked into every app that
+ * serves its dataset.
+ *
+ * @remarks
+ * The same canonical form as {@link HOW_IT_WORKS_PATH}, for the same reasons. Every app's header
+ * Compare button opens it with the visitor's state in its query, and every app answers its own old
+ * `/compare` address with a permanent redirect here that keeps that query.
+ */
+export const COMPARE_PATH = '/compare';
+
+/**
+ * The id of the landing page's section that lists every demo, the target of each app's "All demos"
+ * header link (`filterenginez.com/#demos`).
+ */
+export const DEMOS_SECTION_ID = 'demos';
 
 /** Lookup by id. @internal */
 const BY_ID = new Map(VERTICALS.map((entry) => [entry.id, entry]));

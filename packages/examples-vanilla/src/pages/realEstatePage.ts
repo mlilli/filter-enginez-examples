@@ -29,6 +29,7 @@
 
 import type { FilterBundle, FilterRule, RuleId } from '@filter-enginez/core';
 
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 import { el } from '@filter-enginez/examples-shared/dom';
 import {
@@ -42,7 +43,6 @@ import {
 	REAL_ESTATE_BOOT_IDLE_CAPTION,
 	REAL_ESTATE_RECORD_NOUN,
 } from '@filter-enginez/examples-shared/real-estate-domain';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 
 import type { RouteTeardown } from '../router.js';
 
@@ -99,7 +99,7 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 		footnote: 'filter-enginez · real estate demo · vanilla + reactive-signals (main thread)',
 		headerControls: [...devtools.headerControls, formatToggle.element, copyLink.element, compareLink.element],
 		resultsInsetElement: devtools.panelElement,
-		subtitle: verticalSubtitle('Real estate', 'vanilla'),
+		subtitle: appHeaderSubtitle('Real estate', 'vanilla'),
 	});
 
 	container.append(view.element);

@@ -20,6 +20,7 @@
  * @packageDocumentation
  */
 
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { bootBooksEngine } from '@filter-enginez/examples-shared/books-core';
 import {
 	BOOKS_BOOT_IDLE_CAPTION,
@@ -28,7 +29,6 @@ import {
 } from '@filter-enginez/examples-shared/books-domain';
 import { bootCaptionParts, bootCaptionText } from '@filter-enginez/examples-shared/boot-caption';
 import { el } from '@filter-enginez/examples-shared/dom';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 
 import type { RouteTeardown } from '../router.js';
 
@@ -75,7 +75,7 @@ export async function renderBooksPage(container: HTMLElement): Promise<RouteTear
 		footnote: 'filter-enginez · books demo · vanilla + reactive-signals (fine-grained)',
 		headerControls: [...devtools.headerControls, formatToggle.element, copyLink.element, compareLink.element],
 		resultsInsetElement: devtools.panelElement,
-		subtitle: verticalSubtitle('Books', 'vanilla', 'signals'),
+		subtitle: appHeaderSubtitle('Books', 'vanilla', 'signals'),
 	});
 
 	container.append(view.element);

@@ -8,7 +8,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 import BooksPage from './pages/BooksPage.vue';
-import ComparePage from './pages/ComparePage.vue';
 import LandingPage from './pages/LandingPage.vue';
 import NotFoundPage from './pages/NotFoundPage.vue';
 import RealEstatePage from './pages/RealEstatePage.vue';
@@ -31,9 +30,6 @@ const routes: RouteRecordRaw[] = [
 	// every visitor — including the ones who only wanted `/books`. Lazy is the honest default here;
 	// the docblock above explains why the other routes are not.
 	{ component: async () => import('./pages/WinePage.vue'), name: 'wine', path: '/wine' },
-	// Before the catch-all, like every other named route. `/compare` needs no engine and no corpus —
-	// it renders links, not results — so it is a static import beside the rest.
-	{ component: ComparePage, name: 'compare', path: '/compare' },
 	{ component: NotFoundPage, name: 'not-found', path: '/:pathMatch(.*)*' },
 ];
 

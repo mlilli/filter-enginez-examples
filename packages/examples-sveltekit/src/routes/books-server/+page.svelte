@@ -21,7 +21,6 @@
 	import type { Book } from '@filter-enginez/mock-data/books';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 	import BooksServerFallback from '$lib/books/BooksServerFallback.svelte';
 	import BooksView from '$lib/books/BooksView.svelte';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
@@ -73,7 +72,7 @@
 </svelte:head>
 
 {#if engine}
-	<BooksView {engine} subtitle={verticalSubtitle('Books', 'sveltekit', 'server')} />
+	<BooksView {engine} tier="server" />
 {:else}
 	<BooksServerFallback
 		applied={data.applied}

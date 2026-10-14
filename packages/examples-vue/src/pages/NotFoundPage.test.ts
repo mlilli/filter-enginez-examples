@@ -5,10 +5,12 @@
  * @remarks
  * The copy + chip vocabulary + toggle logic are framework-free (covered by `examples-shared`'s own unit
  * tests); this proves the Vue shell renders them and that toggling a dead-end chip presses it WITHOUT
- * moving the count off zero — the whole gag of the page. Mounts over a memory router (the page uses
- * `useRoute` for the offending path + `<RouterLink>` for the CTA).
+ * moving the count off zero — the whole gag of the page — and that the app header every page carries
+ * sits above it. Mounts over a memory router (the page uses `useRoute` for the offending path +
+ * `<RouterLink>` for the CTA and the header's hub link).
  */
 
+import { appHeaderLinks, SITE_HOME_LABEL } from '@filter-enginez/examples-shared/app-header-core';
 import { NOT_FOUND_CHIPS, NOT_FOUND_COPY } from '@filter-enginez/examples-shared/notfound-core';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
@@ -38,6 +40,17 @@ async function mountNotFound() {
 }
 
 describe('Vue 404 page', () => {
+	it('carries the app header, with the way home to the landing site and back to this app’s hub', async () => {
+		const wrapper = await mountNotFound();
+		const header = wrapper.find('header.fe-books-app__header');
+
+		expect(header.find(`a[aria-label="${SITE_HOME_LABEL}"]`).attributes('href')).toBe(
+			appHeaderLinks(window.location).homeHref,
+		);
+		expect(header.find('.fe-books-app__hub').attributes('href')).toBe('/');
+		expect(header.find('.fe-books-app__subtitle').element.textContent).toBe('Not found · Vue');
+	});
+
 	it('renders the pinned-zero count, heading, dead-end chips, and CTA home', async () => {
 		const wrapper = await mountNotFound();
 

@@ -9,8 +9,9 @@
  *   - **With JavaScript** every band gets its animated figure (`role="img"`), the live benchmark widget
  *     replaces the reference sentence and its acceleration switches flip, and the demo links resolve to
  *     the local plain-React app's `/lab`.
- *   - **It is reachable** from the landing page and from every demo app's landing hub, whose "How the
- *     engine works" link resolves to this server in development.
+ *   - **It is reachable** from the landing page's hero, and from every demo app through its header:
+ *     the logomark links home to the landing site (this server, in development), and the home page
+ *     links here.
  *   - **axe** finds nothing serious, scanned in the settled, reduced-motion state.
  *
  * The widget's live measurement is best-effort and never asserted numerically — in-browser timing is
@@ -18,21 +19,25 @@
  *
  * **Selectors:** `.fe-fig-*` (the eight figures), `.fe-about__toc` (the table of contents),
  * `role="switch"` (the three acceleration layers), `.fe-bench__number` (the timing readout),
- * `.fe-about__demo-link` (the links into `/lab`).
+ * `.fe-about__demo-link` (the links into `/lab`), `.hero-actions` (the landing page's hero links).
  */
 
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-import { angularUrl } from './angularBase.js';
+import { APP_HUB_PATH, SITE_HOME_LABEL } from '../../packages/examples-shared/src/app-header/core.js';
+import { VERTICALS } from '../../packages/examples-shared/src/verticals/verticals.js';
 import { reactPlainUrl } from './reactPlainBase.js';
 import { siteUrl } from './siteBase.js';
-import { svelteUrl } from './svelteBase.js';
-import { vanillaUrl } from './vanillaBase.js';
-import { vueUrl } from './vueBase.js';
 
 /** The page's address on the landing site's dev server. */
 const PAGE_URL = siteUrl('/how-it-works');
+
+/** The landing site's home page, where every app's header logomark leads in development. */
+const SITE_HOME_URL = siteUrl('/');
+
+/** The landing page's "How the engine works" link, in its hero's row of actions. */
+const HERO_LINK = { name: 'How the engine works' } as const;
 
 /** The page's `<h1>`. */
 const HERO = { level: 1, name: 'How the engine works' } as const;
@@ -161,29 +166,29 @@ test.describe('how-it-works · enhanced', () => {
 
 test.describe('how-it-works · reachable', () => {
 	test('from the landing page', async ({ page }) => {
-		await page.goto(siteUrl('/'));
-		await page.locator('.hero__actions').getByRole('link', { name: 'How the engine works' }).click();
+		await page.goto(SITE_HOME_URL);
+		await page.locator('.hero-actions').getByRole('link', HERO_LINK).click();
 
 		await expect(page).toHaveURL(PAGE_URL);
 		await expect(page.getByRole('heading', HERO)).toBeVisible();
 	});
 
-	// Every demo app's landing hub links here; in development each link resolves to this server.
-	for (const [name, landingUrl] of [
-		['React RTK', '/'],
-		['React plain', reactPlainUrl('/')],
-		['SvelteKit', svelteUrl('/')],
-		['Vue', vueUrl('/')],
-		['Angular', angularUrl('/')],
-		['vanilla', vanillaUrl('/')],
-	] as const) {
-		test(`from the ${name} landing hub`, async ({ page }) => {
-			await page.goto(landingUrl);
+	// Every demo app's header links home to the landing site; in development that link resolves to this
+	// server, and the home page links here. Iterated from the registry, whose `devOrigin`s
+	// `tests/tooling/devServerPorts.test.ts` pins against `playwright.config.ts`, so a seventh app joins
+	// this loop the day it joins the registry.
+	for (const descriptor of VERTICALS) {
+		test(`from the ${descriptor.name} hub, through the header's home link`, async ({ page }) => {
+			await page.goto(`${descriptor.devOrigin}${APP_HUB_PATH}`);
 
-			const link = page.getByRole('link', { name: /how the engine works/iu });
+			const home = page.getByRole('link', { exact: true, name: SITE_HOME_LABEL });
 
-			await expect(link).toHaveAttribute('href', PAGE_URL);
-			await link.click();
+			await expect(home).toHaveAttribute('href', SITE_HOME_URL);
+			await home.click();
+			await expect(page).toHaveURL(SITE_HOME_URL);
+
+			await page.locator('.hero-actions').getByRole('link', HERO_LINK).click();
+			await expect(page).toHaveURL(PAGE_URL);
 			await expect(page.getByRole('heading', HERO)).toBeVisible();
 		});
 	}

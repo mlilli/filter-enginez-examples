@@ -3,16 +3,20 @@
  *
  * @remarks
  * Confirms the reimagined count renders, the dead-end chips are present, toggling a chip keeps the
- * count at zero (the whole gag), and the CTA links back to the hub. Wrapped in `MemoryRouter` because
- * the component uses `useLocation` + `<Link>`.
+ * count at zero (the whole gag), the CTA links back to the hub, and the page carries the shared header,
+ * naming the app it reads from `AppVerticalContext`. Wrapped in `MemoryRouter` because the component
+ * uses `useLocation` + `<Link>`.
  *
  * @packageDocumentation
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { AppVerticalContext } from '../app-header/appVerticalContext.js';
+import { HEADER_PAGE_LABELS, SITE_HOME_LABEL } from '../app-header/core.js';
+import { verticalSubtitle } from '../verticals/verticals.js';
 import { NOT_FOUND_CHIPS, NOT_FOUND_COPY } from './core.js';
 import { NotFoundPage } from './NotFoundPage.js';
 
@@ -66,5 +70,24 @@ describe('NotFoundPage', () => {
 		const cta = screen.getByRole('link', { name: NOT_FOUND_COPY.ctaLabel });
 
 		expect(cta.getAttribute('href')).toBe(NOT_FOUND_COPY.ctaHref);
+	});
+
+	it('carries the shared header, linking back to the hub of the app it is rendered in', () => {
+		// The page is a route object both React apps share, so it names neither; the app provides its id
+		// above its router, and the header reads it from there.
+		const { container } = render(
+			<AppVerticalContext value="react-rtk">
+				<MemoryRouter initialEntries={['/nope']}>
+					<NotFoundPage />
+				</MemoryRouter>
+			</AppVerticalContext>,
+		);
+		const header = screen.getByRole('banner');
+
+		expect(within(header).getByRole('link', { name: SITE_HOME_LABEL })).toBeTruthy();
+		expect(within(header).getByRole('link', { name: 'React RTK dataset hub' }).getAttribute('href')).toBe('/');
+		expect(container.querySelector('.fe-books-app__subtitle')?.textContent).toBe(
+			verticalSubtitle(HEADER_PAGE_LABELS.notFound, 'react-rtk'),
+		);
 	});
 });

@@ -1,5 +1,6 @@
 /**
- * The other direction: from a dataset route TO `/compare`, carrying the state the visitor built.
+ * The other direction: from a dataset route TO the comparison page, carrying the state the visitor
+ * built.
  *
  * @remarks
  * `links.ts` answers "given a state, where does each of the six serve this dataset?". This module
@@ -8,47 +9,36 @@
  * lives here because sixteen call sites across five framework idioms cannot each build a URL and
  * stay in agreement.
  *
- * ### It is NOT a root-relative `/compare`
+ * ### The page is on the landing site, not in the app
  *
- * The obvious implementation — `href="/compare?f=…"` — works only because every vertical is served
- * from the root of its own origin, in development and deployed alike. It would break the moment any
- * vertical moved under a base path, and nothing in development would show it.
- * Going through {@link resolveVerticalOrigin} costs one call and makes "where does this vertical live"
- * a decision made once, in `origins.ts`, rather than an assumption repeated at sixteen call sites.
+ * There is one comparison page, at `filterenginez.com/compare`, and every app's button leaves the app
+ * for it. The origin comes from {@link siteUrl}, the same dev/production decision every other link to
+ * the apex makes: a developer on `pnpm dev` lands on the local site server, a visitor on the deployed
+ * page. A root-relative `/compare` would stay inside the app, where that address is now only a
+ * permanent redirect to the apex.
  *
  * ### The state comes from the URL WRITER, not from a re-read of the address bar
  *
  * Every vertical mirrors engine state into `?f=` on a 150 ms debounce, and four of the six do it
  * with a bare `history.replaceState` — which fires no event, so nothing observes the parameter
  * arriving. A button that read `window.location.search` when clicked could therefore fire inside
- * that debounce window, find nothing, and land the visitor on `/compare` with a **preset**: their
- * real filters silently swapped for a plausible substitute. Hence {@link CompareTargetOptions.serialized}
- * is an input rather than something this module reads. Each shell passes the value its URL sync
- * last wrote, which is both reactive and race-free, and is byte-identical to the address bar by
- * construction rather than by timing.
+ * that debounce window, find nothing, and land the visitor on the comparison page with a **preset**:
+ * their real filters silently swapped for a plausible substitute. Hence
+ * {@link CompareTargetOptions.serialized} is an input rather than something this module reads. Each
+ * shell passes the value its URL sync last wrote, which is both reactive and race-free, and is
+ * byte-identical to the address bar by construction rather than by timing.
  *
  * @packageDocumentation
  */
 
-import { type VerticalId } from '../verticals/verticals.js';
+import { COMPARE_PATH } from '../verticals/verticals.js';
 import {
 	type CompareDataset,
 	DATASET_PARAM,
 	hasComparableState,
 	URL_STATE_PARAM,
 } from './links.js';
-import { type CompareLocation, type DeploymentLayout, resolveVerticalOrigin } from './origins.js';
-
-/**
- * Where the comparison page lives, in every vertical.
- *
- * @remarks
- * The six framework route tables keep their own `'/compare'` literal, which is not duplication —
- * a route table declaring the path it serves IS the framework's contract. This constant is for the
- * code that has to NAME that path from the outside, such as the vanilla shell and the cross-shell
- * e2e spec.
- */
-export const COMPARE_ROUTE = '/compare';
+import { type CompareLocation, type DeploymentLayout, siteUrl } from './origins.js';
 
 /**
  * The header button's label. One string, so sixteen call sites cannot drift into fifteen synonyms.
@@ -62,8 +52,6 @@ export const COMPARE_BUTTON_LABEL = 'Compare';
 
 /** Inputs to {@link compareTargetHref}. */
 export interface CompareTargetOptions {
-	/** The vertical doing the linking. Its OWN `/compare` is the destination, not another app's. */
-	readonly currentVerticalId: VerticalId;
 	/** Which dataset the visitor is filtering. */
 	readonly dataset: CompareDataset;
 	/** Override the detected deployment layout. Tests and previews only. */
@@ -93,17 +81,13 @@ export interface CompareTargetOptions {
  * hand-building the query produces a malformed URL for exactly the format a human is most likely
  * to be looking at when it breaks.
  *
- * No check that the current vertical actually serves {@link COMPARE_ROUTE}: all six do, the
- * registry says so, and a guard against it would be a branch no test could reach — which fails the
- * 100%-coverage gate, the one gate a plain `pnpm test` does not exercise. `core.test.ts` asserts
- * the registry-level fact instead, where a regression fails loudly.
- *
  * @param options - See {@link CompareTargetOptions}.
- * @returns An absolute URL to this vertical's own `/compare`, carrying the state when there is one.
+ * @returns An absolute URL to the comparison page on the landing site, carrying the state when there
+ *   is one.
  */
 export function compareTargetHref(options: CompareTargetOptions): string {
-	const { currentVerticalId, dataset, layout, location, serialized } = options;
-	const url = new URL(`${resolveVerticalOrigin(currentVerticalId, location, layout)}${COMPARE_ROUTE}`);
+	const { dataset, layout, location, serialized } = options;
+	const url = new URL(siteUrl(COMPARE_PATH, location, layout));
 
 	url.searchParams.set(DATASET_PARAM, dataset);
 

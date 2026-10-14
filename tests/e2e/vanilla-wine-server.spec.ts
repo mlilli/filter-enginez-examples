@@ -92,8 +92,8 @@ test.describe('vanilla /wine-server — the engine across a process boundary', (
 
 	test('its Compare button offers the wine-server comparison, not the browser-tier one', async ({ page }) => {
 		// Both wine routes render the SAME shell, so the target is threaded in by the route. A shell that
-		// hardcoded the browser-tier target would send this route's visitors to the six-way `/compare`
-		// instead of the two-row server one it exists to demonstrate, and nothing would fail: a
+		// hardcoded the browser-tier target would send this route's visitors to the six-way wine
+		// comparison instead of the two-row server one it exists to demonstrate, and nothing would fail: a
 		// wrong-but-valid target renders identically to a right one.
 		//
 		// This is the COMPOSITION half, and it is the half unit tests cannot supply: a unit case on

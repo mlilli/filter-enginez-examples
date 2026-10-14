@@ -1,24 +1,22 @@
 <script setup lang="ts">
 /**
- * Landing hub for the Vue vertical, at visual parity with the React/Svelte `<LandingPage>`: a
- * brand-forward hero over an ambient glow + drifting grid, then a grid of dataset cards. The
- * `fe-landing__*` rules live in `@filter-enginez/ui-styles` (imported app-wide via `app.css`). One
- * card per dataset route this app serves, each linking to it.
- *
- * "How the engine works" is a plain anchor, not a `<RouterLink>`: the page lives on the landing site,
- * another origin, resolved from this page's location so a local run reaches the local site server.
+ * Landing hub for the Vue vertical, at visual parity with the React/Svelte `<LandingPage>`: the app
+ * header, then a brand-forward hero over an ambient glow + drifting grid, then a grid of dataset
+ * cards. The `fe-landing__*` rules live in `@filter-enginez/ui-styles` (imported app-wide via
+ * `app.css`). One card per dataset route this app serves, each linking to it.
  */
-import { howItWorksUrl } from '@filter-enginez/examples-shared/compare-core';
+import { HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header-core';
 import { RouterLink } from 'vue-router';
 
 import { landingDatasets } from '../landing.js';
-
-/** The how-it-works page on the landing site, for this deployment layout. */
-const howItWorksHref = howItWorksUrl(window.location);
+import AppHeaderBrand from '../shell/AppHeaderBrand.vue';
 </script>
 
 <template>
-	<div class="fe-landing">
+	<header class="fe-books-app__header">
+		<AppHeaderBrand :page="HEADER_PAGE_LABELS.hub" />
+	</header>
+	<main class="fe-landing">
 		<div class="fe-landing__inner">
 			<header class="fe-landing__hero">
 				<img class="fe-landing__mark" src="/mark.svg" width="72" height="72" alt="Filter EngineZ" />
@@ -27,13 +25,6 @@ const howItWorksHref = howItWorksUrl(window.location);
 					A generic, isomorphic, framework-agnostic TypeScript filter engine: arbitrarily complex filters over
 					arbitrarily shaped data, computed client-side. This is the Vue vertical.
 				</p>
-				<a :href="howItWorksHref" class="fe-landing__about">How the engine works →</a>
-				<!-- Second in the stack, matching every other vertical: what the engine does, then that it
-				     does it everywhere. Cyan because the page is about WHICH state and WHICH stack — data
-				     and identity — never about the engine computing. -->
-				<RouterLink to="/compare" class="fe-landing__compare">
-					See one filter state in all six stacks →
-				</RouterLink>
 				<p class="fe-landing__prompt">Select a dataset to explore</p>
 			</header>
 
@@ -58,5 +49,5 @@ const howItWorksHref = howItWorksUrl(window.location);
 
 			<p class="fe-landing__foot">Same engine, bound to Vue. Filtering happens in your browser.</p>
 		</div>
-	</div>
+	</main>
 </template>

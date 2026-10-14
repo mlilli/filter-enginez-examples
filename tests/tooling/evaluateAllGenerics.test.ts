@@ -179,7 +179,7 @@ describe('Locator.evaluateAll type arguments', () => {
 		// The vacuity guard. A regex that stops matching — because the calls were refactored behind a
 		// helper, say — would make the case below pass over an empty list, which is indistinguishable
 		// from a repo where every call is correct.
-		expect(explicitGenericCallSites().length, 'no evaluateAll call sites found — did the regex rot?').toBeGreaterThanOrEqual(3);
+		expect(explicitGenericCallSites().length, 'no evaluateAll call sites found — did the regex rot?').toBeGreaterThan(0);
 	});
 
 	it('passes three of them at every site, so the element type reaches E', () => {

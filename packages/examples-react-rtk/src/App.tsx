@@ -15,7 +15,7 @@
  * @packageDocumentation
  */
 
-import { compareRoute } from '@filter-enginez/examples-shared/compare';
+import { AppVerticalContext } from '@filter-enginez/examples-shared/app-header';
 import { docsRoute } from '@filter-enginez/examples-shared/docs';
 import { NotFoundPage, notFoundRoute } from '@filter-enginez/examples-shared/notfound';
 import { createBrowserRouter, useParams } from 'react-router';
@@ -47,16 +47,22 @@ const router = createBrowserRouter([
 	{ element: <LandingPage />, path: '/' },
 	{ element: <BooksServerRoute />, path: '/books-server' },
 	docsRoute,
-	// Before `/:datasetId`, for the same reason `docsRoute` is: a bare `/compare` would otherwise be
-	// a candidate for the dataset resolver, which would answer it with the 404 for an unknown id.
-	compareRoute,
 	{ element: <DatasetRouteResolver />, path: '/:datasetId' },
 	notFoundRoute,
 ]);
 
 /**
  * Root component — mounts the router.
+ *
+ * @remarks
+ * The router sits inside {@link AppVerticalContext}, so the pages this app shares with the other React
+ * app as route objects — the documentation and the 404 — name this app in their header and link back
+ * to its hub without being told which app they are in.
  */
 export const App = (): React.ReactElement => {
-	return <RouterProvider router={router} />;
+	return (
+		<AppVerticalContext value="react-rtk">
+			<RouterProvider router={router} />
+		</AppVerticalContext>
+	);
 };

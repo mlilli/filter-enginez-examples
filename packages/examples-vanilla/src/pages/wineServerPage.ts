@@ -43,8 +43,8 @@
  * @packageDocumentation
  */
 
+import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { el } from '@filter-enginez/examples-shared/dom';
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
 import { bootWineServerEngine } from '@filter-enginez/examples-shared/wine-server-core';
 
 import type { RouteTeardown } from '../router.js';
@@ -99,7 +99,7 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
 		engine,
 		footnote:
 			'filter-enginez · wine demo · vanilla + reactive-signals over HTTP to the isomorphic core · committed 10k tier',
-		subtitle: verticalSubtitle('Wine', 'vanilla', 'server'),
+		subtitle: appHeaderSubtitle('Wine', 'vanilla', 'server'),
 	});
 }
 

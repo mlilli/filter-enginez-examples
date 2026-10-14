@@ -22,7 +22,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	BENCHMARK_SECTION_ID,
-	escapeHtml,
 	HOW_IT_WORKS_SLOTS,
 	prerenderHowItWorks,
 	renderBands,
@@ -46,19 +45,6 @@ function parse(html: string): HTMLElement {
 
 /** A page template holding every slot once, as `how-it-works.html` does. */
 const TEMPLATE = [...HOW_IT_WORKS_SLOTS.keys()].map((marker) => `<div>${marker}</div>`).join('\n');
-
-describe('escapeHtml', () => {
-	it('escapes the five characters HTML gives meaning to', () => {
-		expect(escapeHtml(`a < b && "c" > 'd'`)).toBe('a &lt; b &amp;&amp; &quot;c&quot; &gt; &#39;d&#39;');
-	});
-
-	it('round-trips through the parser to the original text', () => {
-		const text = `<script>alert("x")</script> & 'quotes'`;
-
-		expect(parse(`<p title="${escapeHtml(text)}">${escapeHtml(text)}</p>`).querySelector('p')?.textContent).toBe(text);
-		expect(parse(`<p title="${escapeHtml(text)}"></p>`).querySelector('p')?.getAttribute('title')).toBe(text);
-	});
-});
 
 describe('renderBands', () => {
 	const bands = parse(renderBands());

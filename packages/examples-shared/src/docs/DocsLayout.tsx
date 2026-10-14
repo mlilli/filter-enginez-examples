@@ -5,15 +5,19 @@
  *
  * @remarks
  * Lives in the shared `examples-shared/docs` slice and is mounted as a layout route (`/docs`) in each
- * React app and as the standalone documentation site — sharing the brand with the dataset demos.
+ * React app and as the standalone documentation site. Its sticky topbar carries the header brand every
+ * demo page carries, naming the page `Docs`: inside a React app it names that app (read from
+ * `AppVerticalContext`) and links back to the app's hub; on the documentation site, which is not one
+ * of the apps, it names the page alone.
  *
  * @packageDocumentation
  */
 
-import { Mark } from '@filter-enginez/brand';
 import { useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet } from 'react-router';
 
+import { AppHeaderBrand } from '../app-header/AppHeaderBrand.js';
+import { HEADER_PAGE_LABELS } from '../app-header/core.js';
 import { ALGORITHM_DOCS } from './content/algorithmsContent.js';
 import { RULE_DOCS } from './content/rulesContent.js';
 import { type RuleGroup } from './content/types.js';
@@ -44,13 +48,7 @@ export const DocsLayout = (): React.ReactElement => {
 			<style>{DOCS_CSS}</style>
 
 			<header className="fe-docs__topbar">
-				<Link to="/" className="fe-docs__brand" aria-label="Filter EngineZ — back to the dataset hub">
-					<span className="fe-docs__brand-mark" aria-hidden="true">
-						<Mark size={28} />
-					</span>
-					<span className="fe-docs__brand-word">Filter EngineZ</span>
-					<span className="fe-docs__brand-docs">docs</span>
-				</Link>
+				<AppHeaderBrand page={HEADER_PAGE_LABELS.docs} />
 				<button
 					type="button"
 					className="fe-docs__nav-toggle"
@@ -120,38 +118,37 @@ function navLinkClass({ isActive }: { isActive: boolean }): string {
 
 /** Scoped shell styles over the brand tokens. */
 const DOCS_CSS = `
-.fe-docs { min-height: 100vh; background: var(--gray-0); }
+/*
+ * The topbar's height is set rather than left to its content, because the sidebar below sticks
+ * (and, on narrow screens, opens) directly under it and reads the same value: the 44px header brand
+ * plus 12px above and below it, plus the 1px rule.
+ */
+.fe-docs { --fe-docs-topbar-height: 69px; min-height: 100vh; background: var(--gray-0); }
 .fe-docs__topbar {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: var(--space-4) var(--space-6);
+	gap: var(--space-3);
+	height: var(--fe-docs-topbar-height);
+	padding: 0 var(--space-4);
 	border-bottom: 1px solid var(--gray-3);
 	position: sticky;
 	top: 0;
 	z-index: 20;
 	background: var(--gray-0);
 }
-.fe-docs__brand { display: inline-flex; align-items: center; gap: var(--space-3); }
-.fe-docs__brand-mark { display: inline-flex; align-items: center; }
-.fe-docs__brand-word {
-	font-family: var(--font-display); font-size: var(--text-base); font-weight: 700;
-	letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-11);
-}
-.fe-docs__brand-docs {
-	font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
-	text-transform: uppercase; color: var(--accent); padding-top: 2px;
-}
 .fe-docs__nav-toggle {
 	display: none;
+	flex-shrink: 0;
+	min-height: 44px;
 	padding: 8px 16px; background: transparent; border: 1px solid var(--gray-5);
 	border-radius: var(--radius-md); color: var(--gray-9);
 	font-family: var(--font-mono); font-size: var(--text-xs); cursor: pointer;
 }
 .fe-docs__body { display: grid; grid-template-columns: 260px 1fr; align-items: start; }
 .fe-docs__nav {
-	position: sticky; top: 57px; align-self: start;
-	height: calc(100vh - 57px); overflow-y: auto;
+	position: sticky; top: var(--fe-docs-topbar-height); align-self: start;
+	height: calc(100vh - var(--fe-docs-topbar-height)); overflow-y: auto;
 	padding: var(--space-6) var(--space-4) var(--space-16);
 	border-right: 1px solid var(--gray-3);
 	display: flex; flex-direction: column; gap: 2px;
@@ -177,11 +174,14 @@ const DOCS_CSS = `
 }
 .fe-docs__main { min-width: 0; padding: var(--space-10) var(--space-8) var(--space-24); max-width: 860px; }
 
+@media (min-width: 1024px) {
+	.fe-docs__topbar { padding: 0 var(--space-6); }
+}
 @media (max-width: 1023px) {
-	.fe-docs__nav-toggle { display: inline-block; }
+	.fe-docs__nav-toggle { display: inline-flex; align-items: center; }
 	.fe-docs__body { grid-template-columns: 1fr; }
 	.fe-docs__nav {
-		position: fixed; top: 57px; left: 0; width: min(300px, 82vw);
+		position: fixed; top: var(--fe-docs-topbar-height); left: 0; width: min(300px, 82vw);
 		background: var(--gray-1); z-index: 15;
 		transform: translateX(-105%); transition: transform var(--dur-mid) var(--ease-out);
 		box-shadow: var(--shadow-lg);

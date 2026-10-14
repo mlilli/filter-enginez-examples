@@ -14,7 +14,6 @@ import './app.css';
 
 import { renderBooksPage } from './pages/booksPage.js';
 import { renderBooksRawPage } from './pages/booksRawPage.js';
-import { renderComparePage } from './pages/comparePage.js';
 import { renderLandingPage } from './pages/landingPage.js';
 import { renderNotFoundPage } from './pages/notFoundPage.js';
 import { renderRealEstatePage } from './pages/realEstatePage.js';
@@ -37,8 +36,6 @@ const routes: readonly Route[] = [
 	// `examples-server`, where SvelteKit's equivalent runs the core in its own Node tier. Between the
 	// two, the repo shows both server-tier arrangements of one engine rather than one twice.
 	{ path: '/wine-server', render: renderWineServerPage },
-	// Before the catch-all. No engine and no corpus — it renders links, not results.
-	{ path: '/compare', render: renderComparePage },
 	{ path: '*', render: renderNotFoundPage },
 ];
 

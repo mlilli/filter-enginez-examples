@@ -2,14 +2,15 @@
  * Each vertical's `/books` boot budget, and the engine tier its header names.
  *
  * @remarks
- * Two specs need exactly this table. `compare.spec.ts` uses it to carry a state from `/compare` into
- * every vertical's books route; `compare-button.spec.ts` uses it to arrive at that route from an
- * inbound link and press Compare. Both are asking one question — *how long may this vertical take to
- * paint its books header, and does that header name a tier?* — so they answer it from one table.
+ * Several specs need exactly this table. `compare.spec.ts` uses it to carry a state from the comparison
+ * page into every vertical's books route; `compare-button.spec.ts` uses it to arrive at that route from
+ * an inbound link and press Compare; `app-header.spec.ts` uses it to reach each app's books header.
+ * They are all asking one question — *how long may this vertical take to paint its books header, and
+ * does that header name a tier?* — so they answer it from one table.
  *
- * Two copies would have to agree to the millisecond by hand: a vertical whose boot slows down would be
- * retuned in one file and time out in the other, and the failure would name the spec rather than the
- * cause.
+ * Separate copies would have to agree to the millisecond by hand: a vertical whose boot slows down
+ * would be retuned in one file and time out in another, and the failure would name the spec rather
+ * than the cause.
  *
  * ### Why these facts are not in the registry
  *

@@ -1,21 +1,28 @@
 /**
- * Vite configuration for `@filter-enginez/site` — `filterenginez.com`: the landing page and the
- * "How the engine works" page.
+ * Vite configuration for `@filter-enginez/site` — `filterenginez.com`: the landing page, the
+ * "How the engine works" page and the comparison page.
  *
  * @remarks
- * Three HTML entry points. `index.html` and `404.html` ship no JavaScript: for them Vite bundles
- * `src/styles.css` (which pulls the brand tokens and the self-hosted fonts out of
- * `@filter-enginez/brand`, hashed for long-lived caching) and copies `public/` (`robots.txt`,
- * `sitemap.xml`) as-is.
+ * Four HTML entry points. `index.html` and `404.html` ship no JavaScript: for them Vite bundles
+ * `src/styles.css` (which pulls `@filter-enginez/ui-styles` and, through it, the brand tokens and the
+ * self-hosted fonts out of `@filter-enginez/brand`, hashed for long-lived caching) and copies
+ * `public/` (`robots.txt`, `sitemap.xml`) as-is.
  *
  * ### `how-it-works.html` is rendered at build time, then enhanced
  *
  * Its text — the eight algorithm bands, the act-two divider, the table of contents and the
- * benchmark's reference numbers — is written into the HTML by {@link howItWorksPrerender} from the
+ * benchmark's reference numbers — is written into the HTML by {@link pagePrerender} from the
  * shared content model, so the page reads in full without JavaScript. Its one module script,
  * `src/how-it-works/main.ts`, then mounts the animated figures and the live benchmark into the
  * placeholders that markup leaves. The hook runs in the dev server too, so `pnpm dev` serves exactly
  * the markup the build ships, at `/how-it-works`.
+ *
+ * ### `compare.html` is rendered at build time, then re-rendered for its query
+ *
+ * The same arrangement, by {@link pagePrerender}: the build writes a cold visit to the default dataset,
+ * linked to the deployed apps, into the page (`src/compare/compareView.ts`), so it reads in full without
+ * JavaScript. Its module script, `src/compare/main.ts`, then renders the view the visitor asked for —
+ * the dataset, a preset, or the `?f=` an app's Compare button sent — with the same function.
  *
  * ### Brand images come from their canonical files, at build time
  *
@@ -33,6 +40,7 @@ import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin, runnerImport } from 'vite';
 
+import type * as CompareView from './src/compare/compareView.js';
 import type * as HowItWorksPrerender from './src/how-it-works/prerender.js';
 
 const require = createRequire(import.meta.url);
@@ -98,43 +106,70 @@ function brandImages(): Plugin {
 /** This package's directory, the root the prerender module is loaded against. */
 const PACKAGE_ROOT = fileURLToPath(new URL('.', import.meta.url));
 
-/** The how-it-works page's HTML entry, the one file {@link howItWorksPrerender} transforms. */
+/** The how-it-works page's HTML entry. */
 const HOW_IT_WORKS_ENTRY = fileURLToPath(new URL('how-it-works.html', import.meta.url));
 
-/** The module that renders the page's text (`prerender.ts`), loaded by {@link howItWorksPrerender}. */
-const PRERENDER_MODULE = fileURLToPath(new URL('src/how-it-works/prerender.ts', import.meta.url));
+/** The comparison page's HTML entry. */
+const COMPARE_ENTRY = fileURLToPath(new URL('compare.html', import.meta.url));
+
+/** The module that renders the how-it-works page's text (`prerender.ts`). */
+const HOW_IT_WORKS_PRERENDER_MODULE = fileURLToPath(new URL('src/how-it-works/prerender.ts', import.meta.url));
+
+/** The module that renders the comparison page's view (`compareView.ts`). */
+const COMPARE_PRERENDER_MODULE = fileURLToPath(new URL('src/compare/compareView.ts', import.meta.url));
 
 /**
- * Render the how-it-works page's text into `how-it-works.html`, in the build and in the dev server.
+ * Each HTML entry rendered at build time, and the function that renders it.
+ *
+ * @remarks
+ * A `Map` keyed by the entry's absolute path, so a lookup answers only for these two files and every
+ * other entry passes through untouched.
+ */
+const PAGE_PRERENDERS: ReadonlyMap<string, (html: string) => Promise<string>> = new Map([
+	[
+		HOW_IT_WORKS_ENTRY,
+		async (html: string) =>
+			(await runnerImport<typeof HowItWorksPrerender>(HOW_IT_WORKS_PRERENDER_MODULE, { root: PACKAGE_ROOT })).module
+				.prerenderHowItWorks(html),
+	],
+	[
+		COMPARE_ENTRY,
+		async (html: string) =>
+			(await runnerImport<typeof CompareView>(COMPARE_PRERENDER_MODULE, { root: PACKAGE_ROOT })).module.prerenderCompare(
+				html,
+			),
+	],
+]);
+
+/**
+ * Render the how-it-works page's text and the comparison page's cold visit into their HTML, in the
+ * build and in the dev server.
  *
  * @remarks
  * `order: 'pre'` runs it before Vite's own HTML processing, so the generated markup is treated exactly
  * like hand-written markup. Every other entry passes through untouched. A missing or duplicated slot
- * marker throws (see `prerender.ts`), failing the build rather than shipping a page with no text.
+ * marker throws (see `prerender.ts` and `compareView.ts`), failing the build rather than shipping a
+ * page with nothing to say.
  *
  * ### Why `runnerImport` rather than an `import` at the top of this file
  *
- * `prerender.ts` reads the content model from `@filter-enginez/examples-shared`, a workspace package
- * whose exports point at TypeScript source. Vite loads this config with every bare import left to
- * Node, which cannot resolve that source's `.js`-suffixed relative imports. `runnerImport` loads the
- * module through Vite's own module runner instead — the resolver every app's dev server already uses
- * for that package — at the moment the page is rendered. In the dev server that also means an edit to
- * the content shows on the next reload, with no restart.
+ * Both renderers read from `@filter-enginez/examples-shared`, a workspace package whose exports point
+ * at TypeScript source. Vite loads this config with every bare import left to Node, which cannot
+ * resolve that source's `.js`-suffixed relative imports. `runnerImport` loads the module through
+ * Vite's own module runner instead — the resolver every app's dev server already uses for that package
+ * — at the moment the page is rendered. In the dev server that also means an edit to the content shows
+ * on the next reload, with no restart.
  *
  * @returns The Vite plugin.
  */
-function howItWorksPrerender(): Plugin {
+function pagePrerender(): Plugin {
 	return {
-		name: 'filter-enginez-how-it-works-prerender',
+		name: 'filter-enginez-page-prerender',
 		transformIndexHtml: {
 			handler: async (html, context) => {
-				if (context.filename !== HOW_IT_WORKS_ENTRY) {
-					return html;
-				}
+				const render = PAGE_PRERENDERS.get(context.filename);
 
-				const { module } = await runnerImport<typeof HowItWorksPrerender>(PRERENDER_MODULE, { root: PACKAGE_ROOT });
-
-				return module.prerenderHowItWorks(html);
+				return render === undefined ? html : render(html);
 			},
 			order: 'pre',
 		},
@@ -145,6 +180,7 @@ export default defineConfig({
 	build: {
 		rolldownOptions: {
 			input: {
+				compare: COMPARE_ENTRY,
 				howItWorks: HOW_IT_WORKS_ENTRY,
 				index: fileURLToPath(new URL('index.html', import.meta.url)),
 				notFound: fileURLToPath(new URL('404.html', import.meta.url)),
@@ -152,7 +188,7 @@ export default defineConfig({
 		},
 		target: 'es2022',
 	},
-	plugins: [brandImages(), howItWorksPrerender()],
+	plugins: [brandImages(), pagePrerender()],
 	server: {
 		fs: {
 			// The brand fonts referenced by `tokens.css` live in a sibling package.
@@ -160,7 +196,7 @@ export default defineConfig({
 		},
 		host: '127.0.0.1',
 		// 5181 — the next free slot after the documentation site's 5180. In the Playwright port map, because
-		// the how-it-works spec drives this server and every app's landing page links to it in
+		// the how-it-works and compare specs drive this server and every app's header links to it in
 		// development (`SITE.devOrigin` in examples-shared's verticals registry). `strictPort` so a
 		// collision fails loudly.
 		port: 5181,

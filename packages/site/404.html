@@ -14,17 +14,36 @@
 	<body>
 		<a class="skip-link" href="#main">Skip to content</a>
 
-		<header class="site-header">
-			<a class="site-header__brand" href="/" aria-label="Filter EngineZ, home">
-				<img class="site-header__mark" src="/mark.svg" alt="" width="40" height="40" />
-				<span class="site-header__wordmark" aria-hidden="true">Filter EngineZ</span>
-			</a>
+		<header class="fe-books-app__header">
+			<div class="fe-books-app__brand">
+				<a class="fe-books-app__home" href="/" aria-label="Filter EngineZ home">
+					<img class="fe-books-app__mark" src="/mark.svg" alt="" width="36" height="36" />
+				</a>
+				<span class="fe-books-app__wordmark">
+					<a class="fe-books-app__name" href="/" tabindex="-1" aria-hidden="true">Filter EngineZ</a>
+					<span class="fe-books-app__subtitle">Not found</span>
+				</span>
+			</div>
+			<nav aria-label="Project">
+				<ul class="fe-books-app__nav">
+					<li><a class="fe-books-app__nav-link" href="/how-it-works">How it works</a></li>
+					<li><a class="fe-books-app__nav-link" href="/compare">Compare</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://docs.filterenginez.com/">Docs</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://github.com/mlilli/filter-enginez">GitHub</a></li>
+					<li><a class="fe-books-app__nav-link" href="https://www.npmjs.com/org/filter-enginez">npm</a></li>
+				</ul>
+			</nav>
 		</header>
 
-		<main id="main" class="not-found" tabindex="-1">
-			<h1 class="not-found__title">Page not found</h1>
-			<p>Nothing is published at this address.</p>
-			<p><a class="button button--primary" href="/">Go to the home page</a></p>
+		<main id="main" class="fe-landing" tabindex="-1">
+			<div class="fe-landing__inner">
+				<div class="fe-landing__hero">
+					<p class="fe-landing__prompt">HTTP 404</p>
+					<h1 class="fe-landing__wordmark">Page not found</h1>
+					<p class="fe-landing__tagline">Nothing is published at this address.</p>
+					<a class="fe-landing__cta" href="/">Go to the home page</a>
+				</div>
+			</div>
 		</main>
 	</body>
 </html>

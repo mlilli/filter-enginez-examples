@@ -2,7 +2,7 @@
  * Turning one serialized engine state into one link per vertical that serves the dataset.
  *
  * @remarks
- * This is the whole mechanism `/compare` exists to demonstrate. Every vertical reads the same `f`
+ * This is the whole mechanism the comparison page exists to demonstrate. Every vertical reads the same `f`
  * query param, every vertical wraps `createTaggedSerializer`, and that serializer's decode sniffs
  * the `h~` / `c~` / `b~` prefix rather than being told the format — so a value produced by the
  * Angular app decodes unchanged in the framework-less one. This module is what exercises that claim.
@@ -13,11 +13,11 @@
  * @packageDocumentation
  */
 
-import { type VerticalDescriptor, type VerticalId, VERTICALS } from '../verticals/verticals.js';
+import { type VerticalDescriptor, VERTICALS } from '../verticals/verticals.js';
 import { type CompareLocation, type DeploymentLayout, resolveVerticalOrigin } from './origins.js';
 
 /**
- * The datasets `/compare` can reproduce state across.
+ * The datasets the comparison page can reproduce state across.
  *
  * @remarks
  * **Four, and the fourth is deliberately not served by all six.** `wine-server`
@@ -90,8 +90,6 @@ export const DATASET_LABELS: Readonly<Record<CompareDataset, string>> = {
 export interface CompareLink {
 	/** The full URL, with the state already in its `f` param. */
 	readonly href: string;
-	/** True when this row is the app the visitor is currently reading. */
-	readonly isCurrent: boolean;
 	/** The route this link lands on, e.g. `/books`. */
 	readonly route: string;
 	/** Everything the comparison table renders — framework, binding, surface, blurb. */
@@ -100,8 +98,6 @@ export interface CompareLink {
 
 /** Inputs to {@link compareLinks}. */
 export interface CompareLinkOptions {
-	/** The vertical doing the rendering, so its own row can be marked rather than omitted. */
-	readonly currentVerticalId?: VerticalId;
 	/** Which dataset the links should open. */
 	readonly dataset: CompareDataset;
 	/** Override the detected deployment layout. Tests and previews only. */
@@ -120,13 +116,13 @@ export const URL_STATE_PARAM = 'f';
  *
  * @remarks
  * Here rather than in the page, together with {@link PRESET_PARAM} and {@link readCompareDataset},
- * because the page is not one page: React, SvelteKit, Vue, Angular and vanilla each render their own
- * `/compare`, and all of them need these three verbatim. One shared definition beats six
- * restatements of the same query contract.
+ * because two sides of the contract read it: the comparison page on the landing site, and the header
+ * Compare button in every app, which writes it. One shared definition beats restating the query
+ * contract on each side.
  *
- * It matters more than the usual DRY argument, too. A shell that spelled these differently would not
- * fail: it would produce a `/compare` whose toggles silently reset to the default dataset on every
- * click, which reads as a UI bug several layers from the typo that caused it.
+ * It matters more than the usual DRY argument, too. A side that spelled these differently would not
+ * fail: it would produce a comparison page that silently opens on the default dataset, which reads as
+ * a UI bug several layers from the typo that caused it.
  */
 export const DATASET_PARAM = 'dataset';
 
@@ -174,8 +170,8 @@ export function readCompareDataset(raw: string | null): CompareDataset {
  * The verticals that actually serve a dataset's route, in the registry's presentation order.
  *
  * @remarks
- * Exactly the filter {@link compareLinks} applies, lifted out because three other callers need the
- * same answer: the shells that render a row count, and the e2e specs that assert one. A hardcoded
+ * Exactly the filter {@link compareLinks} applies, lifted out because other callers need the same
+ * answer: the copy that states a row count, and the e2e specs that assert one. A hardcoded
  * `VERTICALS.length` would be correct for three datasets and silently wrong for `wine-server`.
  *
  * 🔴 **Not for `core.test.ts`, and the omission is the point.** That suite's job is to catch a
@@ -215,7 +211,7 @@ export function verticalsServing(dataset: CompareDataset): readonly VerticalDesc
  * @returns One entry per vertical serving the dataset, in the registry's presentation order.
  */
 export function compareLinks(options: CompareLinkOptions): readonly CompareLink[] {
-	const { currentVerticalId, dataset, layout, location, serialized } = options;
+	const { dataset, layout, location, serialized } = options;
 	const route = DATASET_ROUTES[dataset];
 
 	return verticalsServing(dataset).map((descriptor) => {
@@ -225,7 +221,6 @@ export function compareLinks(options: CompareLinkOptions): readonly CompareLink[
 
 		return {
 			href: url.toString(),
-			isCurrent: descriptor.id === currentVerticalId,
 			route,
 			vertical: descriptor,
 		};

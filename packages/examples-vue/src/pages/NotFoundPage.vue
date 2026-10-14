@@ -9,7 +9,11 @@
  * matches too: a cyan `0` result count that never moves, the phosphor `NeuralCluster` "thinking" loader
  * churning away (the engine perpetually searching, never matching), and a dead-end filter row where
  * every toggle still yields the empty set.
+ *
+ * Above it, the app header every page carries, so a visitor who mistyped a path still has the way
+ * home to the landing site and back to this app's hub.
  */
+import { HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header-core';
 import {
 	NOT_FOUND_CHIPS,
 	NOT_FOUND_COPY,
@@ -20,6 +24,7 @@ import { computed, ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 
 import NeuralCluster from '../brand/NeuralCluster.vue';
+import AppHeaderBrand from '../shell/AppHeaderBrand.vue';
 
 const route = useRoute();
 const selected = ref<readonly string[]>([]);
@@ -34,6 +39,9 @@ function handleToggle(id: string): void {
 </script>
 
 <template>
+	<header class="fe-books-app__header">
+		<AppHeaderBrand :page="HEADER_PAGE_LABELS.notFound" />
+	</header>
 	<main class="fe-notfound">
 		<p class="fe-notfound__eyebrow">{{ NOT_FOUND_COPY.eyebrow }}</p>
 		<p class="fe-notfound__count" aria-hidden="true">{{ NOT_FOUND_COPY.count }}</p>

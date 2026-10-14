@@ -2,9 +2,10 @@
  * Where each vertical lives, resolved at runtime rather than baked in at build time.
  *
  * @remarks
- * `/compare` names an origin per vertical, and every app links to the one "How the engine works"
- * page on the landing site at the apex, so both have to name an origin they are not currently served
- * from. Three constraints shaped the answer:
+ * The comparison page names an origin per vertical, and every app links to the landing site at the
+ * apex — its home page from every header, the one "How the engine works" page, and the comparison
+ * page from every Compare button — so each has to name an origin it is not currently served from.
+ * Three constraints shaped the answer:
  *
  * 1. **Angular cannot read `import.meta.env`.** `@angular/build` does not define Vite's constants —
  *    `examples-angular/src/main.ts` says so in as many words, and pays for it with a runtime
@@ -28,7 +29,14 @@
  * @packageDocumentation
  */
 
-import { HOW_IT_WORKS_PATH, SITE, vertical, type VerticalDescriptor, type VerticalId } from '../verticals/verticals.js';
+import {
+	DEMOS_SECTION_ID,
+	HOW_IT_WORKS_PATH,
+	SITE,
+	vertical,
+	type VerticalDescriptor,
+	type VerticalId,
+} from '../verticals/verticals.js';
 
 /**
  * The parts of `window.location` this module reads.
@@ -113,13 +121,54 @@ export function resolveSiteOrigin(location: CompareLocation, layout: DeploymentL
 }
 
 /**
+ * The absolute URL of a page on the landing site, for a link from any app.
+ *
+ * @remarks
+ * Every cross-origin link to the apex goes through here, so "where does the landing site live" is
+ * decided once, by {@link resolveSiteOrigin}: a developer on `pnpm dev` reaches the local site server
+ * and a visitor reaches `https://filterenginez.com`.
+ *
+ * @param path - A root-relative path on the site, with any fragment, e.g. `/how-it-works` or `/#demos`.
+ * @param location - The current location.
+ * @param layout - Override the detected layout; production callers should omit it.
+ * @returns The absolute URL, e.g. `https://filterenginez.com/how-it-works`.
+ */
+export function siteUrl(
+	path: string,
+	location: CompareLocation,
+	layout: DeploymentLayout = deploymentLayout(location),
+): string {
+	return `${resolveSiteOrigin(location, layout)}${path}`;
+}
+
+/**
+ * The absolute URL of the landing site's home page — where the logo in every app's header leads.
+ *
+ * @param location - The current location.
+ * @param layout - Override the detected layout; production callers should omit it.
+ * @returns The home page's absolute URL, e.g. `https://filterenginez.com/`.
+ */
+export function siteHomeUrl(location: CompareLocation, layout: DeploymentLayout = deploymentLayout(location)): string {
+	return siteUrl('/', location, layout);
+}
+
+/**
+ * The absolute URL of the landing page's list of every demo — where each app's "All demos" link leads.
+ *
+ * @param location - The current location.
+ * @param layout - Override the detected layout; production callers should omit it.
+ * @returns The section's absolute URL, e.g. `https://filterenginez.com/#demos`.
+ */
+export function allDemosUrl(location: CompareLocation, layout: DeploymentLayout = deploymentLayout(location)): string {
+	return siteUrl(`/#${DEMOS_SECTION_ID}`, location, layout);
+}
+
+/**
  * The absolute URL of the "How the engine works" page, for a link from any app.
  *
  * @remarks
- * Every app's landing hub, the documentation and the lab link to one page on the landing site rather
- * than each carrying its own copy, so the link always leaves the current origin. Resolved from the
- * page's location like every other cross-app link, so a developer on `pnpm dev` reaches the local site
- * server and a visitor reaches `https://filterenginez.com/how-it-works`.
+ * There is one such page, on the landing site, rather than a copy in each app, so the link always leaves
+ * the current origin; see {@link siteUrl}.
  *
  * @param location - The current location.
  * @param layout - Override the detected layout; production callers should omit it.
@@ -131,5 +180,5 @@ export function resolveSiteOrigin(location: CompareLocation, layout: DeploymentL
  * ```
  */
 export function howItWorksUrl(location: CompareLocation, layout: DeploymentLayout = deploymentLayout(location)): string {
-	return `${resolveSiteOrigin(location, layout)}${HOW_IT_WORKS_PATH}`;
+	return siteUrl(HOW_IT_WORKS_PATH, location, layout);
 }

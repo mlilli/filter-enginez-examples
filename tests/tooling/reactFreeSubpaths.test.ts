@@ -42,6 +42,9 @@ const SHARED_ROOT = resolve(REPO_ROOT, 'packages/examples-shared');
  * the guarantee from its suffix.
  */
 const REACT_FREE_SUBPATHS = [
+	// The header's links to the landing site and its subtitle parts. Every app's header renders them,
+	// four of the six with no React at all.
+	'./app-header-core',
 	'./books-boot-core',
 	'./books-core',
 	'./books-domain',
@@ -53,6 +56,10 @@ const REACT_FREE_SUBPATHS = [
 	'./boot-caption',
 	'./bounds',
 	'./bundle-readers',
+	// The comparison page's link algebra, presets and state, and the Compare button's target URL. The
+	// landing site renders the page at build time in Node and in the browser with no framework, and
+	// four apps' buttons import it.
+	'./compare-core',
 	'./devtools-core',
 	// The hand-built-DOM helpers the framework-free app and the landing site's how-it-works page share.
 	// Import-free, like `./boot-caption`.

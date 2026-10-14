@@ -10,8 +10,8 @@
  *
  * What would otherwise fail silently, and where:
  *
- * - **A cross-app link to a host nothing serves.** `/compare` links each vertical to its registry
- *   `productionOrigin`; the Worker is served on the config's custom domain. Nothing at build time
+ * - **A cross-app link to a host nothing serves.** The comparison page links each vertical to its
+ *   registry `productionOrigin`; the Worker is served on the config's custom domain. Nothing at build time
  *   compares the two, and a typo surfaces as a dead link in production only.
  * - **A deploy of the wrong directory.** Wrangler uploads whatever `assets.directory` names. Pointed
  *   at a stale or partial directory, the deploy succeeds; pointed outside what the build strips, the
@@ -20,8 +20,9 @@
  *   routes, and each is a second, unlisted copy of the site.
  * - **A sitemap or landing page that forgets a site,** or lists one that is not deployed — or lists a
  *   page on the apex that the site's build does not produce.
- * - **An app's `/about` that stops answering.** "How the engine works" is one page on the apex, and a
- *   link to any app's `/about` must land there.
+ * - **An app's `/about` or `/compare` that stops answering.** "How the engine works" and the comparison
+ *   page are each one page on the apex, and a link to any app's `/about` or `/compare` must land there —
+ *   the latter with its query string, which carries the filter state the link was made to share.
  *
  * Read as TEXT where the subject is a file humans edit; the registry is parsed rather than imported,
  * because this project resolves no workspace packages (see `devServerPorts.test.ts`).
@@ -56,6 +57,21 @@ const HOW_IT_WORKS_URL = `https://${APEX_HOST}/how-it-works`;
 
 /** The `_redirects` rule each static-asset app carries for `/about`. */
 const ABOUT_REDIRECT_RULE = `/about ${HOW_IT_WORKS_URL} 301`;
+
+/** Where every app's `/compare` must send a visitor (with the request's query string). */
+const COMPARE_URL = `https://${APEX_HOST}/compare`;
+
+/**
+ * The `_redirects` rules each static-asset app carries for `/compare`.
+ *
+ * @remarks
+ * The destination has NO query string of its own, and that is what keeps the visitor's: Workers static
+ * assets append the request's query to a destination that has none, and replace it when the
+ * destination has one (verified under `wrangler dev`: `/compare?dataset=wine&f=…` answers
+ * `Location: https://filterenginez.com/compare?dataset=wine&f=…`). The trailing-slash spelling gets its
+ * own line, because a `_redirects` source matches its path exactly.
+ */
+const COMPARE_REDIRECT_RULES = [`/compare ${COMPARE_URL} 301`, `/compare/ ${COMPARE_URL} 301`];
 
 const TARGETS = listDeployTargets();
 
@@ -339,6 +355,7 @@ describe('the landing page', () => {
 		const required = [
 			...SUBDOMAIN_HOSTS.map((host) => `https://${host}/`),
 			'/how-it-works',
+			'/compare',
 			'https://www.npmjs.com/org/filter-enginez',
 			'https://github.com/mlilli/filter-enginez',
 			'https://github.com/mlilli/filter-enginez-examples',
@@ -357,7 +374,7 @@ describe('the landing page', () => {
 	});
 });
 
-describe('every app’s /about', () => {
+describe('every app’s /about and /compare', () => {
 	const verticals = TARGETS.filter((target) => PRODUCTION_ORIGINS.has(target.packageDirectory.replace(/^examples-/u, '')));
 
 	it('covers all six deployed verticals, so the cases below are not vacuous', () => {
@@ -384,6 +401,32 @@ describe('every app’s /about', () => {
 			expect(existsSync(resolve(REPO_ROOT, redirects)), `${redirects} is missing`).toBe(true);
 			expect(readRepoFile(redirects).split('\n')).toContain(ABOUT_REDIRECT_RULE);
 			expect(workerRunsFirstFor(target.config.assets?.run_worker_first, '/about'), 'the Worker runs first for /about').toBe(false);
+		});
+	}
+
+	for (const target of verticals) {
+		const directory = `packages/${target.packageDirectory}`;
+
+		it(`${target.packageDirectory} answers /compare with a 301 to ${COMPARE_URL}, keeping the query`, () => {
+			if (existsSync(resolve(REPO_ROOT, directory, 'svelte.config.js'))) {
+				// Served by SvelteKit's own Worker, which `_redirects` never sees: the route redirects, and
+				// appends the request's query itself.
+				const route = readRepoFile(`${directory}/src/routes/compare/+server.ts`);
+
+				expect(route).toMatch(
+					/export const GET: RequestHandler = \(\{ url \}\) => redirect\(301, `\$\{siteUrl\(COMPARE_PATH, url\)\}\$\{url\.search\}`\);/u,
+				);
+				expect(existsSync(resolve(REPO_ROOT, directory, 'src/routes/compare/+page.svelte')), 'an in-app compare page').toBe(false);
+
+				return;
+			}
+
+			const lines = readRepoFile(`${directory}/public/_redirects`).split('\n');
+
+			expect(COMPARE_REDIRECT_RULES.filter((rule) => !lines.includes(rule))).toEqual([]);
+			// A destination carrying its own `?` would REPLACE the visitor's query, dropping their state.
+			expect(lines.filter((line) => line.startsWith('/compare') && line.includes('?'))).toEqual([]);
+			expect(workerRunsFirstFor(target.config.assets?.run_worker_first, '/compare'), 'the Worker runs first for /compare').toBe(false);
 		});
 	}
 

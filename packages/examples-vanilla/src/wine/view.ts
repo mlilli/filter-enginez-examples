@@ -24,6 +24,7 @@
  */
 
 import type { FilterEngine, FilterRule, RuleId } from '@filter-enginez/core';
+import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import {
@@ -71,7 +72,7 @@ export interface WineViewOptions {
 	/** Optional element between the results header and the grid — the devtools panel, in practice. */
 	readonly resultsInsetElement?: HTMLElement;
 	/** Subtitle under the wordmark — names the dataset and the surface driving this route. */
-	readonly subtitle: string;
+	readonly subtitle: AppHeaderSubtitle;
 }
 
 /**

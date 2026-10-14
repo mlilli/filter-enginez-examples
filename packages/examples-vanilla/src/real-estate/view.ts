@@ -32,6 +32,7 @@ import type {
 	FilterRule,
 	RuleId,
 } from '@filter-enginez/core';
+import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import {
@@ -77,7 +78,7 @@ export interface RealEstateViewOptions {
 	/** Optional element between the results header and the grid — the devtools panel, in practice. */
 	readonly resultsInsetElement?: HTMLElement;
 	/** Subtitle under the wordmark — names the dataset and the surface driving this route. */
-	readonly subtitle: string;
+	readonly subtitle: AppHeaderSubtitle;
 }
 
 /**

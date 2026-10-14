@@ -45,7 +45,7 @@ import type { FilterBundle } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { verticalSubtitle } from '@filter-enginez/examples-shared/verticals';
+import { type EngineTier } from '@filter-enginez/examples-shared/verticals';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import {
 	buildWineBundleQuery,
@@ -67,6 +67,7 @@ import ComputingIndicator from '../brand/ComputingIndicator.vue';
 import DevtoolsPanel from '../controls/DevtoolsPanel.vue';
 import ResultsHeader from '../controls/ResultsHeader.vue';
 import TimeTravelControls from '../controls/TimeTravelControls.vue';
+import AppHeaderBrand from '../shell/AppHeaderBrand.vue';
 import CompareLinkButton from '../url/CompareLinkButton.vue';
 import CopyLinkButton from '../url/CopyLinkButton.vue';
 import UrlFormatToggle from '../url/UrlFormatToggle.vue';
@@ -88,13 +89,13 @@ const props = withDefaults(
 		engine: SignalsEngine<Wine>;
 		originSpecs: readonly OriginNodeSpec[];
 		originTree: PickerTreeNode | null;
-		/** Header subtitle — names the tier the engine runs on (defaults to the worker tier). */
-		subtitle?: string;
+		/** The engine tier the header's subtitle names (defaults to the worker tier). */
+		engineTier?: EngineTier;
 		vocabularies: WineChipVocabularies;
 	}>(),
 	{
 		corpusTier: '',
-		subtitle: () => verticalSubtitle('Wine', 'vue', 'worker'),
+		engineTier: 'worker',
 	},
 );
 
@@ -196,18 +197,7 @@ function handleRemove(ruleId: string): void {
 <template>
 	<div class="fe-books-app">
 		<header class="fe-books-app__header">
-			<!-- An ANCHOR, not a div: without it the only navigation off this route is the back button. -->
-			<RouterLink
-				aria-label="Filter EngineZ — back to the dataset hub"
-				class="fe-books-app__brand"
-				to="/"
-			>
-				<img alt="" class="fe-books-app__mark" height="36" src="/mark.svg" width="36" />
-				<span class="fe-books-app__wordmark">
-					<span class="fe-books-app__name">Filter EngineZ</span>
-					<span class="fe-books-app__subtitle">{{ subtitle }}</span>
-				</span>
-			</RouterLink>
+			<AppHeaderBrand page="Wine" :tier="engineTier" />
 
 			<div class="fe-books-app__url-controls">
 				<TimeTravelControls

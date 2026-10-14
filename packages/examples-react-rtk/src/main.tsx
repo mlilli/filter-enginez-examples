@@ -3,7 +3,7 @@
  *
  * @remarks
  * Vite + React 19 + StrictMode. `<App />` is a react-router browser router (landing page,
- * `/compare`, the dataset routes and the 404); each dataset route syncs its filter state to the URL
+ * the dataset routes and the 404); each dataset route syncs its filter state to the URL
  * through url-state-router's `<FilterEngineUrlSync>`.
  */
 

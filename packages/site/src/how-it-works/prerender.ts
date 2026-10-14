@@ -35,32 +35,13 @@ import {
 } from '@filter-enginez/examples-shared/how-it-works';
 import { vertical } from '@filter-enginez/examples-shared/verticals';
 
+import { escapeHtml } from '../escapeHtml.js';
+
 /** The id of the benchmark section, the table of contents' last target. */
 export const BENCHMARK_SECTION_ID = 'benchmark';
 
 /** The table-of-contents label of the benchmark section. */
 const BENCHMARK_TOC_LABEL = 'Try it live';
-
-/**
- * Escape text for use in HTML element content or a double- or single-quoted attribute value.
- *
- * @param text - Any text.
- * @returns The text with `&`, `<`, `>`, `"` and `'` replaced by entities.
- *
- * @example
- * ```ts
- * escapeHtml('a < b && "c"'); // 'a &lt; b &amp;&amp; &quot;c&quot;'
- * ```
- */
-export function escapeHtml(text: string): string {
-	// `&` first, so the entities written by the later replacements are not escaped a second time.
-	return text
-		.replaceAll('&', '&amp;')
-		.replaceAll('<', '&lt;')
-		.replaceAll('>', '&gt;')
-		.replaceAll('"', '&quot;')
-		.replaceAll("'", '&#39;');
-}
 
 /**
  * One table-of-contents entry.

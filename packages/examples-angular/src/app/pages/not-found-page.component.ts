@@ -9,11 +9,15 @@
  *
  * The phosphor `NeuralCluster` churns away at 168px: the engine perpetually searching, never matching.
  *
+ * Above the page, the compact app header every page of this app carries (`<nav fe-app-header-brand>`), so a
+ * mistyped URL still offers the way home, back to this app's hub, and on to every other demo.
+ *
  * @packageDocumentation
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header-core';
 import {
 	NOT_FOUND_CHIPS,
 	NOT_FOUND_COPY,
@@ -22,15 +26,19 @@ import {
 } from '@filter-enginez/examples-shared/notfound-core';
 
 import { NeuralClusterComponent } from '../brand/neural-cluster.component.js';
+import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
 
 /** Loader size on the 404 — large enough to read as the centerpiece it is. */
 const LOADER_SIZE = 168;
 
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NeuralClusterComponent, RouterLink],
+	imports: [AppHeaderBrandComponent, NeuralClusterComponent, RouterLink],
 	selector: 'fe-not-found-page',
 	template: `
+		<header class="fe-books-app__header">
+			<nav fe-app-header-brand [page]="pageLabel"></nav>
+		</header>
 		<main class="fe-notfound">
 			<p class="fe-notfound__eyebrow">{{ copy.eyebrow }}</p>
 			<p class="fe-notfound__count" aria-hidden="true">{{ copy.count }}</p>
@@ -72,6 +80,9 @@ export class NotFoundPageComponent {
 
 	/** Loader size, exposed for the template. */
 	protected readonly loaderSize = LOADER_SIZE;
+
+	/** The header subtitle's page label: this page is the one no route matched. */
+	protected readonly pageLabel = HEADER_PAGE_LABELS.notFound;
 
 	/** Which dead-end chips are lit. Purely cosmetic; the count never moves off zero. */
 	protected readonly selected = signal<readonly string[]>([]);

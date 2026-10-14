@@ -1,7 +1,7 @@
 {
   "name": "@filter-enginez/site",
   "version": "0.0.1",
-  "description": "Filter EngineZ — filterenginez.com: the landing page (what the engine is, how to install it, a link to every live demo) and the \"How the engine works\" page (eight animated algorithm figures and a live benchmark, rendered into static HTML at build time and enhanced in the browser). Built with Vite on the brand tokens, plus a small Cloudflare Worker that sends www to the apex and each page to its one canonical URL.",
+  "description": "Filter EngineZ — filterenginez.com: the landing page (what the engine is, how to install it, a link to every live demo), the \"How the engine works\" page (eight animated algorithm figures and a live benchmark, rendered into static HTML at build time and enhanced in the browser) and the comparison page (one filter state linked into every demo app, rendered the same way). Built with Vite on the brand tokens, plus a small Cloudflare Worker that sends www to the apex and each page to its one canonical URL.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "vite build && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p src/how-it-works",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/how-it-works && tsc --noEmit -p src/compare",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",
     "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",
