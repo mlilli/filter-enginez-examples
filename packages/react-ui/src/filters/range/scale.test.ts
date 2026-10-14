@@ -201,6 +201,14 @@ describe('fineHistogramQuery', () => {
 			bucketCount: FINE_HISTOGRAM_BUCKET_CAP,
 		});
 	});
+
+	it('gives a continuous field, which has no grid to center on, equal buckets over its baseline', () => {
+		expect(fineHistogramQuery(PRICE, 0)).toEqual({
+			baselineMax: PRICE.max,
+			baselineMin: PRICE.min,
+			bucketCount: FINE_HISTOGRAM_BUCKET_CAP,
+		});
+	});
 });
 
 describe('rebinHistogram', () => {

@@ -16,9 +16,10 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { BrainSynapse } from '@filter-enginez/brand';
 import { bootBooksServerEngine } from '@filter-enginez/examples-shared/books-server-core';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
 import { useUrlFormat } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
-import { createTaggedSerializer, FilterEngineUrlSync } from '@filter-enginez/url-state-router';
+import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Provider } from 'react-redux';
 
@@ -74,7 +75,7 @@ export const BooksServerRoute = (): React.ReactElement => {
 
 	// Shareable-URL serializer for the app-wide format toggle — same wiring as `<DatasetRoute>`.
 	const urlFormat = useUrlFormat();
-	const urlSerializer = useMemo(() => createTaggedSerializer(urlFormat), [urlFormat]);
+	const urlSerializer = useMemo(() => createLinkSerializer(urlFormat), [urlFormat]);
 
 	if (error !== null) {
 		return <ServerOffline error={error} />;

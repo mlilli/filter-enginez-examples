@@ -78,3 +78,58 @@ export function createWineBootScreen(loaderLabel: string): WineBootScreen {
 		},
 	};
 }
+
+/** The detail lines' type: mono, small, quiet — the error message and the hint below it. */
+const BOOT_FAILURE_DETAIL_STYLE: Readonly<Record<string, string>> = {
+	color: 'var(--gray-9)',
+	fontFamily: 'var(--font-mono)',
+	fontSize: '0.8125rem',
+	margin: '0',
+};
+
+/**
+ * Build the screen `/wine` shows in place of the boot screen when the engine fails to boot.
+ *
+ * @remarks
+ * The same three lines the Vue, SvelteKit and Angular wine pages show: that the engine could not
+ * start, the error's own message, and why that almost always means the worker — the 150,000 wines are
+ * generated inside it — with the switch that boots the 10,000-wine default tier on the main thread
+ * instead. Without it the boot screen would animate forever, which reads as a hang and sends someone
+ * looking in the wrong place.
+ *
+ * `role="alert"`, so a screen reader announces the failure where it was announcing progress. The
+ * block is the other apps' boot-error card (`fe-boot-error`: a bordered `--gray-1` panel, a
+ * `--danger` title, mono details), authored as a style bag for the reason given above for the boot
+ * screen's layout.
+ *
+ * @param message - The boot error's message.
+ * @returns The screen's root.
+ */
+export function createWineBootFailure(message: string): HTMLElement {
+	return el('div', {
+		attrs: { role: 'alert' },
+		children: [
+			el('p', {
+				style: { color: 'var(--danger)', fontWeight: '600', margin: '0 0 0.5rem' },
+				text: 'The wine engine could not start.',
+			}),
+			el('p', { style: BOOT_FAILURE_DETAIL_STYLE, text: message }),
+			el('p', {
+				children: [
+					'The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the worker could not start. Set ',
+					el('code', { text: 'VITE_WINE_TIER=default' }),
+					' to boot the 10,000-wine default tier on the main thread instead.',
+				],
+				style: { ...BOOT_FAILURE_DETAIL_STYLE, marginTop: '0.5rem' },
+			}),
+		],
+		style: {
+			background: 'var(--gray-1)',
+			border: '1px solid var(--gray-4)',
+			borderRadius: 'var(--radius-lg)',
+			margin: '3rem auto',
+			maxWidth: '34rem',
+			padding: '1.5rem',
+		},
+	});
+}

@@ -22,10 +22,10 @@
  * @packageDocumentation
  */
 
-import { createTaggedSerializer } from '@filter-enginez/url-state-router';
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
+import { createLinkSerializer } from './linkSerializer.js';
 import { cycleUrlFormat, URL_FORMAT_LABELS, useUrlFormat } from './urlFormatStore.js';
 
 /** The URL query key `<FilterEngineUrlSync>` uses (its default `paramKey`). */
@@ -47,7 +47,7 @@ export const UrlFormatToggle = (): React.ReactElement => {
 		if (current === null || current === '') {
 			return;
 		}
-		const serializer = createTaggedSerializer(nextFormat);
+		const serializer = createLinkSerializer(nextFormat);
 
 		try {
 			// decode auto-detects the OLD format's tag; re-encode into the new one.

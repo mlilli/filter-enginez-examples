@@ -123,4 +123,12 @@ describe('orderTreeByFrequency', () => {
 		expect(ordered.children.map((node) => node.id)).toEqual(['Argentina', 'Austria', 'US']);
 		expect(tree.children.map((node) => node.id)).toEqual(['Argentina', 'US', 'Austria']);
 	});
+
+	it('breaks ties by id when a node has no label', () => {
+		// Unlabeled siblings, listed against id order and with no records to tell them apart: only the
+		// id can order them, so this fails if a missing label sorts as anything but the id.
+		const unlabeledTree = { children: [{ id: 'Spain' }, { id: 'Chile' }, { id: 'Italy' }], id: 'origin' };
+
+		expect(orderTreeByFrequency(unlabeledTree, []).children.map((node) => node.id)).toEqual(['Chile', 'Italy', 'Spain']);
+	});
 });

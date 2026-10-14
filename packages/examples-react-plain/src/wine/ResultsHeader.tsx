@@ -13,7 +13,7 @@
  *      `engineBusy` external-store read.
  *   2. The `instanceof`-based rule→summary mapping (`summarizeRule` / `buildRuleSummaries`), which
  *      necessarily imports the concrete `core` rule classes.
- *   3. `resetRule` — the per-chip removal semantics (removeRule vs the origin special-case).
+ *   3. `resetRule` — the per-chip removal semantics (`removeRule`, never an emptied rule).
  *
  * The container builds a plain `FilterSummary[]` + two callbacks and hands them to the view. The
  * view knows nothing of `FilterRule`, `RuleId`, or signals — the same boundary the RTK app's wine
@@ -27,8 +27,7 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import {
 	type FilterRule,
 	FuzzySearchRule,
-	hierarchical,
-	HierarchicalRule,
+	InSetofSetsRule,
 	InSetRule,
 	NumericComparisonRule,
 	RangeRule,
@@ -261,10 +260,13 @@ function summarizeRule(ruleId: RuleId, rule: FilterRule): RuleSummary | null {
 			value: isVintage ? formatVintageRange(set as readonly number[]) : formatSetValue(set),
 		};
 	}
-	if (rule instanceof HierarchicalRule) {
-		const selected = rule.config.selected;
+	if (rule instanceof InSetofSetsRule) {
+		// Wine's only set of sets is origin, committed by the shared `writeOriginSelection`: one set per
+		// selected node, the node's own id first, so the sets' heads are the selected nodes.
+		const sets: readonly (readonly unknown[])[] = rule.config.set;
+		const selectedNodes = sets.flatMap((subset) => subset.slice(0, 1));
 
-		if (selected.length === 0) {
+		if (selectedNodes.length === 0) {
 			return null;
 		}
 
@@ -272,7 +274,7 @@ function summarizeRule(ruleId: RuleId, rule: FilterRule): RuleSummary | null {
 			isNumeric: false,
 			label: 'Origin',
 			ruleId,
-			value: formatSetValue(selected),
+			value: formatSetValue(selectedNodes),
 		};
 	}
 	if (rule instanceof TextSearchRule) {
@@ -349,26 +351,11 @@ function formatSetValue(set: readonly unknown[]): string {
  * because the rule no longer exists. Subsequent modifications then become `RULE_CHANGED`
  * (gray) as before.
  *
- * **The one exception: `origin`.** The HierarchicalRule carries the tree structure in its
- * config — removing it loses the tree, and the next user click can't reconstruct it (the
- * picker would render an empty tree). For origin we keep the addRule-with-empty-selected
- * approach so the tree persists. This is a `RULE_CHANGED` entry which is fine — origin's
- * "active" state is fully captured by the `selected` array.
+ * Origin is no exception. Its rule carries only the selection — the picker's tree comes from the
+ * loaded records — so removing it writes the same "nothing selected" every app writes.
  *
  * @internal
  */
-function resetRule(core: { addRule: (id: RuleId, r: FilterRule) => void; removeRule: (id: RuleId) => void }, ruleId: RuleId): void {
-	if (ruleId === 'origin') {
-		// Preserve the tree, reset selection only — see comment above.
-		core.addRule(
-			'origin',
-			hierarchical('originId', {
-				selected: [],
-				tree: { children: [], id: 'origin' },
-			}),
-		);
-
-		return;
-	}
+function resetRule(core: { removeRule: (id: RuleId) => void }, ruleId: RuleId): void {
 	core.removeRule(ruleId);
 }

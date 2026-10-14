@@ -395,6 +395,31 @@ describe('the landing page', () => {
 		expect(page).toContain(`<meta property="og:image" content="https://${APEX_HOST}/og-card.png" />`);
 		expect(JSON.parse(structuredData)).toMatchObject({ '@context': 'https://schema.org', '@type': 'SoftwareSourceCode' });
 	});
+
+	it('runs one script, the install command’s copy button, and the 404 page none', () => {
+		// The home page reads and works in full without JavaScript; its one enhancement is the copy
+		// button beside the install command. Any other script is a new decision, not a drive-by: it has
+		// to be added here, on purpose. (The structured data is a `<script>` element but not a script.)
+		const scripts = (page: string): readonly string[] =>
+			[...readRepoFile(page).matchAll(/<script\b[^>]*>/gu)].map(([tag]) => tag).filter((tag) => !tag.includes('application/ld+json'));
+
+		expect(scripts('packages/site/index.html')).toEqual(['<script type="module" src="/src/home/main.ts">']);
+		expect(scripts('packages/site/404.html')).toEqual([]);
+	});
+
+	it('keeps that script to the copy button: an entry that imports only its enhancement, which imports nothing', () => {
+		const homeDirectory = resolve(REPO_ROOT, 'packages/site/src/home');
+		const modules = readdirSync(homeDirectory).filter((name) => name.endsWith('.ts') && !name.endsWith('.test.ts') && !name.endsWith('.d.ts'));
+		// Static `from`, bare `import '…'` and dynamic `import('…')` alike.
+		const importsOf = (name: string): readonly string[] =>
+			[...readFileSync(resolve(homeDirectory, name), 'utf8').matchAll(/\b(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/gu)].map(
+				([, specifier]) => specifier ?? '',
+			);
+
+		expect(modules.slice().sort()).toEqual(['installCopy.ts', 'main.ts']);
+		expect(importsOf('main.ts')).toEqual(['./installCopy.js']);
+		expect(importsOf('installCopy.ts')).toEqual([]);
+	});
 });
 
 describe('every app’s /about and /compare', () => {

@@ -255,20 +255,83 @@ describe('vanilla wine page — boot progress', () => {
 	});
 
 	it('stops listening when the boot FAILS, which is why the teardown is a `.finally`', async () => {
-		// The asymmetry that makes the `.finally` load-bearing rather than stylistic: a rejected boot
-		// propagates out of `renderWinePage`, so an unsubscribe written as a plain line after the `await`
-		// never runs and the listener stays in a module-level set for the life of the page. A worker that
-		// fails its handshake is the ordinary way to reach this.
+		// A rejected boot leaves the `await` without reaching the line after it, so an unsubscribe
+		// written there would never run and the listener would stay in a module-level set for the life
+		// of the page. A worker that fails its handshake is the ordinary way to reach this.
+		const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
 		startBoot();
 
 		const captionNode = container.querySelector('p');
 
 		bootControls?.reject(new Error('worker never handshook'));
-
-		await expect(pendingBoot).rejects.toThrow('worker never handshook');
+		await pendingBoot;
 
 		emitProgress({ isTotalEstimated: false, loaded: 40_000, source: 'synthetic-full-tier', total: 150_000 });
 
 		expect(captionNode?.textContent).toBe('Spinning up worker thread');
+		expect(logged).toHaveBeenCalledWith('[wine] boot failed:', expect.any(Error));
+		logged.mockRestore();
+	});
+});
+
+describe('vanilla wine page — a boot that fails', () => {
+	let container: HTMLElement;
+
+	beforeEach(() => {
+		document.body.replaceChildren();
+		progressListeners.clear();
+		progressSnapshot = null;
+		bootControls = null;
+		onBootCalled = null;
+		container = document.createElement('div');
+		document.body.append(container);
+		vi.spyOn(console, 'error').mockImplementation(() => undefined);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	/**
+	 * Start a boot, fail it with `reason`, and wait for the page to settle.
+	 *
+	 * @param reason - What the boot rejects with.
+	 * @returns The route's teardown.
+	 */
+	async function failBoot(reason: unknown): Promise<RouteTeardown> {
+		const rendering = renderWinePage(container);
+
+		bootControls?.reject(reason);
+
+		return rendering;
+	}
+
+	it('replaces the boot screen with the failure screen, naming the error and the main-thread switch', async () => {
+		await failBoot(new Error('worker never handshook'));
+
+		const alert = container.querySelector('[role="alert"]');
+
+		// The loader is gone: a boot screen still animating over a dead boot reads as a hang.
+		expect(container.querySelector('[role="img"]')).toBeNull();
+		expect(alert?.textContent).toContain('The wine engine could not start.');
+		// The error's own message, not its `String()` form ("Error: …").
+		expect(alert?.querySelectorAll('p')[1]?.textContent).toBe('worker never handshook');
+		expect(alert?.querySelector('code')?.textContent).toBe('VITE_WINE_TIER=default');
+	});
+
+	it('shows a rejection that is not an Error as its text', async () => {
+		// A worker's `error` event, or a rejected `postMessage`, can reject with a bare value.
+		await failBoot('worker script failed to load');
+
+		expect(container.querySelector('[role="alert"]')?.querySelectorAll('p')[1]?.textContent).toBe('worker script failed to load');
+	});
+
+	it('still returns a teardown, which clears the failure screen on navigation', async () => {
+		const teardown = await failBoot(new Error('worker never handshook'));
+
+		teardown();
+
+		expect(container.childElementCount).toBe(0);
 	});
 });

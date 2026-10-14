@@ -10,8 +10,10 @@
  * `$app/stores` (to a test double), so `$app/navigation` has no module there and importing it would
  * break the suite.
  *
- * The serializer is the framework-neutral tagged serializer from `@filter-enginez/url-state-router`
- * (imported via its `/serializers` subpath so no `react-router` is dragged in). A tagged value
+ * The serializer is `@filter-enginez/examples-shared/link-serializer`'s, the one all six apps share:
+ * the framework-neutral tagged serializer from `@filter-enginez/url-state-router` (its `/serializers`
+ * subpath, so no `react-router` is dragged in), whose `decode` also reads a link's wine origin rule in
+ * the form every app commits. A tagged value
  * self-identifies its format (`<tag>~<payload>`) and `decode` auto-detects it, so a shared link keeps
  * working across a format switch — the same guarantee the React toggle relies on.
  *
@@ -21,7 +23,8 @@
 import type { FilterEngineConfig } from '@filter-enginez/core';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { type BuiltInSerializerName, createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 import { get, writable } from 'svelte/store';
 
 /** The URL query key holding the encoded filter state (matches `<FilterEngineUrlSync>`'s default). */
@@ -129,7 +132,9 @@ export function readConfigFromUrl(): FilterEngineConfig | null {
 	}
 	try {
 		// `decode` auto-detects the tag regardless of the current format setting.
-		const config = createTaggedSerializer(get(urlFormat)).decode(serialized);
+		// The shared link serializer: it also reads a link's wine origin rule in the form every app
+		// commits (`examples-shared/src/url/linkSerializer.ts`).
+		const config = createLinkSerializer(get(urlFormat)).decode(serialized);
 
 		// Published only after a SUCCESSFUL decode, deliberately. A malformed `?f` is still a
 		// parameter, and publishing it would let the Compare button offer to transport a state that
@@ -155,7 +160,7 @@ function writeConfigToUrl(config: FilterEngineConfig, format: UrlFormat): void {
 		return;
 	}
 	const url = new URL(window.location.href);
-	const serialized = createTaggedSerializer(format).encode(config);
+	const serialized = createLinkSerializer(format).encode(config);
 
 	url.searchParams.set(URL_STATE_PARAM, serialized);
 	window.history.replaceState(window.history.state, '', url);
@@ -179,7 +184,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 	if (current === null || current === '') {
 		return;
 	}
-	const serializer = createTaggedSerializer(nextFormat);
+	const serializer = createLinkSerializer(nextFormat);
 
 	try {
 		const reEncoded = serializer.encode(serializer.decode(current));

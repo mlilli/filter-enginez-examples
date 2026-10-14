@@ -33,10 +33,10 @@
  * reactive idiom and don't require a wrapping component to bridge to React state.
  */
 
+import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { initializeBitmapAcceleration } from '@filter-enginez/core';
-import { type Wine } from '@filter-enginez/mock-data/wine';
 import { bootSignalsEngine } from '@filter-enginez/reactive-signals/worker';
 import { type FilterEngineAsync, type WorkerLike, wrapInWorker } from '@filter-enginez/worker-bridge';
 

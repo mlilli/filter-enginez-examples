@@ -59,6 +59,8 @@ export { buildWineOriginTree, deriveWineFacets, rankWineVarietals, type WineFace
 // still be reachable from a component's static import list.
 export { wineBusyCore } from '../engineBusyCore.js';
 export * from './filterConfig.js';
+export * from './originLinks.js';
+export * from './originRule.js';
 export * from './ruleSummaries.js';
 export {
 	buildSmartFilterExpression,

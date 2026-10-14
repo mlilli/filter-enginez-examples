@@ -3,10 +3,12 @@
  * "How the engine works" page and the comparison page.
  *
  * @remarks
- * Four HTML entry points. `index.html` and `404.html` ship no JavaScript: for them Vite bundles
- * `src/styles.css` (which pulls `@filter-enginez/ui-styles` and, through it, the brand tokens and the
- * self-hosted fonts out of `@filter-enginez/brand`, hashed for long-lived caching) and copies
- * `public/` (`robots.txt`, `sitemap.xml`) as-is.
+ * Four HTML entry points. For every one Vite bundles `src/styles.css` (which pulls
+ * `@filter-enginez/ui-styles` and, through it, the brand tokens and the self-hosted fonts out of
+ * `@filter-enginez/brand`, hashed for long-lived caching) and copies `public/` (`robots.txt`,
+ * `sitemap.xml`) as-is. `404.html` ships no JavaScript, and `index.html` ships one small module,
+ * `src/home/main.ts`, which reveals and wires the install command's copy button (the page reads and
+ * works in full without it; `tests/tooling/cloudflareDeploy.test.ts` holds it to that one script).
  *
  * ### `how-it-works.html` is rendered at build time, then enhanced
  *

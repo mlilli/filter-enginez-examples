@@ -33,6 +33,7 @@
  */
 
 import type { WineBootProgress } from '@filter-enginez/examples-shared/wine-core';
+import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
@@ -45,7 +46,6 @@ import {
 	type SliderFieldId,
 	type WineChipVocabularies,
 } from '@filter-enginez/examples-shared/wine-domain';
-import { type Wine } from '@filter-enginez/mock-data/wine';
 import { computed, onMounted, onUnmounted, shallowRef } from 'vue';
 
 import BrainSynapse from '../brand/BrainSynapse.vue';

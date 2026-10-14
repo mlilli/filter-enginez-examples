@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { bootCaptionValue } from '../brand/indicators.js';
-import { createWineBootScreen } from './bootScreen.js';
+import { createWineBootFailure, createWineBootScreen } from './bootScreen.js';
 
 // `bootCaptionValue`'s own cases live in `../brand/indicators.test.ts`, beside the function. It is
 // imported here because the caption-replacement case below asserts the mixed text-and-element call
@@ -52,3 +52,27 @@ describe('createWineBootScreen', () => {
 		expect(caption()).toBe('Loaded 500 of 1,000 bottles');
 	});
 });
+
+describe('createWineBootFailure', () => {
+	it('announces the failure, with the error’s own message and the switch that routes around the worker', () => {
+		const failure = createWineBootFailure('worker never handshook');
+		const lines = [...failure.querySelectorAll('p')].map((line) => line.textContent);
+
+		// An alert, so a screen reader that was hearing the boot caption hears the failure instead.
+		expect(failure.getAttribute('role')).toBe('alert');
+		expect(lines).toEqual([
+			'The wine engine could not start.',
+			'worker never handshook',
+			'The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the worker could not start. Set VITE_WINE_TIER=default to boot the 10,000-wine default tier on the main thread instead.',
+		]);
+		expect(failure.querySelector('code')?.textContent).toBe('VITE_WINE_TIER=default');
+	});
+
+	it('renders a message as text, never as markup', () => {
+		const failure = createWineBootFailure('<img src=x onerror=alert(1)>');
+
+		expect(failure.querySelector('img')).toBeNull();
+		expect(failure.querySelectorAll('p')[1]?.textContent).toBe('<img src=x onerror=alert(1)>');
+	});
+});
+

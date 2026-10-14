@@ -67,6 +67,8 @@ const REACT_FREE_SUBPATHS = [
 	// The how-it-works page's content and benchmark workload. The landing site renders it at build time
 	// in Node and in the browser with no framework at all, so React reaching it would break both.
 	'./how-it-works',
+	// The `?f=` serializer every app's URL layer builds, on every route.
+	'./link-serializer',
 	'./notfound-core',
 	'./picker',
 	'./real-estate-boot-core',

@@ -3,9 +3,10 @@
  *
  * @remarks
  * This is the whole mechanism the comparison page exists to demonstrate. Every vertical reads the same `f`
- * query param, every vertical wraps `createTaggedSerializer`, and that serializer's decode sniffs
- * the `h~` / `c~` / `b~` prefix rather than being told the format — so a value produced by the
- * Angular app decodes unchanged in the framework-less one. This module is what exercises that claim.
+ * query param, every vertical reads it with the one `createLinkSerializer` (`../url/linkSerializer.ts`),
+ * and that serializer's decode sniffs the `h~` / `c~` / `b~` prefix rather than being told the format —
+ * so a value produced by the Angular app decodes unchanged in the framework-less one. This module is
+ * what exercises that claim.
  *
  * **"One per vertical that serves it" rather than "six".** Three datasets are served by all six apps
  * and `wine-server` by exactly two.

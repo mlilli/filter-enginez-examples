@@ -22,6 +22,7 @@ export {
 	clearAllWineFilters,
 	clearRule,
 	commitExpression,
+	commitOriginSelection,
 	commitRule,
 	commitSelection,
 	removeFacet,

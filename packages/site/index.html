@@ -55,6 +55,7 @@
 		</script>
 
 		<link rel="stylesheet" href="/src/styles.css" />
+		<script type="module" src="/src/home/main.ts"></script>
 	</head>
 	<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -118,7 +119,13 @@
 						</div>
 						<div class="install">
 							<p class="install__label">Install the core</p>
-							<pre class="install__command"><code>pnpm add @filter-enginez/core</code></pre>
+							<div class="install__row">
+								<pre class="install__command"><code data-copy-source>pnpm add @filter-enginez/core</code></pre>
+								<button class="install__copy" type="button" aria-label="Copy install command" data-copy-button hidden>
+									<span data-copy-label aria-hidden="true">Copy</span>
+								</button>
+							</div>
+							<p class="install__status" role="status" data-copy-status></p>
 							<p class="install__note">
 								Then add the binding for your stack, such as
 								<code>@filter-enginez/react-signals</code>

@@ -8,16 +8,19 @@
  * and the initial `?f` hydration — was always plain TypeScript. Here it simply *is* plain TypeScript,
  * with a hand-rolled listener list standing in for the store.
  *
- * The serializer comes from `@filter-enginez/url-state-router/serializers`, which is React-free (its
- * only dependency is `lz-string`). A tagged value self-identifies its format (`<tag>~<payload>`) and
- * `decode` auto-detects it, so a shared link keeps working across a format switch.
+ * The serializer is `@filter-enginez/examples-shared/link-serializer`'s, the one all six apps share:
+ * url-state-router's React-free tagged serializer (its only dependency is `lz-string`), whose `decode`
+ * also reads a link's wine origin rule in the form every app commits. A tagged value self-identifies
+ * its format (`<tag>~<payload>`) and `decode` auto-detects it, so a shared link keeps working across a
+ * format switch.
  *
  * @packageDocumentation
  */
 
 import type { FilterEngine, FilterEngineConfig } from '@filter-enginez/core';
 
-import { type BuiltInSerializerName, createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
 /** The URL query key holding the encoded filter state. */
 const URL_STATE_PARAM = 'f';
@@ -179,7 +182,9 @@ export function readConfigFromUrl(): FilterEngineConfig | null {
 	}
 	try {
 		// `decode` auto-detects the tag regardless of the current format setting.
-		const config = createTaggedSerializer(urlFormat).decode(serialized);
+		// The shared link serializer: it also reads a link's wine origin rule in the form every app
+		// commits (`examples-shared/src/url/linkSerializer.ts`).
+		const config = createLinkSerializer(urlFormat).decode(serialized);
 
 		// Published only after a SUCCESSFUL decode, deliberately. A malformed `?f` is still a
 		// parameter, and publishing it would let the Compare button offer to transport a state that
@@ -207,7 +212,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 	if (current === null || current === '') {
 		return;
 	}
-	const serializer = createTaggedSerializer(nextFormat);
+	const serializer = createLinkSerializer(nextFormat);
 
 	try {
 		const reEncoded = serializer.encode(serializer.decode(current));
@@ -283,7 +288,7 @@ export function startEngineUrlSync<T>(source: UrlSyncSource<T>): () => void {
 			timer = null;
 			void readConfig().then((config) => {
 				const url = new URL(window.location.href);
-				const serialized = createTaggedSerializer(urlFormat).encode(config);
+				const serialized = createLinkSerializer(urlFormat).encode(config);
 
 				url.searchParams.set(URL_STATE_PARAM, serialized);
 				window.history.replaceState(window.history.state, '', url);

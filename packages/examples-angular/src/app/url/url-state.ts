@@ -21,8 +21,10 @@
  * base64 — because seeing the same filter state in all three is the clearest way to show that URL
  * state is a *serialization* concern, not a storage one.
  *
- * The serializer is imported from `@filter-enginez/url-state-router/serializers` specifically: the
- * package root drags in `react-router`, which has no business in an Angular bundle.
+ * The serializer is `@filter-enginez/examples-shared/link-serializer`'s, the one all six apps share,
+ * whose `decode` also reads a link's wine origin rule in the form every app commits. It builds on
+ * `@filter-enginez/url-state-router/serializers` specifically — the package root drags in
+ * `react-router`, which has no business in an Angular bundle — and so does the format type below.
  *
  * ### Why `replaceState`
  *
@@ -36,10 +38,8 @@ import type { FilterEngineConfig } from '@filter-enginez/core';
 import type { RxJsEngine } from '@filter-enginez/reactive-rxjs';
 
 import { signal } from '@angular/core';
-import {
-	type BuiltInSerializerName,
-	createTaggedSerializer,
-} from '@filter-enginez/url-state-router/serializers';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
 /** Query-string key holding the serialized filter state. Matches the router package's default. */
 const URL_STATE_PARAM = 'f';
@@ -174,7 +174,9 @@ export function readConfigFromUrl(): FilterEngineConfig | null {
 	}
 
 	try {
-		const config = createTaggedSerializer(urlFormat()).decode(serialized);
+		// The shared link serializer: it also reads a link's wine origin rule in the form every app
+		// commits (`examples-shared/src/url/linkSerializer.ts`).
+		const config = createLinkSerializer(urlFormat()).decode(serialized);
 
 		// Published only after a SUCCESSFUL decode, deliberately. A malformed `?f` is still a
 		// parameter, and publishing it would let the Compare button offer to transport a state that
@@ -196,7 +198,7 @@ function writeConfigToUrl(config: FilterEngineConfig, format: UrlFormat): void {
 	}
 
 	const url = new URL(window.location.href);
-	const serialized = createTaggedSerializer(format).encode(config);
+	const serialized = createLinkSerializer(format).encode(config);
 
 	url.searchParams.set(URL_STATE_PARAM, serialized);
 	window.history.replaceState(window.history.state, '', url);
@@ -224,7 +226,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 		return;
 	}
 
-	const serializer = createTaggedSerializer(nextFormat);
+	const serializer = createLinkSerializer(nextFormat);
 
 	try {
 		const reEncoded = serializer.encode(serializer.decode(current));

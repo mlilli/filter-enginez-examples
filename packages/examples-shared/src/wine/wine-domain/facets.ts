@@ -18,10 +18,21 @@
  * How the result is HELD: Angular puts it in an `InjectionToken`, Vue in a `shallowRef`, SvelteKit
  * in `$state.raw`, vanilla in a closure. That part is genuinely per-framework and stays there.
  *
+ * ### Types only from `@filter-enginez/mock-data/wine`
+ *
+ * This module runs on every wine page's main thread, and that barrel is the wine DATASET: importing a
+ * value from it — or even `import { type Wine }`, which `verbatimModuleSyntax` keeps as a bare
+ * side-effect import — bundles the ~215 kB generator and evaluates the module that generates the
+ * 10,000-wine default tier at load. So the import below is `import type`, which is erased, and the
+ * origin tree is built here from the records' own `originId`s ({@link buildOriginTreeFromOriginIds})
+ * rather than by the dataset's `buildOriginTree`. `tests/tooling/mainThreadWineImports.test.ts`
+ * holds every main-thread module to the same rule.
+ *
  * @packageDocumentation
  */
 
-import { buildOriginTree, type Wine } from '@filter-enginez/mock-data/wine';
+import type { Wine } from '@filter-enginez/mock-data/wine';
+
 import {
 	deriveBaselineBounds,
 	type NumericBounds,
@@ -76,23 +87,92 @@ function deriveBounds(field: SliderFieldId, corpus: readonly Wine[]): NumericBou
 	);
 }
 
+/** The character joining an origin path's levels in a wine's `originId` (`France|Bordeaux|Pauillac`). */
+export const ORIGIN_ID_SEPARATOR = '|';
+
+/** The id of the origin tree's root, which no wine carries and no picker renders. */
+export const ORIGIN_TREE_ROOT_ID = 'origin';
+
+/** One node of the tree {@link buildOriginTreeFromOriginIds} assembles, before it is frozen. */
+interface OriginTreeDraftNode {
+	/** The node's children, by their own path segment, in first-seen order. */
+	readonly children: Map<string, OriginTreeDraftNode>;
+	/** The path from the root to this node, joined by {@link ORIGIN_ID_SEPARATOR}. */
+	readonly id: string;
+	/** The node's own path segment. */
+	readonly label: string;
+}
+
+/**
+ * Freeze a draft node into a picker node: a leaf carries no `children` at all.
+ *
+ * @param draft - The draft node.
+ * @returns The picker node and its subtree.
+ */
+function freezeOriginTreeNode(draft: OriginTreeDraftNode): PickerTreeNode {
+	return draft.children.size === 0
+		? { id: draft.id, label: draft.label }
+		: { children: Array.from(draft.children.values(), freezeOriginTreeNode), id: draft.id, label: draft.label };
+}
+
+/**
+ * The origin hierarchy the records' own `originId`s describe, as a picker tree.
+ *
+ * @remarks
+ * A wine's `originId` is the path from its country down to the deepest level it names, the levels
+ * joined by {@link ORIGIN_ID_SEPARATOR} and empty levels skipped (`Spain|Galicia|Rías Baixas`). Every
+ * prefix of that path is a node of the tree, its id the prefix and its label the prefix's last level,
+ * so the tree holds exactly the ids the origin rule matches against, at every depth — the same nodes
+ * the dataset's own `buildOriginTree` assembles from each wine's `origin` object (`facets.test.ts`
+ * compares the two over the 150,000-wine tier).
+ *
+ * Built here, from the ids, because this runs on the main thread and the dataset's builder is only
+ * exported from the barrel that generates the dataset (see the module docblock). Children keep their
+ * first-seen order; {@link buildWineOriginTree} orders every level by wine count anyway. An empty
+ * `originId`, which names no place, adds no node.
+ *
+ * @param originIds - One id per record — every wine's `originId`.
+ * @returns The tree, rooted at {@link ORIGIN_TREE_ROOT_ID}.
+ */
+export function buildOriginTreeFromOriginIds(originIds: Iterable<string>): PickerTreeNode {
+	const root: OriginTreeDraftNode = { children: new Map(), id: ORIGIN_TREE_ROOT_ID, label: 'Origin' };
+
+	for (const originId of originIds) {
+		const levels = originId.split(ORIGIN_ID_SEPARATOR).filter((level) => level.length > 0);
+		let parent = root;
+
+		for (const [depth, level] of levels.entries()) {
+			const existing = parent.children.get(level);
+			const node = existing ?? {
+				children: new Map(),
+				id: levels.slice(0, depth + 1).join(ORIGIN_ID_SEPARATOR),
+				label: level,
+			};
+
+			parent.children.set(level, node);
+			parent = node;
+		}
+	}
+
+	// The root always carries a `children` array, empty for an empty corpus, as every picker expects.
+	return { children: Array.from(root.children.values(), freezeOriginTreeNode), id: root.id, label: root.label };
+}
+
 /**
  * The origin picker's tree, most-reviewed places first at every level.
  *
  * @remarks
- * `buildOriginTree` orders alphabetically, which opens the list on Argentina and Armenia and files the
- * US — four wines in ten — near the bottom. Every wine panel builds its tree through this one function,
- * so the six apps list origins in the same order.
+ * Ordered alphabetically, the list would open on Argentina and Armenia and file the US — four wines in
+ * ten — near the bottom. Every wine panel builds its tree through this one function, so the six apps
+ * list origins in the same order.
  *
  * @param corpus - The records the engine actually holds.
  * @returns The tree, re-ordered by wine count at every level.
  */
 export function buildWineOriginTree(corpus: readonly Wine[]): PickerTreeNode {
-	// `buildOriginTree` returns a root without a `label` (nothing renders the root), so it is
-	// structurally narrower than `PickerTreeNode`. Every vertical cast here for the same reason.
-	const tree = buildOriginTree(corpus) as unknown as PickerTreeNode;
+	const originIds = corpus.map((wine) => wine.originId);
 
-	return orderTreeByFrequency(tree, corpus.map((wine) => wine.originId));
+	return orderTreeByFrequency(buildOriginTreeFromOriginIds(originIds), originIds);
 }
 
 /**
@@ -116,10 +196,10 @@ export function rankWineVarietals(corpus: readonly Wine[]): readonly string[] {
  * @remarks
  * Pure, and takes records rather than an engine, so it is testable without a worker.
  *
- * **Pass the corpus the ENGINE holds**, not a fresh import. `buildOriginTree()` defaults to the
- * bundled 10k tier, so deriving from the import rather than from `core.getSourceData()` would build
- * an origin picker for a corpus the engine is not filtering — a tree missing every region that only
- * appears in the 150,000-wine set, with no error to say so.
+ * **Pass the corpus the ENGINE holds** (`core.getSourceData()`), not the dataset package's bundled
+ * 10,000-wine tier. Deriving from that tier would build an origin picker for a corpus the engine is
+ * not filtering — a tree missing every region that only appears in the 150,000-wine set, with no
+ * error to say so.
  *
  * @param corpus - The records the engine actually holds.
  * @returns The derived facets.

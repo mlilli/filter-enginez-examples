@@ -33,6 +33,13 @@
  * reload. A `null` progress is the pre-stream moment, and a zero total means the stream has not
  * reported a length yet — `0 / 0 bottles` would claim a failure that has not happened.
  *
+ * ## A failed boot gets a screen, not a loader that never stops
+ *
+ * If the worker cannot start — or the engine cannot be built over it — the boot screen is replaced
+ * by {@link createWineBootFailure}: what failed, the error's own message, and the one switch that
+ * routes around the worker (`VITE_WINE_TIER=default`), as every other app's wine page says. An
+ * indefinite loader would read as a hang and send someone looking in the wrong place.
+ *
  * @packageDocumentation
  */
 
@@ -51,7 +58,7 @@ import { createSignalsEngineFromAsync } from '@filter-enginez/reactive-signals/w
 import type { RouteTeardown } from '../router.js';
 
 import { bootCaptionValue } from '../brand/indicators.js';
-import { createWineBootScreen } from '../wine/bootScreen.js';
+import { createWineBootFailure, createWineBootScreen } from '../wine/bootScreen.js';
 import { mountWineRoute } from './winePageShell.js';
 
 /**
@@ -81,17 +88,30 @@ export async function renderWinePage(container: HTMLElement): Promise<RouteTeard
 
 	setProgress(getWineBootProgressSnapshot());
 
-	// `.finally` rather than a plain line after the await: a failed boot rejects out of this function,
-	// and the listener would otherwise stay in a module-level set for the life of the page.
-	const { asyncEngine, meta } = await bootWineAsyncEngine({ spawnWorker: spawnWineWorker }).finally(
-		stopProgress,
-	);
-	const engine = await createSignalsEngineFromAsync(asyncEngine);
+	let booted;
+
+	try {
+		// `.finally` rather than a plain line after the await: a failed boot rejects past this line,
+		// and the listener would otherwise stay in a module-level set for the life of the page.
+		const { asyncEngine, meta } = await bootWineAsyncEngine({ spawnWorker: spawnWineWorker }).finally(
+			stopProgress,
+		);
+
+		booted = { engine: await createSignalsEngineFromAsync(asyncEngine), source: meta.source };
+	} catch (error) {
+		console.error('[wine] boot failed:', error);
+		container.replaceChildren(createWineBootFailure(error instanceof Error ? error.message : String(error)));
+
+		// A teardown is still owed: the router calls it on navigation however the render ended.
+		return () => {
+			container.replaceChildren();
+		};
+	}
 
 	return mountWineRoute(container, {
 		compareDataset: 'wine',
-		engine,
-		footnote: `filter-enginez · wine demo · vanilla + reactive-signals over a Comlink worker · ${describeWineCorpusTier(meta.source)}`,
+		engine: booted.engine,
+		footnote: `filter-enginez · wine demo · vanilla + reactive-signals over a Comlink worker · ${describeWineCorpusTier(booted.source)}`,
 		subtitle: appHeaderSubtitle('Wine', 'vanilla', 'worker'),
 	});
 }

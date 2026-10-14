@@ -7,8 +7,8 @@
  * - **The Cloudflare Worker** (`src/*.ts`) and the Vite config run with no DOM, so the package takes
  *   the `nodeIsomorphic` preset, as `examples-server` does — including its
  *   `@filter-enginez/no-browser-api-in-core` rule.
- * - **The how-it-works and compare pages** (`src/how-it-works/`, `src/compare/`) are browser code that
- *   builds DOM. For them
+ * - **The home, how-it-works and compare pages** (`src/home/`, `src/how-it-works/`, `src/compare/`)
+ *   are browser code that builds DOM. For them
  *   the preset's isomorphic-boundary rule is switched off and the browser globals are on, which is
  *   exactly what the framework-free demo app composes from `base` + `globals.browser`.
  *
@@ -33,7 +33,7 @@ export default [
 		},
 	},
 	{
-		files: ['src/compare/**/*.ts', 'src/how-it-works/**/*.ts'],
+		files: ['src/compare/**/*.ts', 'src/home/**/*.ts', 'src/how-it-works/**/*.ts'],
 		languageOptions: {
 			globals: {
 				...globals.browser,

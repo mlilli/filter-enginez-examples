@@ -6,7 +6,8 @@
  * @remarks
  * The headline facet of the wine demo, and the only one whose rule is a set OF sets: selecting a
  * country commits the leaf ids beneath it, so one click covers a whole subtree without the rule
- * needing to understand hierarchy.
+ * needing to understand hierarchy. The rule is built by the shared `commitOriginSelection`, as in every
+ * app, so an origin selection reads the same in a link from any of them (`wine-domain/originRule.ts`).
  *
  * ## Selection is COMPACT — the highest selected node per branch, never the closure
  *
@@ -30,11 +31,11 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { inSetofSets, type InSetofSetsRule } from '@filter-enginez/core';
+import { type InSetofSetsRule } from '@filter-enginez/core';
 import {
 	chipDisabledSet,
 	chipProjectedCounts,
-	commitSelection,
+	commitOriginSelection,
 	deriveOriginSelection,
 	EMPTY_SELECTION,
 	type OriginNodeSpec,
@@ -94,13 +95,7 @@ const counts = computed(() => chipProjectedCounts(bundle.value, 'origin'));
 function handleChange(next: readonly string[]): void {
 	props.leaveExpressionMode();
 	selected.value = next;
-	commitSelection(props.engine, 'origin', next, (values) => {
-		const sets = props.specs
-			.filter((spec) => values.includes(spec.value))
-			.map((spec) => spec.leafIds);
-
-		return inSetofSets<string>('originId', sets);
-	});
+	commitOriginSelection(props.engine, next, props.specs);
 }
 </script>
 

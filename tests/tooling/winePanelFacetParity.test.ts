@@ -39,6 +39,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { walkRepoFiles } from './support/repoFiles.js';
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const COMMIT_SOURCE = readFileSync(
 	resolve(REPO_ROOT, 'packages/examples-shared/src/wine/wine-domain/commit.ts'),
@@ -295,5 +297,70 @@ describe('wine facet parity across every panel implementation', () => {
 				'WineFilterPanel = ',
 			);
 		}
+	});
+});
+
+/** The one module that builds the origin rule every app commits. */
+const ORIGIN_RULE_MODULE = 'packages/examples-shared/src/wine/wine-domain/originRule.ts';
+
+/** The one module that builds the `?f=` serializer every app reads and writes links with. */
+const LINK_SERIALIZER_MODULE = 'packages/examples-shared/src/url/linkSerializer.ts';
+
+/**
+ * An origin rule built by hand: a rule factory or constructor called on the `originId` field.
+ *
+ * @remarks
+ * The shared module names the field through a constant, so this matches nothing there; anywhere else
+ * it is an app committing origin on its own terms — the drift that made one selection two different
+ * links.
+ */
+const HAND_BUILT_ORIGIN_RULE = /\b(?:hierarchical|inSetofSets|new\s+HierarchicalRule|new\s+InSetofSetsRule)\s*(?:<[^>]*>)?\(\s*['"]originId['"]/u;
+
+/**
+ * Every non-test source file under `packages/`, with its text.
+ *
+ * @returns Repo-relative paths and contents.
+ */
+function packageSources(): readonly { readonly path: string; readonly text: string }[] {
+	return walkRepoFiles(resolve(REPO_ROOT, 'packages'))
+		.filter((path) => SOURCE_EXTENSIONS.some((extension) => path.endsWith(extension)))
+		.filter((path) => !path.includes('.test.') && !path.includes('.spec.') && !path.includes('/test-support/'))
+		.map((path) => ({ path, text: readFileSync(resolve(REPO_ROOT, path), 'utf8') }));
+}
+
+describe('one origin rule and one link reader in every app', () => {
+	// The comparison page hands one `?f=` to all six apps. An origin selection has to be the same rule,
+	// serialized the same way, whichever app made it, and every app has to read a link the same way —
+	// `examples-shared/src/url/linkSerializer.test.ts` pins what the shared paths produce; this pins
+	// that every app goes through them.
+	const sources = packageSources();
+
+	it('reads the packages’ sources, so the cases below are not vacuous', () => {
+		expect(sources.length).toBeGreaterThan(100);
+		expect(sources.map(({ path }) => path)).toEqual(expect.arrayContaining([ORIGIN_RULE_MODULE, LINK_SERIALIZER_MODULE]));
+	});
+
+	it('builds the origin rule only in the shared module', () => {
+		const handBuilt = sources.filter(({ text }) => HAND_BUILT_ORIGIN_RULE.test(text)).map(({ path }) => path);
+
+		expect(handBuilt, 'commit origin through commitOriginSelection / writeOriginSelection instead').toEqual([]);
+	});
+
+	it.each(Object.keys(PANEL_IMPLEMENTATIONS))('the %s panel commits origin through the shared helper', (vertical) => {
+		const { text } = readSourceTree(PANEL_IMPLEMENTATIONS[vertical] ?? []);
+
+		expect(/\b(?:commitOriginSelection|writeOriginSelection)\(/u.test(text), `${vertical} never calls the shared origin commit`).toBe(true);
+	});
+
+	it('builds the tagged serializer only in the shared link serializer', () => {
+		const direct = sources.filter(({ text }) => text.includes('createTaggedSerializer(')).map(({ path }) => path);
+
+		expect(direct, 'build `?f=` serializers with createLinkSerializer instead').toEqual([LINK_SERIALIZER_MODULE]);
+	});
+
+	it.each(Object.keys(VERTICALS_WITH_OWN_WINE_DIRECTORY))('%s reads and writes its links with the shared link serializer', (pkg) => {
+		const readers = sources.filter(({ path, text }) => path.startsWith(`packages/${pkg}/`) && text.includes('createLinkSerializer('));
+
+		expect(readers.length, `${pkg} never calls createLinkSerializer`).toBeGreaterThan(0);
 	});
 });

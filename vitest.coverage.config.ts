@@ -216,5 +216,7 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	// The compare page's module script, the same one-call shell as the how-it-works page's `main.ts`;
 	// what it calls, `comparePage.ts` and `compareView.ts`, is covered.
 	'**/site/src/compare/main.ts',
+	// The home page's module script, the same one-call shell; what it calls, `installCopy.ts`, is covered.
+	'**/site/src/home/main.ts',
 	'node_modules/**',
 ];

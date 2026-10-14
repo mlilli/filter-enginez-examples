@@ -23,7 +23,7 @@
 
 import type { FilterEngineConfig } from '@filter-enginez/core';
 
-import { createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
 import { runDatasetQuery } from '$lib/server/datasetFilterService.js';
 import { type AppliedParams, buildConfigFromParams, colorVocabulary, parseParams } from '$lib/server/wineServerParams.js';
 
@@ -77,8 +77,9 @@ function resolveConfig(url: URL, applied: AppliedParams): { config: FilterEngine
 
 	if (serialized !== null && serialized !== '') {
 		try {
-			// `decode` auto-detects the tagged format regardless of the argument here.
-			return { config: createTaggedSerializer('human-readable').decode(serialized), hasClientState: true };
+			// `decode` auto-detects the tagged format regardless of the argument here, and reads the origin
+			// rule as every client route does (`examples-shared/src/url/linkSerializer.ts`).
+			return { config: createLinkSerializer('human-readable').decode(serialized), hasClientState: true };
 		} catch {
 			// Malformed `?f=` — fall through to the no-JS params (or a neutral config).
 		}

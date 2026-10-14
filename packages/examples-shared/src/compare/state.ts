@@ -25,11 +25,9 @@
  * @packageDocumentation
  */
 
-import {
-	type BuiltInSerializerName,
-	createTaggedSerializer,
-} from '@filter-enginez/url-state-router/serializers';
+import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
+import { createLinkSerializer } from '../url/linkSerializer.js';
 import { type CompareDataset, hasComparableState } from './links.js';
 import { COMPARE_PRESETS, findPreset } from './presets.js';
 
@@ -90,7 +88,7 @@ export function resolveCompareState(options: CompareStateOptions): CompareState 
 	const active = findPreset(dataset, presetId ?? '') ?? COMPARE_PRESETS[dataset][0];
 
 	return {
-		serialized: createTaggedSerializer(format).encode(active.config),
+		serialized: createLinkSerializer(format).encode(active.config),
 		sourceLabel: `preset · ${active.label}`,
 	};
 }

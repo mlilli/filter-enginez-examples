@@ -25,6 +25,7 @@
     "./dom": "./src/dom/dom.ts",
     "./how-it-works": "./src/how-it-works/index.ts",
     "./landing": "./src/landing/landingCards.ts",
+    "./link-serializer": "./src/url/linkSerializer.ts",
     "./mocks": "./src/mocks/index.ts",
     "./notfound": "./src/notfound/index.ts",
     "./notfound-core": "./src/notfound/core.ts",

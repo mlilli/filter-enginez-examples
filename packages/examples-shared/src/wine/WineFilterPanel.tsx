@@ -11,7 +11,7 @@
  * origin node specs, fire the one bundle fetch, and distribute the result via `FilterBundleContext`
  * to the section stack.
  *
- * Filters wired: Origin (HierarchicalRule), Price/Points/ABV (RangeRule), Vintage (InSetRule-of-
+ * Filters wired: Origin (InSetofSetsRule, the same rule every app commits), Price/Points/ABV (RangeRule), Vintage (InSetRule-of-
  * years), Color/Body/Sweetness (InSetRule chips), Single color (ValueRule, exact single-select),
  * Score comparison (NumericComparisonRule, one-sided operator), Varietal (InSetRule checkbox list),
  * Tasting-notes + Winery (FuzzySearchRule), plus a Smart-filters preset row demonstrating `CompositeRule` / expression
@@ -24,7 +24,8 @@
  * @packageDocumentation
  */
 
-import { type Wine } from '@filter-enginez/mock-data/wine';
+import type { Wine } from '@filter-enginez/mock-data/wine';
+
 import { useFilterEngine } from '@filter-enginez/react-signals';
 import { type NumericBounds } from '@filter-enginez/react-ui';
 import { useMemo } from 'react';
@@ -135,7 +136,7 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 				<ChipFilterSection ruleId="color" label="Color" options={COLOR_ORDER} showCount />
 				<ColorValueFilterSection />
 				<VarietalFilterSection />
-				<OriginFilterSection />
+				<OriginFilterSection tree={originTree} specs={originNodeSpecs} />
 				<VintageFilterSection />
 				<RangeFilterSection ruleId="abv" fieldKey="abv" label="ABV (%)" ariaLabel="Alcohol by volume range" step={0.1} />
 				<ChipFilterSection ruleId="body" label="Body" options={BODY_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />

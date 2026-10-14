@@ -9,11 +9,11 @@
 	 *
 	 * ### `inSetofSets`, not `hierarchical`
 	 *
-	 * React commits a `HierarchicalRule` here; this vertical commits an `InSetofSetsRule` over the
-	 * FLATTENED specs, because the same flattening is what the bundle query needs to ask "what if the
-	 * user clicked this node" (a country queried by its own id matches no wine — wines carry leaf ids).
-	 * `deriveOriginSelection` in `wine-domain/bundle` is the inverse, and the reason it is not trivial:
-	 * the projection is lossy, so a committed set is matched back against the specs by set identity.
+	 * Every app commits origin as the same `InSetofSetsRule` over the FLATTENED specs, through the shared
+	 * `commitOriginSelection` (`wine-domain/originRule.ts`, which says why), because the same flattening
+	 * is what the bundle query needs to ask "what if the user clicked this node". `deriveOriginSelection`
+	 * in `wine-domain/bundle` is the inverse, and the reason it is not trivial: the projection is lossy,
+	 * so a committed set is matched back against the specs by set identity.
 	 *
 	 * ### A writable `$derived`, through the lossy inverse
 	 *
@@ -38,7 +38,7 @@
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { inSetofSets, type InSetofSetsRule } from '@filter-enginez/core';
+	import { type InSetofSetsRule } from '@filter-enginez/core';
 	import {
 		chipDisabledSet,
 		chipProjectedCounts,
@@ -52,7 +52,7 @@
 	import SectionHeader from '$lib/controls/SectionHeader.svelte';
 
 	import { getWineBundle } from '../wineBundle.js';
-	import { commitSelection } from '../wineCommit.js';
+	import { commitOriginSelection } from '../wineCommit.js';
 
 	const {
 		engine,
@@ -111,11 +111,7 @@
 				// selected node per branch.
 				leaveExpressionMode();
 				selected = next;
-				commitSelection(engine, 'origin', selected, (values) => {
-					const sets = specs.filter((spec) => values.includes(spec.value)).map((spec) => spec.leafIds);
-
-					return inSetofSets<string>('originId', sets);
-				});
+				commitOriginSelection(engine, selected, specs);
 			}}
 		/>
 	{/if}

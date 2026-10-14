@@ -85,7 +85,11 @@ export function rankByFrequency(values: readonly unknown[]): readonly string[] {
 		}
 	}
 
-	return Array.from(counts.keys()).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b));
+	// Sort the [value, count] entries themselves, so each comparison reads the counts it was handed
+	// rather than looking them up again — a lookup the type system cannot prove succeeds.
+	return Array.from(counts.entries())
+		.sort(([valueA, countA], [valueB, countB]) => countB - countA || valueA.localeCompare(valueB))
+		.map(([value]) => value);
 }
 
 /**

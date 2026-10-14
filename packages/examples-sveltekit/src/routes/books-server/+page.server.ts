@@ -22,7 +22,7 @@
 
 import type { FilterEngineConfig } from '@filter-enginez/core';
 
-import { createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
 import { type AppliedParams, buildConfigFromParams, genreVocabulary, parseParams } from '$lib/server/booksServerParams.js';
 import { runDatasetQuery } from '$lib/server/datasetFilterService.js';
 
@@ -72,7 +72,7 @@ function resolveConfig(url: URL, applied: AppliedParams): { config: FilterEngine
 	if (serialized !== null && serialized !== '') {
 		try {
 			// `decode` auto-detects the tagged format regardless of the argument here.
-			return { config: createTaggedSerializer('human-readable').decode(serialized), hasClientState: true };
+			return { config: createLinkSerializer('human-readable').decode(serialized), hasClientState: true };
 		} catch {
 			// Malformed `?f=` — fall through to the no-JS params (or a neutral config).
 		}

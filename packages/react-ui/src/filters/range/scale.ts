@@ -334,7 +334,11 @@ export function rebinHistogram(
 	for (const bucket of fine) {
 		const slice = Math.min(sliceCount - 1, Math.floor(scale.toFraction((bucket.bucketMin + bucket.bucketMax) / 2) * sliceCount));
 
-		counts[slice] = (counts[slice] ?? 0) + bucket.count;
+		// `slice` is a whole number in 0..sliceCount-1 — `toFraction` returns 0..1 by contract and the
+		// top edge folds into the last slice — and every such index of the zero-filled `counts` holds a
+		// number. `Number()` narrows the `number | undefined` that indexed access is typed as, without a
+		// fallback branch no input can take.
+		counts[slice] = Number(counts[slice]) + bucket.count;
 	}
 	const tallest = Math.max(1, ...counts);
 	const slices: HistogramBucket[] = [];

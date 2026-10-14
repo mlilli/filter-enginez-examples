@@ -5,7 +5,8 @@
  * @remarks
  * The headline facet of the wine demo, and the only one whose rule is a set OF sets: selecting a
  * country commits the leaf ids beneath it, so one click covers a whole subtree without the rule
- * needing to understand hierarchy.
+ * needing to understand hierarchy. The rule is built by the shared `commitOriginSelection`, as in every
+ * app, so an origin selection reads the same in a link from any of them (`wine-domain/originRule.ts`).
  *
  * ## Selection is COMPACT — the highest selected node per branch, never the closure
  *
@@ -37,11 +38,11 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { injectFilterEngine } from '@filter-enginez/angular-rxjs';
-import { inSetofSets, type InSetofSetsRule } from '@filter-enginez/core';
+import { type InSetofSetsRule } from '@filter-enginez/core';
 import {
 	chipDisabledSet,
 	chipProjectedCounts,
-	commitSelection,
+	commitOriginSelection,
 	deriveOriginSelection,
 	EMPTY_SELECTION,
 	type OriginNodeSpec,
@@ -119,12 +120,6 @@ export class WineOriginSectionComponent {
 	protected handleChange(next: readonly string[]): void {
 		this.leaveExpressionMode()();
 		this.selected.set(next);
-		commitSelection(this._engine, RULE_ID, next, (values) => {
-			const sets = this.specs()
-				.filter((spec) => values.includes(spec.value))
-				.map((spec) => spec.leafIds);
-
-			return inSetofSets<string>('originId', sets);
-		});
+		commitOriginSelection(this._engine, next, this.specs());
 	}
 }

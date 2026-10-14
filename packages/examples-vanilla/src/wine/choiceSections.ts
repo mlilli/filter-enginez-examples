@@ -23,7 +23,7 @@
  * @packageDocumentation
  */
 
-import { inSet, inSetofSets, type InSetofSetsRule, type InSetRule, type RuleId, value, type ValueRule } from '@filter-enginez/core';
+import { inSet, type InSetofSetsRule, type InSetRule, type RuleId, value, type ValueRule } from '@filter-enginez/core';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
 import {
 	BODY_ORDER,
@@ -32,6 +32,7 @@ import {
 	chipProjectedCounts,
 	clearRule,
 	COLOR_ORDER,
+	commitOriginSelection,
 	commitRule,
 	commitSelection,
 	deriveOriginSelection,
@@ -236,12 +237,7 @@ export function createOriginSection(context: WineSectionContext): WineSection {
 		onChange: (next) => {
 			leaveExpressionMode();
 			selection.paint(next);
-			commitSelection(host, 'origin', next, (values) =>
-				inSetofSets<string>(
-					'originId',
-					originSpecs.filter((spec) => values.includes(spec.value)).map((spec) => spec.leafIds),
-				),
-			);
+			commitOriginSelection(host, next, originSpecs);
 		},
 	});
 

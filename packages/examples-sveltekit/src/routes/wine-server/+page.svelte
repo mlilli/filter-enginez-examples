@@ -25,6 +25,7 @@
 	 * transport is plain `fetch` — but the dynamic import is kept for the same SSR-safety reason.
 	 */
 
+	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 	import {
@@ -36,7 +37,6 @@
 		type SliderFieldId,
 		type WineChipVocabularies,
 	} from '@filter-enginez/examples-shared/wine-domain';
-	import { type Wine } from '@filter-enginez/mock-data/wine';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
 	import WineBootScreen from '$lib/wine/WineBootScreen.svelte';
 	import WineServerFallback from '$lib/wine/WineServerFallback.svelte';

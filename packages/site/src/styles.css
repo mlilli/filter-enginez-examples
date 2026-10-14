@@ -20,8 +20,8 @@
      comparison pages were drawn with.
 
    What is left here is only what the site has and the apps do not: the skip
-   link, the home page's grouped hero actions and install command, and the
-   sections below the hero. Those are site-only, so their layout lives here
+   link, the home page's grouped hero actions and install command (with its
+   copy button), and the sections below the hero. Those are site-only, so their layout lives here
    rather than in `ui-styles`, where the apps' hubs would inherit it.
 
    Mobile first, at the apps' breakpoints: the base rules are the phone layout
@@ -30,7 +30,8 @@
    - 360px, the narrowest width the apps lay out for (below it their header
      drops its wordmark): the hero's actions pair up two to a row;
    - 720px, where the apps' grids go to two columns: the hero's two groups of
-     actions sit side by side, labeled;
+     actions sit side by side, labeled, and the install command's copy button
+     moves up beside the command;
    - 1024px, `DESKTOP_MIN_WIDTH_PX` in `examples-shared`: the card grids go to
      three columns and the page takes its desktop gutters and rhythm.
 
@@ -241,6 +242,75 @@ main:focus {
 	background: none;
 	color: var(--accent);
 }
+/* The command and its copy button. Stacked on a phone, where the command needs the full width to set
+   on one line, the button centered under it like the rest of the hero; side by side from 720px. */
+.install__row {
+	display: grid;
+	justify-items: center;
+	gap: var(--space-2);
+}
+.install__row .install__command {
+	justify-self: stretch;
+	min-width: 0;
+}
+/* The copy button: the hero's secondary action (outlined, high-emphasis text) wearing the site's mono
+   label type. In the HTML with `hidden`, which the home page's script removes only where the browser
+   can copy, so `[hidden]` has to beat the `display` below. Wide enough for its longest label, so
+   "Copy" becoming "Copied" does not move it. */
+.install__copy {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: max(var(--touch-target), 6.5rem);
+	min-height: var(--touch-target);
+	margin: 0;
+	padding: var(--space-2) var(--space-4);
+	border: 1px solid var(--gray-5);
+	border-radius: var(--radius-lg);
+	background: transparent;
+	color: var(--gray-10);
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.22em;
+	line-height: 1.3;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition:
+		color 200ms ease,
+		border-color 200ms ease,
+		background 200ms ease;
+}
+.install__copy[hidden] {
+	display: none;
+}
+/* Hover and keyboard focus light alike, as the apps' header buttons do. */
+.install__copy:hover,
+.install__copy:focus-visible {
+	color: var(--accent-glow);
+	border-color: var(--accent-dim);
+	background: var(--gray-1);
+}
+/* The outcome, for the two seconds the label shows it: cyan for copied (data, per the brand's accent
+   contract), the danger red for a refused write. */
+.install__copy[data-copy-state='copied'] {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+.install__copy[data-copy-state='failed'] {
+	color: var(--danger);
+	border-color: var(--danger);
+}
+/* The live region that announces the outcome; the button's own label is what sighted visitors read. */
+.install__status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
 .install__note {
 	margin: var(--space-3) 0 0;
 	font-size: 13px;
@@ -405,6 +475,11 @@ main:focus {
 	.hero-actions .hero-actions__link {
 		font-size: 14px;
 	}
+	/* Beside the command, as tall as its box. */
+	.install__row {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: stretch;
+	}
 	.section__grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -440,6 +515,9 @@ main:focus {
 	}
 	.install__command {
 		font-size: var(--text-base);
+	}
+	.install__copy {
+		font-size: 12px;
 	}
 	.section__title {
 		font-size: 24px;

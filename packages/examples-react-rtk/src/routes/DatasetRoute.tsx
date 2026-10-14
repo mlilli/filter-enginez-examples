@@ -13,9 +13,10 @@
 
 import { BrainSynapse } from '@filter-enginez/brand';
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
 import { useUrlFormat } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
-import { createTaggedSerializer, FilterEngineUrlSync } from '@filter-enginez/url-state-router';
+import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Provider } from 'react-redux';
 
@@ -62,10 +63,11 @@ export const DatasetRoute = ({ entry }: { readonly entry: DatasetEntry }): React
 		};
 	}, [entry]);
 
-	// Shareable-URL serializer for the chosen format (from the app-wide toggle store). Memoized so the
+	// Shareable-URL serializer for the chosen format (from the app-wide toggle store), its decode reading
+	// the origin rule as every app commits it (`examples-shared/src/url/linkSerializer.ts`). Memoized so the
 	// instance is stable across renders — `<FilterEngineUrlSync>` keys effects on it.
 	const urlFormat = useUrlFormat();
-	const urlSerializer = useMemo(() => createTaggedSerializer(urlFormat), [urlFormat]);
+	const urlSerializer = useMemo(() => createLinkSerializer(urlFormat), [urlFormat]);
 
 	if (error !== null) {
 		return <BootError error={error} />;

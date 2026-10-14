@@ -1,63 +1,78 @@
 /**
- * `<OriginFilterSection />` — country → province → region → subregion cascading tree picker
- * (`HierarchicalRule`).
+ * `<OriginFilterSection />` — country → province → region → subregion cascading tree picker, over an
+ * `InSetofSetsRule`.
  *
  * @remarks
- * The headline UX moment of the wine panel: selecting "France" implicitly includes every French
- * wine via the rule's subtree-walk; "France|Bordeaux" narrows further; leaf checkboxes pick
- * individual subregions.
+ * The headline UX moment of the wine panel: selecting "France" includes every French wine,
+ * "France|Bordeaux" narrows further, and leaf checkboxes pick individual subregions.
  *
- * **Tree source.** The tree comes from the mock-data package's canonical `buildOriginTree()`, NOT
- * from the origin rule's config. The engine deliberately does not pre-load filter rules at
- * construction (so the action log shows real `addRule`/`removeRule` entries organically), meaning
- * the origin rule may not exist yet — reading `rule?.config.tree` would be undefined until the first
- * selection. Sourcing from the schema side keeps the picker renderable from first paint and keeps
- * the tree reference stable (`useMemo` keyed on the loaded corpus).
+ * **The same rule as every other app.** A selection is written by the shared `writeOriginSelection`
+ * (`wine-domain/originRule.ts`, which says why that rule is an `InSetofSetsRule`): one set per selected
+ * node, holding the node's id and every id beneath it. So a `?f=` link carrying an origin selection
+ * reads identically in all six apps, and the count beside each node — the engine's projection of the
+ * same set — is exactly what clicking it yields. The picker's compact selection is recovered from the
+ * committed sets by `deriveOriginSelection`, as the other apps do.
+ *
+ * **Tree source.** The tree and its flattened specs come from the panel, which builds them once from
+ * the engine's loaded records for the bundle query, NOT from the origin rule's config. The engine does
+ * not pre-load filter rules at construction (so the action log shows real `addRule`/`removeRule`
+ * entries organically), and an `InSetofSetsRule` carries no tree anyway.
  *
  * @packageDocumentation
  */
 
-import { hierarchical, type HierarchicalRule } from '@filter-enginez/core';
-import { type Wine } from '@filter-enginez/mock-data/wine';
+import type { InSetofSetsRule } from '@filter-enginez/core';
+import type { Wine } from '@filter-enginez/mock-data/wine';
+
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
-import { HierarchicalPicker } from '@filter-enginez/react-ui';
+import { HierarchicalPicker, type PickerTreeNode } from '@filter-enginez/react-ui';
 import { useCallback, useMemo } from 'react';
 
 import { useSeedAndAdopt } from '../../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
-import { buildWineOriginTree } from '../wine-domain/facets.js';
+import { deriveOriginSelection, type OriginNodeSpec } from '../wine-domain/bundle.js';
+import { ORIGIN_RULE_ID } from '../wine-domain/originLinks.js';
+import { writeOriginSelection } from '../wine-domain/originRule.js';
 import { useBundleOriginCounts, useBundleOriginDisabledSet } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
 
+/** Props for {@link OriginFilterSection}. */
+export interface OriginFilterSectionProps {
+	/** The origin tree, ordered by wine count, built from the engine's loaded records. */
+	readonly tree: PickerTreeNode;
+	/** The same tree flattened by `buildOriginNodeSpecs` — the sets a selection commits. */
+	readonly specs: readonly OriginNodeSpec[];
+}
+
 /**
  * The origin hierarchy filter section.
+ *
+ * @param props - The tree and its specs; see {@link OriginFilterSectionProps}.
+ * @returns The section.
  */
-export const OriginFilterSection = (): React.ReactElement => {
+export const OriginFilterSection = ({ specs, tree }: OriginFilterSectionProps): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
-	const rule = useRule('origin') as HierarchicalRule | undefined;
-	const engineSelected: readonly string[] = rule?.config.selected ?? EMPTY_SELECTION;
+	const rule = useRule(ORIGIN_RULE_ID) as InSetofSetsRule<string> | undefined;
+	// Memoized so the adopted value keeps its identity until the rule or the tree changes —
+	// `useSeedAndAdopt` treats a new array as a new commit.
+	const engineSelected = useMemo<readonly string[]>(
+		() => (rule === undefined ? EMPTY_SELECTION : deriveOriginSelection(rule.config.set, specs)),
+		[rule, specs],
+	);
 	// Optimistic local state — the picker re-renders with the new checked state the instant the
 	// user clicks a node, before the engine round-trip confirms.
 	const [selected, setSelected] = useSeedAndAdopt(engineSelected, sameSelection);
 
-	// Built from the engine's loaded records so it reflects the actual tier, and ordered by wine count
-	// at every level through the same helper every app's panel uses.
-	const sourceData = engine.core.getSourceData();
-	const tree = useMemo(() => buildWineOriginTree(sourceData), [sourceData]);
-
 	const handleChange = useCallback((nextSelected: readonly string[]): void => {
-		// Paint the tree's new checked state first, then disable+loader, then the engine. Cast
-		// through unknown — the tree carries extra `label` fields per node that core's `TreeNode`
-		// doesn't declare; HierarchicalRule ignores them at runtime.
+		// Paint the tree's new checked state first, then disable+loader, then the engine.
 		commitFilterMutation({
-
-			callEngine: () => engine.core.addRule('origin', hierarchical('originId', { selected: nextSelected, tree: tree })),
+			callEngine: () => writeOriginSelection(engine.core, nextSelected, specs),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(nextSelected),
 		});
-	}, [engine, setSelected, tree]);
+	}, [engine, setSelected, specs]);
 
 	// Disabled-node set from the bundle's `origin` chip group — every tree node whose subtree would
 	// yield 0 results given the engine's currently-active OTHER rules. Selected nodes always stay

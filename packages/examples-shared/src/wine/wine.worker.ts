@@ -21,8 +21,9 @@
  * @packageDocumentation
  */
 
+import type { Wine } from '@filter-enginez/mock-data/wine/generator';
+
 import { createFilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
-import { type Wine } from '@filter-enginez/mock-data/wine/generator';
 import { exposeFilterEngineWorker, type WorkerEngineFactory } from '@filter-enginez/worker-bridge';
 
 import { loadWineCorpus, type WineWorkerCallbacks } from './wineCorpusLoader.js';
