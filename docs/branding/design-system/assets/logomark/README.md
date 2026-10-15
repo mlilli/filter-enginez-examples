@@ -27,5 +27,5 @@ assets/logomark/
 ├── browserconfig.xml     ← Windows tile config
 ├── svg/                  ← Vector sources (canonical) — lockup / OG-card text is set in Orbitron, not outlined
 ├── png/                  ← Raster exports at every size
-└── ico/                  ← favicon.ico (16, 32 and 48 px)
+└── ico/                  ← favicon.ico (the badge at 16, 32 and 48 px)
 ```

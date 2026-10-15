@@ -11,10 +11,12 @@
  *   - **{@link ContainsAllRule}** — the custom serializable "array ⊇ required set" rule powering
  *     must-have features, registered with `ruleRegistry` so it survives JSON config, URL state, the
  *     worker bridge, and devtools snapshots.
- *   - **Boundary extractors + the location hierarchy** — bridging the generated filter config to the
- *     real `Listing` shape and the core rule contracts.
+ *   - **The location hierarchy** — the picker tree built from the corpus, and the translation from its
+ *     node ids to the listing's `locationId` field.
  *   - **{@link buildListingLocationRule}** — the location rule all six apps commit, and how a `?f=`
  *     link's location reads ({@link withNormalizedLocationRule}).
+ *   - **{@link buildListingGeoRadiusRule}** — the distance rule all six apps commit, and how a `?f=`
+ *     link's distance rule reads ({@link withNormalizedGeoRadiusRule}).
  *   - **{@link deriveMetroCenters}** — corpus-derived centroids for the geo section's metro dropdown.
  *   - **{@link buildRuleSummaries}** — the active-filter-chip summarizer.
  *   - **{@link PickerTreeNode}** — the neutral hierarchical-picker node shape.
@@ -39,10 +41,21 @@ export { ContainsAllRule, type ContainsAllRuleConfig } from './ContainsAllRule.j
 export {
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
-	extractListingCoords,
 	type LocationNodeSpec,
 	toLocationFieldId,
 } from './extractors.js';
+export {
+	GEO_RADIUS_FIELD,
+	GEO_RADIUS_RULE_ID,
+	normalizeGeoRadiusRule,
+	withNormalizedGeoRadiusRule,
+} from './geoRadiusLinks.js';
+export {
+	buildListingGeoRadiusRule,
+	deriveGeoRadius,
+	type GeoRadius,
+	writeGeoRadius,
+} from './geoRadiusRule.js';
 export {
 	LOCATION_FIELD,
 	LOCATION_RULE_ID,

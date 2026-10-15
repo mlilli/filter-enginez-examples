@@ -270,7 +270,7 @@ export const RULE_DOCS: readonly RuleDoc[] = [
 	{
 		advanced:
 			'Within-radius geographic filter. Configured with a center `{ lat, lng }` + `radiusKm`; the engine indexes coordinates in an R-tree, so a radius query prunes whole bounding-box branches before computing an exact haversine distance on the survivors. This is the one filter where the spatial index turns a linear scan into a sub-millisecond query.',
-		examples: [{ code: "engine.addRule('near', geo('coords', { lat: 37.77, lng: -122.42, radiusKm: 8 }))" }],
+		examples: [{ code: "engine.addRule('near', geo('coords', { center: { lat: 37.77, lng: -122.42 }, radiusKm: 8 }))" }],
 		factory: 'geo',
 		figure: {
 			cells: [

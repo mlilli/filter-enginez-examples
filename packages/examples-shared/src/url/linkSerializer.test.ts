@@ -1,32 +1,38 @@
 /**
- * One origin selection, and one location selection, one `?f=` value each, in every app.
+ * One origin selection, one location selection and one distance filter, one `?f=` value each, in every
+ * app.
  *
  * @remarks
- * The comparison page hands one `?f=` to all six apps, so an origin selection (wine) or a location
- * selection (real estate) has to encode to the identical value whichever app made it, and decode to the
- * identical state in whichever app opens it. Every app's origin section writes through
- * `writeOriginSelection` / `commitOriginSelection`, every app's location section through
- * `buildListingLocationRule` / `writeLocationSelection`, and every app's URL layer reads and writes
- * through {@link createLinkSerializer}; `tests/tooling/winePanelFacetParity.test.ts` and
- * `tests/tooling/realEstateLocationParity.test.ts` hold the six to that statically. This suite pins what
- * those shared paths produce, against a real engine:
+ * The comparison page hands one `?f=` to all six apps, so an origin selection (wine), a location
+ * selection or a distance filter (real estate) has to encode to the identical value whichever app made
+ * it, and decode to the identical state in whichever app opens it. Every app's origin section writes
+ * through `writeOriginSelection` / `commitOriginSelection`, every app's location section through
+ * `buildListingLocationRule` / `writeLocationSelection`, every app's distance section through
+ * `buildListingGeoRadiusRule` / `writeGeoRadius`, and every app's URL layer reads and writes through
+ * {@link createLinkSerializer}; `tests/tooling/winePanelFacetParity.test.ts`,
+ * `tests/tooling/realEstateLocationParity.test.ts` and `tests/tooling/realEstateGeoRadiusParity.test.ts`
+ * hold the six to that statically. This suite pins what those shared paths produce, against a real
+ * engine:
  *
  * - the exact `?f=` a selection encodes to, in each format;
  * - that it decodes back to the exported state, which filters the same records once loaded;
  * - that a link carrying the same selection as the engine's tree rule (`HierarchicalRule`) decodes to
- *   that same state, re-encodes to that same `?f=`, and filters the same records.
+ *   that same state, re-encodes to that same `?f=`, and filters the same records;
+ * - that a link carrying the distance filter over a function field, which travels as `"<function>"`,
+ *   decodes to the state the shared path commits and passes the same listings.
  *
  * @packageDocumentation
  */
 
-import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { createFilterEngine, type FilterEngineConfig, hierarchical } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngineConfig, geo, type GeoCoords, hierarchical } from '@filter-enginez/core';
+import { listings as generatedListings, type Listing } from '@filter-enginez/mock-data/real-estate';
 import { type BuiltInSerializerName, createTaggedSerializer } from '@filter-enginez/url-state-router/serializers';
 import { describe, expect, it } from 'vitest';
 
 import { buildListingLocationTree, buildLocationNodeSpecs } from '../real-estate/real-estate-domain/extractors.js';
+import { writeGeoRadius } from '../real-estate/real-estate-domain/geoRadiusRule.js';
 import { writeLocationSelection } from '../real-estate/real-estate-domain/locationRule.js';
 import { buildOriginNodeSpecs } from '../wine/wine-domain/bundle.js';
 import { buildWineOriginTree } from '../wine/wine-domain/facets.js';
@@ -225,5 +231,97 @@ describe('a location selection in a ?f= link', () => {
 		expect(createLinkSerializer('human-readable').encode(decoded)).toBe(PINNED_LOCATION_HUMAN_READABLE);
 		expect([...treeRuleEngine.getResultIndices()]).toEqual(passing);
 		expect(passingAfterLoading(decoded)).toEqual(passing);
+	});
+});
+
+/** The distance filter under test: 15 miles around the corpus' first listing, which it certainly holds. */
+const RADIUS = {
+	center: { lat: generatedListings[0]?.coords.lat ?? 0, lng: generatedListings[0]?.coords.lng ?? 0 },
+	radiusKm: 24.14,
+};
+
+/** What {@link RADIUS} encodes to in the human-readable format. */
+const PINNED_RADIUS_HUMAN_READABLE
+	= `h~{"version":1,"rules":[{"id":"geo-proximity","rule":{"config":${JSON.stringify(RADIUS)},"field":"coords","type":"GeoProximityRule"}}]}`;
+
+/**
+ * Commit {@link RADIUS} the way every app's distance section does, over the generated corpus, and
+ * export the state.
+ *
+ * @returns The exported config, and the indices of the listings it passes.
+ */
+function commitRadiusThroughTheSharedPath(): { readonly config: FilterEngineConfig; readonly passing: readonly number[] } {
+	const engine = createFilterEngine<Listing>({ sourceData: generatedListings });
+
+	writeGeoRadius(engine, RADIUS);
+
+	return { config: engine.exportConfig(), passing: [...engine.getResultIndices()]};
+}
+
+/**
+ * Load a decoded config into a fresh engine over the generated corpus, as a reload does.
+ *
+ * @param config - The decoded config.
+ * @returns The indices of the listings it passes.
+ */
+function passingAfterReloading(config: FilterEngineConfig): readonly number[] {
+	const reloaded = createFilterEngine<Listing>({ sourceData: generatedListings });
+
+	reloaded.loadConfig(config);
+
+	return [...reloaded.getResultIndices()];
+}
+
+/**
+ * The extractor a link's distance rule could have been written over: `coordinates` with `lon` renamed
+ * `lng`. A function field, so the rule travels as `"field":"<function>"`.
+ *
+ * @param item - A listing.
+ * @returns Its point, in the `{ lat, lng }` shape the rule reads.
+ */
+function coordinatesAsGeoCoords(item: unknown): GeoCoords {
+	const { coordinates } = item as Listing;
+
+	return { lat: coordinates.lat, lng: coordinates.lon };
+}
+
+describe('a distance filter in a ?f= link', () => {
+	it('encodes to this exact value, whichever app committed it', () => {
+		const { config, passing } = commitRadiusThroughTheSharedPath();
+
+		expect(createLinkSerializer('human-readable').encode(config)).toBe(PINNED_RADIUS_HUMAN_READABLE);
+		// Non-vacuous: the circle narrows the corpus without emptying it.
+		expect(passing.length).toBeGreaterThan(0);
+		expect(passing.length).toBeLessThan(generatedListings.length);
+	});
+
+	it.each(FORMATS)('decodes from the %s format back to a state that passes the same listings after a reload', (format) => {
+		const { config, passing } = commitRadiusThroughTheSharedPath();
+		const serializer = createLinkSerializer(format);
+		const decoded = serializer.decode(serializer.encode(config));
+
+		expect(decoded).toEqual(config);
+		expect(passingAfterReloading(decoded)).toEqual(passing);
+	});
+
+	it.each(FORMATS)('reads a %s link carrying the rule over a function field into the state the shared path commits', (format) => {
+		const { config, passing } = commitRadiusThroughTheSharedPath();
+		const functionFieldEngine = createFilterEngine<Listing>({ sourceData: generatedListings });
+
+		functionFieldEngine.addRule('geo-proximity', geo(coordinatesAsGeoCoords, RADIUS));
+
+		const functionFieldConfig = functionFieldEngine.exportConfig();
+		const oldLink = createTaggedSerializer(format).encode(functionFieldConfig);
+
+		expect(functionFieldConfig.rules[0]?.rule.field).toBe('<function>');
+		expect([...functionFieldEngine.getResultIndices()]).toEqual(passing);
+		// Decoded as is, the placeholder field matches nothing: the failure the shared reader removes.
+		expect(passingAfterReloading(createTaggedSerializer(format).decode(oldLink))).toEqual([]);
+
+		const decoded = createLinkSerializer(format).decode(oldLink);
+
+		expect(decoded).toEqual(config);
+		expect(createLinkSerializer('human-readable').encode(decoded)).toBe(PINNED_RADIUS_HUMAN_READABLE);
+		expect(passingAfterReloading(decoded)).toEqual(passing);
 	});
 });

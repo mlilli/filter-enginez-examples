@@ -22,12 +22,19 @@
  * multiple of 48 px, and treats every subdomain as a site of its own. The rosters are read from the
  * sync script and the deploy targets rather than restated, so a new host is checked the day it appears.
  *
+ * ### Two favicon artworks
+ *
+ * The 48 and 96 px PNGs and every image in `favicon.ico` are the dark circular badge, which reads on the
+ * white and light-gray pages a search result is shown on; the 16 and 32 px PNGs are the glyph a browser
+ * tab draws (`scripts/rasterize-brand-icons.mjs` says why). Which is which is checked on the pixels.
+ *
  * @packageDocumentation
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 
 import { listDeployTargets } from '../../scripts/lib/deploy-targets.mjs';
@@ -176,6 +183,102 @@ function sourceFiles(dir: string): string[] {
 	});
 }
 
+/** The badge's ground color, `--gray-0`. */
+const BADGE_GROUND: readonly [number, number, number] = [0x0b, 0x0a, 0x09];
+
+/** The two PNG scanline filters the favicons use: `sharp` writes None, the browser captures Up. */
+const SCANLINE_FILTERS = { none: 0, up: 2 } as const;
+
+/**
+ * Decode an 8-bit RGBA, non-interlaced PNG into its pixels.
+ *
+ * @remarks
+ * Every favicon is that format, and every scanline in them uses the None or the Up filter, as written by
+ * both `sharp` and the browser captures. Anything else throws rather than decoding wrongly.
+ *
+ * @param png - The file.
+ * @returns The image's width and its pixels, four bytes each, row by row.
+ */
+function decodeRgbaPng(png: Buffer): { readonly pixels: Buffer; readonly width: number } {
+	const [width, height] = pngSize(png);
+	const [bitDepth, colorType, , , interlace] = [24, 25, 26, 27, 28].map((offset) => png.readUInt8(offset));
+
+	if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
+		throw new Error(`expected an 8-bit RGBA non-interlaced PNG, got depth ${String(bitDepth)} type ${String(colorType)}`);
+	}
+
+	// The image data chunks, by their PNG chunk type. cspell:ignore IDAT
+	const data: Buffer[] = [];
+
+	for (let offset = 8; offset < png.length; offset += png.readUInt32BE(offset) + 12) {
+		if (png.toString('latin1', offset + 4, offset + 8) === 'IDAT') {
+			data.push(png.subarray(offset + 8, offset + 8 + png.readUInt32BE(offset)));
+		}
+	}
+
+	const raw = inflateSync(Buffer.concat(data));
+	const stride = width * 4;
+	const pixels = Buffer.alloc(stride * height);
+
+	for (let row = 0; row < height; row++) {
+		const filter = raw.readUInt8(row * (stride + 1));
+
+		if (filter !== SCANLINE_FILTERS.none && filter !== SCANLINE_FILTERS.up) {
+			throw new Error(`scanline ${String(row)} uses PNG filter ${String(filter)}, which this decoder does not read`);
+		}
+		for (let column = 0; column < stride; column++) {
+			const up = filter === SCANLINE_FILTERS.up && row > 0 ? pixels.readUInt8((row - 1) * stride + column) : 0;
+
+			pixels.writeUInt8((raw.readUInt8(row * (stride + 1) + 1 + column) + up) & 0xff, row * stride + column);
+		}
+	}
+
+	return { pixels, width };
+}
+
+/**
+ * The pixel left of the mark, halfway down: the badge's dark ground, and empty in the glyph.
+ *
+ * @remarks
+ * At 15% of the width the point is inside the badge's circle but outside its Z and its rings, and well
+ * clear of the glyph's Z and of its glow.
+ *
+ * @param png - A square favicon.
+ * @returns Its `[r, g, b, a]` there.
+ */
+function besideTheMark(png: Buffer): readonly number[] {
+	const { pixels, width } = decodeRgbaPng(png);
+	const offset = (Math.floor(width / 2) * width + Math.floor(width * 0.15)) * 4;
+
+	return [...pixels.subarray(offset, offset + 4)];
+}
+
+/**
+ * Whether a favicon is the badge: opaque `--gray-0` beside the mark.
+ *
+ * @param png - A square favicon.
+ * @returns `true` for the badge.
+ */
+function isBadge(png: Buffer): boolean {
+	const [red, green, blue, alpha] = besideTheMark(png);
+
+	return alpha === 255 && [red, green, blue].every((channel, index) => Math.abs((channel ?? 0) - (BADGE_GROUND[index] ?? 0)) <= 2);
+}
+
+/**
+ * The images packed in an ICO file, in directory order.
+ *
+ * @param ico - The file.
+ * @returns Each image's bytes.
+ */
+function icoImages(ico: Buffer): readonly Buffer[] {
+	return Array.from({ length: ico.readUInt16LE(4) }, (_, index) => {
+		const entry = 6 + 16 * index;
+
+		return ico.subarray(ico.readUInt32LE(entry + 12), ico.readUInt32LE(entry + 12) + ico.readUInt32LE(entry + 8));
+	});
+}
+
 /**
  * A PNG's width and height, from its IHDR chunk.
  *
@@ -268,17 +371,31 @@ describe('the icon set', () => {
 		expect(pngSize(bytes(`${BRAND_ASSETS}/${name}`))).toEqual([size, size]);
 	});
 
-	it('packs the 16, 32 and 48 px favicons, as they are, into favicon.ico', () => {
+	it('packs the badge at 16, 32 and 48 px into favicon.ico, its 48 px image the 48 px favicon itself', () => {
 		const ico = bytes(`${BRAND_ASSETS}/favicon.ico`);
-		const count = ico.readUInt16LE(4);
-		const images = Array.from({ length: count }, (_, index) => {
-			const entry = 6 + 16 * index;
-
-			return ico.subarray(ico.readUInt32LE(entry + 12), ico.readUInt32LE(entry + 12) + ico.readUInt32LE(entry + 8));
-		});
+		const images = icoImages(ico);
 
 		expect([ico.readUInt16LE(0), ico.readUInt16LE(2)]).toEqual([0, 1]);
-		expect(images.map((image, index) => image.equals(bytes(`${BRAND_ASSETS}/favicon-${String(16 * (index + 1))}.png`)))).toEqual([true, true, true]);
+		expect(images.map((image) => pngSize(image))).toEqual([[16, 16], [32, 32], [48, 48]]);
+		expect(images.map((image) => isBadge(image)), 'every image in favicon.ico is the badge').toEqual([true, true, true]);
+		expect(images[2]?.equals(bytes(`${BRAND_ASSETS}/favicon-48.png`))).toBe(true);
+	});
+
+	it.each([
+		['favicon-48.png', true],
+		['favicon-96.png', true],
+		['apple-touch-icon.png', true],
+		['icon-192.png', true],
+		['favicon-16.png', false],
+		['favicon-32.png', false],
+	] as const)('%s is the badge: %s', (name, shouldBeBadge) => {
+		// The badge reads on a white search-results page, the glyph in a browser tab.
+		expect(isBadge(bytes(`${BRAND_ASSETS}/${name}`))).toBe(shouldBeBadge);
+	});
+
+	it('tells the glyph from the badge by a transparent pixel, not by a decoding failure', () => {
+		// Non-vacuous: the glyph is genuinely empty beside its mark, rather than a pixel this suite misread.
+		expect(besideTheMark(bytes(`${BRAND_ASSETS}/favicon-32.png`))[3]).toBeLessThan(32);
 	});
 
 	it('has a maskable icon of its own: full bleed, the mark inside the safe circle', () => {

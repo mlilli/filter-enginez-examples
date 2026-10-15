@@ -10,9 +10,15 @@
  * through `commitFilterMutation` (optimistic paint → loader flip → engine call, each on its own
  * frame).
  *
- * OFF is modeled as rule absence: the "Filter by distance" checkbox adds the `geo` rule at the
- * current center + radius when enabled and `removeRule`s it when disabled (empty = no constraint).
- * While off, the map + controls are unmounted — no tile fetches for a filter that isn't engaged.
+ * The rule is the shared distance rule every app commits, a `GeoProximityRule` over the listing's
+ * `coords` field, written by `writeGeoRadius` and read back by `deriveGeoRadius`
+ * (`./real-estate-domain/geoRadiusRule.ts`), so a `?f=` link this section writes loads the same circle
+ * in every app, and after a reload.
+ *
+ * OFF is modeled as rule absence: the "Filter by distance" checkbox adds the rule at the current
+ * center + radius when enabled and removes it when disabled (empty = no constraint). The checkbox,
+ * center and radius are derived from the committed rule. While off, the map + controls are unmounted —
+ * no tile fetches for a filter that isn't engaged.
  *
  * Accessibility: the map is a progressive enhancement. The dropdown, slider, checkbox, and button
  * are fully keyboard-operable and labeled, and the active center/radius is announced textually via
@@ -22,21 +28,19 @@
  * @packageDocumentation
  */
 
+import type { GeoCoords } from '@filter-enginez/core';
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
-import { geo, type GeoCoords, type GeoProximityRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { useCallback, useId, useState } from 'react';
 
 import { commitFilterMutation } from '../scheduling/index.js';
 import { markUserAction } from './engineBusy.js';
 import { LeafletRadiusMap } from './LeafletRadiusMap.js';
-import { extractListingCoords } from './real-estate-domain/extractors.js';
+import { GEO_RADIUS_RULE_ID } from './real-estate-domain/geoRadiusLinks.js';
+import { deriveGeoRadius, writeGeoRadius } from './real-estate-domain/geoRadiusRule.js';
 import { findMetroLabel, type MetroCenterOption } from './real-estate-domain/metroCenters.js';
 import { kmToMiles, milesToKm } from './real-estate-domain/units.js';
-
-/** Rule id + registry key for the geo-proximity rule. */
-const GEO_RULE_ID = 'geo-proximity';
 
 /** Default center when the filter is first enabled — San Francisco. */
 const DEFAULT_CENTER: GeoCoords = { lat: 37.7749, lng: -122.4194 };
@@ -67,15 +71,15 @@ export interface GeoRadiusSectionProps {
 
 /**
  * The real-estate "Distance" filter section: enable checkbox → metro dropdown + "Near me" button +
- * Leaflet radius map + radius slider, committing a `geo(extractListingCoords, ...)` rule under
- * {@link GEO_RULE_ID}.
+ * Leaflet radius map + radius slider, committing the shared distance rule (`writeGeoRadius`) under
+ * `GEO_RADIUS_RULE_ID`.
  */
 export const GeoRadiusSection = ({ metroCenters }: GeoRadiusSectionProps): React.ReactElement => {
 	const engine = useFilterEngine<Listing>();
-	const rule = useRule(GEO_RULE_ID) as GeoProximityRule | undefined;
-	const engineCenter = rule?.config.center;
-	const engineRadiusKm = rule?.config.radiusKm;
-	const isRuleActive = rule !== undefined;
+	const committedRadius = deriveGeoRadius(useRule(GEO_RADIUS_RULE_ID));
+	const engineCenter = committedRadius?.center;
+	const engineRadiusKm = committedRadius?.radiusKm;
+	const isRuleActive = committedRadius !== undefined;
 
 	const [isEnabled, setIsEnabled] = useState(isRuleActive);
 	const [center, setCenter] = useState<GeoCoords>(engineCenter ?? DEFAULT_CENTER);
@@ -115,10 +119,7 @@ export const GeoRadiusSection = ({ metroCenters }: GeoRadiusSectionProps): React
 	/** Commit a fresh geo rule: paint center + radius optimistically, engine call off-frame. */
 	const commitRule = useCallback((nextCenter: GeoCoords, nextRadiusKm: number): void => {
 		commitFilterMutation({
-			callEngine: () => engine.core.addRule(
-				GEO_RULE_ID,
-				geo(extractListingCoords, { center: nextCenter, radiusKm: nextRadiusKm }),
-			),
+			callEngine: () => writeGeoRadius(engine.core, { center: nextCenter, radiusKm: nextRadiusKm }),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => {
 				setCenter(nextCenter);
@@ -133,7 +134,7 @@ export const GeoRadiusSection = ({ metroCenters }: GeoRadiusSectionProps): React
 
 		if (shouldEnable) {
 			commitFilterMutation({
-				callEngine: () => engine.core.addRule(GEO_RULE_ID, geo(extractListingCoords, { center, radiusKm })),
+				callEngine: () => writeGeoRadius(engine.core, { center, radiusKm }),
 				markBusy: markUserAction,
 				paintOptimisticUi: () => setIsEnabled(true),
 			});
@@ -141,7 +142,7 @@ export const GeoRadiusSection = ({ metroCenters }: GeoRadiusSectionProps): React
 			return;
 		}
 		commitFilterMutation({
-			callEngine: () => engine.core.removeRule(GEO_RULE_ID),
+			callEngine: () => writeGeoRadius(engine.core, undefined),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setIsEnabled(false),
 		});

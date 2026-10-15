@@ -115,7 +115,8 @@ assets/logomark/
 ├── png/                              # Rendered raster exports
 │   ├── mark-primary-{8,12,16,32,64,128,192,512}.png
 │   ├── mark-subdued-{8,12,16,32,64,128,192,512}.png
-│   ├── favicon-{16,32,48,96}.png
+│   ├── favicon-{16,32}.png           # Z-only glyph, for browser tabs
+│   ├── favicon-{48,96}.png           # Badge, for search results
 │   ├── apple-touch-icon-180.png
 │   ├── icon-192.png                  # PWA icon
 │   ├── icon-512.png                  # PWA icon
@@ -125,12 +126,21 @@ assets/logomark/
 │   ├── mark-in-circle-{primary,subdued}-256.png
 │   └── og-card.png                   # 1200×630
 └── ico/
-    └── favicon.ico                   # favicon-{16,32,48}.png in one ICO
+    └── favicon.ico                   # The badge at 16, 32 and 48 px in one ICO
 ```
 
-`png/favicon-96.png`, `png/icon-512-maskable.png` and `ico/favicon.ico` are produced by
-`node scripts/rasterize-brand-icons.mjs` from the repository root, from the vectors and PNGs listed beside them; its
-`--check` flag confirms the committed files match a fresh render. The other PNGs are captures from `rasterize.html`.
+`png/favicon-48.png`, `png/favicon-96.png`, `png/icon-512-maskable.png` and `ico/favicon.ico` are produced by
+`node scripts/rasterize-brand-icons.mjs` from the repository root, from `svg/apple-touch-icon.svg` (the badge) and
+`svg/icon-maskable.svg`; its `--check` flag confirms the committed files match a fresh render. The other PNGs are
+captures from `rasterize.html`.
+
+The favicons come in two artworks, by where they are seen. A search result shows a site's icon at 16 to 48 px on a white
+or light-gray page, taken from `/favicon.ico` or from the largest suitable square `<link rel="icon">`, and the
+transparent cyan glyph is faint there; so `favicon-48.png`, `favicon-96.png` and every image in `favicon.ico` are the
+dark circular badge, the artwork of the 180, 192 and 512 px icons. A browser tab shows the icon at 16 or 32 px on a tab
+strip that is as often dark as light, and draws `favicon.svg`, the glyph, where it can; `favicon-16.png` and
+`favicon-32.png` are the glyph too. At 16 px the glyph's Z stands about 11 px tall, where the badge's stands about 8 px
+inside a circle that disappears into a dark tab strip.
 
 ---
 
@@ -192,11 +202,12 @@ and `ico/` under the names the snippet uses (`svg/favicon-primary.svg` → `favi
 `node scripts/sync-brand-assets.mjs` copies it into every app. Then add this to your HTML `<head>`:
 
 ```html
-<!-- One ICO with the 16, 32 and 48 px images, for every client that asks for /favicon.ico -->
+<!-- One ICO with the badge at 16, 32 and 48 px, for every client that asks for /favicon.ico -->
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 <!-- Modern browsers: scalable SVG favicon, no font dependencies -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<!-- PNG at every size a browser or a search engine asks for: multiples of 48 px for search results -->
+<!-- PNG at every size a browser or a search engine asks for: the glyph at 16 and 32 px for tabs, the badge at
+     multiples of 48 px for search results -->
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />

@@ -32,6 +32,8 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import { createFilterEngine, type FilterEngine } from '@filter-enginez/core';
 import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { GEO_RADIUS_RULE_ID, milesToKm, writeGeoRadius } from '@filter-enginez/examples-shared/real-estate-domain';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -96,6 +98,7 @@ function makeListing(overrides: { readonly id: string } & Partial<Listing>): Lis
 		bedrooms: 3,
 		city: 'Denver',
 		coordinates: { lat: 39.7392, lon: -104.9903 },
+		coords: { lat: 39.7392, lng: -104.9903 },
 		description: 'A remodeled home near the park.',
 		features: ['garage'],
 		lastUpdated: '2024-01-01T00:00:00.000Z',
@@ -134,6 +137,15 @@ const DATA: readonly Listing[] = [
 		propertyType: 'townhouse',
 		schoolDistrict: 'Jeffco Public Schools',
 	}),
+];
+
+/** Central Denver, where every {@link DATA} listing sits. */
+const DENVER = { lat: 39.7392, lng: -104.9903 };
+
+/** {@link DATA} plus one listing in Miami, far outside any Denver circle. */
+const WITH_A_FAR_LISTING: readonly Listing[] = [
+	...DATA,
+	makeListing({ coordinates: { lat: 25.7617, lon: -80.1918 }, coords: { lat: 25.7617, lng: -80.1918 }, id: 'far' }),
 ];
 
 /**
@@ -377,6 +389,52 @@ describe('the distance section', () => {
 
 		expect(core.getRules().has('geo-proximity')).toBe(false);
 		expect(toggle.checked).toBe(false);
+	});
+
+	it('commits the shared distance rule, over the coords field, so the filter survives a link', () => {
+		const { core, root } = mountView();
+
+		geoToggle(root).click();
+
+		const serialized = core.getRules().get(GEO_RADIUS_RULE_ID)?.serialize();
+
+		expect(serialized?.field).toBe('coords');
+		expect(serialized?.type).toBe('GeoProximityRule');
+	});
+
+	it('derives the checkbox, center and radius from a rule committed anywhere else', () => {
+		const { core, root } = mountView(WITH_A_FAR_LISTING);
+
+		// A rule that arrives from outside the section: a `?f` link, "Clear all", the devtools.
+		writeGeoRadius(core, { center: DENVER, radiusKm: milesToKm(5) });
+
+		expect(geoToggle(root).checked).toBe(true);
+		expect(root.querySelector('.fe-geo__status')?.textContent).toContain('within 5 miles of');
+		expect(root.querySelectorAll('.fe-listing-card')).toHaveLength(DATA.length);
+
+		writeGeoRadius(core, undefined);
+
+		expect(geoToggle(root).checked).toBe(false);
+		expect(root.querySelectorAll('.fe-listing-card')).toHaveLength(WITH_A_FAR_LISTING.length);
+	});
+
+	it('opens a shared link written over a function field with the circle on and the same listings', () => {
+		const { core, root } = mountView(WITH_A_FAR_LISTING);
+		const serializer = createLinkSerializer('human-readable');
+		// The distance rule as a link carries it when its field was an extractor: `"<function>"`.
+		const oldLink = serializer.encode({
+			rules: [{
+				id: GEO_RADIUS_RULE_ID,
+				rule: { config: { center: DENVER, radiusKm: milesToKm(5) }, field: '<function>', type: 'GeoProximityRule' },
+			}],
+			version: 1,
+		});
+
+		core.loadConfig(serializer.decode(oldLink));
+
+		expect(geoToggle(root).checked).toBe(true);
+		// The four Denver listings, not the Miami one, and not zero.
+		expect(root.querySelectorAll('.fe-listing-card')).toHaveLength(DATA.length);
 	});
 
 	it('announces the committed radius and its center, in miles', () => {

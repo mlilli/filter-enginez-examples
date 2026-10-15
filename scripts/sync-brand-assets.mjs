@@ -44,10 +44,12 @@ const SOURCE_DIR = join(ROOT, 'packages/brand/src/assets');
  * The icon set every host serves from its root and links from its HTML head.
  *
  * @remarks
- * `favicon.svg` is the deliberately simplified glyph that survives being drawn at 16px, and the
- * `favicon-*` PNGs and `favicon.ico` are rendered from it; `icon-*` and `apple-touch-icon.png` are the
- * badge. Search results take a favicon from the home page's `<link rel="icon">` and want a multiple of
- * 48 px, hence the 48 and 96 px files beside the 16 and 32 px ones browsers use.
+ * `favicon.svg` is the deliberately simplified glyph that survives being drawn at 16px, and
+ * `favicon-16.png` and `favicon-32.png` are that glyph, for browser tabs. `favicon-48.png`,
+ * `favicon-96.png`, every image in `favicon.ico`, `icon-*` and `apple-touch-icon.png` are the dark
+ * badge, which reads on a white page. Search results take a favicon from the home page's
+ * `<link rel="icon">` and want a multiple of 48 px, hence the 48 and 96 px files beside the 16 and 32 px
+ * ones browsers use; `scripts/rasterize-brand-icons.mjs` renders them.
  */
 const ICON_SET = [
 	'apple-touch-icon.png',

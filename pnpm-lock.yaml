@@ -1890,72 +1890,72 @@ packages:
         optional: true
 
   '@filter-enginez/angular-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz':
-    resolution: {integrity: sha512-M+uSL5DAYJ0oE/s/BhslgVstFZ8k9eylYUqXDKPtdP7EWrMpVbhDjR3hjtOERRbHn584YAkbzoMAirt6K05MjQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz}
+    resolution: {integrity: sha512-9HvOVSjRe1IQuFazXY1RWYA2DhXIfq8Vk3mVux8rmaQOryfOHinOrd5m+hrK1nam2Xnsv422M3xzubCqbyrM5A==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       '@angular/core': ^22.0.0
       rxjs: ^7.8.1
 
   '@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz':
-    resolution: {integrity: sha512-7YAGC0YUEdGc+1eL1ojxQX6bf31MRat5ym74DafKt4aHNOfyyKg5sXHA59qzkvbys6ALuoF/e6/RlsH+t6W1gA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz}
+    resolution: {integrity: sha512-wMF6Oaw00UJeriySeSWw3FQSOr2gTeNA8MMWgGvDtONUFjSOMh3vvzk7kSCCxdeTHIyeMOVHBkn0kS8f9GxZTA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz}
     version: 0.0.2
 
   '@filter-enginez/eslint@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz':
-    resolution: {integrity: sha512-St/oTRbsN2/tLXutTZFRcRjwNtMnpr7caWMJ1svcY39TWS2wugx/Tfk2lpcWdARq+kSxus1zT+iH+wtnyEz9lQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz}
+    resolution: {integrity: sha512-+2BdMBd0GTwk4Jt7hpTDDfwZc34eGQv3+rA88rb6xX16EO9NcG06b5+O8Z+6g0Unkfn+QhgV4Q22lrkitCctfA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       eslint: ^10.0.0
 
   '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz':
-    resolution: {integrity: sha512-Q4evynUAHigOaafx8g25ZwPOCFZnwFBkoneeAzcP/1fdC4ZiIOztdiFLUA/hqA8zbpeynZe7nqQT6UXvxHtwrA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz}
+    resolution: {integrity: sha512-LL4mnvSF3dDF3gLayvXBM40Yy+mWRFaAI8tg1bJk88wkBN9gBpW+pGazPm8GitLdMMGbfc5GvOxGA0qwV3qUpw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz}
     version: 0.1.0
     peerDependencies:
       '@filter-enginez/core': ^0.0.2
       msw: ^2.0.0
 
   '@filter-enginez/react-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-SoqEFhnXOv/turX0thfaWGSzm5JeDoNWRMJex7u7OwGvDhQrT+y/ho53EVpdEScXR/ukwGf/rnTlgNVsAHWVww==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-RpPQNuNSLNEcSMQIttSbKQVoJhxiugp6YfLvEEbqjBpLBDPkORDqM/R+wYNfGGtLU9MKRZVYkgSfczBmer8u1w==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       react: ^19.2.7
 
   '@filter-enginez/reactive-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz':
-    resolution: {integrity: sha512-dpuT6DsuDWZKvYi0Eut1vOTtymoK/6k4cyX8hdjGcbN6UwQQKePjTXNRFZ/E5GMBptKhxvfHFwaFoKahMkL4UA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz}
+    resolution: {integrity: sha512-wvzLRfQen/9Hi50BPxed4zfqR7okctxeMosmYzSAqBkuvwaQ0SNSBOkG4JSe75e9wAgG3wU/qMGX4ife659qsg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       rxjs: ^7.8.1
 
   '@filter-enginez/reactive-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-x3X02LVvK5GcqFMrDcYmMX1HRijOi1dMTIsS/2txHNFKCal52/0DYEYnnABHPqQQVsl6JXcNkX7MDgm/g0Tobw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-N+Z6C3nOjjQGtU/Ac8d18KETyBigg3Zl25KAQ7yzifCB59RdtMmopXmDhGZV1EEG9Sszp2TGTWPzBlVK9biuGQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz}
     version: 0.0.2
 
   '@filter-enginez/redux-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz':
-    resolution: {integrity: sha512-UblsH0iYdcC9P0CbdattoYSevaWsFP3t50A5hfymCn+tgnJZwXAvXv0wUqZAogENWbmAtemomFeTdlMiISHnxg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz}
+    resolution: {integrity: sha512-Y/w0JwBdND0d0BHPBMhMlNm5CVtRvsMBJ8Q+6RLASplK8650hxJnyx6J2t276bFcav0MQz+urY5K++iHZFQn7w==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       '@reduxjs/toolkit': ^2.0.0
 
   '@filter-enginez/svelte-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-MzdRUfWSE0rxC/wx9nGXBgM7/mUXCn/T9KnBkM8szR30NymtawrBEEebFLy5+CVA/+Ut+v762j3mYwwad3U3CQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-FCIULt1Y3zR83OAMFJzIiXlRgBlxPknnmBuKy0/Xp6NI1hqhaqQ72GA/xV2fVXROh5+4KV+5SJNubvGZehlrAA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       svelte: ^5.0.0
 
   '@filter-enginez/url-state-router@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz':
-    resolution: {integrity: sha512-zcDA+m24GGnj5Kz5QO34Qr+GtooVHl5s1ORExUGRL3S08XtXgHl/mA5GCbjdkldm3S1B6v8+x7CH9T7rOoWwGw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz}
+    resolution: {integrity: sha512-rblKkEWsML/RQ6GZs+nFmakLXgWi/x9o22Yhl+OmEjaiFY2awFcxjJZYoHvJQsHmw3lXaYcT3A9Gn8oRQ+snBA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       react: ^19.2.7
       react-router: ^8.3.0
 
   '@filter-enginez/vue-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-kX1E+jBqUBa+x20dCgwPxZwANHfhRl+hJz95UbaH6BC0wR33fPuAPEjmXT6Bc94S2ObG97ZrUsFB0m5a4GHLvA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz}
+    resolution: {integrity: sha512-iYAVszxLd70+Ox2tyRrktSxqC9RvoqybkyrLECHmj/Fh/FQJ4gcmw4gsInAfH1A0X1jMn3Wo//1t9SRWSqAoBw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz}
     version: 0.0.2
     peerDependencies:
       vue: ^3.5.0
 
   '@filter-enginez/worker-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz':
-    resolution: {integrity: sha512-NxWxELQwJS0YanfupE8mAdVhbMfRKWkhN7btCnbg2qNC5YhP+LS4Ry6bJH0N+ufic9mDBbVo2WVF4o+mQSwR2A==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz}
+    resolution: {integrity: sha512-mxCrgxoX4oCfAh/QxqW1n8TCDNM5XeJphtRfENl6YruJha4JUiJmRoJ/ktq266AsBw6tXRARxP+FsYCMurLiNw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz}
     version: 0.0.2
 
   '@floating-ui/core@1.8.0':

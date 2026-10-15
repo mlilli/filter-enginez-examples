@@ -9,7 +9,7 @@
  * A passing engine test alone would not catch a panel that leaves the field out of its query.
  */
 
-import { createFilterEngine, type FilterBundleQuery, geo } from '@filter-enginez/core';
+import { createFilterEngine, type FilterBundleQuery } from '@filter-enginez/core';
 import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { createSignalsEngine } from '@filter-enginez/reactive-signals';
@@ -18,7 +18,7 @@ import { useMemo } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { FilterBundleContext, useFetchFilterBundle } from '../filter-bundle/index.js';
-import { extractListingCoords } from './real-estate-domain/extractors.js';
+import { buildListingGeoRadiusRule } from './real-estate-domain/geoRadiusRule.js';
 import { CheckboxSection } from './RealEstateFilterSections.js';
 
 /** A 15-mile commute radius (the panel default), in km. */
@@ -38,7 +38,7 @@ function renderSection(withDenverRadius: boolean): void {
 	if (withDenverRadius) {
 		const denver = listings.filter((l) => l.metroArea === 'Greater Denver');
 
-		core.addRule('geo-proximity', geo(extractListingCoords, {
+		core.addRule('geo-proximity', buildListingGeoRadiusRule({
 			center: {
 				lat: denver.reduce((sum, l) => sum + l.coordinates.lat, 0) / denver.length,
 				lng: denver.reduce((sum, l) => sum + l.coordinates.lon, 0) / denver.length,

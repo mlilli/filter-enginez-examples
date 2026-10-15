@@ -1,6 +1,8 @@
 /**
  * `real-estate/geoSection` — the distance filter: an enable checkbox, a metro dropdown, a "Near me"
- * button, a draggable map marker and a radius slider, committed as ONE `GeoProximityRule`.
+ * button, a draggable map marker and a radius slider, committed as ONE `GeoProximityRule`: the shared
+ * distance rule every app commits, over the listing's `coords` field (`buildListingGeoRadiusRule`), so a
+ * `?f` link this section writes loads the same circle in every app, and after a reload.
  *
  * @remarks
  * The framework-less port of Vue's `<GeoRadiusSection>` and its Svelte / Angular twins. It is the only
@@ -23,7 +25,8 @@
  * ### Enablement is the RULE's presence, not a local flag
  *
  * This panel — like the books panel beside it, and like the Vue and Svelte geo sections — derives the
- * checkbox from the engine's committed rule map, repainting wholesale on every change. So the
+ * checkbox from the engine's committed rule map, read by the shared `deriveGeoRadius`, repainting
+ * wholesale on every change. So the
  * checkbox is checked exactly when a `geo-proximity` rule exists, and clearing that rule from
  * anywhere (an active-filter pill's ×, "Clear all", a shared `?f` link that omits it) turns the
  * section off with no reset table to keep in step.
@@ -49,17 +52,15 @@
  * @packageDocumentation
  */
 
-import {
-	type FilterRule,
-	geo,
-	type GeoProximityRule,
-	type RuleId,
-} from '@filter-enginez/core';
+import type { FilterRule, RuleId } from '@filter-enginez/core';
+
 import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import {
+	buildListingGeoRadiusRule,
 	describeMapCoords,
-	extractListingCoords,
 	findMetroLabel,
+	GEO_RADIUS_RULE_ID,
+	type GeoRadius,
 	kmToMiles,
 	type MapCoords,
 	type MetroCenterOption,
@@ -98,11 +99,12 @@ export interface GeoSection {
 	 */
 	readonly invalidateMapSize: () => void;
 	/**
-	 * Re-apply the committed rule.
+	 * Re-apply the committed circle.
 	 *
-	 * @param rule - The engine's `geo-proximity` rule, or `undefined` when the facet is off.
+	 * @param radius - The engine's distance rule as `deriveGeoRadius` reads it, or `undefined` when the
+	 *   facet is off.
 	 */
-	readonly update: (rule: GeoProximityRule | undefined) => void;
+	readonly update: (radius: GeoRadius | undefined) => void;
 }
 
 /** Construction options for {@link createGeoSection}. */
@@ -120,9 +122,6 @@ export interface GeoSectionOptions {
 	 */
 	readonly metroCenters: readonly MetroCenterOption[];
 }
-
-/** Rule id + registry key for the distance filter. */
-const GEO_RULE_ID = 'geo-proximity';
 
 /** Where the map opens before the user picks a metro or grants location. */
 const DEFAULT_CENTER: MapCoords = { lat: 37.7749, lng: -122.4194 };
@@ -173,11 +172,7 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 	function commitGeo(nextCenter: MapCoords, nextRadiusKm: number): void {
 		center = nextCenter;
 		radiusKm = nextRadiusKm;
-		// A FUNCTION extractor, not a field name: `Listing.coordinates` is `{ lat, lon }` and the rule
-		// wants `{ lat, lng }`. The rule can do this because it never has to survive serialization on
-		// this tier — the bundle query, which does, is why `locationId` had to be a real field and this
-		// did not.
-		commit(GEO_RULE_ID, geo(extractListingCoords, { center: nextCenter, radiusKm: nextRadiusKm }));
+		commit(GEO_RADIUS_RULE_ID, buildListingGeoRadiusRule({ center: nextCenter, radiusKm: nextRadiusKm }));
 	}
 
 	// Created once and kept for the section's life; `onCenterChange` reads the CURRENT radius out of
@@ -197,7 +192,7 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 
 				return;
 			}
-			commit(GEO_RULE_ID, null);
+			commit(GEO_RADIUS_RULE_ID, null);
 		},
 	});
 
@@ -388,11 +383,11 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 			map.invalidateSize();
 		},
 
-		update: (rule) => {
-			isEnabled = rule !== undefined;
-			if (rule !== undefined) {
-				center = rule.config.center;
-				radiusKm = rule.config.radiusKm;
+		update: (radius) => {
+			isEnabled = radius !== undefined;
+			if (radius !== undefined) {
+				center = radius.center;
+				radiusKm = radius.radiusKm;
 				// Idempotent: the first enable creates the map, every later call only records the view.
 				map.mount(center, radiusKm);
 				map.setCenter(center);

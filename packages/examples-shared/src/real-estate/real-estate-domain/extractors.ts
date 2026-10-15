@@ -1,24 +1,17 @@
 /**
- * Real-estate boundary field extractors + the location hierarchy tree.
+ * Real-estate location hierarchy: the picker tree, and the one translation between its node ids and the
+ * listing's `locationId` field.
  *
  * @remarks
- * The generated `realEstateFilterConfig` (mock-data) describes the intended filters, but three of its
- * field mappings don't line up with the actual `Listing` shape + the core rule contracts. Rather than
- * fork the well-tested `core` rules or reshape `mock-data`, we bridge at the rule-wiring layer with
- * a `FieldExtractor` function and two id spaces for the location tree:
+ * Two id spaces meet in the location filter. The picker addresses nodes by PREFIXED id
+ * (`neighborhood:CO/Greater Denver/Capitol Hill`), because the prefixes keep a state, a metro and a
+ * neighborhood from colliding in one flat selection. The rule and the bundle match the listing's
+ * `locationId` FIELD, the bare `state/metro/neighborhood` path, because a field named by string is what
+ * survives a `?f=` link, JSON and Comlink. {@link toLocationFieldId} is the one translation between the
+ * two, and {@link buildLocationNodeSpecs} applies it to every node.
  *
- *   1. **Geo** — `Listing.coordinates` is `{ lat, lon }`, but `GeoProximityRule` (and the R-tree
- *      `SpatialIndex`) read `{ lat, lng }`. `extractListingCoords` maps `lon → lng`, fixing both the
- *      predicate and the spatial-index build (both flow through the rule's extractor).
- *   2. **Location hierarchy** — the picker addresses nodes by PREFIXED id
- *      (`neighborhood:CO/Greater Denver/Capitol Hill`), because the prefixes keep a state, a metro and
- *      a neighborhood from colliding in one flat selection. The rule and the bundle match the listing's
- *      `locationId` FIELD, the bare `state/metro/neighborhood` path, because a field named by string is
- *      what survives a `?f=` link, JSON and Comlink. {@link toLocationFieldId} is the one translation
- *      between the two, and {@link buildLocationNodeSpecs} applies it to every node.
- *   3. **Features** — modeled in the feature section as a predicate over the `features: string[]`
- *      array (the config's per-feature `feature.pool` boolean paths don't exist on `Listing`), so no
- *      shared extractor is needed for them.
+ * Every other real-estate rule names a `Listing` field directly: the distance rule reads `coords`
+ * (`./geoRadiusRule.ts`) and the must-have features rule the `features` array (`./ContainsAllRule.ts`).
  *
  * The location tree is built by every vertical from the corpus its engine booted from, with
  * {@link buildListingLocationTree}. This module imports only the `Listing` TYPE, with `import type`, so
@@ -29,7 +22,6 @@
  * @packageDocumentation
  */
 
-import type { FieldExtractor, GeoCoords } from '@filter-enginez/core';
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import type { PickerTreeNode } from './pickerTree.js';
@@ -116,28 +108,6 @@ export function buildLocationNodeSpecs(node: PickerTreeNode): readonly LocationN
 function locationSubtreeFieldIds(node: PickerTreeNode): readonly string[] {
 	return [toLocationFieldId(node.id), ...(node.children ?? []).flatMap((child) => locationSubtreeFieldIds(child))];
 }
-
-/**
- * Geo coordinate extractor — maps a `Listing`'s `{ lat, lon }` to the `{ lat, lng }` shape that
- * `GeoProximityRule` and the R-tree `SpatialIndex` expect. Returns `undefined` for a listing missing
- * numeric coordinates (the rule then treats it as non-matching, mirroring core's own guard).
- *
- * @param item - The candidate item (an unknown until narrowed to `Listing`).
- * @returns The `{ lat, lng }` coordinate, or `undefined` when unavailable.
- */
-export const extractListingCoords: FieldExtractor = (item: unknown): GeoCoords | undefined => {
-	const coordinates = (item as Listing | null | undefined)?.coordinates;
-
-	if (
-		coordinates === undefined ||
-		typeof coordinates.lat !== 'number' ||
-		typeof coordinates.lon !== 'number'
-	) {
-		return undefined;
-	}
-
-	return { lat: coordinates.lat, lng: coordinates.lon };
-};
 
 /**
  * Build the state → metro → neighborhood picker tree from a listing corpus. A leaf's id, with its

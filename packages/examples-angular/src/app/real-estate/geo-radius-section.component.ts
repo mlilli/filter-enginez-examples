@@ -1,6 +1,8 @@
 /**
  * `<fe-geo-radius-section>` — the distance filter: a metro dropdown, a draggable map marker and a
- * radius slider, committed as one `GeoProximityRule`.
+ * radius slider, committed as one `GeoProximityRule`: the shared distance rule every app commits, over the
+ * listing's `coords` field (`buildListingGeoRadiusRule`), so a `?f` link this section writes loads the
+ * same circle in every app, and after a reload.
  *
  * @remarks
  * The fourteenth facet by rule count and the second by render order, and the only one that reaches a
@@ -18,7 +20,8 @@
  *
  * Vue and Svelte hold all three locally and hand a reset callback up to the panel so "clear all" can
  * reach them. This vertical does not need that machinery, because the panel derives every other facet
- * from `activeRules$` and this one can too: the rule's PRESENCE is the checkbox, so an external
+ * from `activeRules$` and this one can too, reading all three out of the committed rule with the shared
+ * `deriveGeoRadius`: the rule's PRESENCE is the checkbox, so an external
  * `clearRules()` unchecks it with no reset table, no registration handshake and no chance of the two
  * lists drifting.
  *
@@ -55,11 +58,13 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { injectEngineBusy, injectFilterEngine } from '@filter-enginez/angular-rxjs';
-import { geo, type GeoProximityRule, type RuleId } from '@filter-enginez/core';
 import {
+	buildListingGeoRadiusRule,
+	deriveGeoRadius,
 	describeMapCoords,
-	extractListingCoords,
 	findMetroLabel,
+	GEO_RADIUS_RULE_ID,
+	type GeoRadius,
 	kmToMiles,
 	type MapCoords,
 	milesToKm,
@@ -73,9 +78,6 @@ import {
 } from '../controls/select-menu.component.js';
 import { LeafletRadiusMapComponent } from './leaflet-radius-map.component.js';
 import { injectRealEstateFacets } from './real-estate-facets.js';
-
-/** Rule id + registry key for the distance filter. */
-const GEO_RULE_ID: RuleId = 'geo-proximity';
 
 /** Where the map opens before the user picks a metro or grants location. */
 const DEFAULT_CENTER: MapCoords = { lat: 37.7749, lng: -122.4194 };
@@ -203,9 +205,9 @@ export class GeoRadiusSectionComponent {
 	/** Every rule on the engine — what enablement, center and radius all ultimately derive from. */
 	private readonly _activeRules = toSignal(this._engine.activeRules$, { requireSync: true });
 
-	/** The committed distance filter, or `undefined` when the facet is off. */
-	private readonly _committedRule = computed<GeoProximityRule | undefined>(
-		() => this._activeRules().get(GEO_RULE_ID) as GeoProximityRule | undefined,
+	/** The committed distance filter's circle, or `undefined` when the facet is off. */
+	private readonly _committedRadius = computed<GeoRadius | undefined>(
+		() => deriveGeoRadius(this._activeRules().get(GEO_RADIUS_RULE_ID)),
 	);
 
 	/** The circle's center. Local, so it survives the filter being switched off. See the class remarks. */
@@ -224,7 +226,7 @@ export class GeoRadiusSectionComponent {
 	protected readonly locationError = signal<string | null>(null);
 
 	/** Whether the distance filter is on. The rule's PRESENCE is the checkbox — see the class remarks. */
-	protected readonly isEnabled = computed<boolean>(() => this._committedRule() !== undefined);
+	protected readonly isEnabled = computed<boolean>(() => this._committedRadius() !== undefined);
 
 	/** Slider extremes, exposed for the template (which cannot read module constants). */
 	protected readonly radiusMaxMiles = RADIUS_MAX_MILES;
@@ -276,13 +278,13 @@ export class GeoRadiusSectionComponent {
 		// hands back the very object already on the rule, so the signals see no change at all after a
 		// commit made from this component.
 		effect(() => {
-			const rule = this._committedRule();
+			const committed = this._committedRadius();
 
-			if (rule === undefined) {
+			if (committed === undefined) {
 				return;
 			}
-			this.center.set(rule.config.center);
-			this.radiusKm.set(rule.config.radiusKm);
+			this.center.set(committed.center);
+			this.radiusKm.set(committed.radiusKm);
 		});
 	}
 
@@ -377,7 +379,7 @@ export class GeoRadiusSectionComponent {
 			return;
 		}
 		this._busy.markUserAction();
-		this._engine.core.removeRule(GEO_RULE_ID);
+		this._engine.core.removeRule(GEO_RADIUS_RULE_ID);
 	}
 
 	/**
@@ -387,11 +389,6 @@ export class GeoRadiusSectionComponent {
 	 * `markUserAction()` before the engine write, so the "computing" indicator lights on the same frame
 	 * the user clicks rather than a frame after the results have already moved.
 	 *
-	 * A FUNCTION extractor, not a field name: `Listing.coordinates` is `{ lat, lon }` and the rule wants
-	 * `{ lat, lng }`. The rule can do this because it never has to survive serialization to a worker on
-	 * this tier — the bundle query, which does, is why `locationId` had to be materialized as a real
-	 * field while this one did not.
-	 *
 	 * @param nextCenter - The circle's center.
 	 * @param nextRadiusKm - The circle's radius, in kilometers.
 	 */
@@ -400,8 +397,8 @@ export class GeoRadiusSectionComponent {
 		this.radiusKm.set(nextRadiusKm);
 		this._busy.markUserAction();
 		this._engine.core.addRule(
-			GEO_RULE_ID,
-			geo(extractListingCoords, { center: nextCenter, radiusKm: nextRadiusKm }),
+			GEO_RADIUS_RULE_ID,
+			buildListingGeoRadiusRule({ center: nextCenter, radiusKm: nextRadiusKm }),
 		);
 	}
 }

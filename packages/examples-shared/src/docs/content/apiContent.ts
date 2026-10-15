@@ -65,7 +65,7 @@ export const API_GROUPS: readonly ApiGroup[] = [
 			{ description: 'Regular-expression match ({ pattern } — serializes to { source, flags }).', name: 'regex', signature: 'regex(field, config: { pattern: RegExp }): RegexRule' },
 			{ description: 'Date range with relative presets.', name: 'dateRange', signature: 'dateRange(field, config: { start?; end?; preset? }): DateRangeRule' },
 			{ description: 'Tree-of-categories filter with descendant inclusion.', name: 'hierarchical', signature: 'hierarchical(field, config: { tree; selected: string[] }): HierarchicalRule' },
-			{ description: 'Within-radius geographic filter (R-tree accelerated).', name: 'geo', signature: 'geo(field, config: { lat: number; lng: number; radiusKm: number }): GeoProximityRule' },
+			{ description: 'Within-radius geographic filter (R-tree accelerated).', name: 'geo', signature: 'geo(field, config: { center: { lat: number; lng: number }; radiusKm: number }): GeoProximityRule' },
 			{ description: 'Passes records whose value is non-null.', name: 'exists', signature: 'exists(field: FieldExtractor): ExistsRule' },
 			{ description: 'Arbitrary predicate escape hatch (not serializable).', name: 'predicate', signature: 'predicate<T>(field, fn: (item: T, rule) => boolean): PredicateRule<T>' },
 			{ description: 'Probabilistic membership against a prebuilt BloomFilter.', name: 'bloomMembership', signature: 'bloomMembership(field, filter: BloomFilter): BloomMembershipRule' },

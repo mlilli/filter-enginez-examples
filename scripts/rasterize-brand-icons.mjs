@@ -10,14 +10,27 @@
  * @remarks
  * The design system's logomark folder (`docs/branding/design-system/assets/logomark/`) is the
  * canonical home of every brand image: vector sources in `svg/`, raster exports in `png/`. Most exports
- * were captured from `rasterize.html` in a browser. This script produces the three a site's icon set
- * needs that a capture did not provide, from the canonical vectors, byte for byte the same on every run:
+ * were captured from `rasterize.html` in a browser. This script produces the four a site's icon set
+ * takes from a render rather than a capture, from the canonical vectors, byte for byte the same on every
+ * run:
  *
- * | Export                     | Source                          | How                                    |
- * | -------------------------- | ------------------------------- | -------------------------------------- |
- * | `png/favicon-96.png`       | `svg/favicon-primary.svg`       | rendered at 96 × 96                    |
- * | `png/icon-512-maskable.png`| `svg/icon-maskable.svg`         | rendered at 512 × 512                  |
- * | `ico/favicon.ico`          | `png/favicon-{16,32,48}.png`    | the three PNGs packed into one ICO     |
+ * | Export                      | Source                     | How                                         |
+ * | --------------------------- | -------------------------- | ------------------------------------------- |
+ * | `png/favicon-48.png`        | `svg/apple-touch-icon.svg` | rendered at 48 × 48                         |
+ * | `png/favicon-96.png`        | `svg/apple-touch-icon.svg` | rendered at 96 × 96                         |
+ * | `png/icon-512-maskable.png` | `svg/icon-maskable.svg`    | rendered at 512 × 512                       |
+ * | `ico/favicon.ico`           | `svg/apple-touch-icon.svg` | rendered at 16, 32 and 48 px, packed as ICO |
+ *
+ * **Two favicon artworks, by where the icon is seen.** A search result shows a site's icon at 16 to 48
+ * px on a white or light-gray page, and takes it from the largest suitable square `<link rel="icon">`
+ * (a multiple of 48 px) or from `/favicon.ico`. The transparent cyan glyph is faint there, so those
+ * files are the dark circular badge, `svg/apple-touch-icon.svg`, the artwork of the 180, 192 and 512 px
+ * icons: `favicon-48.png`, `favicon-96.png` and every image in `favicon.ico`. A browser tab shows the
+ * icon at 16 or 32 px on a tab strip that is as often dark as light, and draws `favicon.svg` (the glyph)
+ * where it can. `favicon-16.png` and `favicon-32.png` stay the glyph, captured like the other glyph
+ * exports: at 16 px its Z stands about 11 px tall, where the badge's stands about 8 px inside a circle
+ * that disappears into a dark tab strip, and a tab that falls back from the SVG to a PNG keeps the same
+ * mark.
  *
  * **The renderer is librsvg, through `sharp`,** which the workspace already installs as a dependency of
  * Wrangler's local runtime (`wrangler` → `miniflare` → `sharp`), so no package is added for a task run
@@ -26,8 +39,8 @@
  * at the root. librsvg renders the CSS `drop-shadow()` glow the sources use, so a render matches the
  * browser captures beside it.
  *
- * **The ICO holds PNG images**, the form every browser since 2006 reads, so the three entries are the
- * committed 16, 32 and 48 px exports themselves rather than re-encoded bitmaps.
+ * **The ICO holds PNG images**, the form every browser since 2006 reads: the badge rendered at 16 and
+ * 32 px, and the committed 48 px export itself, byte for byte.
  *
  * After running it, copy the exports into the brand package and the apps with
  * `node scripts/sync-brand-assets.mjs`; `tests/tooling/brandAssets.test.ts` holds every copy to its
@@ -61,14 +74,18 @@ const LOGOMARK = join(ROOT, 'docs/branding/design-system/assets/logomark');
  * @typedef {{ readonly output: string; readonly size: number; readonly source: string }} RenderedExport
  */
 
+/** The dark circular badge: the artwork of the search-result favicons and of every image in the ICO. */
+const BADGE_SOURCE = 'svg/apple-touch-icon.svg';
+
 /** @type {readonly RenderedExport[]} */
 const RENDERED_EXPORTS = [
-	{ output: 'png/favicon-96.png', size: 96, source: 'svg/favicon-primary.svg' },
+	{ output: 'png/favicon-48.png', size: 48, source: BADGE_SOURCE },
+	{ output: 'png/favicon-96.png', size: 96, source: BADGE_SOURCE },
 	{ output: 'png/icon-512-maskable.png', size: 512, source: 'svg/icon-maskable.svg' },
 ];
 
-/** The PNG exports the ICO packs, smallest first, and its path. */
-const ICO_SOURCES = ['png/favicon-16.png', 'png/favicon-32.png', 'png/favicon-48.png'];
+/** The image sizes the ICO packs, smallest first, each the badge rendered at that size, and its path. */
+const ICO_SIZES = [16, 32, 48];
 const ICO_OUTPUT = 'ico/favicon.ico';
 
 /**
@@ -95,8 +112,8 @@ async function loadSharp() {
  */
 async function render(sharp, entry) {
 	const svg = readFileSync(join(LOGOMARK, entry.source));
-	// The sources declare 100 or 512 px. Rendering at a density that makes even the smaller one at least
-	// as large as the target, then resizing down, keeps every export sharp whatever size its source
+	// The sources declare 100, 180 or 512 px. Rendering at a density that makes even the smallest one at
+	// least as large as the target, then resizing down, keeps every export sharp whatever size its source
 	// declares.
 	const density = Math.max(72, Math.ceil((72 * entry.size) / 100));
 
@@ -158,7 +175,14 @@ async function run(isCheckMode) {
 	for (const entry of RENDERED_EXPORTS) {
 		outputs.push([entry.output, await render(sharp, entry)]);
 	}
-	outputs.push([ICO_OUTPUT, packIco(ICO_SOURCES.map((path) => readFileSync(join(LOGOMARK, path))))]);
+	/** @type {Buffer[]} */
+	const icoImages = [];
+
+	// The 48 px image renders exactly as `png/favicon-48.png` does: the same source, size and encoder.
+	for (const size of ICO_SIZES) {
+		icoImages.push(await render(sharp, { output: ICO_OUTPUT, size, source: BADGE_SOURCE }));
+	}
+	outputs.push([ICO_OUTPUT, packIco(icoImages)]);
 
 	/** @type {string[]} */
 	const changed = [];

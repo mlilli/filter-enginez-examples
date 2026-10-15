@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
  * `<GeoRadiusSection>` — the distance filter: a metro dropdown, a draggable map marker, and a radius
- * slider, committed as one `GeoProximityRule`.
+ * slider, committed as one `GeoProximityRule`: the shared distance rule every app commits, over the
+ * listing's `coords` field (`buildListingGeoRadiusRule`), so a `?f` link this section writes loads the
+ * same circle in every app, and after a reload.
  *
  * @remarks
  * The only section that loads a library — so it is dynamically imported by `<RealEstateView>` and
@@ -9,9 +11,10 @@
  *
  * ### Enablement is DERIVED; center and radius are a re-seeded mirror
  *
- * The rule's PRESENCE is the checkbox, so an external `clearRules()` or a removed results-header chip
- * unchecks it for free — no reset table, no registration handshake, and no way for the panel's list of
- * facets and this section's local state to drift apart. Same contract as every other facet in the
+ * All three are read out of the committed rule by the shared `deriveGeoRadius`. The rule's PRESENCE is
+ * the checkbox, so an external `clearRules()` or a removed results-header chip unchecks it for free —
+ * no reset table, no registration handshake, and no way for the panel's list of facets and this
+ * section's local state to drift apart. Same contract as every other facet in the
  * panel, and the same one Angular's geo section uses.
  *
  * Center and radius are the exception, deliberately. They must survive the filter being turned OFF —
@@ -50,10 +53,11 @@
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { geo, type GeoProximityRule } from '@filter-enginez/core';
 import {
-	extractListingCoords,
+	buildListingGeoRadiusRule,
+	deriveGeoRadius,
 	findMetroLabel,
+	GEO_RADIUS_RULE_ID,
 	kmToMiles,
 	type MapCoords,
 	type MetroCenterOption,
@@ -83,9 +87,6 @@ const props = defineProps<{
 	metroCenters: readonly MetroCenterOption[];
 }>();
 
-/** Rule id + registry key for the distance filter. */
-const GEO_RULE_ID = 'geo-proximity';
-
 /** Where the map opens before the user picks a metro or grants location. */
 const DEFAULT_CENTER: MapCoords = { lat: 37.7749, lng: -122.4194 };
 
@@ -103,17 +104,17 @@ const GEOLOCATION_TIMEOUT_MS = 10_000;
  * This facet's rule ref, subscribed once during setup.
  *
  * @remarks
- * `rule(GEO_RULE_ID)` rather than the whole `activeRules` map, so a chip toggle elsewhere in the panel
+ * `rule(GEO_RADIUS_RULE_ID)` rather than the whole `activeRules` map, so a chip toggle elsewhere in the panel
  * does not wake the map. It must be called in `setup()` — that is where the subscription is torn down
  * from — so the `as` cast happens in a `computed` over the ref rather than on the call itself.
  */
-const ruleRef = useEngineRefs(props.engine).rule(GEO_RULE_ID);
+const ruleRef = useEngineRefs(props.engine).rule(GEO_RADIUS_RULE_ID);
 
-/** The committed distance filter, or `undefined` when the facet is off. */
-const committedRule = computed(() => ruleRef.value as GeoProximityRule | undefined);
+/** The committed distance filter's circle, or `undefined` when the facet is off. */
+const committedRadius = computed(() => deriveGeoRadius(ruleRef.value));
 
 /** Whether the distance filter is on. The rule's PRESENCE is the checkbox — see the docblock. */
-const isEnabled = computed(() => committedRule.value !== undefined);
+const isEnabled = computed(() => committedRadius.value !== undefined);
 
 // `shallowRef` for the coordinate pair: it is replaced wholesale on every recenter and handed straight
 // to Leaflet, so deep-proxying two numbers would buy nothing and hand a proxy to a library that has no
@@ -129,13 +130,13 @@ const locationError = ref<string | null>(null);
 // restore has already loaded the rule by the time this section's module finishes loading, so waiting
 // for the next change would open the map on San Francisco and leave it there.
 watch(
-	committedRule,
-	(rule) => {
-		if (rule === undefined) {
+	committedRadius,
+	(committed) => {
+		if (committed === undefined) {
 			return;
 		}
-		center.value = rule.config.center;
-		radiusKm.value = rule.config.radiusKm;
+		center.value = committed.center;
+		radiusKm.value = committed.radiusKm;
 	},
 	{ immediate: true },
 );
@@ -149,11 +150,7 @@ watch(
 function commitGeoRule(nextCenter: MapCoords, nextRadiusKm: number): void {
 	center.value = nextCenter;
 	radiusKm.value = nextRadiusKm;
-	// A FUNCTION extractor, not a field name: `Listing.coordinates` is `{ lat, lon }` and the rule wants
-	// `{ lat, lng }`. The rule can do this because it never has to survive serialization to a worker on
-	// this tier — the bundle query, which does, is why `locationId` had to be materialized as a real
-	// field while this one did not.
-	commitRule(props.engine, GEO_RULE_ID, geo(extractListingCoords, { center: nextCenter, radiusKm: nextRadiusKm }));
+	commitRule(props.engine, GEO_RADIUS_RULE_ID, buildListingGeoRadiusRule({ center: nextCenter, radiusKm: nextRadiusKm }));
 }
 
 /**
@@ -173,7 +170,7 @@ function handleEnabledToggle(nextEnabled: boolean): void {
 
 		return;
 	}
-	clearRule(props.engine, GEO_RULE_ID);
+	clearRule(props.engine, GEO_RADIUS_RULE_ID);
 }
 
 /**

@@ -39,7 +39,6 @@ import {
 	type FilterBundleQuery,
 	type FilterEngine,
 	type FilterRule,
-	type GeoProximityRule,
 	inSet,
 	type InSetRule,
 	type RuleId,
@@ -59,8 +58,10 @@ import {
 	ContainsAllRule,
 	DATE_PRESET_OPTIONS,
 	type DatePresetValue,
+	deriveGeoRadius,
 	deriveLocationSelection,
 	deriveRealEstateVocabularies,
+	GEO_RADIUS_RULE_ID,
 	humanizeVocabularyValue,
 	LOCATION_RULE_ID,
 	type MetroCenterOption,
@@ -343,7 +344,7 @@ export function createRealEstatePanel(
 				tree: locationTree,
 			});
 
-			geoSection.update(rules.get('geo-proximity') as GeoProximityRule | undefined);
+			geoSection.update(deriveGeoRadius(rules.get(GEO_RADIUS_RULE_ID)));
 
 			schoolDistrictChips.update({
 				exclusion: chipExclusionMap(bundle, 'school-district'),

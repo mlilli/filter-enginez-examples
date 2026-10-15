@@ -188,6 +188,7 @@ const FIXTURE_LISTINGS: readonly Listing[] = FIXTURE_ROWS.map(
 		bedrooms,
 		city: metroArea,
 		coordinates: { lat: 30 + index, lon: -100 - index },
+		coords: { lat: 30 + index, lng: -100 - index },
 		description,
 		features,
 		id: `listing-${String(index)}`,

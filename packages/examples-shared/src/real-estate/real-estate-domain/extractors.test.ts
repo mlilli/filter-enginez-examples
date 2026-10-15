@@ -1,5 +1,5 @@
 /**
- * Tests for the real-estate field extractors + location tree.
+ * Tests for the real-estate location tree.
  *
  * @remarks
  * These sit on the seam between the picker's node ids (`neighborhood:CA/…`) and the listing's
@@ -10,10 +10,6 @@
  *
  * `toLocationFieldId` is that translation, and the specs' sets are what the committed location rule and
  * the bundle both match.
- *
- * `extractListingCoords` also renames `lon` to `lng` — the corpus and the engine's `GeoCoords`
- * disagree on the spelling, and a pass-through would leave `lng` undefined, which reads as "no
- * coordinates" and quietly drops the listing from every distance filter.
  */
 
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
@@ -24,65 +20,18 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
-	extractListingCoords,
 	toLocationFieldId,
 } from './extractors.js';
 
-/**
- * Narrow a `FieldExtractor` to its function form.
- *
- * @remarks
- * `FieldExtractor` is a union — a string key, an accessor function, or undefined. These two are
- * always the function form, but the union has to be narrowed before it can be called.
- *
- * @param extractor - The extractor under test.
- * @returns The same extractor, callable.
- */
-function asFn(extractor: unknown): (item: unknown) => unknown {
-	return extractor as (item: unknown) => unknown;
-}
-
-/** A listing carrying only the fields these extractors read. */
+/** A listing carrying only the fields the location tree reads. */
 function listing(overrides: Record<string, unknown> = {}): Listing {
 	return {
-		coordinates: { lat: 37.7, lon: -122.4 },
 		metroArea: 'San Francisco',
 		neighborhood: 'Mission',
 		state: 'CA',
 		...overrides,
 	} as unknown as Listing;
 }
-
-describe('extractListingCoords', () => {
-	it('renames lon to lng for the engine', () => {
-		// The corpus says `lon`; `GeoCoords` says `lng`. A pass-through leaves `lng` undefined, which
-		// the geo rule reads as "no coordinates" and drops the listing from every distance filter.
-		expect(asFn(extractListingCoords)(listing())).toEqual({ lat: 37.7, lng: -122.4 });
-	});
-
-	it.each([
-		['coordinates are absent', { coordinates: undefined }],
-		['lat is not a number', { coordinates: { lat: 'north', lon: -122.4 }}],
-		['lon is not a number', { coordinates: { lat: 37.7, lon: null }}],
-	])('returns undefined when %s', (_label, overrides) => {
-		expect(asFn(extractListingCoords)(listing(overrides))).toBeUndefined();
-	});
-
-	it.each([
-		['null', null],
-		['undefined', undefined],
-	])('returns undefined for a %s item rather than throwing', (_label, item) => {
-		// The extractor runs against every record in the corpus; one sparse row must not take down the
-		// whole filter pass.
-		expect(asFn(extractListingCoords)(item)).toBeUndefined();
-	});
-
-	it('accepts zero coordinates — the null island is a valid point', () => {
-		// A truthiness check instead of `typeof` would reject lat/lon of 0 and silently drop listings
-		// on the equator or prime meridian.
-		expect(asFn(extractListingCoords)(listing({ coordinates: { lat: 0, lon: 0 }}))).toEqual({ lat: 0, lng: 0 });
-	});
-});
 
 describe('toLocationFieldId', () => {
 	it.each([

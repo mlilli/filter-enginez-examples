@@ -69,6 +69,7 @@ function makeListing(overrides: { readonly id: string } & Partial<Listing>): Lis
 		bedrooms: 3,
 		city: 'Denver',
 		coordinates: { lat: 39.7392, lon: -104.9903 },
+		coords: { lat: 39.7392, lng: -104.9903 },
 		description: 'A pleasant home near the park.',
 		features: ['garage'],
 		lastUpdated: '2026-07-01T00:00:00.000Z',

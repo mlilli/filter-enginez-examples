@@ -24,13 +24,14 @@
 
 import type { BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
-import { createFilterEngine, geo } from '@filter-enginez/core';
+import { createFilterEngine } from '@filter-enginez/core';
 import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
 import { describe, expect, it } from 'vitest';
 
 import { createLinkSerializer } from '../url/linkSerializer.js';
 import { bootRealEstateCore } from './bootRealEstateCore.js';
-import { buildListingLocationTree, buildLocationNodeSpecs, extractListingCoords } from './real-estate-domain/extractors.js';
+import { buildListingLocationTree, buildLocationNodeSpecs } from './real-estate-domain/extractors.js';
+import { writeGeoRadius } from './real-estate-domain/geoRadiusRule.js';
 import { writeLocationSelection } from './real-estate-domain/locationRule.js';
 import { deriveMetroCenters, findMetroLabel } from './real-estate-domain/metroCenters.js';
 
@@ -113,7 +114,7 @@ describe('facets derived from the booted corpus', () => {
 			const center = deriveMetroCenters(corpus)[0]?.center ?? { lat: 0, lng: 0 };
 
 			writeLocationSelection(engine, [state?.id ?? ''], buildLocationNodeSpecs(buildListingLocationTree(corpus)));
-			engine.addRule('geo-proximity', geo(extractListingCoords, { center, radiusKm: 24.14 }));
+			writeGeoRadius(engine, { center, radiusKm: 24.14 });
 
 			return { link: serializer.encode(engine.exportConfig()), passing: [...engine.getResultIndices()]};
 		}

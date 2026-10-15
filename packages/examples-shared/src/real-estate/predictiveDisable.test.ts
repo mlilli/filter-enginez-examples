@@ -11,11 +11,12 @@
  * predictive disable every district stays clickable and that pair renders zero results.
  */
 
-import { createFilterEngine, geo, inSet } from '@filter-enginez/core';
+import { createFilterEngine, inSet } from '@filter-enginez/core';
 import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
 import { describe, expect, it } from 'vitest';
 
-import { buildListingLocationTree, buildLocationNodeSpecs, extractListingCoords } from './real-estate-domain/extractors.js';
+import { buildListingLocationTree, buildLocationNodeSpecs } from './real-estate-domain/extractors.js';
+import { buildListingGeoRadiusRule } from './real-estate-domain/geoRadiusRule.js';
 
 /** The location tree flattened into bundle candidates, exactly as the panel does it. */
 const locationSpecs = buildLocationNodeSpecs(buildListingLocationTree(listings));
@@ -51,7 +52,7 @@ function bootEngine(options: { readonly withDenverRadius: boolean; }): ReturnTyp
 	if (options.withDenverRadius) {
 		engine.addRule(
 			'geo-proximity',
-			geo(extractListingCoords, { center: metroCenter('Greater Denver'), radiusKm: FIFTEEN_MILES_KM }),
+			buildListingGeoRadiusRule({ center: metroCenter('Greater Denver'), radiusKm: FIFTEEN_MILES_KM }),
 		);
 	}
 
