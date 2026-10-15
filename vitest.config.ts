@@ -78,12 +78,13 @@ const BROWSER_TEST_PACKAGES: readonly string[] = [
 
 /**
  * The landing site's browser code — the home, how-it-works and compare pages — which builds DOM and so runs
- * under jsdom, while the rest of `site` (its Worker) runs under Node. One glob, used as the jsdom
+ * under jsdom, with the sitemap, whose test parses its XML with the DOM's parser, while the rest of
+ * `site` (its Worker) runs under Node. One glob, used as the jsdom
  * project's extra `include` and the node project's `exclude`, so each test file runs in exactly one
  * environment. Two names in the brace group, so picomatch reads it as a group (see
  * {@link buildPackageTestGlob}).
  */
-const SITE_BROWSER_TESTS = 'packages/site/src/{compare,home,how-it-works}/**/*.test.ts';
+const SITE_BROWSER_TESTS = 'packages/site/src/{compare,home,how-it-works,sitemap}/**/*.test.ts';
 
 /**
  * Build a Vitest `include` glob that scopes to the `*.test.{ts,tsx}` files under

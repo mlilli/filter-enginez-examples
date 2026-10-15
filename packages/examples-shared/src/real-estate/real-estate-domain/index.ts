@@ -13,6 +13,8 @@
  *     worker bridge, and devtools snapshots.
  *   - **Boundary extractors + the location hierarchy** — bridging the generated filter config to the
  *     real `Listing` shape and the core rule contracts.
+ *   - **{@link buildListingLocationRule}** — the location rule all six apps commit, and how a `?f=`
+ *     link's location reads ({@link withNormalizedLocationRule}).
  *   - **{@link deriveMetroCenters}** — corpus-derived centroids for the geo section's metro dropdown.
  *   - **{@link buildRuleSummaries}** — the active-filter-chip summarizer.
  *   - **{@link PickerTreeNode}** — the neutral hierarchical-picker node shape.
@@ -38,9 +40,20 @@ export {
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
 	extractListingCoords,
-	extractListingLocationId,
 	type LocationNodeSpec,
+	toLocationFieldId,
 } from './extractors.js';
+export {
+	LOCATION_FIELD,
+	LOCATION_RULE_ID,
+	normalizeLocationRule,
+	withNormalizedLocationRule,
+} from './locationLinks.js';
+export {
+	buildListingLocationRule,
+	deriveLocationSelection,
+	writeLocationSelection,
+} from './locationRule.js';
 export {
 	coerceDatePreset,
 	DATE_PRESET_OPTIONS,

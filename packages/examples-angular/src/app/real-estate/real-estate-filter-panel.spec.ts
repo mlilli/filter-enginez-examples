@@ -34,17 +34,14 @@ import { provideEngineBusy, provideFilterEngine } from '@filter-enginez/angular-
 import {
 	dateRange,
 	DateRangeRule,
-	HierarchicalRule,
+	InSetofSetsRule,
 	InSetRule,
 	RangeRule,
 	text,
 	TextSearchRule,
 } from '@filter-enginez/core';
 import { buildRealEstateEngine } from '@filter-enginez/examples-shared/real-estate-core';
-import {
-	ContainsAllRule,
-	extractListingLocationId,
-} from '@filter-enginez/examples-shared/real-estate-domain';
+import { ContainsAllRule } from '@filter-enginez/examples-shared/real-estate-domain';
 import {
 	createEngineBusyStream,
 	createRxJsEngine,
@@ -196,9 +193,9 @@ const FIXTURE_LISTINGS: readonly Listing[] = FIXTURE_ROWS.map(
 		id: `listing-${String(index)}`,
 		lastUpdated: '2026-01-01T00:00:00.000Z',
 		listedDate: '2026-01-01T00:00:00.000Z',
-		// The BARE path the bundle query matches; the RULE matches the prefixed `neighborhood:` form
-		// `extractListingLocationId` synthesizes. Two id spaces, and getting either wrong here would
-		// silently disable every location row.
+		// The BARE path the location rule and the bundle query match; the picker's node ids carry a
+		// `neighborhood:` prefix. Two id spaces, and getting either wrong here would silently disable
+		// every location row.
 		locationId: `${state}/${metroArea}/${neighborhood}`,
 		lotSizeAcres,
 		metroArea,
@@ -336,15 +333,17 @@ describe('RealEstateFilterPanelComponent', () => {
 	});
 
 	describe('every commit path writes the rule it claims to', () => {
-		it('location row → HierarchicalRule over the location-id extractor', () => {
+		it('location row → InSetofSetsRule on `locationId`, the rule every app commits', () => {
 			click(treeRows()[0]);
 
 			const rule = ruleFor('location');
 
-			expect(rule).toBeInstanceOf(HierarchicalRule);
-			expect((rule as HierarchicalRule).field).toBe(extractListingLocationId);
-			expect((rule as HierarchicalRule).config.selected).toEqual(['state:CO']);
-			// Three Colorado listings — the rule has to actually match through the hierarchy.
+			expect(rule).toBeInstanceOf(InSetofSetsRule);
+			expect((rule as InSetofSetsRule<string>).field).toBe('locationId');
+			// One set, for the clicked state: its own id first, then everything beneath it.
+			expect((rule as InSetofSetsRule<string>).config.set.map((set) => set[0])).toEqual(['CO']);
+			// Three Colorado listings — the rule has to actually match through the hierarchy. That it still
+			// does after a `?f=` round trip is pinned for the shared rule by `linkSerializer.test.ts`.
 			expect(engine.core.getResultCount()).toBe(3);
 		});
 

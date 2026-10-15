@@ -8,11 +8,19 @@
  * inside the React apps. `docsRoute` is anchored at `/docs` and every internal link is an absolute
  * `/docs/...` path, so the app keeps that mount point and simply redirects `/` (and anything unknown)
  * to the docs home rather than rewriting the shared route — one source of truth for the docs subtree.
+ * The Worker answers `/` itself with a 301 to `/docs` (`public/_redirects`), so a crawler meets one
+ * address for the home; the client-side redirect covers the dev server and any other unknown path.
+ *
+ * The head follows the route: each page's title, description and canonical URL are written on every
+ * navigation by `followRouterPageMeta`, from the documentation's page catalog (`page-meta-docs`).
  *
  * @packageDocumentation
  */
 
 import { docsRoute } from '@filter-enginez/examples-shared/docs';
+import { followRouterPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { docsPageMeta } from '@filter-enginez/examples-shared/page-meta-docs';
+import { useEffect } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
@@ -26,4 +34,8 @@ const router = createBrowserRouter([
 /**
  * The documentation site root.
  */
-export const App = (): React.ReactElement => <RouterProvider router={router} />;
+export const App = (): React.ReactElement => {
+	useEffect(() => followRouterPageMeta(router, docsPageMeta), []);
+
+	return <RouterProvider router={router} />;
+};

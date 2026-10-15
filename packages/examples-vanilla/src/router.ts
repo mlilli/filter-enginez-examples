@@ -96,15 +96,27 @@ function createRouteMount(): HTMLElement {
 	return mount;
 }
 
+/** Optional hooks for {@link startRouter}. */
+export interface RouterOptions {
+	/**
+	 * Called with the pathname each time a route starts rendering, the first included — before the
+	 * route's own boot, so the document head names the page while it loads. `main.ts` writes the page's
+	 * title, description and canonical URL here (`examples-shared/page-meta`).
+	 */
+	readonly onNavigate?: (pathname: string) => void;
+}
+
 /**
  * Start the router: render the current location beneath `container`, then keep it in sync with
  * history navigation and intercepted link clicks.
  *
  * @param container - The app root element. The router owns its children.
  * @param routes - The route table; the `'*'` entry (if any) is the catch-all.
+ * @param options - Optional hooks; see {@link RouterOptions}.
  * @returns A handle exposing `navigate` + `dispose`.
  */
-export function startRouter(container: HTMLElement, routes: readonly Route[]): RouterHandle {
+export function startRouter(container: HTMLElement, routes: readonly Route[], options: RouterOptions = {}): RouterHandle {
+	const { onNavigate } = options;
 	let teardown: RouteRenderResult;
 	// Monotonic token so a superseded render's TEARDOWN can't overwrite the live route's. Its paint
 	// is handled separately, and structurally, by the per-render mount — see `createRouteMount`.
@@ -121,6 +133,7 @@ export function startRouter(container: HTMLElement, routes: readonly Route[]): R
 
 		teardown?.();
 		teardown = undefined;
+		onNavigate?.(pathname);
 
 		const route = resolve(pathname);
 

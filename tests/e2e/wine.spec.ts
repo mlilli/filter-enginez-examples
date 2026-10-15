@@ -69,9 +69,12 @@ test.describe('landing + routing', () => {
 	test('the landing hub shows the datasets and routes into the live one', async ({ page }) => {
 		await page.goto('/');
 
-		// Hero wordmark + the "select a dataset" prompt.
-		await expect(page.getByText('Filter EngineZ')).toBeVisible();
-		await expect(page.getByText('Select a dataset to explore')).toBeVisible();
+		// Hero wordmark + the "select a dataset" prompt, both scoped to `main`: the app header repeats the
+		// wordmark as a pointer-only home link, so an unscoped text query matches two elements.
+		const hub = page.getByRole('main');
+
+		await expect(hub.getByText('Filter EngineZ', { exact: true })).toBeVisible();
+		await expect(hub.getByText('Select a dataset to explore')).toBeVisible();
 
 		// The dataset cards: Wine and both Books entries are asserted as links; Real estate by its label.
 		const wineCard = page.getByRole('link', { name: 'Explore Wine reviews' });

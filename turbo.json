@@ -13,7 +13,7 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "env": ["SVELTEKIT_ADAPTER"],
+      "env": ["SOURCE_DATE_EPOCH", "SVELTEKIT_ADAPTER"],
       "outputs": ["dist/**", "build/**", "*.tsbuildinfo"]
     },
     "clean": {

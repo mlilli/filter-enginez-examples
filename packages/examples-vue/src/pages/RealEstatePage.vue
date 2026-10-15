@@ -147,9 +147,9 @@ onMounted(async () => {
 
 		vocabularies.value = deriveRealEstateVocabularies(corpus);
 		locationTree.value = buildListingLocationTree(corpus);
-		// Two representations of one hierarchy: the TREE is what the `HierarchicalRule` walks and the
-		// picker renders; the flattened SPECS carry each node's descendant leaf ids, which is what the
-		// bundle needs to answer "would selecting this node empty the results".
+		// Two representations of one hierarchy: the TREE is what the picker renders; the flattened SPECS
+		// carry each node's ids in the listing's `locationId` space, which is what the committed rule
+		// holds and what the bundle needs to answer "would selecting this node empty the results".
 		locationSpecs.value = buildLocationNodeSpecs(locationTree.value);
 		metroCenters.value = deriveMetroCenters(corpus);
 		baselines.value = deriveBaselines(corpus);

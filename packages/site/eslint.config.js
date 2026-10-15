@@ -10,7 +10,8 @@
  * - **The home, how-it-works and compare pages** (`src/home/`, `src/how-it-works/`, `src/compare/`)
  *   are browser code that builds DOM. For them
  *   the preset's isomorphic-boundary rule is switched off and the browser globals are on, which is
- *   exactly what the framework-free demo app composes from `base` + `globals.browser`.
+ *   exactly what the framework-free demo app composes from `base` + `globals.browser`. The sitemap's
+ *   test is here too, for the DOM's XML parser; the sitemap itself runs in the Vite config, in Node.
  *
  * `tsconfigRootDir` anchors the preset's `allowDefaultProject` globs (`*.config.ts`) to this package,
  * so `vite.config.ts` resolves whether ESLint runs here (`turbo run lint`) or from the repo root (the
@@ -33,7 +34,7 @@ export default [
 		},
 	},
 	{
-		files: ['src/compare/**/*.ts', 'src/home/**/*.ts', 'src/how-it-works/**/*.ts'],
+		files: ['src/compare/**/*.ts', 'src/home/**/*.ts', 'src/how-it-works/**/*.ts', 'src/sitemap/**/*.test.ts'],
 		languageOptions: {
 			globals: {
 				...globals.browser,

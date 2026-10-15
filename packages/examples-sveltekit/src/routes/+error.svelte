@@ -44,10 +44,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Filter EngineZ · 404 — no matches</title>
-</svelte:head>
-
 <header class="fe-books-app__header">
 	<AppHeaderBrand page={headerPage} />
 </header>

@@ -3,7 +3,7 @@
  *
  * @remarks
  * At parity with the React, Svelte and Vue panels' facet set: the location hierarchy
- * (`HierarchicalRule`), the geo-radius map (`GeoProximityRule` + R-tree), a high-cardinality
+ * (`InSetofSetsRule` over `locationId`), the geo-radius map (`GeoProximityRule` + R-tree), a high-cardinality
  * school-district checklist, three chip `InSet`s, six range sliders, the must-have features
  * (`ContainsAllRule`, this dataset's custom serializable rule), the listed-date presets
  * (`DateRangeRule`) and a description search (`TextSearchRule`).
@@ -85,8 +85,6 @@ import {
 	type DateRangeRule,
 	type FilterBundle,
 	type FilterRule,
-	hierarchical,
-	type HierarchicalRule,
 	inSet,
 	type InSetRule,
 	range,
@@ -95,6 +93,7 @@ import {
 	type TextSearchRule,
 } from '@filter-enginez/core';
 import {
+	buildListingLocationRule,
 	buildRealEstateBundleQuery,
 	chipDisabledSet,
 	chipExclusionMap,
@@ -104,9 +103,10 @@ import {
 	createBundleFetcher,
 	DATE_PRESET_OPTIONS,
 	type DatePresetValue,
+	deriveLocationSelection,
 	type ExclusionMap,
-	extractListingLocationId,
 	humanizeVocabularyValue,
+	LOCATION_RULE_ID,
 	RANGE_FACETS,
 	type RangeFacetSpec,
 	type RealEstateSliderFieldId,
@@ -248,12 +248,12 @@ export class RealEstateFilterPanelComponent {
 
 	/** Location node id → projected RECORD count, for the picker's row badges. */
 	protected readonly locationCounts = computed<ReadonlyMap<string, number>>(() =>
-		chipProjectedCounts(this.bundle(), 'location'),
+		chipProjectedCounts(this.bundle(), LOCATION_RULE_ID),
 	);
 
 	/** Location node ids whose selection would empty the result set. */
 	protected readonly locationDisabled = computed<ReadonlySet<string>>(() =>
-		chipDisabledSet(this.bundle(), 'location'),
+		chipDisabledSet(this.bundle(), LOCATION_RULE_ID),
 	);
 
 	/** @see featureExclusion */
@@ -286,10 +286,12 @@ export class RealEstateFilterPanelComponent {
 				.required ?? [],
 	);
 
-	/** The picker's compact selection: the highest selected node per branch, never the closure. */
-	protected readonly selectedLocations = computed<readonly string[]>(
-		() =>
-			(this._activeRules().get('location') as HierarchicalRule | undefined)?.config.selected ?? [],
+	/**
+	 * The picker's compact selection: the highest selected node per branch, never the closure, read
+	 * back out of the committed sets.
+	 */
+	protected readonly selectedLocations = computed<readonly string[]>(() =>
+		deriveLocationSelection(this._activeRules().get(LOCATION_RULE_ID), this._facets.locationSpecs),
 	);
 
 	/** @see selectedFeatures */
@@ -416,20 +418,15 @@ export class RealEstateFilterPanelComponent {
 	 * select a subtree, or de-cascade an ancestor into its siblings, so "which id changed" is not
 	 * expressible.
 	 *
-	 * A FUNCTION extractor, not a field name: the rule matches a synthesized
-	 * `neighborhood:{state}/{metro}/{neighborhood}` id that no single `Listing` field carries. The
-	 * BUNDLE query cannot do that — it names fields by string so it can cross Comlink and JSON — which
-	 * is exactly why `locationId` was materialized as a real field for the projection while the rule
-	 * itself keeps the extractor.
+	 * The rule is the shared `buildListingLocationRule`, the one every app commits: an
+	 * `InSetofSetsRule` over the listing's `locationId` field, which survives a `?f=` link, built from
+	 * the same specs the bundle projects.
 	 *
 	 * @param next - The picker's whole next selection.
 	 */
 	protected commitLocation(next: readonly string[]): void {
-		this._commitSelection('location', next, (values) =>
-			hierarchical(extractListingLocationId, {
-				selected: [...values],
-				tree: this.locationTree,
-			}),
+		this._commitSelection(LOCATION_RULE_ID, next, (values) =>
+			buildListingLocationRule(values, this._facets.locationSpecs),
 		);
 	}
 

@@ -29,6 +29,8 @@
     "./mocks": "./src/mocks/index.ts",
     "./notfound": "./src/notfound/index.ts",
     "./notfound-core": "./src/notfound/core.ts",
+    "./page-meta": "./src/page-meta/index.ts",
+    "./page-meta-docs": "./src/page-meta/docsPageMeta.ts",
     "./picker": "./src/picker/index.ts",
     "./real-estate": "./src/real-estate/index.ts",
     "./real-estate-boot-core": "./src/real-estate/bootRealEstateCore.ts",

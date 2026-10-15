@@ -40,6 +40,9 @@ import {
 	type InSetRule,
 	type TextSearchRule,
 } from '@filter-enginez/core';
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { bootRealEstateCore } from '@filter-enginez/examples-shared/real-estate-boot-core';
+import { buildRealEstateEngine } from '@filter-enginez/examples-shared/real-estate-core';
 import { DATE_PRESET_OPTIONS } from '@filter-enginez/examples-shared/real-estate-domain';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -105,8 +108,10 @@ const DATA: readonly Listing[] = [
  *
  * @returns The engine and the mounted root.
  */
-function mountPanel(): { core: FilterEngine<Listing>; root: HTMLElement } {
-	const core = createFilterEngine<Listing>({ sourceData: DATA });
+function mountPanel(core: FilterEngine<Listing> = createFilterEngine<Listing>({ sourceData: DATA })): {
+	core: FilterEngine<Listing>;
+	root: HTMLElement;
+} {
 	const panel = createRealEstatePanel(core, { metroCenters: []});
 	const root = document.createElement('div');
 
@@ -329,5 +334,57 @@ describe('the description search', () => {
 		commitQuery(field, '   ');
 
 		expect(core.getRules().has('text-search')).toBe(false);
+	});
+});
+
+describe('the location tree over the booted corpus', () => {
+	/**
+	 * Mount the panel over a fresh engine holding the corpus a page boots from, and click the first
+	 * top-level row of the location tree.
+	 *
+	 * @returns The engine, the state that row names, and how many booted listings sit in that state.
+	 */
+	async function selectFirstState(): Promise<{
+		readonly core: FilterEngine<Listing>;
+		readonly expectedCount: number;
+		readonly state: string;
+	}> {
+		// A fresh engine over the booted records, so the selection does not leak into the cached boot.
+		const corpus = (await bootRealEstateCore()).core.getSourceData();
+		const { core, root } = mountPanel(buildRealEstateEngine(corpus));
+		const firstRow = root.querySelector<HTMLElement>('.fe-tree__control');
+		const state = firstRow?.querySelector('.fe-tree__label')?.textContent ?? '';
+
+		firstRow?.click();
+
+		return { core, expectedCount: corpus.filter((listing) => listing.state === state).length, state };
+	}
+
+	it('passes exactly the listings in the selected state', async () => {
+		const { core, expectedCount, state } = await selectFirstState();
+
+		// Non-vacuous: a real state, and a strict, non-empty part of the corpus.
+		expect(state).not.toBe('');
+		expect(expectedCount).toBeGreaterThan(0);
+		expect(expectedCount).toBeLessThan(core.getSourceData().length);
+		expect(core.getResultCount()).toBe(expectedCount);
+	});
+
+	it('keeps passing them after the state takes a ?f= round trip, as on a reload or a shared link', async () => {
+		// The page writes `?f=` on every change and reads it back on load. A location rule over a
+		// function field decodes into a rule that tests no field, and the reloaded page shows zero
+		// listings with the state still checked.
+		const { core, expectedCount } = await selectFirstState();
+		const exported = core.exportConfig();
+		const serializer = createLinkSerializer('human-readable');
+		const reloaded = buildRealEstateEngine(core.getSourceData());
+
+		// The committed rule names its field, so the link carries it as is rather than relying on the
+		// decoder to repair it.
+		expect(exported.rules.map(({ rule }) => rule.field)).toEqual(['locationId']);
+
+		reloaded.loadConfig(serializer.decode(serializer.encode(exported)));
+
+		expect(reloaded.getResultCount()).toBe(expectedCount);
 	});
 });

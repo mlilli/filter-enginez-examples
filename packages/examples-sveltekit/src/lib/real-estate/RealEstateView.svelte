@@ -236,6 +236,7 @@
 					{engine}
 					{GeoRadiusSection}
 					isComputing={$isEngineBusy}
+					{locationSpecs}
 					{locationTree}
 					{metroCenters}
 					{vocabularies}

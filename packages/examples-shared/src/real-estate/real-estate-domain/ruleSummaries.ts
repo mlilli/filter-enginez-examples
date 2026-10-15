@@ -9,7 +9,7 @@
  * honest discriminator.
  *
  * **Real-estate's summarizer is the widest in the repo.** On top of the Range / InSet / TextSearch
- * kinds books uses, it covers `HierarchicalRule` (the location tree), `GeoProximityRule` (radius, shown
+ * kinds books uses, it covers `InSetofSetsRule` (the location tree), `GeoProximityRule` (radius, shown
  * in miles), `DateRangeRule` (the listed-date presets), and the custom {@link ContainsAllRule}
  * (must-have features).
  *
@@ -24,7 +24,7 @@ import {
 	DateRangeRule,
 	type FilterRule,
 	GeoProximityRule,
-	HierarchicalRule,
+	InSetofSetsRule,
 	InSetRule,
 	RangeRule,
 	type RuleId,
@@ -146,8 +146,9 @@ export function summarizeRule(
 			? null
 			: { isNumeric: false, label: IN_SET_LABELS[ruleId] ?? ruleId, ruleId, value: formatSetValue(set) };
 	}
-	if (rule instanceof HierarchicalRule) {
-		const count = rule.config.selected.length;
+	if (rule instanceof InSetofSetsRule) {
+		// One set per selected node (`./locationRule.ts`), so the set count is the area count.
+		const count = rule.config.set.length;
 
 		return count === 0
 			? null

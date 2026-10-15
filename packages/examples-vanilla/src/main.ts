@@ -12,6 +12,8 @@
 
 import './app.css';
 
+import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
+
 import { renderBooksPage } from './pages/booksPage.js';
 import { renderBooksRawPage } from './pages/booksRawPage.js';
 import { renderLandingPage } from './pages/landingPage.js';
@@ -73,5 +75,11 @@ async function enableMocking(): Promise<void> {
 }
 
 void enableMocking().then(() => {
-	startRouter(root, routes);
+	// Each route's title, description and canonical URL, written as it starts rendering: one static
+	// shell serves every route, so the head has to follow the route (`examples-shared/page-meta`).
+	startRouter(root, routes, {
+		onNavigate: (pathname) => {
+			applyPageMeta(document, verticalPageMeta('vanilla', pathname));
+		},
+	});
 });

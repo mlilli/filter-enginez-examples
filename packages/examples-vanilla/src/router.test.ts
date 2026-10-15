@@ -192,6 +192,27 @@ describe('route resolution', () => {
 	});
 });
 
+describe('the navigation hook', () => {
+	it('reports each path as its route starts rendering, the first included', async () => {
+		window.history.replaceState({}, '', '/books');
+
+		const container = el('div');
+		const seen: string[] = [];
+		const handle = startRouter(container, [wordRoute('/books', 'BOOKS'), wordRoute('/wine', 'WINE')], {
+			onNavigate: (pathname) => {
+				seen.push(pathname);
+			},
+		});
+
+		mounted.push(handle);
+		await flush();
+		handle.navigate('/wine');
+		await flush();
+
+		expect(seen).toEqual(['/books', '/wine']);
+	});
+});
+
 describe('the navigation race', () => {
 	/**
 	 * A route shaped like every real page in this app: paint a boot screen, await, then

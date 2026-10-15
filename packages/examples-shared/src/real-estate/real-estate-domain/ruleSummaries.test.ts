@@ -22,7 +22,7 @@ import {
 	DateRangeRule,
 	type FilterRule,
 	GeoProximityRule,
-	HierarchicalRule,
+	InSetofSetsRule,
 	InSetRule,
 	RangeRule,
 	TextSearchRule,
@@ -137,18 +137,18 @@ describe('Range rules', () => {
 	});
 });
 
-describe('Hierarchical rules', () => {
+describe('Location (set-of-sets) rules', () => {
 	it('drops an empty selection', () => {
-		expect(summarize('location', new HierarchicalRule(field, { selected: [], tree: { id: 'root' }}))).toBeNull();
+		expect(summarize('location', new InSetofSetsRule<string>('locationId', []))).toBeNull();
 	});
 
 	it('counts selected areas, singular', () => {
-		expect(summarize('location', new HierarchicalRule(field, { selected: ['state:CO'], tree: { id: 'root' }})))
+		expect(summarize('location', new InSetofSetsRule('locationId', [['CO', 'CO/Greater Denver', 'CO/Greater Denver/LoDo']])))
 			.toMatchObject({ label: 'Location', value: '1 area' });
 	});
 
-	it('counts selected areas, plural', () => {
-		const rule = new HierarchicalRule(field, { selected: ['state:CO', 'state:WA'], tree: { id: 'root' }});
+	it('counts selected areas, plural — one per committed set, however many ids each holds', () => {
+		const rule = new InSetofSetsRule('locationId', [['CO', 'CO/Greater Denver', 'CO/Greater Denver/LoDo'], ['WA/Greater Seattle/Ballard']]);
 
 		expect(summarize('location', rule)?.value).toBe('2 areas');
 	});

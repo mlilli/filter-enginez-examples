@@ -19,4 +19,5 @@
  */
 
 export type { AlgorithmDoc, CodeExample, RuleDoc, RuleFigureSpec, RuleGroup } from './content/types.js';
+export { docsHostedPageMeta } from './docsHostedPageMeta.js';
 export { docsRoute } from './docsRoutes.js';

@@ -19,7 +19,8 @@
  * - **A public address nobody chose.** `workers_dev` and preview URLs default ON for a Worker without
  *   routes, and each is a second, unlisted copy of the site.
  * - **A sitemap or landing page that forgets a site,** or lists one that is not deployed — or lists a
- *   page on the apex that the site's build does not produce.
+ *   page on the apex that the site's build does not produce — or a host whose `robots.txt` does not
+ *   name the sitemap.
  * - **An app's `/about` or `/compare` that stops answering.** "How the engine works" and the comparison
  *   page are each one page on the apex, and a link to any app's `/about` or `/compare` must land there —
  *   the latter with its query string, which carries the filter state the link was made to share.
@@ -315,29 +316,34 @@ describe('the landing page', () => {
 		expect(SITE_TARGET?.config.main).toBe('./src/worker.ts');
 	});
 
-	it('lists the root of every deployed site and every page of the apex in sitemap.xml, and nothing else', () => {
-		const sitemap = readRepoFile('packages/site/public/sitemap.xml');
-		const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/gu)].map(([, url]) => url ?? '');
-		const expected = [
-			`https://${APEX_HOST}/`,
-			...SUBDOMAIN_HOSTS.map((host) => `https://${host}/`),
-			...siteBuiltPagePaths().map((path) => `https://${APEX_HOST}${path}`),
-		];
-
-		expect(listed.slice().sort()).toEqual(expected.slice().sort());
+	it('generates sitemap.xml in the build, rather than keeping one by hand', () => {
+		// The sitemap lists every page of every host, so it is built from the route registries
+		// (`src/sitemap/sitemap.ts`, whose own suite pins the pages); a hand-kept copy in `public/` would
+		// be served instead and drift.
+		expect(existsSync(resolve(REPO_ROOT, 'packages/site/public/sitemap.xml')), 'packages/site/public/sitemap.xml shadows the generated one').toBe(false);
+		expect(readRepoFile('packages/site/vite.config.ts')).toMatch(/plugins: \[[^\]]*\bsitemap\(\)/u);
+		expect(readRepoFile('packages/site/src/sitemap/sitemap.ts')).toContain('PAGE_PATHS');
 	});
 
-	it('builds every page the sitemap lists on the apex, and serves it at the listed path', () => {
-		// A path on the apex is allowed in the sitemap only if it is a page: an HTML entry the site's
-		// Vite build renders, at the canonical path the Worker redirects that page's other spellings to,
-		// and naming that same URL as its own canonical.
-		const apexPages = [...readRepoFile('packages/site/public/sitemap.xml').matchAll(/<loc>https:\/\/filterenginez\.com(\/[^<]+)<\/loc>/gu)]
-			.map(([, path]) => path ?? '')
-			.filter((path) => path !== '/');
+	it('lists every deployed host: the apex, the six apps from the registry, and the documentation site', () => {
+		// The sitemap takes the apps' origins from the registry (checked against the custom domains
+		// above) and the documentation site's from `DOCS_ORIGIN`, checked here.
+		const docsOrigin = /export const DOCS_ORIGIN = '([^']+)';/u.exec(readRepoFile('packages/examples-shared/src/page-meta/pageMeta.ts'))?.[1] ?? '';
+		const docsTarget = TARGETS.find((target) => target.packageDirectory === 'examples-docs');
+		const listedHosts = new Set([APEX_HOST, ...[...PRODUCTION_ORIGINS.values(), docsOrigin].map((origin) => new URL(origin).hostname)]);
 
-		expect(apexPages, 'the sitemap lists no page on the apex besides its root').not.toEqual([]);
+		expect(docsTarget?.hosts.map((host) => `https://${host}`)).toEqual([docsOrigin]);
+		expect(TARGETS.flatMap((target) => target.hosts).filter((host) => host !== `www.${APEX_HOST}` && !listedHosts.has(host))).toEqual([]);
+	});
+
+	it('builds every page of the apex the sitemap lists, and serves it at its canonical path', () => {
+		// The sitemap lists the apex pages the Worker serves (`PAGE_PATHS`). Each must be an HTML entry the
+		// site's Vite build renders, at the canonical path the Worker redirects that page's other spellings
+		// to, and naming that same URL as its own canonical.
+		const apexPages = sitePagePaths();
+
+		expect(apexPages, 'PAGE_PATHS lists no page on the apex besides its root').not.toEqual([]);
 		expect(siteBuiltPagePaths().slice().sort()).toEqual(apexPages.slice().sort());
-		expect(sitePagePaths().slice().sort()).toEqual(apexPages.slice().sort());
 		for (const path of apexPages) {
 			const entry = `packages/site${path}.html`;
 
@@ -346,8 +352,14 @@ describe('the landing page', () => {
 		}
 	});
 
-	it('points robots.txt at the sitemap', () => {
-		expect(readRepoFile('packages/site/public/robots.txt')).toMatch(new RegExp(`^Sitemap: https://${APEX_HOST}/sitemap\\.xml$`, 'mu'));
+	it.each(TARGETS.map((target) => target.packageDirectory))('%s serves a robots.txt that allows crawling and names the sitemap', (packageDirectory) => {
+		// Every host is its own site to a crawler, and a single-page app answers a missing robots.txt with
+		// its HTML shell. The Sitemap line is also what lets the apex's sitemap list this host's URLs.
+		const staticDirectory = existsSync(resolve(REPO_ROOT, `packages/${packageDirectory}/static`)) ? 'static' : 'public';
+
+		expect(readRepoFile(`packages/${packageDirectory}/${staticDirectory}/robots.txt`)).toBe(
+			`User-agent: *\nAllow: /\n\nSitemap: https://${APEX_HOST}/sitemap.xml\n`,
+		);
 	});
 
 	it('links to every demo, the docs, npm and both repositories', () => {

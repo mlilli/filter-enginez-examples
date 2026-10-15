@@ -1,0 +1,19 @@
+// Type-checks the sitemap's code (`tsc --noEmit -p src/sitemap`, part of the package's `typecheck`) and
+// serves ESLint's typed lint for it. `sitemap.ts` builds a string, touches no DOM and runs under Node
+// inside the Vite config; it reads the demo apps' page lists from `examples-shared/page-meta`, whose
+// subpath also carries the browser helper that writes a document head, so the DOM library is here for
+// those types, and for the test, which parses the XML with the DOM's parser. Bundler resolution and the
+// sibling package's composite build config, as for the other pages.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": []
+  },
+  "include": ["**/*"],
+  "exclude": [],
+  "references": [{ "path": "../../../examples-shared/tsconfig.build.json" }]
+}

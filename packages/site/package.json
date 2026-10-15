@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "vite build && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p src/home && tsc --noEmit -p src/how-it-works && tsc --noEmit -p src/compare",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/home && tsc --noEmit -p src/how-it-works && tsc --noEmit -p src/compare && tsc --noEmit -p src/sitemap",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",
     "lint:fix": "pnpm prettier:fix && pnpm eslint:fix",

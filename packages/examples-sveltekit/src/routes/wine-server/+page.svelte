@@ -116,10 +116,6 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Wine (server-filtered) · Filter EngineZ</title>
-</svelte:head>
-
 {#if engine}
 	<!-- `compareDataset` alongside `tier`: both are this route saying which tier it is. The Compare
 	     button offers the two-row `wine-server` comparison — this app in-process against vanilla over

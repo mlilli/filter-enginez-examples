@@ -5,7 +5,7 @@
  * A thin assembler, like the books panel: derive the chip/checkbox vocabularies + the numeric
  * baselines from the corpus once, then stack the sections. Real-estate is the "kitchen-sink"
  * dataset, so the stack is the widest of the three datasets — it exercises the location hierarchy
- * (`HierarchicalRule`), the geo-radius map (`GeoProximityRule` + R-tree), a high-cardinality
+ * (`InSetofSetsRule` over `locationId`), the geo-radius map (`GeoProximityRule` + R-tree), a high-cardinality
  * checklist + chip InSets (`InSetRule`), six range sliders (`RangeRule`), must-have features
  * (`ContainsAllRule`), the listed-date presets (`DateRangeRule`), and a text search (`TextSearchRule`)
  * — all through the same commit contract the other datasets use.
@@ -118,7 +118,7 @@ export const RealEstateFilterPanel = (props: RealEstateFilterPanelProps = {}): R
 				aria-busy={isBusy}
 			>
 				<FilterBundleContext value={bundleValue}>
-					<LocationSection locationTree={locationTree} />
+					<LocationSection locationNodeSpecs={locationNodeSpecs} locationTree={locationTree} />
 					<GeoRadiusSection metroCenters={metroCenters} />
 					<CheckboxSection ruleId="school-district" field="schoolDistrict" label="School district" options={schoolDistricts} />
 					<ChipSection ruleId="property-type" field="propertyType" label="Property type" options={propertyTypes} formatLabel={replaceHyphens} />

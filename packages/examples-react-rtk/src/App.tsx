@@ -26,9 +26,10 @@
  */
 
 import { AppVerticalContext } from '@filter-enginez/examples-shared/app-header';
-import { docsRoute } from '@filter-enginez/examples-shared/docs';
+import { docsHostedPageMeta, docsRoute } from '@filter-enginez/examples-shared/docs';
 import { NotFoundPage, notFoundRoute } from '@filter-enginez/examples-shared/notfound';
-import { lazy, Suspense } from 'react';
+import { followRouterPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { lazy, Suspense, useEffect } from 'react';
 import { createBrowserRouter, useParams } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
@@ -87,11 +88,18 @@ const router = createBrowserRouter([
  * Root component — mounts the router.
  *
  * @remarks
+ * The head follows the route: each page's title, description and canonical URL (the documentation's
+ * canonical on the documentation site) are written on every navigation by `followRouterPageMeta`.
+ *
  * The router sits inside {@link AppVerticalContext}, so the pages this app shares with the other React
  * app as route objects — the documentation and the 404 — name this app in their header and link back
  * to its hub without being told which app they are in.
  */
 export const App = (): React.ReactElement => {
+	// Each route's title, description and canonical URL, written as the router navigates: one static
+	// shell serves every route, so the head has to follow the route (`examples-shared/page-meta`).
+	useEffect(() => followRouterPageMeta(router, docsHostedPageMeta('react-rtk')), []);
+
 	return (
 		<AppVerticalContext value="react-rtk">
 			<RouterProvider router={router} />

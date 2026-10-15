@@ -61,9 +61,12 @@ import {
 export interface RealEstateFacets {
 	/** Full-corpus extents per slider, so a track spans the data rather than the clamp. */
 	readonly baselines: Record<RealEstateSliderFieldId, NumericBounds>;
-	/** The hierarchy flattened to bundle candidates — each node plus its descendant leaf ids. */
+	/**
+	 * The hierarchy flattened to one id set per node, in the listing's `locationId` space: the bundle's
+	 * candidates and what the committed location rule is built from.
+	 */
 	readonly locationSpecs: readonly LocationNodeSpec[];
-	/** The hierarchy itself: what `HierarchicalRule` walks and what the picker renders. */
+	/** The hierarchy itself: what the picker renders. */
 	readonly locationTree: PickerTreeNode;
 	/** Metro centroids, for the geo dropdown and the Distance chip's wording. */
 	readonly metroCenters: readonly MetroCenterOption[];

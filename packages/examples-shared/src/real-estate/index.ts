@@ -4,8 +4,8 @@
  * @remarks
  * Mirror of the `./wine` + `./books` slices: state-agnostic presentation + orchestration (main-thread
  * engine boot + progress pub/sub, the `buildRealEstateEngine` factory, the route-singleton busy
- * tracker) in one self-contained folder. The boundary field extractors (`extractListingCoords`,
- * `extractListingLocationId`) + the location tree bridge the generated filter-config to the actual
+ * tracker) in one self-contained folder. The geo extractor (`extractListingCoords`) and the location
+ * tree with its rule (`buildListingLocationRule`) bridge the generated filter-config to the actual
  * `Listing` shape + the core rule contracts. Only the app shell + results header stay per-app.
  *
  * @packageDocumentation
@@ -35,15 +35,16 @@ export { buildRealEstateEngine } from './buildRealEstateEngine.js';
 // The canonical home is `./real-estate-domain`, which the four non-React verticals import directly.
 // These re-exports keep the React apps' existing import sites working — one slice, one barrel.
 export {
+	buildListingLocationRule,
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
 	buildRuleSummaries,
 	ContainsAllRule,
 	type ContainsAllRuleConfig,
+	deriveLocationSelection,
 	deriveMetroCenters,
 	describeMapCoords,
 	extractListingCoords,
-	extractListingLocationId,
 	type FilterSummary,
 	findMetroLabel,
 	kmToMiles,
@@ -53,6 +54,7 @@ export {
 	milesToKm,
 	type PickerTreeNode,
 	summarizeRule,
+	writeLocationSelection,
 } from './real-estate-domain/index.js';
 
 // ── Render-timed scheduling (dataset-agnostic; shared across every dataset slice) ──

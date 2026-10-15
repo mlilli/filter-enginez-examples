@@ -68,9 +68,9 @@ const props = defineProps<{
 	baselines: Record<RealEstateSliderFieldId, NumericBounds>;
 	/** The booted real-estate engine. */
 	engine: SignalsEngine<Listing>;
-	/** The flattened hierarchy, for the bundle query only. */
+	/** The flattened hierarchy, for the bundle query and the location rule. */
 	locationSpecs: readonly LocationNodeSpec[];
-	/** The location hierarchy, for the picker and the rule. */
+	/** The location hierarchy, for the picker. */
 	locationTree: PickerTreeNode | null;
 	/** The metro dropdown's options — the geo section recenters on them, the chips name them. */
 	metroCenters: readonly MetroCenterOption[];
@@ -255,6 +255,7 @@ const isDevtoolsOpen = ref(false);
 						:engine="engine"
 						:geo-radius-section="geoRadiusSection"
 						:is-computing="isEngineBusy"
+						:location-specs="locationSpecs"
 						:location-tree="locationTree"
 						:metro-centers="metroCenters"
 						:vocabularies="vocabularies"

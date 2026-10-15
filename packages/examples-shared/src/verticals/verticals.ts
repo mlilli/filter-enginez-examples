@@ -88,6 +88,17 @@ export interface VerticalDescriptor {
 	readonly routes: readonly string[];
 	/** One line for the comparison table, naming what is distinctive rather than repeating the name. */
 	readonly blurb: string;
+	/**
+	 * The hub's `<title>`, which the app's static HTML shell carries too.
+	 *
+	 * @remarks
+	 * Every other route's title is derived from it and the route's dataset (`page-meta/pageMeta.ts`).
+	 * `tests/tooling/pageMetaShells.test.ts` holds the shell's `<title>` to this value, so a crawler that
+	 * reads the shell without running it sees the hub's own title.
+	 */
+	readonly pageTitle: string;
+	/** The hub's meta description, which the app's static HTML shell carries too (same guard). */
+	readonly pageDescription: string;
 }
 
 /**
@@ -105,6 +116,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'React 19',
 		id: 'react-rtk',
 		name: 'React RTK',
+		pageDescription:
+			'Filter EngineZ demo app in React and Redux Toolkit — wine, books and real-estate filtering over one framework-agnostic engine, with a worker-backed 150,000-wine tier and shareable filter URLs.',
+		pageTitle: 'Filter EngineZ · React + Redux Toolkit',
 		productionOrigin: 'https://react-rtk.filterenginez.com',
 		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs'],
 		surface: 'signals',
@@ -116,6 +130,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'React 19',
 		id: 'react-plain',
 		name: 'React plain',
+		pageDescription:
+			'Filter EngineZ demo app in React with signals and no Redux — wine, books and real-estate filtering, plus a lab of projection, similarity search and co-occurrence suggestions.',
+		pageTitle: 'Filter EngineZ · React',
 		productionOrigin: 'https://react.filterenginez.com',
 		routes: ['/books', '/books-server', '/books-config', '/wine', '/real-estate', '/docs'],
 		surface: 'signals',
@@ -127,6 +144,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'SvelteKit 5',
 		id: 'sveltekit',
 		name: 'SvelteKit',
+		pageDescription:
+			'Filter EngineZ demo app in SvelteKit — wine, books and real-estate filtering over one framework-agnostic engine, with server routes that filter in SvelteKit’s own server tier.',
+		pageTitle: 'Filter EngineZ · SvelteKit',
 		productionOrigin: 'https://svelte.filterenginez.com',
 		routes: ['/books', '/books-server', '/wine', '/wine-server', '/real-estate'],
 		surface: 'signals',
@@ -138,6 +158,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'Vue 3',
 		id: 'vue',
 		name: 'Vue',
+		pageDescription:
+			'Filter EngineZ demo app in Vue — wine, books and real-estate filtering over one framework-agnostic engine, held in a shallowRef so its signals stay intact.',
+		pageTitle: 'Filter EngineZ · Vue',
 		productionOrigin: 'https://vue.filterenginez.com',
 		routes: ['/books', '/wine', '/real-estate'],
 		surface: 'signals',
@@ -149,6 +172,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'Angular 22',
 		id: 'angular',
 		name: 'Angular',
+		pageDescription:
+			'Filter EngineZ demo app in Angular — zoneless, standalone components reading the engine’s RxJS Observables, over wine, books and real-estate data.',
+		pageTitle: 'Filter EngineZ · Angular',
 		productionOrigin: 'https://angular.filterenginez.com',
 		// Must match `app.routes.ts`: `compareLinks` filters on this array, so a route missing here
 		// would silently drop Angular from that dataset's comparison table. `/wine` is pinned by
@@ -163,6 +189,9 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 		framework: 'None',
 		id: 'vanilla',
 		name: 'Vanilla',
+		pageDescription:
+			'Filter EngineZ demo app in plain TypeScript with no framework — wine, books and real-estate filtering over the engine’s core and its signals surface.',
+		pageTitle: 'Filter EngineZ · Vanilla',
 		productionOrigin: 'https://vanilla.filterenginez.com',
 		routes: ['/books', '/books-raw', '/wine', '/wine-server', '/real-estate'],
 		surface: 'none',

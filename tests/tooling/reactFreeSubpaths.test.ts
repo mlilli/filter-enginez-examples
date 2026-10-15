@@ -70,6 +70,11 @@ const REACT_FREE_SUBPATHS = [
 	// The `?f=` serializer every app's URL layer builds, on every route.
 	'./link-serializer',
 	'./notfound-core',
+	// Each demo page's title, description and canonical URL, written on every navigation by every app,
+	// and read by the landing site's build for the sitemap. The documentation's half reads the rule and
+	// algorithm catalogs' words, never their React figures.
+	'./page-meta',
+	'./page-meta-docs',
 	'./picker',
 	'./real-estate-boot-core',
 	'./real-estate-core',

@@ -5,6 +5,7 @@
  * @packageDocumentation
  */
 
+import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 import BooksPage from './pages/BooksPage.vue';
@@ -37,4 +38,12 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
 	history: createWebHistory(),
 	routes,
+});
+
+// Each route's title, description and canonical URL, written after every navigation, the first
+// included: one static shell serves every route, so the head has to follow the route
+// (`examples-shared/page-meta`). A change of query alone (a filter state in `?f=`) keeps the path, and
+// writing the same tags again is harmless.
+router.afterEach((to) => {
+	applyPageMeta(document, verticalPageMeta('vue', to.path));
 });

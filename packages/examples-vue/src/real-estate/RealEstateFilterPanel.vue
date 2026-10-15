@@ -4,7 +4,7 @@
  *
  * @remarks
  * At parity with the React, Angular and Svelte panels' facet set, and the widest panel in the repo:
- * the location hierarchy (`HierarchicalRule`), the geo-radius map (`GeoProximityRule` + R-tree), a
+ * the location hierarchy (`InSetofSetsRule` over `locationId`), the geo-radius map (`GeoProximityRule` + R-tree), a
  * high-cardinality school-district checklist and two chip `InSet`s, six range sliders, must-have
  * features (the custom `ContainsAllRule`), the listed-date presets (`DateRangeRule`) and a description
  * search (`TextSearchRule`) — all through one commit contract.
@@ -42,14 +42,13 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 import {
 	dateRange,
 	type DateRangeRule,
-	hierarchical,
-	type HierarchicalRule,
 	inSet,
 	type InSetRule,
 	text,
 	type TextSearchRule,
 } from '@filter-enginez/core';
 import {
+	buildListingLocationRule,
 	chipDisabledSet,
 	chipExclusionMap,
 	chipProjectedCounts,
@@ -57,8 +56,10 @@ import {
 	ContainsAllRule,
 	DATE_PRESET_OPTIONS,
 	type DatePresetValue,
-	extractListingLocationId,
+	deriveLocationSelection,
 	humanizeVocabularyValue,
+	LOCATION_RULE_ID,
+	type LocationNodeSpec,
 	type MetroCenterOption,
 	type PickerTreeNode,
 	RANGE_FACETS,
@@ -94,13 +95,11 @@ const props = withDefaults(
 		/** Dims + locks the sections while a bundle round trip is pending. */
 		isComputing?: boolean;
 		/**
-		 * The location hierarchy, or `null` before boot resolves.
-		 *
-		 * @remarks
-		 * The flattened `LocationNodeSpec[]` is deliberately NOT a prop. It exists for the BUNDLE query,
-		 * which the view owns; the rule this panel commits is a `HierarchicalRule` that walks the tree
-		 * itself. Two representations of one hierarchy, each for the consumer that needs it.
+		 * The location tree flattened by `buildLocationNodeSpecs`: what the committed location rule is
+		 * built from and read back through, and the same candidates the view's bundle query projects.
 		 */
+		locationSpecs: readonly LocationNodeSpec[];
+		/** The location hierarchy the picker renders, or `null` before boot resolves. */
 		locationTree: PickerTreeNode | null;
 		/** Passed straight through to the geo section; the panel itself has no use for it. */
 		metroCenters: readonly MetroCenterOption[];
@@ -132,9 +131,12 @@ const { activeRules, rule } = useEngineRefs(props.engine);
  */
 const descriptionRule = rule('text-search');
 
-/** The picker's compact selection: the highest selected node per branch, never the closure. */
+/**
+ * The picker's compact selection: the highest selected node per branch, never the closure, read back
+ * out of the committed sets.
+ */
 const locations = computed<readonly string[]>(
-	() => (activeRules.value.get('location') as HierarchicalRule | undefined)?.config.selected ?? [],
+	() => deriveLocationSelection(activeRules.value.get(LOCATION_RULE_ID), props.locationSpecs),
 );
 
 /** The checked school districts. */
@@ -194,8 +196,8 @@ watch(committedDescription, (value) => {
 });
 
 /** Exclusion data per chip group. Empty until the first bundle — read as all-enabled. */
-const locationDisabled = computed(() => chipDisabledSet(bundle.value, 'location'));
-const locationCounts = computed(() => chipProjectedCounts(bundle.value, 'location'));
+const locationDisabled = computed(() => chipDisabledSet(bundle.value, LOCATION_RULE_ID));
+const locationCounts = computed(() => chipProjectedCounts(bundle.value, LOCATION_RULE_ID));
 const schoolDistrictExclusion = computed(() => chipExclusionMap(bundle.value, 'school-district'));
 const propertyTypeExclusion = computed(() => chipExclusionMap(bundle.value, 'property-type'));
 const statusExclusion = computed(() => chipExclusionMap(bundle.value, 'status'));
@@ -212,14 +214,7 @@ const featureExclusion = computed(() => chipExclusionMap(bundle.value, 'must-hav
  * @param next - The picker's whole next selection.
  */
 function handleLocationChange(next: readonly string[]): void {
-	const tree = props.locationTree;
-
-	if (tree === null) {
-		return;
-	}
-	commitSelection(props.engine, 'location', next, (values) =>
-		hierarchical(extractListingLocationId, { selected: [...values], tree }),
-	);
+	commitSelection(props.engine, LOCATION_RULE_ID, next, (values) => buildListingLocationRule(values, props.locationSpecs));
 }
 
 /**

@@ -110,20 +110,27 @@ assets/logomark/
 │   ├── mark-in-circle-primary.svg    # Profile / avatar
 │   ├── mark-in-circle-subdued.svg
 │   ├── apple-touch-icon.svg
+│   ├── icon-maskable.svg             # Full-bleed badge, mark inside the 80% safe circle
 │   └── og-card.svg                   # 1200×630 OpenGraph card
-└── png/                              # Rendered raster exports
-    ├── mark-primary-{8,12,16,32,64,128,192,512}.png
-    ├── mark-subdued-{8,12,16,32,64,128,192,512}.png
-    ├── favicon-{16,32,48}.png
-    ├── apple-touch-icon-180.png
-    ├── icon-192.png                  # PWA icon
-    ├── icon-512.png                  # PWA icon
-    ├── icon-512-maskable.png         # PWA maskable
-    ├── lockup-horizontal-{primary,subdued}.png
-    ├── lockup-stacked-{primary,subdued}.png
-    ├── mark-in-circle-{primary,subdued}-256.png
-    └── og-card.png                   # 1200×630
+├── png/                              # Rendered raster exports
+│   ├── mark-primary-{8,12,16,32,64,128,192,512}.png
+│   ├── mark-subdued-{8,12,16,32,64,128,192,512}.png
+│   ├── favicon-{16,32,48,96}.png
+│   ├── apple-touch-icon-180.png
+│   ├── icon-192.png                  # PWA icon
+│   ├── icon-512.png                  # PWA icon
+│   ├── icon-512-maskable.png         # PWA maskable, from svg/icon-maskable.svg
+│   ├── lockup-horizontal-{primary,subdued}.png
+│   ├── lockup-stacked-{primary,subdued}.png
+│   ├── mark-in-circle-{primary,subdued}-256.png
+│   └── og-card.png                   # 1200×630
+└── ico/
+    └── favicon.ico                   # favicon-{16,32,48}.png in one ICO
 ```
+
+`png/favicon-96.png`, `png/icon-512-maskable.png` and `ico/favicon.ico` are produced by
+`node scripts/rasterize-brand-icons.mjs` from the repository root, from the vectors and PNGs listed beside them; its
+`--check` flag confirms the committed files match a fresh render. The other PNGs are captures from `rasterize.html`.
 
 ---
 
@@ -178,37 +185,37 @@ Standalone animated SVG: `svg/mark-primary-animated.svg` — embed via `<img>` o
 
 ## Favicon set integration
 
-Copy the files into your app's `public/branding/` directory, flattened out of `svg/` and `png/` and under the names the
-snippet uses (`svg/favicon-primary.svg` → `favicon.svg`, `png/apple-touch-icon-180.png` → `apple-touch-icon.png`; the
-rest keep their names). `packages/examples-docs/public/branding/` is a working example. Then add this to your HTML
-`<head>`:
+Every site serves the set from its root, where browsers and search engines look for it: `/favicon.ico` is requested by
+convention, and a search engine's favicon is the one the home page links. The files go flattened out of `svg/`, `png/`
+and `ico/` under the names the snippet uses (`svg/favicon-primary.svg` → `favicon.svg`, `png/apple-touch-icon-180.png` →
+`apple-touch-icon.png`; the rest keep their names). In this repository `@filter-enginez/brand` carries the set and
+`node scripts/sync-brand-assets.mjs` copies it into every app. Then add this to your HTML `<head>`:
 
 ```html
+<!-- One ICO with the 16, 32 and 48 px images, for every client that asks for /favicon.ico -->
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 <!-- Modern browsers: scalable SVG favicon, no font dependencies -->
-<link rel="icon" type="image/svg+xml" href="/branding/favicon.svg" />
-<!-- Fallbacks -->
-<link rel="icon" type="image/png" sizes="16x16" href="/branding/favicon-16.png" />
-<link rel="icon" type="image/png" sizes="32x32" href="/branding/favicon-32.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/branding/apple-touch-icon.png" />
-<link rel="mask-icon" href="/branding/safari-mask-icon.svg" color="#22D3EE" />
-<link rel="manifest" href="/branding/site.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<!-- PNG at every size a browser or a search engine asks for: multiples of 48 px for search results -->
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
 <meta name="theme-color" content="#0B0A09" />
 
-<!-- OpenGraph -->
-<meta property="og:image" content="/branding/og-card.png" />
+<!-- OpenGraph: an absolute URL, which social cards require -->
+<meta property="og:image" content="https://filterenginez.com/og-card.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 ```
 
-The complete snippet is in `head-snippet.html`.
-
-### `favicon.ico` note
-
-Modern browsers (Chrome, Firefox, Safari, Edge — last 5 years) prefer SVG favicons. A real multi-resolution `.ico` file
-requires a binary build step (`png-to-ico` or `sharp`) that can't run in a design environment. **Rename
-`png/favicon-32.png` to `favicon.ico`** at deploy time if you need IE11 compat — Windows' loose interpretation of ICO
-accepts a PNG with the .ico extension for sizes ≤48px.
+The complete snippet is in `head-snippet.html`. The manifest's `theme_color` and `background_color` are `--gray-0`, the
+same as the `theme-color` meta tag, and its maskable icon keeps the whole mark inside the central circle of 80% diameter
+that an Android launcher's mask always shows.
 
 ---
 

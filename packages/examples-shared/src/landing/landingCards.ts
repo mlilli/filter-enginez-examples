@@ -66,8 +66,10 @@ const NON_DATASET_ROUTES: ReadonlySet<string> = new Set(['/docs']);
  * Books first (the smallest and most familiar), the books variants beside it because each exists to
  * contrast with it, then wine, then real estate — the widest panel, and the one that needs the most
  * explaining.
+ *
+ * Exported for `page-meta/pageMeta.ts`, which names and describes each dataset page with its card.
  */
-const DATASET_ROUTES: readonly DatasetCard[] = [
+export const DATASET_ROUTES: readonly DatasetCard[] = [
 	{
 		blurb:
 			'About 10k Open Library titles — genre, format and language facets, publication-year and rating ranges, and fuzzy author search.',

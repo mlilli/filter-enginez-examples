@@ -138,10 +138,6 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Wine · Filter EngineZ</title>
-</svelte:head>
-
 {#if bootError !== null}
 	<div class="fe-wine-error" role="alert">
 		<p class="fe-wine-error__title">The wine engine did not boot</p>

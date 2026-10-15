@@ -3,7 +3,7 @@
  *
  * @remarks
  * The widest panel in the repo, and the framework-less port of Vue's `<RealEstateFilterPanel>` and its
- * Svelte / Angular / React twins: the location hierarchy (`HierarchicalRule`), the geo-radius map
+ * Svelte / Angular / React twins: the location hierarchy (`InSetofSetsRule` over `locationId`), the geo-radius map
  * (`GeoProximityRule` + R-tree), a high-cardinality school-district facet and two chip `InSet`s, six
  * range sliders (`RangeRule`), must-have features (the custom `ContainsAllRule`), the listed-date
  * presets (`DateRangeRule`) and a description search (`TextSearchRule`) — all through one write path.
@@ -40,8 +40,6 @@ import {
 	type FilterEngine,
 	type FilterRule,
 	type GeoProximityRule,
-	hierarchical,
-	type HierarchicalRule,
 	inSet,
 	type InSetRule,
 	type RuleId,
@@ -50,6 +48,7 @@ import {
 } from '@filter-enginez/core';
 import { el } from '@filter-enginez/examples-shared/dom';
 import {
+	buildListingLocationRule,
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
 	buildRealEstateBundleQuery,
@@ -60,9 +59,10 @@ import {
 	ContainsAllRule,
 	DATE_PRESET_OPTIONS,
 	type DatePresetValue,
+	deriveLocationSelection,
 	deriveRealEstateVocabularies,
-	extractListingLocationId,
 	humanizeVocabularyValue,
+	LOCATION_RULE_ID,
 	type MetroCenterOption,
 } from '@filter-enginez/examples-shared/real-estate-domain';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
@@ -129,9 +129,9 @@ export function createRealEstatePanel(
 	const corpus = core.getSourceData();
 	const vocabularies = deriveRealEstateVocabularies(corpus);
 	const locationTree = buildListingLocationTree(corpus);
-	// Two representations of ONE hierarchy: the TREE is what the `HierarchicalRule` walks and the
-	// picker renders; the flattened SPECS carry each node's descendant leaf ids, which is what the
-	// bundle needs to answer "would selecting this node empty the results".
+	// Two representations of ONE hierarchy: the TREE is what the picker renders; the flattened SPECS
+	// carry each node's ids in the listing's `locationId` space, which is what the committed rule holds
+	// and what the bundle needs to answer "would selecting this node empty the results".
 	const locationSpecs = buildLocationNodeSpecs(locationTree);
 	const baselines = deriveSliderBaselines(corpus);
 	const query: FilterBundleQuery = buildRealEstateBundleQuery(
@@ -205,9 +205,7 @@ export function createRealEstatePanel(
 		// can select a subtree, or de-cascade an ancestor into its siblings, so "which id changed" is
 		// not expressible.
 		onChange: (next) => {
-			commitSelection('location', next, (values) =>
-				hierarchical(extractListingLocationId, { selected: [...values], tree: locationTree }),
-			);
+			commitSelection(LOCATION_RULE_ID, next, (values) => buildListingLocationRule(values, locationSpecs));
 		},
 	});
 
@@ -339,9 +337,9 @@ export function createRealEstatePanel(
 			const { bundle, rules } = state;
 
 			locationPicker.update({
-				counts: chipProjectedCounts(bundle, 'location'),
-				disabled: chipDisabledSet(bundle, 'location'),
-				selected: (rules.get('location') as HierarchicalRule | undefined)?.config.selected ?? [],
+				counts: chipProjectedCounts(bundle, LOCATION_RULE_ID),
+				disabled: chipDisabledSet(bundle, LOCATION_RULE_ID),
+				selected: deriveLocationSelection(rules.get(LOCATION_RULE_ID), locationSpecs),
 				tree: locationTree,
 			});
 

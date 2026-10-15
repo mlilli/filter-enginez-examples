@@ -67,10 +67,6 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Filter EngineZ · Books (server-filtered)</title>
-</svelte:head>
-
 {#if engine}
 	<BooksView {engine} tier="server" />
 {:else}

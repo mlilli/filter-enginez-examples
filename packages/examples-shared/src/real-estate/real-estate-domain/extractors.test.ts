@@ -8,6 +8,9 @@
  * `value` that drops it stops matching the picker's own ids, so nothing ever disables. Both render a
  * perfectly normal-looking tree.
  *
+ * `toLocationFieldId` is that translation, and the specs' sets are what the committed location rule and
+ * the bundle both match.
+ *
  * `extractListingCoords` also renames `lon` to `lng` — the corpus and the engine's `GeoCoords`
  * disagree on the spelling, and a pass-through would leave `lng` undefined, which reads as "no
  * coordinates" and quietly drops the listing from every distance filter.
@@ -22,7 +25,7 @@ import {
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
 	extractListingCoords,
-	extractListingLocationId,
+	toLocationFieldId,
 } from './extractors.js';
 
 /**
@@ -81,26 +84,14 @@ describe('extractListingCoords', () => {
 	});
 });
 
-describe('extractListingLocationId', () => {
-	it('builds a prefixed state/metro/neighborhood path', () => {
-		expect(asFn(extractListingLocationId)(listing())).toBe('neighborhood:CA/San Francisco/Mission');
-	});
-
+describe('toLocationFieldId', () => {
 	it.each([
-		['state', { state: undefined }],
-		['metroArea', { metroArea: undefined }],
-		['neighborhood', { neighborhood: undefined }],
-	])('returns undefined when %s is missing', (_label, overrides) => {
-		// A partial path would still be a STRING, so it would match nothing and disable the whole
-		// branch rather than being treated as "this listing has no location".
-		expect(asFn(extractListingLocationId)(listing(overrides))).toBeUndefined();
-	});
-
-	it.each([
-		['null', null],
-		['undefined', undefined],
-	])('returns undefined for a %s item', (_label, item) => {
-		expect(asFn(extractListingLocationId)(item)).toBeUndefined();
+		['a neighborhood', 'neighborhood:CA/SF/Mission', 'CA/SF/Mission'],
+		['a metro', 'metro:CA/SF', 'CA/SF'],
+		['a state', 'state:CA', 'CA'],
+		['the unprefixed root', 'location', 'location'],
+	])('drops the level prefix of %s', (_label, nodeId, fieldId) => {
+		expect(toLocationFieldId(nodeId)).toBe(fieldId);
 	});
 });
 
@@ -119,7 +110,7 @@ describe('buildLocationNodeSpecs', () => {
 		label: 'CA',
 	};
 
-	it('strips the neighborhood prefix from leaf ids but keeps it on the node value', () => {
+	it('strips the prefix from the field-space ids but keeps it on the node value', () => {
 		// The whole translation. `leafIds` are matched against the listing's FIELD value (unprefixed);
 		// `value` is echoed back to the picker, which keys on its own prefixed ids.
 		const specs = buildLocationNodeSpecs(tree);
@@ -128,17 +119,31 @@ describe('buildLocationNodeSpecs', () => {
 		expect(mission?.leafIds).toEqual(['CA/SF/Mission']);
 	});
 
-	it('rolls every descendant leaf up to its ancestors', () => {
-		// Disabling a metro has to consider all its neighborhoods — a parent whose leafIds held only
-		// its own id would never match any listing and would always read as unavailable.
+	it('rolls every descendant up to its ancestors, each node’s own id first', () => {
+		// Disabling a metro has to consider all its neighborhoods — a parent whose set held only its own
+		// id would never match any listing and would always read as unavailable.
 		const specs = buildLocationNodeSpecs(tree);
 
-		expect(specs.find((spec) => spec.value === 'metro:CA/SF')?.leafIds).toEqual(['CA/SF/Mission', 'CA/SF/Sunset']);
-		expect(specs.find((spec) => spec.value === 'state:CA')?.leafIds).toEqual(['CA/SF/Mission', 'CA/SF/Sunset']);
+		expect(specs.find((spec) => spec.value === 'metro:CA/SF')?.leafIds).toEqual(['CA/SF', 'CA/SF/Mission', 'CA/SF/Sunset']);
+		expect(specs.find((spec) => spec.value === 'state:CA')?.leafIds).toEqual(['CA', 'CA/SF', 'CA/SF/Mission', 'CA/SF/Sunset']);
 	});
 
-	it('emits a spec for every node, leaves and branches alike', () => {
-		expect(buildLocationNodeSpecs(tree)).toHaveLength(4);
+	it('gives a state with a single metro a set of its own', () => {
+		// Without the node's own id the state's set and its only metro's set would be equal, and a
+		// committed set could not be read back as the node that was clicked.
+		const specs = buildLocationNodeSpecs(tree);
+		const keys = specs.map((spec) => [...spec.leafIds].sort().join('|'));
+
+		expect(new Set(keys).size).toBe(specs.length);
+	});
+
+	it('emits a spec for every node, leaves and branches alike, in pre-order', () => {
+		expect(buildLocationNodeSpecs(tree).map((spec) => spec.value)).toEqual([
+			'state:CA',
+			'metro:CA/SF',
+			'neighborhood:CA/SF/Mission',
+			'neighborhood:CA/SF/Sunset',
+		]);
 	});
 
 	it('treats a childless root as its own leaf', () => {
@@ -147,7 +152,7 @@ describe('buildLocationNodeSpecs', () => {
 		expect(specs).toEqual([{ leafIds: ['CA/SF/Mission'], value: 'neighborhood:CA/SF/Mission' }]);
 	});
 
-	it('leaves a leaf id alone when it carries no neighborhood prefix', () => {
+	it('leaves an id alone when it carries no level prefix', () => {
 		const specs = buildLocationNodeSpecs({ id: 'unprefixed', label: 'Odd one' });
 
 		expect(specs[0]?.leafIds).toEqual(['unprefixed']);
@@ -170,16 +175,13 @@ describe('buildListingLocationTree', () => {
 		expect(california?.children?.[0]?.children).toHaveLength(2);
 	});
 
-	it('produces node ids the extractor output can match', () => {
+	it('produces leaf ids that are the listings’ own locationId once translated', () => {
 		// The two halves of the seam, checked against each other rather than against a hardcoded
 		// string — that is what makes this a real round-trip and not two copies of the same typo.
-		const rows = [listing()];
-		const tree = buildListingLocationTree(rows);
-		const specs = buildLocationNodeSpecs(tree);
-		const fieldValue = String(asFn(extractListingLocationId)(rows[0]));
-		const leafValue = fieldValue.replace('neighborhood:', '');
+		const rows = [listing({ locationId: 'CA/San Francisco/Mission' })];
+		const leaves = buildLocationNodeSpecs(buildListingLocationTree(rows)).filter((spec) => spec.value.startsWith('neighborhood:'));
 
-		expect(specs.some((spec) => spec.leafIds.includes(leafValue))).toBe(true);
+		expect(leaves.map((spec) => spec.leafIds)).toEqual([[rows[0]?.locationId]]);
 	});
 
 	it('sorts states, metros and neighborhoods alphabetically', () => {

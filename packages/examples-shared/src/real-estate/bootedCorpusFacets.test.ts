@@ -16,21 +16,22 @@
  *
  * "Exactly" is literal. `findMetroLabel` names a geo center by exact coordinate equality, so a
  * centroid one ulp off would turn "≤ 15 mi of Greater Denver" into a pair of decimals in one app and
- * not another. And the tree is carried inside the location rule, so the same selection must encode
- * to the same `?f=` link — the comparison page hands one link to all six apps.
+ * not another. And the location rule's sets come from the tree, so the same selection must encode to
+ * the same `?f=` link — the comparison page hands one link to all six apps.
  *
  * @packageDocumentation
  */
 
 import type { BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
-import { createFilterEngine, geo, hierarchical } from '@filter-enginez/core';
+import { createFilterEngine, geo } from '@filter-enginez/core';
 import { type Listing, listings } from '@filter-enginez/mock-data/real-estate';
 import { describe, expect, it } from 'vitest';
 
 import { createLinkSerializer } from '../url/linkSerializer.js';
 import { bootRealEstateCore } from './bootRealEstateCore.js';
-import { buildListingLocationTree, buildLocationNodeSpecs, extractListingCoords, extractListingLocationId } from './real-estate-domain/extractors.js';
+import { buildListingLocationTree, buildLocationNodeSpecs, extractListingCoords } from './real-estate-domain/extractors.js';
+import { writeLocationSelection } from './real-estate-domain/locationRule.js';
 import { deriveMetroCenters, findMetroLabel } from './real-estate-domain/metroCenters.js';
 
 /** Every format a link can be written in. */
@@ -111,10 +112,7 @@ describe('facets derived from the booted corpus', () => {
 			const engine = createFilterEngine<Listing>({ sourceData: corpus });
 			const center = deriveMetroCenters(corpus)[0]?.center ?? { lat: 0, lng: 0 };
 
-			engine.addRule(
-				'location',
-				hierarchical(extractListingLocationId, { selected: [state?.id ?? ''], tree: buildListingLocationTree(corpus) }),
-			);
+			writeLocationSelection(engine, [state?.id ?? ''], buildLocationNodeSpecs(buildListingLocationTree(corpus)));
 			engine.addRule('geo-proximity', geo(extractListingCoords, { center, radiusKm: 24.14 }));
 
 			return { link: serializer.encode(engine.exportConfig()), passing: [...engine.getResultIndices()]};

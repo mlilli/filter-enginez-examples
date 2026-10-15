@@ -11,9 +11,10 @@
  * ### Three candidate kinds, and why each facet gets the one it does
  *
  *   - **`inSetOfSets` for location.** Each tree node is simulated against the FULL set of `locationId`
- *     values selecting it would activate. A branch queried with only its own id would match no listing
- *     — listings carry leaf paths — so every state and metro would read as permanently unavailable
- *     while the neighborhoods beneath them worked fine.
+ *     values selecting it would activate — the same set the committed rule holds for it
+ *     (`./locationRule.ts`). A branch queried with only its own id would match no listing — listings
+ *     carry leaf paths — so every state and metro would read as permanently unavailable while the
+ *     neighborhoods beneath them worked fine.
  *   - **`inSet` for the three flat string facets.** Clicking one WIDENS the facet, so the engine drops
  *     that facet's own rule while projecting: "would adding condo to my current type selection empty
  *     the results" is a question about the OTHER filters.
@@ -52,6 +53,7 @@ import {
 	SLIDER_FIELD_KEYS,
 	SLIDER_VALUE_STEPS,
 } from './filterConfig.js';
+import { LOCATION_FIELD, LOCATION_RULE_ID } from './locationLinks.js';
 
 /**
  * Build the real-estate bundle query: five chip groups and six slider fields.
@@ -68,7 +70,7 @@ export function buildRealEstateBundleQuery(
 ) {
 	return {
 		chipGroups: [
-			{ candidates: locationNodeSpecs, field: 'locationId', kind: 'inSetOfSets' as const, ruleId: 'location' },
+			{ candidates: locationNodeSpecs, field: LOCATION_FIELD, kind: 'inSetOfSets' as const, ruleId: LOCATION_RULE_ID },
 			{ candidates: vocabularies.schoolDistricts, field: 'schoolDistrict', kind: 'inSet' as const, ruleId: 'school-district' },
 			{ candidates: vocabularies.propertyTypes, field: 'propertyType', kind: 'inSet' as const, ruleId: 'property-type' },
 			{ candidates: vocabularies.statuses, field: 'status', kind: 'inSet' as const, ruleId: 'status' },

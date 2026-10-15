@@ -12,11 +12,22 @@
 			/books/main.js and 404s. The Angular CLI's own index.html template carries the same line.
 		-->
 		<base href="/" />
-		<!-- Favicons — the Filter EngineZ brand mark (assets in public/, byte-identical to the other verticals). -->
+		<!-- The icon set, served from the site root: copied from @filter-enginez/brand by scripts/sync-brand-assets.mjs -->
+		<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+		<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+		<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
+		<meta name="theme-color" content="#0B0A09" />
 		<title>Filter EngineZ · Angular</title>
+		<meta
+			name="description"
+			content="Filter EngineZ demo app in Angular — zoneless, standalone components reading the engine’s RxJS Observables, over wine, books and real-estate data."
+		/>
 	</head>
 	<body>
 		<fe-root></fe-root>

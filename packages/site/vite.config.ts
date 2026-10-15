@@ -5,10 +5,14 @@
  * @remarks
  * Four HTML entry points. For every one Vite bundles `src/styles.css` (which pulls
  * `@filter-enginez/ui-styles` and, through it, the brand tokens and the self-hosted fonts out of
- * `@filter-enginez/brand`, hashed for long-lived caching) and copies `public/` (`robots.txt`,
- * `sitemap.xml`) as-is. `404.html` ships no JavaScript, and `index.html` ships one small module,
+ * `@filter-enginez/brand`, hashed for long-lived caching) and copies `public/` (`robots.txt`) as-is. `404.html` ships no JavaScript, and `index.html` ships one small module,
  * `src/home/main.ts`, which reveals and wires the install command's copy button (the page reads and
  * works in full without it; `tests/tooling/cloudflareDeploy.test.ts` holds it to that one script).
+ *
+ * ### `sitemap.xml` is generated
+ *
+ * {@link sitemap} writes it into the build from the route registries, for every host under
+ * filterenginez.com (`src/sitemap/sitemap.ts`); `public/robots.txt` names it, as every app's does.
  *
  * ### `how-it-works.html` is rendered at build time, then enhanced
  *
@@ -28,14 +32,16 @@
  *
  * ### Brand images come from their canonical files, at build time
  *
- * The favicons, the mark, the Apple touch icon and the Open Graph card are emitted into the build by
- * {@link brandImages} straight from where they are maintained — the brand package and the design
- * system — rather than committed here as copies that could drift. They keep fixed names, with no hash,
- * because other systems hold their URLs: social cards cache `og:image`, and browsers ask for
- * `/favicon.svg` and `/apple-touch-icon.png` by convention. In development the same map is served by
- * a middleware, so `pnpm dev` shows exactly what ships.
+ * The icon set (favicons, the ICO, the app icons and the web manifest), the mark and the Open Graph card
+ * are emitted into the build by {@link brandImages} straight from the brand package, where they are
+ * maintained as byte copies of the design system's exports, rather than committed here as copies that
+ * could drift. They keep fixed names, with no hash, because other systems hold their URLs: social cards
+ * cache `og:image`, browsers and search engines ask for `/favicon.ico` and `/apple-touch-icon.png` by
+ * convention, and the manifest names its icons. In development the same map is served by a middleware,
+ * so `pnpm dev` shows exactly what ships.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { extname } from 'node:path';
@@ -44,14 +50,34 @@ import { defineConfig, type Plugin, runnerImport } from 'vite';
 
 import type * as CompareView from './src/compare/compareView.js';
 import type * as HowItWorksPrerender from './src/how-it-works/prerender.js';
+import type * as Sitemap from './src/sitemap/sitemap.js';
 
 const require = createRequire(import.meta.url);
 
-/** The design system's raster exports, for the two images the brand package does not carry. */
-const DESIGN_SYSTEM_PNG = fileURLToPath(new URL('../../docs/branding/design-system/assets/logomark/png/', import.meta.url));
+/**
+ * The brand files the site serves at its root: the icon set every host serves (the same list as
+ * `ICON_SET` in `scripts/sync-brand-assets.mjs`, which `tests/tooling/brandAssets.test.ts` holds the
+ * two to), the full logomark and the Open Graph card.
+ */
+const BRAND_FILES: readonly string[] = [
+	'apple-touch-icon.png',
+	'favicon-16.png',
+	'favicon-32.png',
+	'favicon-48.png',
+	'favicon-96.png',
+	'favicon.ico',
+	'favicon.svg',
+	'icon-192.png',
+	'icon-512-maskable.png',
+	'icon-512.png',
+	'mark.svg',
+	'og-card.png',
+	'site.webmanifest',
+];
 
 /**
- * Each image the page serves at the site root, and the canonical file it is emitted from.
+ * Each image the page serves at the site root, and the canonical file in the brand package it is
+ * emitted from.
  *
  * @remarks
  * A `Map` rather than an object literal: a request path is untrusted input, and an object lookup would
@@ -59,19 +85,16 @@ const DESIGN_SYSTEM_PNG = fileURLToPath(new URL('../../docs/branding/design-syst
  * compiler options, too, so the type-aware lint of this file does not depend on which tsconfig ESLint
  * borrows for a file outside every `include`.
  */
-const BRAND_IMAGES: ReadonlyMap<string, string> = new Map([
-	['apple-touch-icon.png', `${DESIGN_SYSTEM_PNG}apple-touch-icon-180.png`],
-	['favicon-16.png', require.resolve('@filter-enginez/brand/assets/favicon-16.png')],
-	['favicon-32.png', require.resolve('@filter-enginez/brand/assets/favicon-32.png')],
-	['favicon.svg', require.resolve('@filter-enginez/brand/assets/favicon.svg')],
-	['mark.svg', require.resolve('@filter-enginez/brand/assets/mark.svg')],
-	['og-card.png', `${DESIGN_SYSTEM_PNG}og-card.png`],
-]);
+const BRAND_IMAGES: ReadonlyMap<string, string> = new Map(
+	BRAND_FILES.map((name) => [name, require.resolve(`@filter-enginez/brand/assets/${name}`)]),
+);
 
 /** Content types for the dev-server half of {@link brandImages}, by file extension. */
 const CONTENT_TYPES: ReadonlyMap<string, string> = new Map([
+	['.ico', 'image/x-icon'],
 	['.png', 'image/png'],
 	['.svg', 'image/svg+xml'],
+	['.webmanifest', 'application/manifest+json'],
 ]);
 
 /**
@@ -116,6 +139,9 @@ const COMPARE_ENTRY = fileURLToPath(new URL('compare.html', import.meta.url));
 
 /** The module that renders the how-it-works page's text (`prerender.ts`). */
 const HOW_IT_WORKS_PRERENDER_MODULE = fileURLToPath(new URL('src/how-it-works/prerender.ts', import.meta.url));
+
+/** The module that builds the sitemap (`sitemap.ts`). */
+const SITEMAP_MODULE = fileURLToPath(new URL('src/sitemap/sitemap.ts', import.meta.url));
 
 /** The module that renders the comparison page's view (`compareView.ts`). */
 const COMPARE_PRERENDER_MODULE = fileURLToPath(new URL('src/compare/compareView.ts', import.meta.url));
@@ -178,6 +204,54 @@ function pagePrerender(): Plugin {
 	};
 }
 
+/**
+ * The time of the commit checked out, as git prints it, or `null` outside a git checkout.
+ *
+ * @returns The `HEAD` commit time (`%cI`, ISO 8601 with its offset), or `null`.
+ */
+function headCommitTime(): string | null {
+	try {
+		return execFileSync('git', ['log', '-1', '--format=%cI', 'HEAD'], { cwd: PACKAGE_ROOT, encoding: 'utf8' }).trim();
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Generate `sitemap.xml` from the sites' page lists: into the build, and at `/sitemap.xml` in the dev
+ * server.
+ *
+ * @remarks
+ * `src/sitemap/sitemap.ts` decides what it lists and why; this loads it through `runnerImport`, for
+ * the reason {@link pagePrerender} gives, and dates it with `SOURCE_DATE_EPOCH` or the `HEAD` commit
+ * time. A sitemap that cannot be dated fails the build.
+ *
+ * @returns The Vite plugin.
+ */
+function sitemap(): Plugin {
+	/** Build the document. */
+	const render = async (): Promise<string> => {
+		const { module } = await runnerImport<typeof Sitemap>(SITEMAP_MODULE, { root: PACKAGE_ROOT });
+
+		return module.renderSitemap(module.sitemapEntries(), module.sitemapLastmod(process.env['SOURCE_DATE_EPOCH'], headCommitTime()));
+	};
+
+	return {
+		configureServer(server) {
+			server.middlewares.use('/sitemap.xml', (_request, response) => {
+				void render().then((xml) => {
+					response.setHeader('content-type', 'application/xml; charset=utf-8');
+					response.end(xml);
+				});
+			});
+		},
+		async generateBundle() {
+			this.emitFile({ fileName: 'sitemap.xml', source: await render(), type: 'asset' });
+		},
+		name: 'filter-enginez-sitemap',
+	};
+}
+
 export default defineConfig({
 	build: {
 		rolldownOptions: {
@@ -190,7 +264,7 @@ export default defineConfig({
 		},
 		target: 'es2022',
 	},
-	plugins: [brandImages(), pagePrerender()],
+	plugins: [brandImages(), pagePrerender(), sitemap()],
 	server: {
 		fs: {
 			// The brand fonts referenced by `tokens.css` live in a sibling package.

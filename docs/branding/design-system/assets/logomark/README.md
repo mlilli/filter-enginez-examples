@@ -5,12 +5,12 @@ with asymmetric chamfers, and a polished modern neon treatment.
 
 ## Quick start
 
-| What       | Where                                                                                                            |
-| ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| **See it** | Open `showcase.html` in a browser                                                                                |
-| **Use it** | Copy the files to your app's `/public/branding/` (see `BRAND-USAGE.md`), paste `head-snippet.html` into `<head>` |
-| **Rules**  | `BRAND-USAGE.md`                                                                                                 |
-| **Source** | `Mark.jsx` (the canonical mark) · `Lockups.jsx` (all lockups)                                                    |
+| What       | Where                                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| **See it** | Open `showcase.html` in a browser                                                                        |
+| **Use it** | Serve the icon set from your site's root (see `BRAND-USAGE.md`), paste `head-snippet.html` into `<head>` |
+| **Rules**  | `BRAND-USAGE.md`                                                                                         |
+| **Source** | `Mark.jsx` (the canonical mark) · `Lockups.jsx` (all lockups)                                            |
 
 ## Folder
 
@@ -23,8 +23,9 @@ assets/logomark/
 ├── Mark.jsx              ← React component · canonical mark
 ├── Lockups.jsx           ← React components · all lockups
 ├── mark.css              ← Animation keyframes + lockup helper classes
-├── site.webmanifest      ← PWA manifest
+├── site.webmanifest      ← PWA manifest (root paths)
 ├── browserconfig.xml     ← Windows tile config
 ├── svg/                  ← Vector sources (canonical) — lockup / OG-card text is set in Orbitron, not outlined
-└── png/                  ← Raster exports at every size
+├── png/                  ← Raster exports at every size
+└── ico/                  ← favicon.ico (16, 32 and 48 px)
 ```

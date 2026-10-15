@@ -4,7 +4,7 @@
 	 *
 	 * @remarks
 	 * At parity with the React panel's facet set, and the widest panel in the repo: the location
-	 * hierarchy (`HierarchicalRule`), the geo-radius map (`GeoProximityRule` + R-tree), a
+	 * hierarchy (`InSetofSetsRule` over `locationId`), the geo-radius map (`GeoProximityRule` + R-tree), a
 	 * high-cardinality school-district checklist and two chip `InSet`s, six range sliders, must-have
 	 * features (the custom `ContainsAllRule`), the listed-date presets (`DateRangeRule`) and a
 	 * description search (`TextSearchRule`) — all through one commit contract.
@@ -46,14 +46,13 @@
 	import {
 		dateRange,
 		type DateRangeRule,
-		hierarchical,
-		type HierarchicalRule,
 		inSet,
 		type InSetRule,
 		text,
 		type TextSearchRule,
 	} from '@filter-enginez/core';
 	import {
+		buildListingLocationRule,
 		chipDisabledSet,
 		chipExclusionMap,
 		chipProjectedCounts,
@@ -61,8 +60,10 @@
 		ContainsAllRule,
 		DATE_PRESET_OPTIONS,
 		type DatePresetValue,
-		extractListingLocationId,
+		deriveLocationSelection,
 		humanizeVocabularyValue,
+		LOCATION_RULE_ID,
+		type LocationNodeSpec,
 		type MetroCenterOption,
 		type PickerTreeNode,
 		RANGE_FACETS,
@@ -86,6 +87,7 @@
 		engine,
 		GeoRadiusSection = null,
 		isComputing = false,
+		locationSpecs,
 		locationTree,
 		metroCenters,
 		vocabularies,
@@ -104,13 +106,11 @@
 		/** Dims + locks the sections while a bundle round trip is pending. */
 		isComputing?: boolean;
 		/**
-		 * The location hierarchy, or `null` before boot resolves.
-		 *
-		 * @remarks
-		 * The flattened `LocationNodeSpec[]` is deliberately NOT a prop. It exists for the BUNDLE query,
-		 * which the view owns; the rule this panel commits is a `HierarchicalRule` that walks the tree
-		 * itself. Two representations of one hierarchy, each for the consumer that needs it.
+		 * The location tree flattened by `buildLocationNodeSpecs`: what the committed location rule is
+		 * built from and read back through, and the same candidates the view's bundle query projects.
 		 */
+		locationSpecs: readonly LocationNodeSpec[];
+		/** The location hierarchy the picker renders, or `null` before boot resolves. */
 		locationTree: PickerTreeNode | null;
 		/** Passed straight through to the geo section; the panel itself has no use for it. */
 		metroCenters: readonly MetroCenterOption[];
@@ -146,10 +146,11 @@
 	 */
 	const descriptionRule = rule('text-search');
 
-	/** The picker's compact selection: the highest selected node per branch, never the closure. */
-	const locations = $derived(
-		($activeRules.get('location') as HierarchicalRule | undefined)?.config.selected ?? [],
-	);
+	/**
+	 * The picker's compact selection: the highest selected node per branch, never the closure, read
+	 * back out of the committed sets.
+	 */
+	const locations = $derived(deriveLocationSelection($activeRules.get(LOCATION_RULE_ID), locationSpecs));
 
 	/** The checked school districts. */
 	const schoolDistricts = $derived(
@@ -202,8 +203,8 @@
 	let descriptionQuery = $derived(($descriptionRule as TextSearchRule | undefined)?.config.query ?? '');
 
 	/** Exclusion data per chip group. Empty until the first bundle — read as all-enabled. */
-	const locationDisabled = $derived(chipDisabledSet(bundle, 'location'));
-	const locationCounts = $derived(chipProjectedCounts(bundle, 'location'));
+	const locationDisabled = $derived(chipDisabledSet(bundle, LOCATION_RULE_ID));
+	const locationCounts = $derived(chipProjectedCounts(bundle, LOCATION_RULE_ID));
 	const schoolDistrictExclusion = $derived(chipExclusionMap(bundle, 'school-district'));
 	const propertyTypeExclusion = $derived(chipExclusionMap(bundle, 'property-type'));
 	const statusExclusion = $derived(chipExclusionMap(bundle, 'status'));
@@ -238,13 +239,8 @@
 						// The picker hands back the WHOLE next selection rather than one toggled value: a
 						// single click can select a subtree, or de-cascade an ancestor into its siblings, so
 						// "which id changed" is not expressible.
-						//
-						// `tree` is narrowed by the enclosing `{#if}`, but the closure outlives that check as
-						// far as the compiler is concerned, so it is re-bound here.
-						const tree = locationTree;
-
-						commitSelection(engine, 'location', next, (values) =>
-							hierarchical(extractListingLocationId, { selected: [...values], tree }),
+						commitSelection(engine, LOCATION_RULE_ID, next, (values) =>
+							buildListingLocationRule(values, locationSpecs),
 						);
 					}}
 				/>
