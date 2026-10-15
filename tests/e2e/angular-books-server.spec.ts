@@ -3,7 +3,7 @@
  *
  * @remarks
  * **The browser runs no filtering here.** Every chip, slider and keystroke round-trips to the
- * `@filter-enginez/examples-server` Node process on `:8787` (started by Playwright's `webServer` list
+ * `@filter-enginez/examples-server` Node process on `:5198` (started by Playwright's `webServer` list
  * and proxied at `/api` by `ng serve`'s `proxy.config.json`). What makes the route worth a spec is what
  * ISN'T different: `<fe-books-filter-panel>`, `<fe-results-header>` and `<fe-book-card>` are the exact
  * components `/books` mounts, imported unchanged, over an `RxJsEngine` built by
@@ -36,7 +36,7 @@ import { angularUrl } from './angularBase.js';
 import { openFilterPanel, settledCount, type SettledCountOptions } from './filterFlow.js';
 import { subtitle } from './subtitles.js';
 
-/** The engine's filter endpoint, as seen by the browser (proxied to `:8787` by `ng serve`). */
+/** The engine's filter endpoint, as seen by the browser (proxied to `:5198` by `ng serve`). */
 const QUERY_ENDPOINT = '**/api/query';
 
 /** How long the artificial-latency test holds each round-trip open, in ms. */
@@ -94,7 +94,7 @@ const SETTLED: SettledCountOptions = {
  *
  * @remarks
  * Asserting the offline panel is absent is not padding: `booksServerResolver` reports an unreachable
- * server as route data rather than rejecting, so without this check a suite run against a dead `:8787`
+ * server as route data rather than rejecting, so without this check a suite run against a dead `:5198`
  * would fail later, deeper, and for a much less obvious reason.
  *
  * @param page - The page under test.

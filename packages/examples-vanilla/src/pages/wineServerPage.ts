@@ -57,7 +57,7 @@ import { mountWineRoute } from './winePageShell.js';
  * The base URL the transport hangs off.
  *
  * @remarks
- * Same-origin by design: `vite.config.ts` proxies `/api` to `http://localhost:8787`, and the deployed
+ * Same-origin by design: `vite.config.ts` proxies `/api` to `http://localhost:5198`, and the deployed
  * Worker answers `/api/*` itself (`wrangler.jsonc`), so the browser never makes a cross-origin request
  * and there is no CORS to configure. The base URL is the same everywhere rather than something baked
  * into a bundle per environment — the identical arrangement React RTK's `/books-server` uses.

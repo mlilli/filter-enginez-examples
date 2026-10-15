@@ -92,7 +92,7 @@ export function deploymentLayout(location: CompareLocation): DeploymentLayout {
  * @param location - The current location.
  * @param layout - Override the detected layout. Present for tests and for rendering a preview of
  *   the other deployment shape; production callers should omit it.
- * @returns An absolute origin with no trailing slash, e.g. `http://127.0.0.1:5174` or
+ * @returns An absolute origin with no trailing slash, e.g. `http://127.0.0.1:5191` or
  *   `https://react-rtk.filterenginez.com`.
  */
 export function resolveVerticalOrigin(

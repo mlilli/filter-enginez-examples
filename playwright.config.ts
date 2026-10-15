@@ -25,15 +25,15 @@
  *
  * | Vertical            | Port |
  * | ------------------- | ---- |
- * | examples-server API | 8787 |
- * | Angular             | 4200 |
- * | React RTK           | 5174 |
- * | SvelteKit           | 5175 |
- * | React plain         | 5176 |
- * | Vue                 | 5178 |
- * | vanilla             | 5179 |
- * | Documentation site  | 5180 |
- * | Landing site        | 5181 |
+ * | examples-server API | 5198 |
+ * | Angular             | 5190 |
+ * | React RTK           | 5191 |
+ * | SvelteKit           | 5192 |
+ * | React plain         | 5193 |
+ * | Vue                 | 5194 |
+ * | vanilla             | 5195 |
+ * | Documentation site  | 5196 |
+ * | Landing site        | 5197 |
  *
  * Every dev server pins `strictPort`, so two apps declaring the same port fail loudly when the suite
  * boots them together; `tests/tooling/devServerPorts.test.ts` checks each app's declared port against
@@ -44,58 +44,58 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
-/** The React RTK app's dev-server origin (see its `vite.config.ts` — `127.0.0.1:5174`, `strictPort`). */
-const BASE_URL = 'http://127.0.0.1:5174';
+/** The React RTK app's dev-server origin (see its `vite.config.ts` — `127.0.0.1:5191`, `strictPort`). */
+const BASE_URL = 'http://127.0.0.1:5191';
 
 /**
- * The plain-React app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5176`, `strictPort`).
+ * The plain-React app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5193`, `strictPort`).
  * The plain-React specs (`react-plain-*.spec.ts`) import it from `tests/e2e/reactPlainBase.ts`; the
  * shared React flows run against the RTK app.
  */
-const REACT_PLAIN_BASE_URL = 'http://127.0.0.1:5176';
+const REACT_PLAIN_BASE_URL = 'http://127.0.0.1:5193';
 
 /**
- * The SvelteKit app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5175`, `strictPort`). The
+ * The SvelteKit app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5192`, `strictPort`). The
  * Svelte specs import this from `tests/e2e/svelteBase.ts` and navigate with absolute URLs, since
  * Playwright's single `baseURL` (above) points at the React app.
  */
-const SVELTE_BASE_URL = 'http://127.0.0.1:5175';
+const SVELTE_BASE_URL = 'http://127.0.0.1:5192';
 
 /**
- * The Vue app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5178`, `strictPort`). The Vue
+ * The Vue app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5194`, `strictPort`). The Vue
  * specs (`vue-*.spec.ts` + the Vue case in `notfound.spec.ts`) import this from `tests/e2e/vueBase.ts`
  * and navigate with absolute URLs, since Playwright's single `baseURL` points at the React app.
  */
-const VUE_BASE_URL = 'http://127.0.0.1:5178';
+const VUE_BASE_URL = 'http://127.0.0.1:5194';
 
 /**
- * The framework-less app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5179`,
+ * The framework-less app's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5195`,
  * `strictPort`). The vanilla specs import this from `tests/e2e/vanillaBase.ts` and navigate with
  * absolute URLs, since Playwright's single `baseURL` points at the React app.
  */
-const VANILLA_BASE_URL = 'http://127.0.0.1:5179';
+const VANILLA_BASE_URL = 'http://127.0.0.1:5195';
 
 /**
- * The Angular app's dev-server origin (its `angular.json` pins `127.0.0.1:4200`). The Angular specs
+ * The Angular app's dev-server origin (its `angular.json` pins `127.0.0.1:5190`). The Angular specs
  * import this from `tests/e2e/angularBase.ts` and navigate with absolute URLs, since Playwright's
  * single `baseURL` points at the React app.
  */
-const ANGULAR_BASE_URL = 'http://127.0.0.1:4200';
+const ANGULAR_BASE_URL = 'http://127.0.0.1:5190';
 
 /**
- * The standalone documentation-site dev-server origin (its `vite.config.ts` pins `127.0.0.1:5180`,
+ * The standalone documentation-site dev-server origin (its `vite.config.ts` pins `127.0.0.1:5196`,
  * `strictPort`). The docs spec (`docs-site.spec.ts`) imports this from `tests/e2e/docsBase.ts` and
  * navigates with absolute URLs, since Playwright's single `baseURL` points at the React app.
  */
-const DOCS_BASE_URL = 'http://127.0.0.1:5180';
+const DOCS_BASE_URL = 'http://127.0.0.1:5196';
 
 /**
- * The landing site's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5181`, `strictPort`). The
+ * The landing site's dev-server origin (its `vite.config.ts` pins `127.0.0.1:5197`, `strictPort`). The
  * how-it-works, compare and app-header specs import this from `tests/e2e/siteBase.ts`, and every app's
  * header and Compare button link here in development — `SITE.devOrigin` in examples-shared's verticals
  * registry.
  */
-const SITE_BASE_URL = 'http://127.0.0.1:5181';
+const SITE_BASE_URL = 'http://127.0.0.1:5197';
 
 /**
  * CI-specific toggles are pushed to CLI flags rather than read from `process.env` here (a root
@@ -152,7 +152,7 @@ export default defineConfig({
 			// GET /health returns 200 once the engine's WASM accel has initialized + the port is bound.
 			reuseExistingServer: false,
 			timeout: 60_000,
-			url: 'http://localhost:8787/health',
+			url: 'http://localhost:5198/health',
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/examples-react-rtk dev',
@@ -164,7 +164,7 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/examples-sveltekit dev',
-			// The SvelteKit app pins `strictPort` on 5175 (see its `vite.config.ts`). The Svelte specs
+			// The SvelteKit app pins `strictPort` on 5192 (see its `vite.config.ts`). The Svelte specs
 			// (`svelte-*.spec.ts`) target this origin via `SVELTE_BASE_URL` (see `tests/e2e/svelteBase.ts`),
 			// since Playwright's single `baseURL` points at the React app.
 			reuseExistingServer: false,
@@ -173,7 +173,7 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/examples-vue dev',
-			// The Vue app pins `strictPort` on 5178 (see its `vite.config.ts`). The Vue specs
+			// The Vue app pins `strictPort` on 5194 (see its `vite.config.ts`). The Vue specs
 			// (`vue-*.spec.ts` + the Vue case in `notfound.spec.ts`) target this origin via `VUE_BASE_URL`
 			// (see `tests/e2e/vueBase.ts`), since Playwright's single `baseURL` points at the React app.
 			reuseExistingServer: false,
@@ -182,7 +182,7 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/examples-angular dev',
-			// The Angular app pins port 4200 in `angular.json`. Its specs (`angular-*.spec.ts`) target
+			// The Angular app pins port 5190 in `angular.json`. Its specs (`angular-*.spec.ts`) target
 			// this origin via `ANGULAR_BASE_URL` (see `tests/e2e/angularBase.ts`). `ng serve` is slower to
 			// first-byte than Vite — it runs the AOT template compile before it listens — so it gets the
 			// same generous timeout as the rest.
@@ -200,7 +200,7 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/examples-vanilla dev',
-			// The framework-less app pins `strictPort` on 5179. Its specs (`vanilla-*.spec.ts` + the
+			// The framework-less app pins `strictPort` on 5195. Its specs (`vanilla-*.spec.ts` + the
 			// vanilla case in `notfound.spec.ts`) target this origin via `VANILLA_BASE_URL` (see
 			// `tests/e2e/vanillaBase.ts`).
 			reuseExistingServer: false,
@@ -209,7 +209,7 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/examples-docs dev',
-			// The standalone documentation site pins `strictPort` on 5180. Its spec (`docs-site.spec.ts`)
+			// The standalone documentation site pins `strictPort` on 5196. Its spec (`docs-site.spec.ts`)
 			// targets this origin via `DOCS_BASE_URL` (see `tests/e2e/docsBase.ts`).
 			reuseExistingServer: false,
 			timeout: 180_000,
@@ -217,7 +217,7 @@ export default defineConfig({
 		},
 		{
 			command: 'pnpm --filter @filter-enginez/site dev',
-			// The landing site pins `strictPort` on 5181. Its specs (how-it-works, compare, app-header) target
+			// The landing site pins `strictPort` on 5197. Its specs (how-it-works, compare, app-header) target
 			// this origin via `SITE_BASE_URL` (see `tests/e2e/siteBase.ts`), and every app's header links and
 			// Compare button resolve to it in development.
 			reuseExistingServer: false,

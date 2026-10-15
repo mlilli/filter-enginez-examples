@@ -3,7 +3,7 @@
  * page shows.
  *
  * @remarks
- * The comparison page is one page, on the landing site (`/compare` on :5181), rendered from
+ * The comparison page is one page, on the landing site (`/compare` on :5197), rendered from
  * `packages/site/src/compare/compareView.ts`. That module is unit-tested over strings; this file asks
  * the questions only a served page can answer: does the dev server serve it with a real table, does
  * the browser render it again for the query and the host, and does a dataset toggle — a plain link,

@@ -11,8 +11,8 @@
  * load-bearing rule the Vue + Svelte verticals document). This app is the one place that matters most,
  * since it subscribes to the raw signals with no adapter in between.
  *
- * A dedicated port so it runs alongside every other vertical — Angular 4200, RTK 5174, SvelteKit 5175,
- * plain React 5176, Vue 5178. The canonical port map lives in `playwright.config.ts`.
+ * A dedicated port so it runs alongside every other vertical — Angular 5190, RTK 5191, SvelteKit 5192,
+ * plain React 5193, Vue 5194. The canonical port map lives in `playwright.config.ts`.
  */
 
 import { defineConfig } from 'vite';
@@ -33,8 +33,13 @@ export default defineConfig({
 	// the shared radius-map controller on demand), so without this Vite discovers it mid-session,
 	// re-optimizes, and forces a full page reload — which presents as "the map crashed the first time
 	// and worked after".
+	// The wine worker's corpus generator is pre-bundled for the same reason. The worker is a separate
+	// module graph (`?worker`), so the scan at server start never sees its imports: the first visit to
+	// /wine discovers `@filter-enginez/mock-data/wine/generator`, re-optimizes, and reloads EVERY open
+	// page of this app mid-session. tests/tooling/wineWorkerPrebundle.test.ts keeps this list in step
+	// with the worker's imports.
 	optimizeDeps: {
-		include: ['leaflet'],
+		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
 	},
 	resolve: {
 		// ONE @preact/signals-core instance across the engine + this app's direct subscriptions.
@@ -42,14 +47,14 @@ export default defineConfig({
 	},
 	server: {
 		host: '127.0.0.1',
-		port: 5179,
+		port: 5195,
 		/**
 		 * Proxy `/api/*` to the `@filter-enginez/examples-server` Node process (start it with
 		 * `pnpm --filter @filter-enginez/examples-server serve:api`).
 		 *
 		 * @remarks
 		 * This is what powers `/wine-server`: the browser calls same-origin `/api/query`, Vite forwards
-		 * it to `http://localhost:8787/query`, so there is no CORS and the base URL stays a dev-server
+		 * it to `http://localhost:5198/query`, so there is no CORS and the base URL stays a dev-server
 		 * concern rather than something baked into a bundle. Copied deliberately from
 		 * `examples-react-rtk`'s `/books-server` arrangement rather than invented — the two routes are
 		 * the same transport over different datasets.
@@ -61,7 +66,7 @@ export default defineConfig({
 			'/api': {
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/api/, ''),
-				target: 'http://localhost:8787',
+				target: 'http://localhost:5198',
 			},
 		},
 		strictPort: true,

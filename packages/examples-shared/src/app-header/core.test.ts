@@ -23,7 +23,7 @@ import {
 } from './core.js';
 
 /** Stand-in for `window.location` on a developer's machine. */
-const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5175' };
+const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5192' };
 
 /** Stand-in for a deployed app. */
 const PROD_LOCATION = { hostname: 'svelte.filterenginez.com', origin: 'https://svelte.filterenginez.com' };

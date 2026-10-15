@@ -16,7 +16,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { handleRequest } from './requestHandler.js';
 
 /** Port to listen on (override with `PORT`). */
-const PORT = Number(process.env['PORT'] ?? 8787);
+const PORT = Number(process.env['PORT'] ?? 5198);
 
 /** Collect a request body into a string. */
 async function readBody(request: IncomingMessage): Promise<string> {

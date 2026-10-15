@@ -3,7 +3,7 @@
 The Angular demo app — the consumer of the engine's **RxJS reactive surface**.
 
 Angular 22 · Angular CLI (`@angular/build`) · **zoneless** · standalone components · dev server on
-**`http://127.0.0.1:4200`** · live at [angular.filterenginez.com](https://angular.filterenginez.com).
+**`http://127.0.0.1:5190`** · live at [angular.filterenginez.com](https://angular.filterenginez.com).
 
 ---
 
@@ -40,7 +40,7 @@ redo and time travel through the devtools panel.
 ## Running it
 
 ```bash
-pnpm --filter @filter-enginez/examples-angular dev        # ng serve → :4200
+pnpm --filter @filter-enginez/examples-angular dev        # ng serve → :5190
 pnpm --filter @filter-enginez/examples-angular build      # ng build → dist/
 pnpm --filter @filter-enginez/examples-angular typecheck  # ngc — includes TEMPLATE type-checking
 pnpm --filter @filter-enginez/examples-angular test       # ng test — component specs on the Vitest runner
@@ -108,8 +108,8 @@ Exactly one line of shared code knows which engine it's on. The sync `.core` shi
 engine is present; otherwise `safeApplyBundleFromCore` would catch the throw and return `null`, and predictive disable
 would stop while the page still looked fine. The React apps carry the same branch.
 
-Two operational notes: the route needs the server running (`pnpm dev:api`, port 8787) and renders an offline screen with
-that command when it isn't; and `ng serve` proxies `/api` → `:8787` via `proxy.config.json`, so the browser stays
+Two operational notes: the route needs the server running (`pnpm dev:api`, port 5198) and renders an offline screen with
+that command when it isn't; and `ng serve` proxies `/api` → `:5198` via `proxy.config.json`, so the browser stays
 same-origin and the server needs no CORS.
 
 ## Testing
@@ -118,7 +118,7 @@ Component specs run through `ng test` (`@angular/build:unit-test` on the **Vites
 reporter as the rest of the repository, no Karma). They live beside their components as `*.spec.ts` and are driven by
 `tsconfig.spec.json`, which needs `noEmit: false` for the same reason `tsconfig.app.json` does — see decision 4.
 
-End-to-end coverage lives in `tests/e2e/angular-*.spec.ts`, with the app registered as a Playwright `webServer` on 4200.
+End-to-end coverage lives in `tests/e2e/angular-*.spec.ts`, with the app registered as a Playwright `webServer` on 5190.
 Those specs target the failure modes a build cannot see: a deep link rendering the landing page (a missing
 `<base href>`), a status pill latching on "computing" (a busy tracker marked but never resolved), and predictive disable
 going quiet on the async engine. All three compile cleanly under `ng build`, `ngc` and ESLint and are obvious in a

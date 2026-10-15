@@ -32,19 +32,19 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
  * is held to the same assertions.
  */
 const VITE_PORTS: Readonly<Record<string, number>> = {
-	'examples-react-plain': 5176,
-	'examples-react-rtk': 5174,
-	'examples-sveltekit': 5175,
-	'examples-vanilla': 5179,
-	'examples-vue': 5178,
-	site: 5181,
+	'examples-react-plain': 5193,
+	'examples-react-rtk': 5191,
+	'examples-sveltekit': 5192,
+	'examples-vanilla': 5195,
+	'examples-vue': 5194,
+	site: 5197,
 };
 
 /** Angular declares its port in `angular.json` rather than a Vite config. */
-const ANGULAR_PORT = 4200;
+const ANGULAR_PORT = 5190;
 
 /** The Node filter API. */
-const API_PORT = 8787;
+const API_PORT = 5198;
 
 /**
  * The standalone docs site.
@@ -53,7 +53,7 @@ const API_PORT = 8787;
  * Not in `VITE_PORTS` above: that map drives the per-app `port:` / `strictPort` assertions, and the
  * docs app is declared separately here so the preflight assertions below still see the full set.
  */
-const DOCS_PORT = 5180;
+const DOCS_PORT = 5196;
 
 /**
  * Read a package's Vite config.

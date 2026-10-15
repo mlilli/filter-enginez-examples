@@ -49,15 +49,15 @@ into all of them.
 
 | Package                                                             | What it is                                                                              | Run with           | Port |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------ | ---- |
-| [`examples-react-rtk`](./packages/examples-react-rtk/README.md)     | React + Redux Toolkit, with `redux-bridge`, `url-state-router`, and `worker-bridge`     | `pnpm dev:rtk`     | 5174 |
-| [`examples-react-plain`](./packages/examples-react-plain/README.md) | React + `react-signals` + `url-state-router`, no Redux                                  | `pnpm dev:plain`   | 5176 |
-| `examples-sveltekit`                                                | SvelteKit over `svelte-signals`, with server-side rendering                             | `pnpm dev:svelte`  | 5175 |
-| `examples-vue`                                                      | Vue 3 + Vue Router over `vue-signals`                                                   | `pnpm dev:vue`     | 5178 |
-| [`examples-angular`](./packages/examples-angular/README.md)         | Angular (zoneless, standalone components) over `reactive-rxjs` + `angular-rxjs`         | `pnpm dev:angular` | 4200 |
-| `examples-vanilla`                                                  | Plain TypeScript and hand-written DOM, over `reactive-signals` and the bare core        | `pnpm dev:vanilla` | 5179 |
-| [`examples-server`](./packages/examples-server/README.md)           | Node CLI plus a small `node:http` endpoint: the same engine and JSON config, no browser | `pnpm dev:api`     | 8787 |
-| `examples-docs`                                                     | Standalone documentation site: rule and algorithm reference, live playground            | `pnpm dev:docs`    | 5180 |
-| `site`                                                              | `filterenginez.com`: the landing page, and the how-it-works and compare pages           | `pnpm dev:site`    | 5181 |
+| [`examples-react-rtk`](./packages/examples-react-rtk/README.md)     | React + Redux Toolkit, with `redux-bridge`, `url-state-router`, and `worker-bridge`     | `pnpm dev:rtk`     | 5191 |
+| [`examples-react-plain`](./packages/examples-react-plain/README.md) | React + `react-signals` + `url-state-router`, no Redux                                  | `pnpm dev:plain`   | 5193 |
+| `examples-sveltekit`                                                | SvelteKit over `svelte-signals`, with server-side rendering                             | `pnpm dev:svelte`  | 5192 |
+| `examples-vue`                                                      | Vue 3 + Vue Router over `vue-signals`                                                   | `pnpm dev:vue`     | 5194 |
+| [`examples-angular`](./packages/examples-angular/README.md)         | Angular (zoneless, standalone components) over `reactive-rxjs` + `angular-rxjs`         | `pnpm dev:angular` | 5190 |
+| `examples-vanilla`                                                  | Plain TypeScript and hand-written DOM, over `reactive-signals` and the bare core        | `pnpm dev:vanilla` | 5195 |
+| [`examples-server`](./packages/examples-server/README.md)           | Node CLI plus a small `node:http` endpoint: the same engine and JSON config, no browser | `pnpm dev:api`     | 5198 |
+| `examples-docs`                                                     | Standalone documentation site: rule and algorithm reference, live playground            | `pnpm dev:docs`    | 5196 |
+| `site`                                                              | `filterenginez.com`: the landing page, and the how-it-works and compare pages           | `pnpm dev:site`    | 5197 |
 
 `pnpm dev` starts every app except the API server, which `pnpm dev:api` runs. Every dev server pins its port, so a
 collision fails loudly; the canonical port map is in [`playwright.config.ts`](./playwright.config.ts).

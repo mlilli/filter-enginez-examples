@@ -75,6 +75,11 @@ export default defineConfig({
 			// through the shared `examples-shared/real-estate-map` controller. The controller calls
 			// Leaflet's own API, so no React binding (`react-leaflet`) is needed.
 			'leaflet',
+			// The wine worker's corpus generator (an engine package, not workspace source). The worker is a
+			// separate module graph (`?worker`), so the scan at server start never sees its imports: without
+			// this the first visit to /wine discovers it, re-optimizes, and reloads EVERY open page of this
+			// app mid-session. tests/tooling/wineWorkerPrebundle.test.ts keeps this in step with the worker.
+			'@filter-enginez/mock-data/wine/generator',
 		],
 	},
 	plugins: [
@@ -102,16 +107,16 @@ export default defineConfig({
 	server: {
 		// Plain HTTP on the loopback address; no TLS certificate or host alias is involved.
 		//
-		// **5176, not 5173.** With `strictPort: true`, two apps on one port means the second to
+		// **5193, not 5173.** With `strictPort: true`, two apps on one port means the second to
 		// start dies, so the six verticals hold six distinct ports — see the port map in
 		// `playwright.config.ts`.
 		host: '127.0.0.1',
-		port: 5176,
+		port: 5193,
 		/**
 		 * Proxy `/api/*` to the `@filter-enginez/examples-server` Node server (run it with
 		 * `pnpm --filter @filter-enginez/examples-server serve:api`). This is what powers the
 		 * server-backed `/books-server` route: the browser calls same-origin `/api/query`, Vite
-		 * forwards it to `http://localhost:8787/query`, so there's no CORS and the base URL stays a
+		 * forwards it to `http://localhost:5198/query`, so there's no CORS and the base URL stays a
 		 * dev-server concern. If the API isn't running the proxy errors and the route shows its
 		 * offline state. Mirrors the RTK app's proxy.
 		 */
@@ -119,7 +124,7 @@ export default defineConfig({
 			'/api': {
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/api/, ''),
-				target: 'http://localhost:8787',
+				target: 'http://localhost:5198',
 			},
 		},
 		// Strict so two devs can't accidentally share the same port + cookies cross-app.

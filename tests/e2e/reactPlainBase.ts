@@ -3,15 +3,15 @@
  *
  * @remarks
  * Playwright's single `baseURL` (see `playwright.config.ts`) points at the React **RTK** app on
- * `:5174`, so the plain-React specs navigate with absolute URLs built from this origin. It must match
+ * `:5191`, so the plain-React specs navigate with absolute URLs built from this origin. It must match
  * the react-plain `webServer.url` in the Playwright config (and the app's `vite.config.ts`
- * `strictPort` on 5176).
+ * `strictPort` on 5193).
  *
  * @packageDocumentation
  */
 
 /** The plain-React app's dev-server origin. */
-export const REACT_PLAIN_BASE_URL = 'http://127.0.0.1:5176';
+export const REACT_PLAIN_BASE_URL = 'http://127.0.0.1:5193';
 
 /**
  * Build an absolute URL into the plain-React app.

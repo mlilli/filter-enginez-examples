@@ -6,7 +6,7 @@
   "name": "filter-enginez-angular",
   "compatibility_date": "2026-10-01",
   // The `/books-server` route calls same-origin `/api/*`, which `ng serve` proxies to examples-server on port
-  // 8787 (proxy.config.json). Deployed, examples-server's own Worker entry answers those requests instead;
+  // 5198 (proxy.config.json). Deployed, examples-server's own Worker entry answers those requests instead;
   // everything else is a static asset.
   "main": "../examples-server/src/cloudflareWorker.ts",
   "assets": {

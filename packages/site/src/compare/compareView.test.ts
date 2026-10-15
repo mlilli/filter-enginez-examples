@@ -25,7 +25,7 @@ import {
 } from './compareView.js';
 
 /** Stand-in for `window.location` on a developer's machine. */
-const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5181' };
+const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5197' };
 
 /** Stand-in for the deployed site. */
 const DEPLOYED = { hostname: 'filterenginez.com', origin: 'https://filterenginez.com' };

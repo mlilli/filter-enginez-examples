@@ -10,7 +10,7 @@
  *
  * ### What this drives
  *
- * The comparison page is one page, on the landing site (`/compare` on :5181), and its markup lives in
+ * The comparison page is one page, on the landing site (`/compare` on :5197), and its markup lives in
  * `packages/site/src/compare/compareView.ts`. Its whole output is one link per vertical serving the
  * dataset; **all six verticals serve `/books` and hydrate `?f=` there**. So the click-through opens
  * the page's books view and follows every row into its app. That the rows point at the right origins

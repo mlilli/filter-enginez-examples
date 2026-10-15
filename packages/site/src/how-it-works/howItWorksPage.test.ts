@@ -42,7 +42,7 @@ vi.mock('@filter-enginez/examples-shared/how-it-works', async (importActual) => 
 const { enhanceHowItWorksPage } = await import('./howItWorksPage.js');
 
 /** A developer's machine: loopback, so cross-app links resolve to the dev servers. */
-const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5181' };
+const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5197' };
 
 /** The deployed site. */
 const PRODUCTION_LOCATION = { hostname: 'filterenginez.com', origin: 'https://filterenginez.com' };
@@ -205,7 +205,7 @@ describe('enhanceHowItWorksPage', () => {
 
 		expect(links).toHaveLength(Object.keys(HOW_IT_WORKS_DEMO_LINKS).length);
 		for (const link of links) {
-			expect(link.getAttribute('href')).toBe('http://127.0.0.1:5176/lab');
+			expect(link.getAttribute('href')).toBe('http://127.0.0.1:5193/lab');
 		}
 	});
 

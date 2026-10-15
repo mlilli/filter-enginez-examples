@@ -271,11 +271,11 @@ export default defineConfig({
 			allow: ['../..'],
 		},
 		host: '127.0.0.1',
-		// 5181 — the next free slot after the documentation site's 5180. In the Playwright port map, because
+		// 5197 — the next free slot after the documentation site's 5196. In the Playwright port map, because
 		// the how-it-works and compare specs drive this server and every app's header links to it in
 		// development (`SITE.devOrigin` in examples-shared's verticals registry). `strictPort` so a
 		// collision fails loudly.
-		port: 5181,
+		port: 5197,
 		strictPort: true,
 	},
 });

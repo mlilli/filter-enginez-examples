@@ -23,7 +23,7 @@ const PAGE_HTML = prerenderCompare(
 );
 
 /** A loopback host, the developer's machine. */
-const DEV = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5181' };
+const DEV = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5197' };
 
 /**
  * Load the page into the test document.

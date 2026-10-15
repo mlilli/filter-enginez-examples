@@ -6,8 +6,8 @@
  * `.ts` sources compile through Vite directly — a client build needs no `ssr.noExternal`, unlike the
  * SvelteKit app). `@preact/signals-core` is DEDUPED: the engine's internal signals + the `vue-signals`
  * adapter must share one copy, or `.subscribe`/`.value` cross-instance boundaries silently break. A
- * dedicated port so it runs alongside every other vertical — RTK 5174, SvelteKit 5175, plain React
- * 5176. The canonical port map lives in `playwright.config.ts`.
+ * dedicated port so it runs alongside every other vertical — RTK 5191, SvelteKit 5192, plain React
+ * 5193. The canonical port map lives in `playwright.config.ts`.
  */
 
 import vue from '@vitejs/plugin-vue';
@@ -28,8 +28,13 @@ export default defineConfig({
 	// Leaflet is pre-bundled deliberately. It arrives through a DYNAMIC import (the geo section is
 	// loaded on demand), so without this Vite discovers it mid-session, re-optimizes, and forces a full
 	// page reload — which presents as "the map crashed the first time and worked after".
+	// The wine worker's corpus generator is pre-bundled for the same reason. The worker is a separate
+	// module graph (`?worker`), so the scan at server start never sees its imports: the first visit to
+	// /wine discovers `@filter-enginez/mock-data/wine/generator`, re-optimizes, and reloads EVERY open
+	// page of this app mid-session. tests/tooling/wineWorkerPrebundle.test.ts keeps this list in step
+	// with the worker's imports.
 	optimizeDeps: {
-		include: ['leaflet'],
+		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
 	},
 	plugins: [vue()],
 	resolve: {
@@ -45,7 +50,7 @@ export default defineConfig({
 	},
 	server: {
 		host: '127.0.0.1',
-		port: 5178,
+		port: 5194,
 		strictPort: true,
 	},
 	/**

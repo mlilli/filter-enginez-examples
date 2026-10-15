@@ -6,7 +6,7 @@
   "name": "filter-enginez-react-rtk",
   "compatibility_date": "2026-10-01",
   // The `/books-server` route calls same-origin `/api/*`, which the dev server proxies to examples-server on
-  // port 8787. Deployed, examples-server's own Worker entry answers those requests instead; everything else
+  // port 5198. Deployed, examples-server's own Worker entry answers those requests instead; everything else
   // is a static asset.
   "main": "../examples-server/src/cloudflareWorker.ts",
   "assets": {

@@ -112,7 +112,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 	{
 		binding: '@filter-enginez/react-signals',
 		blurb: 'Adds the optional Redux mirror via redux-bridge — the engine stays the source of truth.',
-		devOrigin: 'http://127.0.0.1:5174',
+		devOrigin: 'http://127.0.0.1:5191',
 		framework: 'React 19',
 		id: 'react-rtk',
 		name: 'React RTK',
@@ -126,7 +126,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 	{
 		binding: '@filter-enginez/react-signals',
 		blurb: 'The same app with no store library at all, proving the Redux mirror is optional.',
-		devOrigin: 'http://127.0.0.1:5176',
+		devOrigin: 'http://127.0.0.1:5193',
 		framework: 'React 19',
 		id: 'react-plain',
 		name: 'React plain',
@@ -140,7 +140,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 	{
 		binding: '@filter-enginez/svelte-signals',
 		blurb: 'Runs the isomorphic core in SvelteKit’s own server tier, with a zero-JS SSR fallback.',
-		devOrigin: 'http://127.0.0.1:5175',
+		devOrigin: 'http://127.0.0.1:5192',
 		framework: 'SvelteKit 5',
 		id: 'sveltekit',
 		name: 'SvelteKit',
@@ -154,7 +154,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 	{
 		binding: '@filter-enginez/vue-signals',
 		blurb: 'Holds the engine in shallowRef — Vue’s deep proxy would break its signals.',
-		devOrigin: 'http://127.0.0.1:5178',
+		devOrigin: 'http://127.0.0.1:5194',
 		framework: 'Vue 3',
 		id: 'vue',
 		name: 'Vue',
@@ -168,7 +168,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 	{
 		binding: '@filter-enginez/angular-rxjs',
 		blurb: 'Zoneless and standalone; consumes the engine’s Observables natively, so the binding is DI only.',
-		devOrigin: 'http://127.0.0.1:4200',
+		devOrigin: 'http://127.0.0.1:5190',
 		framework: 'Angular 22',
 		id: 'angular',
 		name: 'Angular',
@@ -185,7 +185,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
 	{
 		binding: null,
 		blurb: '/books goes through reactive-signals, /books-raw through the bare core — the pair shows what the adapter buys.',
-		devOrigin: 'http://127.0.0.1:5179',
+		devOrigin: 'http://127.0.0.1:5195',
 		framework: 'None',
 		id: 'vanilla',
 		name: 'Vanilla',
@@ -214,7 +214,7 @@ export const VERTICALS: readonly VerticalDescriptor[] = [
  * `tests/tooling/cloudflareDeploy.test.ts`.
  */
 export const SITE: Readonly<Pick<VerticalDescriptor, 'devOrigin' | 'productionOrigin'>> = {
-	devOrigin: 'http://127.0.0.1:5181',
+	devOrigin: 'http://127.0.0.1:5197',
 	productionOrigin: 'https://filterenginez.com',
 };
 

@@ -1,5 +1,5 @@
 /**
- * End-to-end smoke for the standalone documentation site (`@filter-enginez/examples-docs`, :5180).
+ * End-to-end smoke for the standalone documentation site (`@filter-enginez/examples-docs`, :5196).
  *
  * @remarks
  * The site is the shared `docsRoute` mounted as its own Vite app, so this is a thin smoke rather than

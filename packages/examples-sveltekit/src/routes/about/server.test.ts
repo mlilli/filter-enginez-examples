@@ -43,8 +43,8 @@ describe('GET /about', () => {
 	});
 
 	it('redirects a local run to the local site server', async () => {
-		expect(await thrownFor('http://127.0.0.1:5175/about')).toMatchObject({
-			location: 'http://127.0.0.1:5181/how-it-works',
+		expect(await thrownFor('http://127.0.0.1:5192/about')).toMatchObject({
+			location: 'http://127.0.0.1:5197/how-it-works',
 			status: 301,
 		});
 	});

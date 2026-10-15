@@ -13,11 +13,17 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	// Leaflet is pre-bundled deliberately. It arrives through a DYNAMIC import (the geo section is
 	// loaded on demand), so without this Vite discovers it mid-session, re-optimizes, and forces a full
-	// page reload — which presents as "the map crashed the first time and worked after". Note this is
-	// the ONE `optimizeDeps.include` entry here: the workspace `@filter-enginez/*` packages must stay
-	// out, or Vite snapshots their source once and serves it stale.
+	// page reload — which presents as "the map crashed the first time and worked after". The workspace
+	// `@filter-enginez/examples-*` packages must stay out of this list, or Vite snapshots their source
+	// once and serves it stale; engine packages are installed tarballs, so pre-bundling one is safe.
+	//
+	// The wine worker's corpus generator is pre-bundled for the same reason. The worker is a separate
+	// module graph (`?worker`), so the scan at server start never sees its imports: the first visit to
+	// /wine discovers `@filter-enginez/mock-data/wine/generator`, re-optimizes, and reloads EVERY open
+	// page of this app mid-session. tests/tooling/wineWorkerPrebundle.test.ts keeps this list in step
+	// with the worker's imports.
 	optimizeDeps: {
-		include: ['leaflet'],
+		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
 	},
 	plugins: [sveltekit()],
 	server: {
@@ -28,9 +34,9 @@ export default defineConfig({
 			allow: ['../..'],
 		},
 		// A dedicated port so it runs alongside every other vertical. Canonical port map lives in
-		// `playwright.config.ts`; RTK is 5174 and plain React is 5176.
+		// `playwright.config.ts`; RTK is 5191 and plain React is 5193.
 		host: '127.0.0.1',
-		port: 5175,
+		port: 5192,
 		strictPort: true,
 	},
 	ssr: {
