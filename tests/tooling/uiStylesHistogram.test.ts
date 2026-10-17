@@ -20,12 +20,9 @@
  * package (see the `tooling` vitest project).
  */
 
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+import { readUiStyles } from './support/uiStylesSheet.js';
 
 const BASE = '.fe-range-histogram__bar';
 const SELECTED = `${BASE}--selected`;
@@ -49,7 +46,8 @@ function stripComments(css: string): string {
 	return css.replace(/\/\*[\s\S]*?\*\//gu, '');
 }
 
-const SHEET = stripComments(readFileSync(resolve(REPO_ROOT, 'packages/ui-styles/src/styles.css'), 'utf8'));
+/** The whole `ui-styles` sheet, its partials inlined in cascade order, comment-stripped. */
+const SHEET = stripComments(readUiStyles());
 
 /**
  * Match a selector's rule, as authored and standing alone.

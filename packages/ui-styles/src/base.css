@@ -1,0 +1,153 @@
+/**
+ * @filter-enginez/ui-styles — base: the brand tokens and the baseline reset.
+ *
+ * Every page that wears the design system needs this partial, and first: the tokens every other
+ * partial's values are drawn from, and the element defaults (in `@layer base`) that the component
+ * classes build on.
+ *
+ * A partial of `styles.css`, which imports every partial in cascade order; that file explains
+ * the split.
+ */
+
+@import '@filter-enginez/brand/tokens.css';
+
+/* ─── Baseline reset ─────────────────────────────────────────────────────────
+ *
+ * The two React apps get this from Tailwind's preflight. The four non-Tailwind
+ * verticals (SvelteKit, Vue, vanilla, Angular) get it from here; without it
+ * every heading would carry the browser's default margin and bold weight while
+ * the React apps' did not — the same markup rendering at visibly different
+ * sizes and spacing.
+ *
+ * These declarations are the subset of preflight that this design system
+ * actually depends on. Anything beyond it is deliberately omitted — a full
+ * preflight port would restyle form controls and media the verticals have not
+ * been checked against. If a new vertical needs more, add it here.
+ *
+ * ── Why `@layer base` is load-bearing ──
+ *
+ * Even though these rules are byte-equivalent to preflight, they are NOT a
+ * no-op for React when unlayered.
+ *
+ * Preflight lives INSIDE `@layer base`. Per CSS Cascade 5, normal declarations
+ * in unlayered author styles beat normal declarations in EVERY layer — layer
+ * order outranks specificity. Tailwind emits its utilities into
+ * `@layer utilities`, so an unlayered `h3 { font-size: inherit }` here would
+ * silently defeat `.text-xs` over in the React apps, despite the class being
+ * the more specific selector. Every `<h3 className="text-xs">` would jump from
+ * 12px to 16px, as would the panel titles, the `<p>` margins, and the type on
+ * every `<button>`.
+ *
+ * Naming the layer handles both sides at once. `ui-styles` is imported AFTER
+ * `tailwindcss`, so these rules append into the base layer preflight already
+ * occupies and correctly lose to `utilities`. In the four non-Tailwind
+ * verticals nothing else is layered, so a layered `base` still beats the UA
+ * defaults, while the unlayered `.fe-*` classes still beat it on the cascade.
+ * Their pixels do not move.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	/* Headings inherit their type. Every heading in this system is sized by its
+	 * own `fe-*` class or utility; a UA default that leaks through is a bug. */
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-size: inherit;
+		font-weight: inherit;
+		margin: 0;
+	}
+
+	blockquote,
+	dd,
+	dl,
+	figure,
+	p,
+	pre {
+		margin: 0;
+	}
+
+	ol,
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	/* Form controls do not inherit type by default, which is why a `<button>` in
+	 * a mono panel silently rendered in the UA's sans stack. */
+	button,
+	input,
+	optgroup,
+	select,
+	textarea {
+		color: inherit;
+		font: inherit;
+		letter-spacing: inherit;
+		margin: 0;
+	}
+
+	button {
+		background-color: transparent;
+		background-image: none;
+	}
+
+	/* ── Text entry never zooms the page on a phone or tablet ──
+	 *
+	 * iOS Safari zooms the whole page in when a focused `input`, `select` or `textarea` computes to a
+	 * font-size below 16px, and leaves the visitor zoomed in after the field blurs. The filter panels
+	 * set their fields at 12–14px, so every search box, number field and select in every app did it.
+	 * Turning zoom off (`maximum-scale`, `user-scalable=no` in the viewport tag) would hide the
+	 * symptom by taking pinch-zoom away from everyone who needs it; this sets the floor instead.
+	 *
+	 * ── When it applies ──
+	 *
+	 * `(pointer: coarse)` is every device whose primary pointer is a finger, at any width, which is
+	 * what reaches an iPad in landscape (1024px and up) that a width query alone would miss. It is the
+	 * same query `.fe-icon-button` uses for its 44px touch size. Not `(hover: none) and
+	 * (pointer: coarse)`: requiring `hover: none` as well would drop touch devices that also report a
+	 * hover-capable input, and those zoom just the same. `(max-width: 1023px)` adds the phone and
+	 * tablet widths below the `lg` breakpoint (`DESKTOP_MIN_WIDTH_PX`, the panel's drawer/sidebar
+	 * switch), so the rule holds at those sizes even where a browser reports a fine pointer.
+	 *
+	 * ── Why `@layer base` and `!important` ──
+	 *
+	 * The field sizes it overrides are unlayered `.fe-*` classes here, Tailwind utilities in
+	 * `@layer utilities` in the two React apps, and inline `<style>` blocks; a normal declaration in a
+	 * layer loses to every one of them. An `!important` declaration in an EARLY layer beats all of those
+	 * — the cascade reverses layer order for important declarations — and `base` comes before every
+	 * layer that sets a font size: the brand tokens open it ahead of Tailwind's `theme`, `components`
+	 * and `utilities` (Tailwind hoists only its `properties` layer above it, which declares nothing
+	 * but `--tw-*` custom properties). Every input in the system is 16px or smaller at desktop sizes,
+	 * so a floor of exactly 16px raises the small ones and changes nothing else.
+	 *
+	 * Text entry only: checkboxes, radios, ranges and buttons do not zoom, and their glyph sizes are
+	 * not this rule's business. `tests/tooling/touchInputZoom.test.ts` pins the rule, and every app's
+	 * stylesheet reaching it. */
+	@media (pointer: coarse), (max-width: 1023px) {
+		input:not(
+			[type='button'],
+			[type='checkbox'],
+			[type='color'],
+			[type='file'],
+			[type='hidden'],
+			[type='image'],
+			[type='radio'],
+			[type='range'],
+			[type='reset'],
+			[type='submit']
+		),
+		select,
+		textarea {
+			font-size: 16px !important;
+		}
+	}
+}

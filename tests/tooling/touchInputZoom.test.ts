@@ -15,6 +15,9 @@
  * - **A stylesheet entry stops reaching it.** A new app, page or sheet that does not import `ui-styles`
  *   ships fields at 12–14px and zooms, and nothing else notices. Entries are DERIVED: every `.css`
  *   under a package's `src/` that no other sheet imports, so a new one is checked the day it appears.
+ *   An entry reaches the rule through any `ui-styles` export that carries it: the whole sheet, which
+ *   the apps import, or the `base.css` partial the landing site's pages import with the few others
+ *   they draw.
  * - **Tailwind's layers go first.** The rule outranks Tailwind's utilities only while `base` comes
  *   before Tailwind's `theme`, `components` and `utilities` layers, which holds because the brand
  *   tokens (or `ui-styles`) are imported before `tailwindcss`. (Tailwind hoists one layer of its own,
@@ -32,14 +35,12 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { enclosingLayer, stripCssComments } from './support/cssLayers.js';
+import { readUiStyles, readWithPartials, UI_STYLES_SHEET, uiStylesExportFile } from './support/uiStylesSheet.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** The sheet that carries the rule. */
-const UI_STYLES = 'packages/ui-styles/src/styles.css';
-
-/** How a sheet imports {@link UI_STYLES} from another package. */
-const UI_STYLES_SPECIFIER = '@filter-enginez/ui-styles/styles.css';
+/** The `ui-styles` partial that carries the rule, inside the whole sheet every app imports. */
+const RULE_SHEET = 'packages/ui-styles/src/base.css';
 
 /** How a sheet imports the brand tokens, which open `@layer base` too. */
 const BRAND_TOKENS_SPECIFIER = '@filter-enginez/brand/tokens.css';
@@ -119,7 +120,20 @@ const IMPORTS: ReadonlyMap<string, readonly string[]> = new Map(
 const ENTRIES = APP_SHEETS.filter((path) => ![...IMPORTS.values()].some((imports) => imports.includes(path)));
 
 /**
- * Whether a sheet reaches {@link UI_STYLES}, directly or through the sheets it imports.
+ * Whether an import specifier loads a `ui-styles` sheet that carries the rule.
+ *
+ * @param specifier - The specifier, as an app's or a page's sheet writes it.
+ * @returns `true` for the whole sheet and for the partial the rule is in; `false` for every other
+ *   partial, for `figures.css`, and for anything that is not a `ui-styles` export.
+ */
+function carriesRule(specifier: string): boolean {
+	const file = uiStylesExportFile(specifier);
+
+	return file !== undefined && RULE_MEDIA.test(stripCssComments(readWithPartials(file)));
+}
+
+/**
+ * Whether a sheet reaches the rule, directly or through the sheets it imports.
  *
  * @param path - Absolute path of the sheet.
  * @param seen - Sheets already visited, against an import cycle.
@@ -129,14 +143,14 @@ function reachesUiStyles(path: string, seen: ReadonlySet<string> = new Set()): b
 	const imports = IMPORTS.get(path) ?? [];
 
 	return (
-		imports.includes(UI_STYLES_SPECIFIER)
+		imports.some(carriesRule)
 		|| imports.some((target) => IMPORTS.has(target) && !seen.has(target) && reachesUiStyles(target, new Set([...seen, path])))
 	);
 }
 
-/** The rule's media block in `ui-styles`, comment-stripped, with its offset in the sheet. */
+/** The rule's media block in `ui-styles`, comment-stripped, with its offset in the whole sheet. */
 function ruleBlock(): { readonly block: string; readonly offset: number; readonly width: number } {
-	const css = stripCssComments(read(UI_STYLES));
+	const css = stripCssComments(readUiStyles());
 	const match = RULE_MEDIA.exec(css);
 
 	expect(match, 'the touch font-size rule is gone from ui-styles, or its media query changed shape').not.toBeNull();
@@ -150,7 +164,7 @@ function ruleBlock(): { readonly block: string; readonly offset: number; readonl
 describe('touch text-entry font-size floor', () => {
 	it('sets the covered controls to 16px, !important, in @layer base', () => {
 		const { block, offset } = ruleBlock();
-		const css = stripCssComments(read(UI_STYLES));
+		const css = stripCssComments(readUiStyles());
 
 		expect(enclosingLayer(css, offset), 'the rule must sit in @layer base, ahead of every layer that sets a font size').toBe('base');
 		expect(block).toMatch(/font-size: 16px !important;/u);
@@ -176,19 +190,22 @@ describe('touch text-entry font-size floor', () => {
 	});
 
 	it('finds the stylesheet entries, so the cases below are not vacuous', () => {
-		// Six apps, the documentation site, and the landing site's three page sheets.
-		expect(ENTRIES.length).toBeGreaterThanOrEqual(9);
+		// Six apps, the documentation site, and the landing site's four page sheets.
+		expect(ENTRIES.length).toBeGreaterThanOrEqual(11);
 	});
 
 	it.each(ENTRIES.map((path) => [relative(REPO_ROOT, path), path]))('%s reaches the rule through ui-styles', (_name, path) => {
-		expect(reachesUiStyles(path), `${relative(REPO_ROOT, path)} never imports ${UI_STYLES_SPECIFIER}`).toBe(true);
+		expect(
+			reachesUiStyles(path),
+			`${relative(REPO_ROOT, path)} never imports @filter-enginez/ui-styles/styles.css, or its base.css partial`,
+		).toBe(true);
 	});
 
 	it.each(ENTRIES.map((path) => [relative(REPO_ROOT, path), path]))('%s declares @layer base before Tailwind’s layers', (_name, path) => {
 		const imports = IMPORTS.get(path) ?? [];
 		const tailwind = imports.indexOf('tailwindcss');
 		const firstBase = imports.findIndex(
-			(specifier) => specifier === BRAND_TOKENS_SPECIFIER || specifier === UI_STYLES_SPECIFIER || IMPORTS.has(specifier),
+			(specifier) => specifier === BRAND_TOKENS_SPECIFIER || carriesRule(specifier) || IMPORTS.has(specifier),
 		);
 
 		expect(firstBase, 'the sheet imports nothing that opens @layer base').toBeGreaterThanOrEqual(0);
@@ -198,14 +215,18 @@ describe('touch text-entry font-size floor', () => {
 	});
 
 	it('is the only !important font-size in any stylesheet, so nothing can outrank it from an earlier layer', () => {
-		const offenders = [...APP_SHEETS, resolve(REPO_ROOT, UI_STYLES), resolve(REPO_ROOT, 'packages/brand/src/tokens.css')]
+		const uiStylesSheets = cssFiles(resolve(REPO_ROOT, 'packages/ui-styles/src'));
+
+		expect(uiStylesSheets.map((path) => relative(REPO_ROOT, path))).toEqual(expect.arrayContaining([UI_STYLES_SHEET, RULE_SHEET]));
+
+		const offenders = [...APP_SHEETS, ...uiStylesSheets, resolve(REPO_ROOT, 'packages/brand/src/tokens.css')]
 			.flatMap((path) => {
 				const matches = stripCssComments(readFileSync(path, 'utf8')).match(/font-size:[^;]*!important/gu) ?? [];
 
 				return matches.map((match) => `${relative(REPO_ROOT, path)}: ${match}`);
 			});
 
-		expect(offenders).toEqual([`${UI_STYLES}: font-size: 16px !important`]);
+		expect(offenders).toEqual([`${RULE_SHEET}: font-size: 16px !important`]);
 	});
 });
 

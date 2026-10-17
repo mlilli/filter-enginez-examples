@@ -1,0 +1,715 @@
+/**
+ * @filter-enginez/ui-styles — dataset view: the chrome inside a dataset route's shell.
+ *
+ * The filter panel (its mobile-collapse wrapper, header, typography, scroller and sections), the
+ * checkbox control, the result grid with its empty, cap and load-more states, the header's
+ * shareable-URL and compare controls, the wine smart-search mode and the server-backed route's
+ * fallback form.
+ *
+ * A partial of `styles.css`, which imports every partial in cascade order; that file explains
+ * the split.
+ */
+
+/* ── The filter panel's mobile-collapse wrapper ──
+ *
+ * It exists ONLY to carry `hidden`. Every sidebar layout wraps its panel in one, because `{#if}` /
+ * `v-if` would destroy the Leaflet map and every control's local state on each mobile filter close.
+ *
+ * It therefore must NOT carry an unconditional `display`: an authored `display` beats the `hidden`
+ * attribute, which is only a UA rule. But it cannot be a classless plain block either.
+ *
+ * A plain block severs the height chain the panel's scrolling depends on. `.fe-filter-panel` is
+ * `flex: 1 1 0%` and `.fe-filter-panel__scroller` is `overflow-y: auto` + `min-height: 0`, but both
+ * resolve to "as tall as my content" unless EVERY ancestor up to the aside's `max-height` is a flex
+ * column that can shrink. With a plain block in the middle, the scroller never bounds, so it never
+ * scrolls and the bottom sections are unreachable — on books, wine and real estate alike, in every
+ * vertical that renders this layout.
+ *
+ * `:not([hidden])` is how it gets a display without beating the attribute. The two concerns are stated
+ * in one selector, which is the only way they stay stated together. */
+.fe-filter-collapse:not([hidden]) {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* ═══ WINE SMART FILTERS (expression mode) ═══════════════════════════════════ */
+
+.fe-wine-smart__mode {
+	align-items: center;
+	color: var(--gray-9);
+	cursor: pointer;
+	display: inline-flex;
+	font-family: var(--font-sans);
+	font-size: 12px;
+	gap: 6px;
+	margin-bottom: 10px;
+	min-height: 44px;
+}
+
+.fe-wine-smart__mode input {
+	accent-color: var(--accent);
+	height: 16px;
+	width: 16px;
+}
+
+.fe-wine-smart__paused {
+	align-items: center;
+	color: var(--gray-9);
+	display: flex;
+	flex-wrap: wrap;
+	/* 12px and the SANS family, matching React. Left unset these inherited the panel's mono
+	 * stack, which reads as a code annotation rather than an explanation. */
+	font-family: var(--font-sans);
+	font-size: 12px;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+/* A LINK, not a button: transparent, no border, underlined, cyan, 600. The 44px min-height is
+ * the touch target — it does not add visual weight because there is no background or border. */
+.fe-wine-smart__clear {
+	background: transparent;
+	border: none;
+	color: var(--accent);
+	cursor: pointer;
+	font-family: var(--font-sans);
+	font-size: 12px;
+	font-weight: 600;
+	min-height: 44px;
+	padding: 0;
+	text-decoration: underline;
+}
+
+/* ═══ SERVER-BACKED ROUTE FALLBACK ═══════════════════════════════════════════
+ *
+ * The SSR / no-JS fallback chrome for the server-backed routes (`/books-server`,
+ * `/wine-server`): the "filtering on the server" banner, the plain GET `<form>`,
+ * the SSR sample grid + card. Dataset-neutral by design — the two fallbacks differ
+ * only in their form fields and card fields, never in this chrome — so it lives
+ * here rather than scoped inside one component. `<BooksServerFallback>` and
+ * `<WineServerFallback>` both render through these classes.
+ * ═════════════════════════════════════════════════════════════════════════ */
+.fe-server-fallback {
+	width: 100%;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.fe-server-fallback__banner {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 16px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+}
+.fe-server-fallback__dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--engine);
+	flex-shrink: 0;
+}
+.fe-server-fallback__banner-text {
+	margin: 0;
+	font-family: var(--font-mono);
+	font-size: 13px;
+	color: var(--gray-9);
+}
+.fe-server-fallback__banner-text strong {
+	color: var(--gray-11);
+}
+.fe-server-fallback__status,
+.fe-server-fallback__error {
+	margin: 0;
+	font-family: var(--font-mono);
+	font-size: 13px;
+}
+.fe-server-fallback__status {
+	color: var(--engine);
+}
+.fe-server-fallback__error {
+	color: var(--danger);
+}
+.fe-server-fallback__form {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+}
+.fe-server-fallback__fieldset {
+	border: none;
+	margin: 0;
+	padding: 0;
+}
+.fe-server-fallback__legend {
+	font-family: var(--font-display);
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--gray-10);
+	margin-bottom: 8px;
+}
+.fe-server-fallback__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.fe-server-fallback__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 36px;
+	padding: 0 12px;
+	font-size: 13px;
+	text-transform: capitalize;
+	color: var(--gray-10);
+	background: var(--gray-0);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+}
+.fe-server-fallback__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+.fe-server-fallback__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.fe-server-fallback__field--grow {
+	flex: 1 1 220px;
+}
+.fe-server-fallback__label {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--gray-8);
+}
+.fe-server-fallback__select,
+.fe-server-fallback__input {
+	min-height: 40px;
+	padding: 0 12px;
+	font-size: 14px;
+	color: var(--gray-11);
+	background: var(--gray-0);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+}
+.fe-server-fallback__actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.fe-server-fallback__submit {
+	min-height: 44px;
+	padding: 0 20px;
+	font-family: var(--font-display);
+	font-size: 14px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--gray-0);
+	background: var(--accent);
+	border: none;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+}
+.fe-server-fallback__clear {
+	font-family: var(--font-mono);
+	font-size: 13px;
+	color: var(--gray-8);
+}
+.fe-server-fallback__count {
+	margin: 0;
+	font-family: var(--font-mono);
+	font-size: 14px;
+	color: var(--gray-10);
+}
+.fe-server-fallback__count strong {
+	color: var(--accent);
+	font-size: 18px;
+}
+.fe-server-fallback__count-hint {
+	color: var(--gray-7);
+}
+.fe-server-fallback__grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 12px;
+}
+.fe-server-fallback__card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+}
+.fe-server-fallback__card-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-7);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+.fe-server-fallback__card-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--gray-11);
+}
+.fe-server-fallback__card-authors {
+	margin: 0;
+	font-size: 13px;
+	color: var(--gray-8);
+}
+.fe-server-fallback__card-rating {
+	margin: 0;
+	font-size: 13px;
+	color: var(--accent);
+}
+.fe-server-fallback__empty {
+	font-family: var(--font-mono);
+	color: var(--gray-8);
+}
+
+/* ═══ FILTER PANEL ═══════════════════════════════════════════════════════════
+ *
+ * One root class, and the cascade does the rest. Every filter panel in every
+ * framework and every dataset is the same layout, so the structural rules are
+ * DESCENDANT selectors under `.fe-filter-panel` rather than a class per element.
+ *
+ * No `.fe-filter-section` class hand-applied to ~40 bare `<section>` elements
+ * across six verticals: that is BEM reflex, not CSS. The panel already has a
+ * stable shape, so `.fe-filter-panel > * > section` reaches every one of them
+ * for free — including any section added later, without anyone remembering to.
+ *
+ * Child combinators where nesting is possible. A control may legitimately
+ * contain its own `<section>` or heading (the hierarchical picker does), and a
+ * bare descendant selector would style those too.
+ * ═════════════════════════════════════════════════════════════════════════ */
+.fe-filter-panel,
+.fe-books-panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	flex: 1 1 0%;
+}
+
+/* ── Header ──
+ * ONE header for every demo: an 18px inset with a 20px top margin. Every aside
+ * carries no internal padding (so the scroll container's scrollbar can hug the
+ * edge), which means the header has to supply its own inset. */
+.fe-filter-panel__header,
+.fe-books-panel__header {
+	align-items: center;
+	border-bottom: 1px solid var(--gray-3);
+	display: flex;
+	flex-shrink: 0;
+	justify-content: space-between;
+	margin-top: 20px;
+	padding: 0 18px 14px;
+}
+/* ── Filter-panel typography — THE canonical definition ──────────────────────
+ *
+ * One rule set per element, shared by every framework AND every dataset, so
+ * "the section header" is changed in exactly one place.
+ *
+ * The dataset-neutral names are canonical. The `fe-books-*` names are kept as
+ * aliases because five verticals × three datasets already author that markup;
+ * aliasing costs one selector and avoids a rename across ~40 files. New markup
+ * should use the neutral names.
+ * ────────────────────────────────────────────────────────────────────────── */
+.fe-filter-panel__title,
+.fe-books-panel__title {
+	margin: 0;
+	/* 18px. Deliberately larger than the 14px section labels — the panel title
+	 * is the only heading in the sidebar and must not compete with its own
+	 * section labels for hierarchy. */
+	font-size: 18px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--gray-11);
+	font-family: var(--font-display);
+}
+/* ── Scroller vs body — two elements, deliberately ──
+ *
+ * `__scroller` owns overflow and the inset. `__body` owns the section rhythm and
+ * the dim treatment. Books puts BOTH on one element; wine needs them split,
+ * because its smart-filter presets sit inside the scroller but OUTSIDE the body
+ * — they must keep scrolling with the panel while staying interactive, since
+ * they are the only way back out of expression mode. Dimming the scroller would
+ * lock the escape hatch along with everything else.
+ *
+ * The 18px inset matches the header's. Zero top padding: the first section's
+ * label supplies its own, and adding it here doubles the gap under the border. */
+/* The scroll container, and the ONLY source of the panel's inner padding — the asides deliberately
+ * carry none so a scrollbar can hug the edge (see the header note above).
+ *
+ * **It is a class you COMPOSE, not one the body implies.** Every panel that scrolls puts it on the
+ * same element as its `*__body`: `fe-filter-panel__scroller fe-filter-panel__body` in React,
+ * `fe-filter-panel__scroller fe-books-panel__body` in the four non-React books panels. Wine is the one
+ * that splits them across two elements, so its preset section can stay interactive while the rest
+ * dims.
+ *
+ * Omitting it does not look like a missing class. The panel silently stops scrolling — the page
+ * scrolls instead, so the content is still reachable and nothing is obviously broken — and the
+ * controls sit flush against the edge. It is easy to miss until the panel content grows tall. */
+.fe-filter-panel__scroller {
+	flex: 1 1 0%;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 18px 20px;
+}
+
+.fe-filter-panel__body,
+.fe-books-panel__body {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	transition: opacity 120ms ease-out;
+}
+
+/* Dimmed while the engine recomputes. `pointer-events: none` matters as much as
+ * the opacity — a control accepting clicks it will discard is worse than one
+ * that visibly refuses them. */
+.fe-filter-panel__body--busy,
+.fe-books-panel__body--busy {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+/* Dimmed HARDER while a smart-filter preset drives the results: the flat rules
+ * are dormant, not merely stale. Wine only — the panel keeps its preset section
+ * outside this container precisely so it stays interactive while the rest dims,
+ * which is why the scroller and the dimmed body are separate elements there. */
+.fe-filter-panel__body--expression {
+	opacity: 0.4;
+	pointer-events: none;
+}
+
+/* ── Sections ──
+ * The panel's rhythm. Each filter block closes with padding that matches the
+ * label's own `margin-bottom`, so a control is separated from its heading and
+ * from the next section by the same measure. The body's flex `gap` alone would
+ * leave controls flush against the heading that names them.
+ *
+ * `> *` first so this survives a wrapper element — several verticals nest their
+ * sections one level deeper than others. */
+.fe-filter-panel section,
+.fe-books-panel section {
+	padding-bottom: 10px;
+}
+
+/* A section that closes a group carries a rule. Wine's smart-filters block is
+ * the user: it is a MODE switch sitting above the ordinary facets, and without
+ * a separator it reads as just another facet. */
+.fe-filter-panel__section--divided {
+	border-bottom: 1px solid var(--gray-3);
+	padding-bottom: 16px;
+	padding-top: 16px;
+}
+.fe-filter-section-label,
+.fe-books-section-label {
+	/* The gap BENEATH the label. Padding-bottom alone would leave a control
+	 * flush against its own heading, and the panel would read as one
+	 * undifferentiated column. */
+	margin: 0 0 10px;
+	/* Left padding clears the accent border below. 14px, not 8px — at 8px the
+	 * text crowds the rule it is meant to hang off. */
+	padding: 16px 0 12px 14px;
+	/* 14px. 12px is caption size, and this is structurally a heading. */
+	font-size: 14px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--gray-9);
+	font-family: var(--font-mono);
+	/* Cyan, per the dual-accent contract: these name the DATA being filtered
+	 * (identity/what), never engine activity. Phosphor here would read as "this
+	 * facet is computing". Every dataset's panel carries it, in every framework. */
+	border-left: 2px solid var(--accent);
+}
+/* A qualifier on its own line beneath the label — e.g. "(expression mode)". Lighter and
+ * untracked, so it reads as an annotation rather than as part of the facet's name. */
+.fe-filter-section-label__note,
+.fe-books-section-label__note {
+	display: inline-block;
+	margin-top: 2px;
+	color: var(--gray-8);
+	font-weight: 400;
+	letter-spacing: 0.06em;
+	text-transform: none;
+}
+.fe-books-toggles {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.fe-books-regex-error {
+	margin: 4px 0 0;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--danger);
+}
+
+/* ── Checkbox control (CheckboxControl) ──────────────────────────────────── */
+.fe-books-checkbox {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	font-size: 14px;
+	color: var(--gray-10);
+	cursor: pointer;
+}
+.fe-books-checkbox--disabled {
+	color: var(--gray-8);
+	cursor: not-allowed;
+}
+.fe-books-checkbox input {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--accent);
+}
+
+/* ── Result grid + empty / cap / load-more states ─────────────────────────────
+ * ONE grid for every dataset in every vertical: one `grid-template-columns`, one empty state, one
+ * cap notice.
+ *
+ * The empty state is a dashed card with a bounded hint: an unbounded hint runs the full measure of a
+ * wide results column, which is a line length nobody reads.
+ *
+ * `__more*` is the "Show N more" button, which only the wine grid renders — the other grids batch on
+ * an IntersectionObserver sentinel. It lives here rather than in a wine block because it is part of
+ * this component's vocabulary. */
+.fe-result-grid__scroller {
+	flex: 1 1 0%;
+	min-height: 0;
+	overflow-y: auto;
+}
+.fe-result-grid {
+	display: grid;
+	gap: 16px;
+	/* 280px, not a smaller track: a 15rem/240px track fits four columns where this fits three, so
+	 * every vertical must share this exact track to render the same grid. The
+	 * `min(…, 100%)` guard keeps the track from overflowing a viewport narrower than the track itself
+	 * — without it the grid forces horizontal scroll on small phones. */
+	grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+}
+.fe-result-grid__empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 96px 24px;
+	text-align: center;
+	background: var(--gray-1);
+	border: 1px dashed var(--gray-3);
+	border-radius: var(--radius-lg);
+	color: var(--gray-8);
+}
+.fe-result-grid__empty-title {
+	margin: 0 0 8px;
+	font-size: 18px;
+	font-weight: 600;
+	color: var(--gray-10);
+	font-family: var(--font-display);
+}
+.fe-result-grid__empty-hint {
+	margin: 0;
+	/* Bounded so the hint keeps a readable line length. */
+	max-width: 32rem;
+	font-size: 14px;
+	color: var(--gray-8);
+}
+.fe-result-grid__cap-notice {
+	margin: 16px 0 8px;
+	font-size: 12px;
+	text-align: center;
+	color: var(--gray-8);
+	font-family: var(--font-mono);
+	letter-spacing: 0.06em;
+}
+.fe-result-grid__cap-shown {
+	color: var(--accent);
+	font-weight: 600;
+}
+.fe-result-grid__cap-total {
+	color: var(--gray-9);
+}
+.fe-result-grid__more {
+	display: flex;
+	justify-content: center;
+	padding: 2rem 0;
+}
+.fe-result-grid__more-btn {
+	padding: 0.625rem 1.25rem;
+	border: 1px solid var(--gray-5);
+	border-radius: 0.5rem;
+	background: transparent;
+	color: var(--accent);
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+.fe-result-grid__more-btn:hover {
+	border-color: var(--accent);
+}
+.fe-result-grid__more-rest {
+	color: var(--gray-8);
+}
+
+/* ── Shareable-URL controls (UrlFormatToggle / CopyLinkButton) ───────────── */
+/* `flex-shrink: 0` on all three header controls below is load-bearing, not defensive. These are
+   inline-flex boxes with fixed padding and a 16px icon; shrinking one below its content width does
+   not make it narrower, it makes its CONTENT overflow the box and paint onto whatever sits beside
+   it. The header wraps instead — see `.fe-books-app__url-controls`. */
+.fe-url-format-toggle {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 12px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--gray-10);
+	background: transparent;
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition:
+		color 150ms ease,
+		border-color 150ms ease;
+}
+.fe-url-format-toggle:hover {
+	border-color: var(--gray-6);
+	color: var(--gray-11);
+}
+.fe-url-format-toggle__kicker {
+	color: var(--gray-8);
+}
+.fe-copy-link {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 14px;
+	font-family: var(--font-display);
+	font-size: 12px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--accent);
+	background: transparent;
+	border: 1px solid var(--accent);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: opacity 150ms ease;
+}
+.fe-copy-link:hover {
+	opacity: 0.82;
+}
+
+/* The header "Compare" button — an ANCHOR, not a button, so middle-click and open-in-new-tab work.
+   A visitor comparing their filter state almost always wants to keep the filtered page they are
+   standing on, and a JS-navigating <button> silently takes that away.
+
+   Quieter than `.fe-copy-link` on purpose. Two cyan-outlined controls side by side compete for the
+   same attention and neither wins; this one rests in gray and reaches for the accent on hover and
+   focus. That is still the dual-accent contract honored, not bent — cyan is data / identity, and
+   carrying a filter state to another app is squarely that. Phosphor would be wrong here: nothing is
+   computing. */
+.fe-compare-link {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 0 14px;
+	font-family: var(--font-display);
+	font-size: 12px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	text-decoration: none;
+	color: var(--gray-10);
+	background: transparent;
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition:
+		color 150ms ease,
+		border-color 150ms ease;
+}
+/* Scoped with `:not()` rather than left to source order, for the same reason as the /compare
+   toggle's hover rule (see `.fe-compare__toggle`): there, an unscoped `:hover` (0,2,0) would beat
+   `--selected` (0,1,0) by arithmetic. Here the two would tie and the later rule would win — correct
+   as ordered, and quietly fragile the moment either block moves. Saying which STATE each rule is for
+   means the next rule added to either cannot lose the same way. */
+.fe-compare-link:not([aria-disabled='true']):hover,
+.fe-compare-link:not([aria-disabled='true']):focus-visible {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+.fe-compare-link:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+/* `aria-disabled`, never the `disabled` attribute — which anchors do not honor anyway, and which
+   would drop the control out of the tab order. It stays focusable so a screen-reader user can find
+   it and hear WHY it is inert (each shell wires `COMPARE_EMPTY_HINT` as its description); the click
+   is refused in script rather than by the platform.
+
+   `--gray-8` rather than `--gray-7` for the muted text: --gray-7 fails AA against these surfaces,
+   and an aria-disabled control is still reachable, so it is held to the contrast floor a
+   truly-disabled one would be excused from. */
+.fe-compare-link[aria-disabled='true'] {
+	color: var(--gray-8);
+	border-color: var(--gray-3);
+	cursor: not-allowed;
+}
+
+/* Hand-rolled slider thumbs need the absolute placement Radix's wrapper supplied in the React build;
+   the shared `.fe-range-slider__thumb` above carries only the visual ring. Defined here so the
+   hand-rolled sliders share one rule instead of each scoping a private copy. */
+/* Positioned thumb for the hand-rolled sliders. Radix insets its thumb so it never overflows the
+ * track; a naive `left: N%` would center the thumb on the track edge at 0% / 100%, with half of it
+ * hanging past.
+ *
+ * The consumer sets `--fe-thumb-pct` (unitless 0–100), NOT `left`, and this rule keeps the thumb
+ * fully inside: at 0% the LEFT edge is at the track start, at 100% the RIGHT edge is at the track
+ * end, sliding linearly between. `-0.16px` per percent is (thumb width 16px ÷ 100), so the offset
+ * grows from 0 to a full thumb-width across the track. Matches Radix's inset visually. */
+.fe-range-slider__thumb--positioned {
+	position: absolute;
+	top: 50%;
+	left: calc(var(--fe-thumb-pct, 0) * 1%);
+	transform: translate(calc(var(--fe-thumb-pct, 0) * -0.16px), -50%);
+	touch-action: none;
+}

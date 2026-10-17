@@ -1,0 +1,2649 @@
+/**
+ * @filter-enginez/ui-styles — components: the reusable controls and the screens built from them.
+ *
+ * The filter controls (range slider and histogram, chips, checkbox lists, the hierarchical picker,
+ * search, select, number fields), the results header and cards, the devtools panel, the geo-radius
+ * section, the "filtered to zero" 404 and the /lab route.
+ *
+ * A partial of `styles.css`, which imports every partial in cascade order; that file explains
+ * the split.
+ */
+
+/* ─── Range-slider track tiers ───────────────────────────────────────────────
+ *
+ * The slider track paints three tiers as one `linear-gradient`, built inline per render because
+ * the stops are computed from the live available-zone geometry. The COLORS, though, are not
+ * per-render data, so they live here once — react-ui, Vue, Svelte, vanilla and Angular all build
+ * their gradients from `var(--fe-slider-track-*)` rather than each carrying its own rgba() literals.
+ *
+ * **These values are contrast-constrained, not taste**, and the constraint is not the obvious one.
+ *
+ * The unavailable band is LIGHTER than the track, not darker. That reads backwards until you
+ * measure it. Darkening does not work: at `rgba(0,0,0,0.55)` the band composites to rgb(22,21,18)
+ * while the panel behind it is rgb(21,20,18) — ΔE **0.4**, imperceptible. The band does not read as
+ * "dimmed track", it reads as NO TRACK, so the control simply looks shorter and the boundary the user
+ * needs is never on screen. On a dark theme there is barely 1.3:1 of headroom
+ * below `--gray-4`; there is far more above it.
+ *
+ * Measured against the `--gray-4` track (#312e29) and the `--gray-1` panel (#151412):
+ *
+ *   | boundary          | dark dim (rejected) | light dim (current) |
+ *   | ----------------- | ------------------- | ------------------- |
+ *   | dim ↔ panel       | ΔE  0.4  ✗          | ΔE 26.7  ✓          |
+ *   | dim ↔ available   | ΔE 44.6             | ΔE 26.9  ✓          |
+ *   | available ↔ sel   | ΔE 38.2             | ΔE 38.2             |
+ *
+ * **Why ΔE and not the WCAG ratio here.** By luminance alone dim↔available is only 1.54:1, which
+ * looks like a failure. It isn't: the two differ chiefly in HUE — inert neutral grey against
+ * saturated cyan — and WCAG's ratio models luminance only, so it cannot express that difference.
+ * ΔE 26.9 is "unmistakable". Chasing the WCAG number instead leads to the rejected dark variant,
+ * which scores 3.36:1 on a boundary the user cannot see because one side of it is invisible against
+ * the page. Measure dim↔PANEL first; it is the one that decides whether the
+ * track exists.
+ *
+ * There is also a hard ceiling worth knowing: light-dim to bright-cyan spans 4.63:1 total, and two
+ * 3:1 steps need ~9:1. Three tiers CANNOT all clear 3:1 by luminance on this palette, so the
+ * encoding is deliberately two-channel — hue separates unavailable from available, luminance
+ * separates available from selected. Re-run the arithmetic before changing any of it. */
+:root {
+	/* Outside the available zone — "no data here; cannot select". Neutral + lighter than the track:
+	 * inert, but unmistakably still part of the control. */
+	--fe-slider-track-dim: rgba(255, 255, 255, 0.15);
+	/* Inside the available zone but outside the user's selection — "selectable territory". */
+	--fe-slider-track-available: rgba(34, 211, 238, 0.42);
+}
+
+/* ─── Component blocks (populated during migration) ─────────────────────────── */
+
+/* fe-range-histogram — distribution-bar overlay above a range slider's track. Only each bar's
+ * HEIGHT is computed per render and applied inline; its tier — color, opacity, glow — arrives as a
+ * modifier class, so the six verticals that render this overlay share one set of values instead of
+ * six copies of the same string literals. `histogramBarTier()` in `@filter-enginez/react-ui/bounds`
+ * is what picks the modifier; `histogramBarHeightPercent()` is the inline height.
+ *
+ * Tight 1px gap: with finer bucket counts (84 for the continuous fields) a 2px gap squashed bars to
+ * 2-3px wide; 1px keeps them distinct without eating track width. */
+.fe-range-histogram {
+	display: flex;
+	align-items: flex-end;
+	gap: 1px;
+	height: 32px;
+	margin-bottom: 6px;
+}
+
+.fe-range-histogram__bar {
+	flex: 1 1 0%;
+	border-radius: 1px;
+	background: var(--gray-5);
+	box-shadow: none;
+	transition:
+		background 150ms ease,
+		box-shadow 150ms ease,
+		opacity 150ms ease;
+}
+
+/* The three tiers mirror the track gradient beneath them, so bars + track read as one control.
+ * Two-channel encoding, exactly as the track's: HUE separates selected from unselected, OPACITY
+ * separates available from outside. See the contrast arithmetic in the `:root` block above before
+ * changing any of these values — three tiers cannot all clear 3:1 by luminance on this palette. */
+.fe-range-histogram__bar--selected {
+	background: var(--accent);
+	box-shadow: 0 0 6px var(--accent-haze);
+	opacity: 1;
+}
+
+.fe-range-histogram__bar--available {
+	opacity: 1;
+}
+
+/* Beyond the filtered-except-self zone: present for spatial reference, never for reading a value. */
+.fe-range-histogram__bar--outside {
+	opacity: 0.35;
+}
+
+/* An EMPTY bucket is a real datum ("nothing here"), not missing data, so it stays visible — knocked
+ * back within its tier rather than hidden. Must follow the tier rules: equal specificity to the two
+ * above, so source order is what lets it win, and the compound selector below outranks both. */
+.fe-range-histogram__bar--empty {
+	opacity: 0.55;
+}
+
+.fe-range-histogram__bar--outside.fe-range-histogram__bar--empty {
+	opacity: 0.2;
+}
+
+/* fe-range-slider — dual-handle range slider with three-layer track semantics. The dynamic
+ * three-tier track gradient (computed per render from the available-zone percentages) is applied
+ * inline on the track element; all static styling lives here. */
+.fe-range-slider {
+	display: flex;
+	flex-direction: column;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-lg);
+	padding: 14px 16px;
+}
+
+.fe-range-slider__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 12px;
+}
+
+.fe-range-slider__label {
+	font-family: var(--font-sans);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--gray-10);
+}
+
+.fe-range-slider__summary {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
+	color: var(--accent);
+}
+
+.fe-range-slider__root {
+	position: relative;
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 16px;
+	user-select: none;
+	touch-action: none;
+}
+
+.fe-range-slider__track {
+	position: relative;
+	flex: 1 1 0%;
+	height: 4px;
+	border-radius: 2px;
+}
+
+.fe-range-slider__range {
+	position: absolute;
+	height: 100%;
+	border-radius: 2px;
+	background: var(--accent);
+	box-shadow: 0 0 6px var(--accent-haze);
+}
+
+/* Concentric-ring thumb: a 4px accent-haze halo + a drop-shadow combined into one box-shadow so
+ * the compositor handles it as a single layer. */
+.fe-range-slider__thumb {
+	display: block;
+	width: 16px;
+	height: 16px;
+	border-radius: 9999px;
+	background: var(--gray-11);
+	border: 2px solid var(--accent);
+	box-shadow:
+		0 0 0 4px var(--accent-haze),
+		0 2px 6px rgba(0, 0, 0, 0.6);
+	cursor: grab;
+}
+.fe-range-slider__thumb:active {
+	cursor: grabbing;
+}
+.fe-range-slider__thumb:focus {
+	outline: none;
+}
+
+.fe-range-slider__inputs {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 14px;
+}
+
+.fe-range-slider__input {
+	width: 7ch;
+	padding: 4px 8px;
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 13px;
+	color: var(--gray-10);
+	background: var(--gray-2);
+	border: 1px solid var(--gray-5);
+	border-radius: 4px;
+	outline: none;
+}
+.fe-range-slider__input:focus {
+	border-color: var(--accent);
+}
+.fe-range-slider__input:focus-visible {
+	outline: none;
+}
+.fe-range-slider__input--min {
+	text-align: left;
+}
+.fe-range-slider__input--max {
+	text-align: right;
+}
+
+/* fe-search-input — search field with magnifier + clear-X. The focus border-swap + halo and the
+ * clear-X hover are pure CSS (:focus-within / :hover), so the React component holds no state. */
+.fe-search-input {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 36px;
+	padding: 0 12px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-5);
+	border-radius: var(--radius-md);
+	cursor: text;
+	transition: border-color 150ms ease;
+}
+.fe-search-input:focus-within {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-haze);
+}
+.fe-search-input__icon {
+	flex-shrink: 0;
+	color: var(--gray-8);
+}
+.fe-search-input__field {
+	flex: 1 1 0%;
+	min-width: 0;
+	background: transparent;
+	border: 0;
+	outline: none;
+	font-family: var(--font-sans);
+	font-size: 14px;
+	color: var(--gray-10);
+	-webkit-appearance: none;
+	appearance: none;
+}
+.fe-search-input__field:focus,
+.fe-search-input__field:focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+.fe-search-input__field::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+	appearance: none;
+	display: none;
+}
+.fe-search-input__clear {
+	flex-shrink: 0;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	color: var(--gray-8);
+	transition: color 150ms ease;
+}
+.fe-search-input__clear:hover {
+	color: var(--accent);
+}
+
+/* fe-select — single-select dropdown (a styled native <select> with a custom chevron). The native
+ * arrow is suppressed via appearance:none; focus border-swap + halo mirror fe-search-input. */
+.fe-select {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 36px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-5);
+	border-radius: var(--radius-md);
+	transition: border-color 150ms ease;
+}
+.fe-select:focus-within {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-haze);
+}
+.fe-select__field {
+	flex: 1 1 0%;
+	min-width: 0;
+	height: 100%;
+	padding: 0 32px 0 12px;
+	background: transparent;
+	border: 0;
+	outline: none;
+	font-family: var(--font-sans);
+	font-size: 14px;
+	color: var(--gray-10);
+	cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+}
+.fe-select__field:focus,
+.fe-select__field:focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+/* Best-effort dark styling for the native option popup (honored by some browsers; the popup itself
+ * is OS-drawn, so this is as far as CSS reaches). */
+.fe-select__field option {
+	background: var(--gray-1);
+	color: var(--gray-10);
+}
+.fe-select__chevron {
+	position: absolute;
+	right: 10px;
+	flex-shrink: 0;
+	color: var(--gray-8);
+	pointer-events: none;
+}
+
+/* fe-number-field — numeric input. Focus treatment mirrors fe-search-input; the native spinner
+ * buttons are kept for quick increments. */
+.fe-number-field {
+	width: 100%;
+	height: 36px;
+	padding: 0 12px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-5);
+	border-radius: var(--radius-md);
+	outline: none;
+	font-family: var(--font-sans);
+	font-size: 14px;
+	color: var(--gray-10);
+	transition: border-color 150ms ease;
+}
+.fe-number-field:focus,
+.fe-number-field:focus-visible {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-haze);
+}
+
+/* fe-chip-toggle — InSet chip toggles with exclusion-aware disabling. State (selected /
+ * unavailable) is expressed via modifier classes rather than inline styles. */
+.fe-chip-toggle {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+/* fe-operator-row — a narrow operator select beside a flexible value field.
+ *
+ * Wine's score-comparison facet is the consumer, but the name describes the LAYOUT rather
+ * than the dataset, per the repo's naming rule: any `NumericComparisonRule` control wants this shape, and the rule
+ * is a general one.
+ *
+ * NOT `fe-compare-*`. That prefix belongs to the cross-framework comparison page, and a reader
+ * hitting `fe-compare-row` in a panel would reasonably assume it was part of that feature.
+ *
+ * Shared here rather than in a component's local `<style>` block so every vertical renders the same
+ * three declarations from one definition. */
+.fe-operator-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.fe-operator-row__op {
+	flex: 0 0 5rem;
+}
+.fe-operator-row__value {
+	flex: 1 1 0%;
+}
+/* A height cap for chip groups with a long vocabulary — wine's varietal facet renders 60 chips, which
+ * would otherwise push every section below it off the panel.
+ *
+ * Named for the COMPONENT, not the dataset: per the repo's naming rule, a `fe-<dataset>-<thing>` name
+ * is a smell unless the thing really is that dataset's alone, and "cap a chip group's height" plainly
+ * is not.
+ *
+ * A MODIFIER on the group rather than a wrapper element, so a caller opts in with one class instead of
+ * restructuring its markup — which is what lets Vue express it as a `scrollable` prop. */
+.fe-chip-toggle--capped {
+	max-height: 14rem;
+	overflow-y: auto;
+}
+/* Mobile-first tap target: a comfortable ≥44px hit height (WCAG 2.5.5) for the filter toggles in
+ * the drawer; the compact padding-only pill returns at `lg` for the dense desktop sidebar. */
+.fe-chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 4px 12px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 400;
+	text-transform: capitalize;
+	color: var(--gray-9);
+	background: var(--gray-2);
+	border: 1px solid var(--gray-3);
+	border-radius: 9999px;
+	cursor: pointer;
+	transition: all 150ms ease;
+}
+@media (min-width: 1024px) {
+	.fe-chip {
+		min-height: 0;
+	}
+}
+.fe-chip--selected {
+	color: var(--gray-0);
+	background: var(--accent);
+	border-color: var(--accent);
+	font-weight: 700;
+	box-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+}
+.fe-chip--unavailable {
+	color: var(--gray-8);
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.fe-chip__count {
+	margin-left: 6px;
+	font-size: 10px;
+	color: var(--gray-8);
+}
+.fe-chip__count--unavailable {
+	color: var(--gray-6);
+}
+
+.fe-chip:not(.fe-chip--selected):not(:disabled):hover {
+	background: var(--gray-3);
+	border-color: var(--gray-6);
+	color: var(--gray-11);
+}
+.fe-chip--selected:not(:disabled):hover {
+	box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+}
+
+/* fe-checkbox-list — vertical, scrollable InSet list with exclusion-aware disabling. max-height
+ * is applied inline (prop-driven). Row state (selected / unavailable) via modifier classes. */
+.fe-checkbox-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	overflow-y: auto;
+	padding-right: 4px;
+}
+.fe-checkbox-list__row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	font-size: 14px;
+	color: var(--gray-10);
+	cursor: pointer;
+	transition: opacity 150ms ease;
+}
+.fe-checkbox-list__row--selected {
+	color: var(--accent);
+}
+.fe-checkbox-list__row--unavailable {
+	color: var(--gray-8);
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.fe-checkbox-list__main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+/* No `cursor` here — `brand/tokens.css` gives every checkbox and radio the pointer (and
+ * `not-allowed` when disabled) as a global normalization, so no component block repeats it. */
+.fe-checkbox-list__box {
+	accent-color: var(--accent);
+}
+.fe-checkbox-list__label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fe-checkbox-list__count {
+	flex-shrink: 0;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	color: var(--gray-8);
+}
+.fe-checkbox-list__count--unavailable {
+	color: var(--gray-6);
+}
+
+/* fe-tree — the hierarchical tree picker, shared by every vertical's picker, including React's
+ * recursive `<HierarchicalPicker />` and Svelte's FLAT `<HierarchicalPicker>`. Node state (checked / indeterminate / disabled) rides on
+ * modifier classes; depth indent differs by renderer — React nests and lets `.fe-tree__children`
+ * accumulate one step per level, Svelte renders one flat list and sets `padding-left` inline.
+ *
+ * Every picker renders these class names directly; no vertical carries a scoped copy, so there is one
+ * definition of the tree's rhythm, disabled rows, label coloring and row entry animation. */
+.fe-tree {
+	display: flex;
+	flex-direction: column;
+	/* 2px between rows. Small, but it stops the rows reading as one solid block — the hover and
+	 * selected backgrounds need a hairline between them to be legible as separate targets. */
+	gap: 2px;
+	/* The scroll viewport's height is a per-PANEL sizing choice, not part of the row rhythm: the
+	 * real-estate sidebar has room for 24rem, wine's origin tree sits above ten more sections and
+	 * wants 16rem. So it is a custom property rather than a fixed value or a duplicated class — a
+	 * consumer overrides it inline (`style="--fe-tree-max-height: 16rem"`) and inherits everything
+	 * else. */
+	max-height: var(--fe-tree-max-height, 24rem);
+	overflow-y: auto;
+	/* 4px on every side, matching the reach of `--shadow-focus-ring` (0 0 0 4px). A scroll container
+	 * clips at its padding box, so without this the focus ring on the first row, the last row, or any
+	 * indented row is sliced off. A `padding-right` alone would leave room for the scrollbar, none
+	 * for the ring. */
+	padding: 4px;
+	font-size: 13px;
+}
+/* ── Spacing ──
+ * Nested (React) and flat (Svelte) renderings of the tree must be indistinguishable in rhythm: row
+ * `gap: 0.125rem`, no row padding, and all the breathing room on the control instead. */
+.fe-tree__row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	/* No row padding — `.fe-tree__control`'s own padding sets the vertical rhythm. Padding here as
+	 * well would double it. */
+	padding: 0;
+	border-radius: 4px;
+	/* Every row is a 44px touch target, stated here rather than inherited from whatever happens to sit
+	 * in the disclosure column. Parent rows get this from the toggle button; leaf rows get it
+	 * from a `::before` that has width but no height, so without this they would collapse below the
+	 * minimum tap size on touch. */
+	min-height: 44px;
+	transition:
+		background-color 150ms ease,
+		color 150ms ease;
+	/* Newly revealed rows ease in rather than appearing instantly. It fires when a row enters the
+	 * layout — which for Svelte's flat list means a row being inserted on expand, and for React's
+	 * nested one means `.fe-tree__children` leaving `display: none`. Two different mechanisms, one
+	 * behavior, which is the point of it living here: expanding a branch animates the same way in
+	 * every picker over the same tree. */
+	animation: fe-tree-row-in 140ms ease-out;
+}
+@keyframes fe-tree-row-in {
+	from {
+		opacity: 0;
+		transform: translateY(-2px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+/* Leaf rows reserve the disclosure column so their labels line up with their siblings' rather than
+ * shifting left into it.
+ *
+ * A `::before` rather than an empty `<span class="fe-tree__chevron" aria-hidden>`: same flex basis, same `gap` participation, same layout, but no element in the DOM named for a
+ * chevron it never contains (which read as a rendering bug to anyone inspecting a leaf) and nothing
+ * to mark `aria-hidden`, since pseudo-elements never enter the accessibility tree. */
+.fe-tree__row--leaf::before {
+	content: '';
+	flex: 0 0 1.75rem;
+}
+.fe-tree__row--disabled {
+	cursor: not-allowed;
+}
+/* The disclosure column. Despite the `chevron` name, it holds the animated +/- and the alignment
+ * spacer leaf rows use. */
+/* Sized to the row, not to the glyph: a 14px column with no height of its own would make the
+ * disclosure a sliver that is hard to hit and whose focus ring outlines only the icon. */
+.fe-tree__chevron {
+	display: inline-flex;
+	flex: 0 0 1.75rem;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	color: var(--gray-8);
+}
+/* Disclosure toggle — a real <button> on parent rows (button reset; sizing + color come from
+ * .fe-tree__chevron). */
+.fe-tree__toggle {
+	padding: 0;
+	background: none;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease-out,
+		color 140ms ease-out;
+}
+.fe-tree__toggle:hover {
+	background: var(--gray-3);
+	color: var(--accent);
+}
+
+/* ── The animated plus / minus ──
+ * Shared with the Svelte wine origin picker, which renders the same two-bar construction under its
+ * own class names. A 10px box with two 2px bars stacked at the center: the horizontal one is fixed,
+ * the second sits at 90deg (a plus) and rotates to 0deg on open, landing on the first — a minus.
+ * One continuous rotation rather than a glyph swap, so the icon reads as one thing changing state. */
+.fe-tree__pm {
+	display: block;
+	position: relative;
+	width: 10px;
+	height: 10px;
+}
+.fe-tree__pm-bar {
+	position: absolute;
+	left: 0;
+	/* Half the bar's own thickness, so rotation pivots about the box center. */
+	top: 4px;
+	width: 10px;
+	height: 2px;
+	border-radius: 1px;
+	background: currentcolor;
+}
+.fe-tree__pm-bar--pivot {
+	transform: rotate(90deg);
+	transition: transform 160ms ease-out;
+}
+.fe-tree__pm--open .fe-tree__pm-bar--pivot {
+	transform: rotate(0deg);
+}
+
+/* Leaves beneath this node — how much of the corpus it covers, so the cost of selecting it is
+ * visible before the click. */
+.fe-tree__count {
+	flex: 0 0 auto;
+	color: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 11px;
+}
+
+/* Hover on the row itself, so the whole line responds rather than just the label. */
+/* No row-level hover; only `.fe-tree__control` highlights. The row is `[disclosure][control]` with no
+ * padding of its own, so a row hover would fire on top of the control's own `:hover` — two overlapping
+ * highlights, and hovering the label would light up the disclosure button too. The control spans the
+ * row's full remaining width, so it is already the hit target the row appears to be. */
+
+/* NO local focus rule here, deliberately. `brand/tokens.css` already gives every focusable element
+ * `box-shadow: var(--shadow-focus-ring)` — adding an outline on top would produce TWO concentric
+ * rings. Ring clipping is handled on the scroll container instead (see `.fe-tree`), which is the
+ * right place: the ring is correct, it just needs room to draw. */
+
+/* Only the MOTION is suppressed. The color cross-fades stay: they involve no movement, and dropping
+ * them makes the control feel broken rather than calmer. */
+@media (prefers-reduced-motion: reduce) {
+	.fe-tree__pm-bar--pivot {
+		transition: none;
+	}
+	.fe-tree__row {
+		animation: none;
+	}
+}
+/* Collapsed children stay in the DOM (so exclusion state is live) but are hidden. The double
+ * selector beats the base `.fe-tree__children { display: flex }`. */
+.fe-tree__children[hidden] {
+	display: none;
+}
+/* The row's selection control — a button spanning mark, label and count, so the whole line is the
+ * hit target rather than a 13px checkbox. */
+.fe-tree__control {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: center;
+	/* `0.5rem` / `0.25rem 0.5rem`. Tighter values (`6px` / `2px 4px`) read as cramped: the mark sits
+	 * too close to the label, and rows lose vertical breathing room. The row carries no padding of its
+	 * own, so this is the only thing setting the tree's rhythm. */
+	gap: 0.5rem;
+	min-width: 0;
+	/* 44px touch target, matching every other control in the panel. */
+	min-height: 44px;
+	padding: 0.25rem 0.5rem;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease-out,
+		color 140ms ease-out;
+}
+.fe-tree__control:disabled {
+	cursor: not-allowed;
+}
+.fe-tree__control:hover:not(:disabled) {
+	background: var(--gray-3);
+}
+.fe-tree__control--checked {
+	background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.fe-tree__control--mixed {
+	background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+/* Hover has to READ on an already-tinted row. Declared after the state rules so it wins on source
+ * order at equal specificity — otherwise the tint swallows it and the row feels dead. */
+.fe-tree__control--checked:hover:not(:disabled) {
+	background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.fe-tree__control--mixed:hover:not(:disabled) {
+	background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Rendered only when checked or mixed. A permanently-visible empty box reads as a control switched
+ * OFF; absence reads as "not chosen", which is what unchecked actually means. Fixed width so labels
+ * stay aligned down the column whether or not a row carries a mark. */
+.fe-tree__mark {
+	flex: 0 0 0.75rem;
+	color: var(--accent);
+	font-weight: 700;
+	text-align: center;
+}
+.fe-tree__label {
+	flex: 1 1 0%;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--font-sans);
+	color: var(--gray-10);
+}
+.fe-tree__label--checked {
+	color: var(--accent);
+}
+.fe-tree__label--indeterminate {
+	color: var(--accent-glow);
+}
+.fe-tree__label--disabled {
+	color: var(--gray-6);
+	opacity: 0.5;
+	text-decoration: line-through;
+}
+/* One expandable node: its own row plus the `.fe-tree__children` block beneath it.
+ *
+ * A flex column, not a plain block. The 2px gap on `.fe-tree` and `.fe-tree__children` separates
+ * SIBLING rows, but a parent's own row and its children live inside this element, and a block box
+ * applies no gap between them — every parent would sit flush against its first child while every
+ * other pair had 2px, and no amount of tuning those two gap values could fix it.
+ *
+ * A FLAT renderer (Svelte) does not need this, because every row is a sibling and the container's gap
+ * reaches all of them. Making this a flex column with the same gap
+ * gives the React tree that uniform rhythm while keeping the nesting the indent depends on. */
+.fe-tree__branch {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.fe-tree__children {
+	display: flex;
+	flex-direction: column;
+	/* 2px between rows, matching `.fe-tree` — nested rows need the same hairline separation as
+	 * top-level ones, or a branch's children read as a solid block while its siblings do not. */
+	gap: 2px;
+	/* ONE step per nesting level. Because rows are already nested in the DOM, this accumulates to
+	 * exactly `depth * 14px`, matching the flat Svelte picker's `padding-left: depth * 0.875rem`. An
+	 * inline `marginLeft: depth * 14` applied at every level INSIDE already-indented ancestors would
+	 * compound (depth 2 at 56px rather than 28px, widening with depth). Keep the step here, not inline: the DOM nesting is the source of
+	 * truth for depth, so nothing has to count it. */
+	padding-left: 14px;
+}
+
+/* fe-wine-card — one wine record as a compact card (wine-domain presentational). Only the color
+ * swatch is inline (per wine color). Includes the mount fade-in, so the component is
+ * self-contained. The browser auto-promotes the transform/opacity animation
+ * to a transient compositor layer for its duration — no permanent `will-change`. */
+@keyframes fe-wine-card-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(32px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.fe-wine-card {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-md);
+	height: 100%;
+	overflow: hidden;
+	transition:
+		background-color 150ms ease,
+		border-color 150ms ease;
+	animation: fe-wine-card-fade-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+	.fe-wine-card {
+		animation: none;
+	}
+}
+.fe-wine-card__top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.fe-wine-card__meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.fe-wine-card__color {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 9999px;
+	border: 1px solid var(--gray-4);
+}
+.fe-wine-card__vintage {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--gray-8);
+}
+.fe-wine-card__points {
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 700;
+	background: var(--gray-2);
+	color: var(--accent);
+}
+.fe-wine-card__name {
+	margin: 0;
+	/* Matched to `.fe-book-card__title` — sans at 15px, not the display face at 16px. The display
+	 * font is the BRAND voice (wordmark, panel titles); using it for record titles made the wine
+	 * cards read as headings rather than as data, and made the two datasets look like two products.
+	 * Shared by the React and Svelte wine demos, so this is the only place it is stated. */
+	font-family: var(--font-sans);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--gray-11);
+}
+.fe-wine-card__winery {
+	margin: 0;
+	font-size: 14px;
+	color: var(--gray-8);
+}
+.fe-wine-card__origin {
+	margin: 0;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	color: var(--gray-8);
+}
+.fe-wine-card__attrs {
+	display: flex;
+	flex-wrap: wrap;
+	column-gap: 8px;
+	row-gap: 4px;
+	font-size: 12px;
+	color: var(--gray-9);
+}
+.fe-wine-card__varietal {
+	font-weight: 600;
+}
+.fe-wine-card__sep {
+	color: var(--gray-6);
+}
+.fe-wine-card__notes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.fe-wine-card__note {
+	padding: 2px 8px;
+	border-radius: 9999px;
+	font-size: 12px;
+	background: var(--gray-2);
+	color: var(--gray-9);
+	border: 1px solid var(--gray-3);
+}
+.fe-wine-card__bottom {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	margin-top: 4px;
+}
+.fe-wine-card__price {
+	font-family: var(--font-display);
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--accent);
+	text-shadow: 0 0 6px rgba(34, 211, 238, 0.35);
+}
+.fe-wine-card__abv {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-8);
+}
+
+/* fe-results-header — the sticky strip between the filter aside and the result grid. Stacks the
+ * active-filter chips above the canonical result-count row. Sticky offset matches the filter
+ * aside (top: 1rem) so both anchors align as the page scrolls; the soft drop-shadow lifts it off
+ * the result cards passing beneath. */
+.fe-results-header {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	position: sticky;
+	top: 1rem;
+	z-index: 10;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+	padding: 14px 18px;
+	box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.45);
+}
+
+/* fe-active-filters — the removable-chip readout. Empty state is a single mono caption row. */
+.fe-active-filters {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.fe-active-filters__empty {
+	display: flex;
+	align-items: center;
+	min-height: 28px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-8);
+	letter-spacing: 0.06em;
+}
+.fe-active-filters__count {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-8);
+}
+.fe-active-filters__chips {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.fe-active-filters__clear {
+	margin-left: 4px;
+	padding: 0;
+	font-family: var(--font-sans);
+	font-size: 12px;
+	color: var(--accent);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	transition: color 150ms ease;
+}
+.fe-active-filters__clear:hover {
+	color: var(--accent-glow, var(--accent));
+}
+
+/* Redux-mirror provenance badge — a muted mono pill marking a datum read from the redux-bridge
+ * slice (the React + RTK app only). Sits right after "Clear all" in the active-filters row. Cyan-tinted
+ * because it IS a data-identity readout (a count), just sourced from the mirror rather than the
+ * signals. Subtle by design — it documents provenance, it doesn't compete with the controls. */
+.fe-active-filters__mirror {
+	align-self: center;
+	padding: 2px 8px;
+	border-radius: 9999px;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.04em;
+	color: var(--accent);
+	background: rgba(34, 211, 238, 0.08);
+	border: 1px solid rgba(34, 211, 238, 0.18);
+}
+
+/* fe-filter-chip — a single removable active-filter capsule with a breathing accent dot. The dot
+ * is the design system's signature for "this filter is currently constraining results"; its
+ * opacity pulse reads as a heartbeat. (The keyframe lives here so the chip is self-contained across
+ * consumers.) */
+@keyframes chipBreathe {
+	0%,
+	100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+.fe-filter-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 28px;
+	padding: 0 10px 0 12px;
+	background: var(--gray-2);
+	border: 1px solid var(--gray-5);
+	border-radius: 9999px;
+	font-family: var(--font-sans);
+	font-size: 13px;
+	color: var(--gray-10);
+}
+.fe-filter-chip__dot {
+	flex: none;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 6px var(--accent-haze);
+	animation: chipBreathe 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+	.fe-filter-chip__dot {
+		animation: none;
+	}
+}
+.fe-filter-chip__label {
+	color: var(--gray-8);
+}
+.fe-filter-chip__value--numeric {
+	color: var(--gray-11);
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+/* A chip value can be arbitrarily long: the Distance chip names its center, so it reads
+ * `≤ 15 mi of 39.5000, -105.2500` for a dragged marker. Uncapped, on a phone that single chip runs
+ * past the viewport and pushes the × out of reach — the chip becomes unremovable, which is the worst
+ * failure mode available to a control whose whole job is "undo this filter".
+ *
+ * Capped only below the layout breakpoint. `52vw` leaves room for the label, the dot and the × beside
+ * it, and above `lg` the results column is wide enough that truncating would hide detail for nothing.
+ * The breakpoint is the app's own `1024px` — where the filter sidebar collapses and the header gets
+ * cramped — rather than this file's other `767px` blocks, because the overflow starts at the layout
+ * change, not at phone widths specifically.
+ *
+ * No `display` needed: the chip is `inline-flex`, so its children are flex items and already
+ * blockified, which is what makes `text-overflow` apply at all. */
+@media (max-width: 1023px) {
+	.fe-filter-chip__value {
+		max-width: 52vw;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+.fe-filter-chip__remove {
+	display: inline-flex;
+	padding: 0;
+	color: var(--gray-8);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	transition: color 150ms ease;
+}
+.fe-filter-chip__remove:hover {
+	color: var(--gray-10);
+}
+/* Recently-changed emphasis — a phosphor ring on the chip whose rule was last mutated. Phosphor
+ * (--engine), not cyan, because "recently changed" is a temporal / activity cue (when), not a
+ * data-identity cue (what) — the dual-accent contract. Driven by the redux mirror's
+ * `lastChangeRuleId` in the React + RTK app. */
+.fe-filter-chip--recent {
+	border-color: var(--engine);
+	box-shadow:
+		0 0 0 1px var(--engine),
+		0 0 8px rgba(249, 115, 22, 0.25);
+}
+@media (prefers-reduced-motion: no-preference) {
+	.fe-filter-chip--recent {
+		transition:
+			box-shadow 160ms ease-out,
+			border-color 160ms ease-out;
+	}
+}
+
+/* fe-result-count — the canonical large-number readout. The number's glow flips cyan → phosphor
+ * while computing (dual-accent semantic: cyan = data identity, phosphor = engine activity). The
+ * delta pill is cyan-on-cyan-soft when narrowing (down), success-green when widening (up). */
+/* Mobile-first: the count identity (number + label + delta + mirror) wraps as needed on its own
+ * line(s), and the engine status drops to a full-width line below (see `__status` flex-basis). The
+ * single-row desktop layout is restored at `lg` in the min-width block further down. */
+.fe-result-count {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px 14px;
+}
+.fe-result-count__number {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 38px;
+	font-weight: 500;
+	color: var(--accent);
+	letter-spacing: -0.02em;
+	line-height: 1;
+	text-shadow: 0 0 24px var(--accent-haze);
+	transition: text-shadow 200ms ease-out;
+}
+.fe-result-count__number--computing {
+	text-shadow:
+		0 0 10px rgba(249, 115, 22, 0.55),
+		0 0 26px rgba(249, 115, 22, 0.45),
+		0 0 44px rgba(249, 115, 22, 0.25);
+}
+.fe-result-count__label {
+	font-family: var(--font-sans);
+	font-size: 14px;
+	color: var(--gray-9);
+}
+.fe-result-count__delta {
+	padding: 3px 8px;
+	border-radius: 9999px;
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
+}
+.fe-result-count__delta--down {
+	color: var(--accent);
+	background: rgba(34, 211, 238, 0.1);
+}
+.fe-result-count__delta--up {
+	color: var(--success);
+	background: rgba(74, 222, 128, 0.1);
+}
+/* Base (mobile): `flex-basis: 100%` forces the engine status onto its own full-width line beneath
+ * the count identity so it's never pushed off-screen. At `lg` it returns to an inline right-pinned
+ * item (`margin-left: auto`) — see the min-width block below. */
+.fe-result-count__status {
+	flex-basis: 100%;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+/* On mobile the status owns its own full-width line, so stretch the engine pill to fill it (it
+ * shrinks back to a content-width pill pinned right at `lg`). */
+.fe-result-count__status .fe-computing-indicator {
+	width: 100%;
+}
+/* `flex-basis: 100%` puts the "filtered from N total" caption on its own line directly beneath the
+ * count on every breakpoint (on desktop the min-width block below `order`s it after the status so it
+ * still lands on the second line). */
+.fe-result-count__total {
+	flex-basis: 100%;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-8);
+}
+
+/* Desktop (`lg`+): pin the engine status inline to the right edge of the count line and drop the
+ * "filtered from N total" caption onto the line below it (via `order`, since it precedes the status
+ * in the DOM). Below this width the base rules keep the caption + status each on their own line. */
+@media (min-width: 1024px) {
+	.fe-result-count__status {
+		flex-basis: auto;
+		margin-left: auto;
+	}
+	.fe-result-count__status .fe-computing-indicator {
+		width: auto;
+	}
+	.fe-result-count__total {
+		order: 1;
+	}
+}
+
+/* fe-computing-indicator — engine status pill. Swaps the ambient idle loader for the active one
+ * (the React view controls which SVG renders); the pill border/background + label color flip to
+ * phosphor while computing. */
+.fe-computing-indicator {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px 4px 6px;
+	background: var(--gray-2);
+	border: 1px solid var(--gray-4);
+	border-radius: 9999px;
+	transition:
+		border-color 120ms ease-out,
+		box-shadow 120ms ease-out,
+		background 120ms ease-out;
+}
+.fe-computing-indicator--computing {
+	border-color: rgba(249, 115, 22, 0.45);
+	background: rgba(249, 115, 22, 0.06);
+}
+.fe-computing-indicator__icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+}
+.fe-computing-indicator__label {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: lowercase;
+	color: var(--gray-8);
+	transition: color 120ms ease-out;
+}
+.fe-computing-indicator__label--computing {
+	color: var(--engine);
+}
+.fe-computing-indicator__sep {
+	margin: 0 4px;
+	opacity: 0.55;
+}
+
+/* fe-devtools-panel — the inline action-log card: header + scrollable row list + scrubbable
+ * timeline. Capped at 40vh so a long log scrolls inside the card rather than pushing the result
+ * grid down the page. Dual-accent: phosphor (--engine) marks engine activity / "you are here". */
+.fe-devtools-panel {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	max-height: 40vh;
+	background: var(--gray-0);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+}
+.fe-devtools-panel__header {
+	flex-shrink: 0;
+	padding: 20px 22px 14px 22px;
+	border-bottom: 1px solid var(--gray-3);
+}
+.fe-devtools-panel__header-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+.fe-devtools-panel__title {
+	margin: 0;
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 14px;
+	color: var(--gray-11);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+.fe-devtools-panel__title-sep {
+	margin: 0 4px;
+	color: var(--gray-8);
+}
+/* 44px tap target on mobile (WCAG 2.5.5); shrinks to the compact 28px chrome at `lg`. */
+.fe-devtools-panel__close {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	color: var(--gray-8);
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition:
+		background-color 150ms ease,
+		color 150ms ease;
+}
+@media (min-width: 1024px) {
+	.fe-devtools-panel__close {
+		width: 28px;
+		height: 28px;
+	}
+}
+.fe-devtools-panel__close:hover {
+	background: var(--gray-2);
+	color: var(--gray-11);
+}
+.fe-devtools-panel__meta {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-8);
+	letter-spacing: 0.04em;
+}
+.fe-devtools-panel__meta-sep {
+	margin: 0 6px;
+	color: var(--gray-6);
+}
+.fe-devtools-panel__step {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+/* fe-devtools-log — the scrollable row container. Dims + locks during an engine round-trip. */
+.fe-devtools-log {
+	flex: 1;
+	overflow-y: auto;
+	transition: opacity 120ms ease-out;
+}
+.fe-devtools-log--computing {
+	opacity: 0.55;
+	pointer-events: none;
+}
+.fe-devtools-log__empty {
+	padding: 32px 22px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-8);
+	letter-spacing: 0.04em;
+	text-align: center;
+}
+
+/* fe-devtools-row — one action row, a real button for keyboard activation. Active row tints
+ * phosphor; the type column's color carries the add/remove/neutral emphasis. */
+.fe-devtools-row {
+	display: grid;
+	grid-template-columns: 72px 110px 1fr 24px;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 10px 22px;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 400;
+	text-align: left;
+	background: transparent;
+	border: none;
+	border-bottom: 1px solid var(--gray-3);
+	cursor: pointer;
+	transition: background-color 150ms ease;
+}
+.fe-devtools-row:hover:not(.fe-devtools-row--active) {
+	background: var(--gray-2);
+}
+.fe-devtools-row--active {
+	background: rgba(249, 115, 22, 0.1);
+	color: var(--gray-11);
+}
+.fe-devtools-row:focus-visible {
+	outline: 2px solid var(--engine);
+	outline-offset: -2px;
+	background: rgba(249, 115, 22, 0.06);
+}
+.fe-devtools-row__time {
+	color: var(--gray-8);
+}
+.fe-devtools-row--active .fe-devtools-row__time {
+	color: var(--gray-11);
+}
+.fe-devtools-row__type--added {
+	color: var(--accent);
+}
+.fe-devtools-row__type--danger {
+	color: var(--danger);
+}
+.fe-devtools-row__type--neutral {
+	color: var(--gray-9);
+}
+.fe-devtools-row__summary {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--gray-9);
+}
+.fe-devtools-row--active .fe-devtools-row__summary {
+	color: var(--gray-11);
+}
+.fe-devtools-row__marker {
+	text-align: right;
+	font-size: 11px;
+	color: var(--gray-8);
+}
+.fe-devtools-row--active .fe-devtools-row__marker {
+	font-size: 12px;
+	color: var(--engine);
+}
+
+/* fe-devtools-timeline — the bottom scrub strip. Phosphor line + one dot per action; the whole
+ * strip is a single pointer-capture surface (the dots are non-interactive indicators). */
+.fe-devtools-timeline {
+	flex-shrink: 0;
+	padding: 18px 22px 22px 22px;
+	border-top: 1px solid var(--gray-3);
+	background: var(--gray-0);
+	transition: opacity 120ms ease-out;
+}
+.fe-devtools-timeline--computing {
+	opacity: 0.55;
+	pointer-events: none;
+}
+.fe-devtools-timeline--empty {
+	background: transparent;
+	text-align: center;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	color: var(--gray-6);
+	letter-spacing: 0.06em;
+}
+.fe-devtools-timeline__strip {
+	position: relative;
+	height: 24px;
+	cursor: grab;
+	touch-action: none;
+}
+.fe-devtools-timeline__strip:active {
+	cursor: grabbing;
+}
+.fe-devtools-timeline__strip:focus-visible {
+	outline: 2px solid var(--engine);
+	outline-offset: 4px;
+	border-radius: 4px;
+}
+.fe-devtools-timeline__line {
+	position: absolute;
+	top: 50%;
+	left: 6px;
+	right: 6px;
+	height: 2px;
+	background: var(--engine);
+	opacity: 0.5;
+	transform: translateY(-50%);
+}
+.fe-devtools-timeline__dots {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 100%;
+	padding: 0 6px;
+}
+.fe-devtools-timeline__caption {
+	margin-top: 12px;
+	text-align: center;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	color: var(--gray-8);
+	letter-spacing: 0.08em;
+}
+.fe-devtools-timeline__caption-sep {
+	margin: 0 4px;
+	color: var(--gray-5);
+}
+
+/* fe-devtools-dot — one action marker on the timeline. Non-interactive (parent strip handles
+ * pointer math). Active dot rings + grows + glows brighter. */
+.fe-devtools-dot {
+	flex-shrink: 0;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--engine);
+	box-shadow: 0 0 6px rgba(249, 115, 22, 0.35);
+	pointer-events: none;
+	transition:
+		width 120ms ease-out,
+		height 120ms ease-out,
+		box-shadow 120ms ease-out;
+}
+.fe-devtools-dot--active {
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--gray-11);
+	box-shadow:
+		0 0 0 2px rgba(249, 115, 22, 0.35),
+		0 0 12px rgba(249, 115, 22, 0.55);
+}
+
+/* fe-icon-button — the square, icon-only control in an app header (the devtools wrench, and any
+ * sibling that joins it). A CLASS rather than a component's Tailwind utilities and JS hover handlers,
+ * so it is stated here once and available to all six verticals.
+ *
+ * Hover AND focus move together, deliberately. Styling hover only would give a keyboard user tabbing
+ * the header the focus ring and none of the fill a mouse user gets — the quieter affordance for the
+ * people who need the louder one. `jsx-a11y` flags exactly that pairing.
+ *
+ * Sized by a custom property rather than a modifier: the header picks 36px on desktop and 44px on
+ * touch (WCAG 2.5.5), which is a caller decision, not a variant. */
+.fe-icon-button {
+	display: inline-flex;
+	/* A fixed square that must stay square. Without this it is a shrinkable flex item in the header
+	   cluster, and a squashed 36px button puts its glyph outside its own box — the same content-spill
+	   that can make a header link impossible to click. See `.fe-books-app__url-controls`. */
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: var(--fe-icon-button-size, 36px);
+	height: var(--fe-icon-button-size, 36px);
+	padding: 0;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: var(--radius-md);
+	color: var(--gray-8);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease-out,
+		border-color 120ms ease-out,
+		color 120ms ease-out;
+}
+
+.fe-icon-button:hover,
+.fe-icon-button:focus-visible {
+	background: var(--gray-2);
+	border-color: var(--gray-5);
+	color: var(--gray-10);
+}
+
+/* --raised — visible at rest, for a control that must be FOUND rather than merely available. The
+ * devtools toggle is the only current case: undo and redo sit beside it and read as chrome, but a
+ * user who has never opened the action log has no reason to hunt a transparent square for it. */
+.fe-icon-button--raised {
+	background: var(--gray-2);
+	border-color: var(--gray-4);
+}
+
+/* The pressed state reads as "this panel is open" — identity, so CYAN, per the dual-accent contract.
+ * It is not "the engine is working", which would be phosphor. The 10% tint rather than a solid fill
+ * keeps the header quiet while the panel below it is the loud thing. */
+.fe-icon-button[aria-pressed='true'],
+.fe-icon-button[aria-pressed='true']:hover,
+.fe-icon-button[aria-pressed='true']:focus-visible {
+	background: rgb(34 211 238 / 10%);
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.fe-icon-button:disabled {
+	color: var(--gray-6);
+	cursor: not-allowed;
+}
+
+/* The disabled state must beat :hover — undo with an empty log is hovered constantly, and a control
+ * that lights up under the pointer while refusing to act is worse than one that never lit. */
+.fe-icon-button:disabled:hover,
+.fe-icon-button:disabled:focus-visible {
+	background: transparent;
+	border-color: transparent;
+	color: var(--gray-6);
+}
+
+@media (pointer: coarse) {
+	.fe-icon-button {
+		--fe-icon-button-size: 44px;
+	}
+}
+
+/* The hairline between the stepping controls and the inspecting one. A `<span aria-hidden>` rather
+ * than a border on a neighbor, because which neighbor owns it changes with the cluster's order. */
+.fe-icon-button-divider {
+	width: 1px;
+	height: 20px;
+	margin: 0 4px;
+	background: var(--gray-4);
+}
+
+/* fe-boot-loader — makes the fixed-size `<BrainSynapse>` boot loader fit small viewports. The
+ * component renders inline px `width`/`height`, so on a phone the canonical 520px box runs past the
+ * screen edges; this caps it at `min(520px, 100%)` and derives the height from the loader's native
+ * 660×220 aspect ratio (keeping the graph undistorted). `!important` is required to beat the inline
+ * styles. Pair with page padding on the boot container so it doesn't touch the edges. */
+.fe-boot-loader {
+	width: min(520px, 100%) !important;
+	height: auto !important;
+	aspect-ratio: 660 / 220;
+}
+
+/* fe-boot-caption — the caption element itself, in every vertical that narrates a cold boot.
+ *
+ * The wording lives in `examples-shared/boot-caption` and the live count's accent in `__value` below.
+ * This is the third piece: the element they live in. One shared class for every site that renders the
+ * caption, so no vertical can render it unstyled, declare a scoped duplicate, or borrow an unrelated
+ * class (a panel section heading, say) to style it.
+ *
+ * ── Two variants, because there really are two ──
+ *
+ * `--hero` is the full-viewport screen behind a 520px `<BrainSynapse>`: `/wine` in all six verticals
+ * and both React `DatasetRoute`s. `--inline` is a lone `<p>` in the page flow before the view mounts:
+ * the books and real-estate boots, where the corpus is small enough that a hero screen would be a
+ * flash. Every site carries the block plus exactly one modifier;
+ * `tests/tooling/bootCaptionSingleSource.test.ts` fails a site that carries neither.
+ *
+ * The hero variant is uppercase and tracked; the inline variant is plain mono body copy.
+ *
+ * No `margin`. `@layer base` above already zeroes `p`, in every vertical that loads this file, which
+ * is all of them. A `margin: 0` here would be cargo. */
+.fe-boot-caption {
+	color: var(--gray-8);
+	font-family: var(--font-mono);
+}
+
+.fe-boot-caption--hero {
+	font-size: 0.75rem;
+	letter-spacing: 0.16em;
+	text-align: center;
+	text-transform: uppercase;
+}
+
+.fe-boot-caption--inline {
+	padding: 24px 16px;
+}
+
+/* fe-boot-caption__value — the live record count inside a boot caption, in every vertical.
+ *
+ * Cyan, never phosphor: the brand's dual-accent contract reads cyan as data and phosphor as engine
+ * activity, and during a corpus stream the engine is not computing — it is waiting.
+ *
+ * ONE declaration on purpose. The caption's wording lives in `examples-shared/boot-caption`, and this
+ * is the other half: what a `value` segment looks like, defined once rather than as an inline style or
+ * a scoped class per vertical.
+ *
+ * 🔴 Why this rule is here rather than left per-vertical: a shared-looking class name with no shared
+ * definition styles nothing in the verticals that do not declare it, and nothing compares the users
+ * against the definition, so the gap is invisible from inside any one vertical. */
+.fe-boot-caption__value {
+	color: var(--accent);
+}
+
+/* fe-filter-drawer — mobile off-canvas filter panel (react-ui <FilterDrawer />). Mobile-first: this
+ * block IS the small-viewport treatment; the apps render the drawer only below the two-column
+ * breakpoint and swap to a static sidebar at `lg:` and up, so there are no min-width overrides here.
+ * The panel slides in from the inline-start edge; the scrim fades. Both honor reduced-motion. */
+.fe-filter-drawer {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+}
+
+/* `keepMounted` closed state — hide the host (and drop it from layout + the a11y tree) while
+ * keeping its children mounted. Double-class for specificity over the `display: flex` above. */
+.fe-filter-drawer.fe-filter-drawer--closed {
+	display: none;
+}
+
+.fe-filter-drawer__scrim {
+	position: absolute;
+	inset: 0;
+	padding: 0;
+	border: none;
+	background: rgba(0, 0, 0, 0.55);
+	cursor: pointer;
+	animation: fe-filter-drawer-fade 160ms ease-out;
+}
+
+.fe-filter-drawer__panel {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: min(88vw, 360px);
+	max-width: 100%;
+	height: 100%;
+	background: var(--gray-1);
+	border-right: 1px solid var(--gray-3);
+	box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+	outline: none;
+	animation: fe-filter-drawer-slide 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fe-filter-drawer__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 16px;
+	border-bottom: 1px solid var(--gray-3);
+}
+
+.fe-filter-drawer__title {
+	font-family: var(--font-display);
+	font-size: 14px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--gray-11);
+}
+
+/* 44px min touch target (WCAG 2.5.5). */
+.fe-filter-drawer__close {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	background: var(--gray-2);
+	color: var(--gray-8);
+	cursor: pointer;
+}
+
+.fe-filter-drawer__close:hover {
+	border-color: var(--gray-5);
+	color: var(--gray-10);
+}
+
+/* ── One scroller, not two ──
+ *
+ * This body is NOT a scroller. Every panel it holds brings its own `.fe-filter-panel__scroller` —
+ * `overflow-y: auto`, and `flex: 1 1 0%` — and that `flex` is inert against a non-flex parent. If this
+ * box were a plain `overflow-y: auto` block, the drawer would nest two scroll containers, the inner
+ * one would size to its content, and the OUTER box would do all the scrolling.
+ *
+ * Wine is the clearest case. `WineFilterPanel` has no `.fe-filter-panel` root at all — its
+ * `FilterSectionGuard` puts `__scroller` directly in here — so nothing sits between that
+ * `flex: 1 1 0%` and this block. Books, books-config and real-estate wrap their scroller in
+ * `.fe-filter-panel`, but that wrapper is `flex: 1 1 0%` too, so it depends on this block the same way.
+ *
+ * The cost of nesting is not cosmetic. Playwright's `scrollIntoViewIfNeeded` on a chip click never
+ * converges — the click point keeps landing outside the visible box, and the hit test reports whatever
+ * sits at that viewport point (`<section>`, `.fe-filter-drawer__header`). `clickFirstFacetChip`
+ * documents the whole shape.
+ *
+ * A flex column with a definite height is what the inner scroller needs: the panel bounds and scrolls
+ * itself, matching the desktop sidebar, and this box does not scroll. `overflow: hidden` is deliberate
+ * rather than incidental — it pins the scroll bounds here and makes a child that forgets to bring a
+ * scroller fail visibly instead of quietly recreating the nested pair.
+ *
+ * The scrollbar sits inside the 16px inset rather than hugging the panel edge; to change that, move
+ * the inset onto `.fe-filter-panel__scroller` rather than adding `overflow-y` here. */
+.fe-filter-drawer__body {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	padding: 12px 16px 24px;
+	overflow: hidden;
+}
+
+@keyframes fe-filter-drawer-slide {
+	from {
+		transform: translateX(-100%);
+	}
+
+	to {
+		transform: translateX(0);
+	}
+}
+
+@keyframes fe-filter-drawer-fade {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.fe-filter-drawer__panel,
+	.fe-filter-drawer__scrim {
+		animation: none;
+	}
+}
+
+/* fe-book-card — one book record as a compact card (books-domain presentational; mirror of
+ * fe-wine-card). Muted text uses gray-8+ for AA contrast on the dark card; cyan accents mark data
+ * affordances (genre chip, rating). Result grid is fluid (auto-fill minmax), so cards flex to width. */
+@keyframes fe-book-card-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.fe-book-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+	animation: fe-book-card-fade-in 260ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+	.fe-book-card {
+		animation: none;
+	}
+}
+.fe-book-card__top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+.fe-book-card__genre {
+	padding: 2px 9px;
+	border-radius: 9999px;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: capitalize;
+	color: var(--accent);
+	background: rgba(34, 211, 238, 0.08);
+	border: 1px solid rgba(34, 211, 238, 0.18);
+}
+.fe-book-card__year {
+	flex-shrink: 0;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--gray-8);
+}
+.fe-book-card__title {
+	display: -webkit-box;
+	overflow: hidden;
+	font-family: var(--font-sans);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--gray-11);
+	text-overflow: ellipsis;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+.fe-book-card__authors {
+	margin-top: 2px;
+	overflow: hidden;
+	font-family: var(--font-sans);
+	font-size: 13px;
+	color: var(--gray-9);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fe-book-card__meta {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.04em;
+	text-transform: capitalize;
+	color: var(--gray-8);
+}
+.fe-book-card__subjects {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.fe-book-card__subject {
+	padding: 2px 7px;
+	border-radius: 4px;
+	font-family: var(--font-sans);
+	font-size: 11px;
+	color: var(--gray-9);
+	background: var(--gray-2);
+}
+.fe-book-card__bottom {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: auto;
+	padding-top: 8px;
+	border-top: 1px solid var(--gray-2);
+}
+.fe-book-card__rating {
+	font-family: var(--font-mono);
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--accent);
+}
+.fe-book-card__pages {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-8);
+}
+
+/* fe-listing-card — one real-estate listing as a compact card (real-estate-domain presentational;
+ * mirror of fe-book-card / fe-wine-card). Muted text uses gray-8+ for AA contrast on the dark card;
+ * cyan accents mark data affordances (property-type chip, price). Result grid is fluid (auto-fill
+ * minmax), so cards flex to width. */
+@keyframes fe-listing-card-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.fe-listing-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 16px;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+	animation: fe-listing-card-fade-in 260ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+	.fe-listing-card {
+		animation: none;
+	}
+}
+.fe-listing-card__top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+.fe-listing-card__type {
+	padding: 2px 9px;
+	border-radius: 9999px;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: capitalize;
+	color: var(--accent);
+	background: rgba(34, 211, 238, 0.08);
+	border: 1px solid rgba(34, 211, 238, 0.18);
+}
+.fe-listing-card__status {
+	flex-shrink: 0;
+	padding: 2px 8px;
+	border-radius: 9999px;
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: capitalize;
+	color: var(--gray-9);
+	background: var(--gray-2);
+	border: 1px solid var(--gray-3);
+}
+.fe-listing-card__price {
+	font-family: var(--font-mono);
+	font-size: 20px;
+	font-weight: 600;
+	color: var(--accent);
+}
+.fe-listing-card__title {
+	font-family: var(--font-sans);
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--gray-11);
+}
+.fe-listing-card__location {
+	overflow: hidden;
+	font-family: var(--font-sans);
+	font-size: 13px;
+	color: var(--gray-9);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.fe-listing-card__meta {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.04em;
+	color: var(--gray-8);
+}
+.fe-listing-card__features {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.fe-listing-card__feature {
+	padding: 2px 7px;
+	border-radius: 4px;
+	font-family: var(--font-sans);
+	font-size: 11px;
+	text-transform: capitalize;
+	color: var(--gray-9);
+	background: var(--gray-2);
+}
+.fe-listing-card__bottom {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: auto;
+	padding-top: 8px;
+	border-top: 1px solid var(--gray-2);
+}
+.fe-listing-card__lot {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-8);
+}
+.fe-listing-card__built {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-8);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   fe-geo — the geo-radius filter section: an enable toggle, a metro dropdown, a
+   "near me" button, the Leaflet map frame, and a single-handle radius slider.
+
+   React's `<GeoRadiusSection />` draws all of this with Tailwind utilities and
+   inline styles. The non-Tailwind verticals (SvelteKit, Vue, Angular, vanilla)
+   share this one block rather than each carrying a scoped copy.
+
+   The MAP ITSELF is styled by Leaflet plus the controller's inline marker HTML;
+   only its frame is here. The enable toggle reuses `.fe-books-checkbox` (shared
+   despite the prefix) rather than growing a `.fe-geo__enable` twin.
+
+   Dual-accent contract: cyan throughout — a radius is a statement about WHICH
+   listings, not about the engine computing. No phosphor in this block.
+   ───────────────────────────────────────────────────────────────────────── */
+.fe-geo {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+.fe-geo__label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-size: 12px;
+	color: var(--gray-9);
+}
+/* Dropdown + "near me" on one wrapping row. The select takes the slack and the
+ * button keeps its intrinsic width; below ~20rem they stack rather than crush. */
+.fe-geo__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+.fe-geo__select {
+	flex: 1 1 10rem;
+	min-width: 0;
+}
+.fe-geo__locate {
+	min-height: 44px;
+	padding: 0 14px;
+	border: 1px solid var(--accent-dim);
+	border-radius: 6px;
+	background: transparent;
+	color: var(--accent);
+	font-size: 12px;
+	font-family: var(--font-mono);
+	cursor: pointer;
+}
+.fe-geo__locate:disabled {
+	cursor: wait;
+	opacity: 0.6;
+}
+.fe-geo__locate:hover:not(:disabled) {
+	border-color: var(--accent);
+}
+/* The map frame. A RESOLVED height is mandatory, not cosmetic: Leaflet measures
+ * its container once at init, and a container with no height initializes a map
+ * that renders one tile in the corner forever. `clamp` keeps it proportionate on
+ * a phone without eating the whole viewport. */
+.fe-geo__map {
+	width: 100%;
+	height: clamp(220px, 40vh, 360px);
+	border: 1px solid var(--gray-4);
+	border-radius: 8px;
+	overflow: hidden;
+}
+.fe-geo__map-canvas {
+	width: 100%;
+	height: 100%;
+}
+.fe-geo__radius-label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0.25rem;
+	font-size: 12px;
+	color: var(--gray-9);
+}
+.fe-geo__radius-value {
+	color: var(--accent);
+	font-family: var(--font-mono);
+}
+/* Single-handle, so a native range input rather than `.fe-range-slider` (which is
+ * dual-handle by construction). 44px tall for the touch target — the thumb is
+ * smaller, but the hit area is the input's box. */
+.fe-geo__radius {
+	display: block;
+	width: 100%;
+	height: 44px;
+	accent-color: var(--accent);
+}
+.fe-geo__status {
+	margin: 0;
+	font-size: 12px;
+	color: var(--gray-9);
+	font-family: var(--font-mono);
+}
+.fe-geo__error {
+	margin: 0;
+	font-size: 12px;
+	color: var(--gray-10);
+}
+
+/* ── Leaflet's own chrome, on brand ──────────────────────────────────────────
+ * Scoped to `.leaflet-container` — the class Leaflet puts on every map root itself — rather than to
+ * `.fe-geo__map`. That is deliberate: it means a map gets themed in EVERY vertical without any of
+ * them changing markup, including React's geo section, which still draws its wrapper with inline
+ * styles. One selector, five apps.
+ *
+ * Leaflet ships a light theme: white zoom buttons with black glyphs, a white attribution ribbon,
+ * white popups. Against a dark basemap in a dark panel those read as three bright rectangles stuck
+ * onto the map. Everything below is token-driven, so it tracks the design system rather than pinning
+ * hex values a second time. */
+.leaflet-container {
+	background: var(--gray-1);
+	font-family: var(--font-sans);
+}
+
+/* The cyan glow on the radius circle. Runtime `drop-shadow`, per the brand rule that source art stays
+ * flat and the glow is applied in CSS — the SVG path carries no filter of its own. */
+.fez-geo-radius-circle {
+	filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+/* Zoom controls: a dark pill matching the panel's other controls. */
+.leaflet-container .leaflet-bar {
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-sm);
+	box-shadow: none;
+}
+.leaflet-container .leaflet-bar a,
+.leaflet-container .leaflet-bar a:hover {
+	background: var(--gray-2);
+	border-bottom-color: var(--gray-4);
+	color: var(--gray-10);
+}
+.leaflet-container .leaflet-bar a:hover {
+	background: var(--gray-3);
+	color: var(--accent);
+}
+/* Leaflet marks a disabled zoom button (already at min/max) with `--disabled`; its default is a pale
+ * grey that vanishes entirely on a dark pill. */
+.leaflet-container .leaflet-bar a.leaflet-disabled {
+	background: var(--gray-1);
+	color: var(--gray-6);
+}
+
+/* The attribution ribbon. Required by both licenses, so it stays legible — subdued, not hidden. */
+.leaflet-container .leaflet-control-attribution {
+	background: color-mix(in srgb, var(--gray-0) 78%, transparent);
+	color: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 9px;
+}
+.leaflet-container .leaflet-control-attribution a {
+	color: var(--gray-9);
+}
+.leaflet-container .leaflet-control-attribution a:hover {
+	color: var(--accent);
+}
+
+/* Popups + tooltips are unused, themed anyway: the alternative is a white box appearing the first
+ * time anyone adds one. */
+.leaflet-container .leaflet-popup-content-wrapper,
+.leaflet-container .leaflet-popup-tip,
+.leaflet-container .leaflet-tooltip {
+	background: var(--gray-2);
+	border: 1px solid var(--gray-4);
+	box-shadow: none;
+	color: var(--gray-10);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   fe-notfound — the "filtered to zero" 404 page. Framework-agnostic: React
+   (examples-shared/notfound) + SvelteKit (+error.svelte) render identical markup
+   over these classes. Dual-accent contract: the result count + chips are CYAN
+   (data/identity); phosphor appears ONLY while the fake filter is "recomputing"
+   (the brief loader swap on toggle), never at rest.
+   ───────────────────────────────────────────────────────────────────────── */
+.fe-notfound {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 20px;
+	padding: 48px 24px;
+	text-align: center;
+	background: var(--gray-0);
+}
+.fe-notfound__eyebrow {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--gray-8);
+	margin: 0;
+}
+.fe-notfound__count {
+	font-family: var(--font-display, var(--font-sans));
+	font-size: clamp(96px, 22vw, 200px);
+	font-weight: 700;
+	line-height: 0.9;
+	color: var(--accent);
+	text-shadow: 0 0 24px var(--accent-haze, rgba(34, 211, 238, 0.35));
+	margin: 0;
+}
+.fe-notfound__loader {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 64px;
+}
+.fe-notfound__heading {
+	font-family: var(--font-display, var(--font-sans));
+	font-size: clamp(20px, 4vw, 30px);
+	font-weight: 600;
+	color: var(--gray-11);
+	margin: 0;
+}
+.fe-notfound__body {
+	max-width: 46ch;
+	font-size: 15px;
+	line-height: 1.6;
+	color: var(--gray-8);
+	margin: 0;
+}
+.fe-notfound__body code {
+	font-family: var(--font-mono);
+	font-size: 13px;
+	color: var(--accent);
+}
+.fe-notfound__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: center;
+	max-width: 40rem;
+}
+.fe-notfound__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 38px;
+	padding: 0 14px;
+	font-size: 13px;
+	color: var(--gray-10);
+	background: var(--gray-1);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md, 8px);
+	cursor: pointer;
+	transition:
+		border-color 120ms ease,
+		background 120ms ease;
+}
+.fe-notfound__chip:hover {
+	border-color: var(--gray-6);
+}
+.fe-notfound__chip--selected {
+	color: var(--accent);
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--gray-1));
+}
+.fe-notfound__chip-badge {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-7);
+}
+.fe-notfound__chip:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.fe-notfound__cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	margin-top: 4px;
+	padding: 0 22px;
+	font-family: var(--font-display, var(--font-sans));
+	font-size: 14px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	text-decoration: none;
+	color: var(--gray-0);
+	background: var(--accent);
+	border-radius: var(--radius-md, 8px);
+}
+.fe-notfound__cta:hover {
+	filter: brightness(1.08);
+}
+.fe-notfound__cta:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   fe-lab — the /lab route: engine capabilities the docs advertise, running
+   against a live corpus: the what-if projection pane (`useSimulation`),
+   the similarity pane and the suggestion pane.
+
+   The lab is a route SURFACE rather than a dataset view, so it wears its own
+   topbar and hero instead of the books app chrome.
+
+   Dual-accent contract: a PROJECTED COUNT is data, so it is CYAN. The delta
+   beside it describes what the engine's recomputation DID, and is PHOSPHOR —
+   the same split the benchmark widget makes between its count and its timing.
+   A projection the engine can refuse without counting (`wouldBeEmpty`, via the
+   exclusion short-circuit) is neither: it is muted, because "no results" is a
+   verdict rather than a measurement, and coloring it like data would overstate
+   what was computed.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.fe-lab {
+	position: relative;
+	min-height: 100vh;
+	background: var(--gray-0);
+	padding-bottom: var(--space-24);
+}
+/* The lab header's link back to the books demo, beside the shared header brand. */
+.fe-lab__back {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	color: var(--gray-8);
+}
+.fe-lab__back:hover {
+	color: var(--accent);
+}
+
+.fe-lab__hero {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: var(--space-20) var(--space-6) var(--space-12);
+	text-align: center;
+}
+.fe-lab__eyebrow {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--gray-8);
+	margin: 0 0 var(--space-3);
+}
+.fe-lab__hero-title {
+	font-family: var(--font-display);
+	font-size: var(--text-3xl);
+	font-weight: 700;
+	letter-spacing: var(--tracking-display);
+	color: var(--gray-11);
+	margin: 0 0 var(--space-5);
+}
+.fe-lab__hero-lead {
+	font-size: var(--text-lg);
+	line-height: var(--leading-relaxed);
+	color: var(--gray-9);
+	margin: 0;
+}
+
+.fe-lab__inline-link {
+	color: var(--accent);
+	font-family: var(--font-mono);
+	font-size: 0.92em;
+}
+.fe-lab__inline-link:hover {
+	text-decoration: underline;
+}
+
+/* ── A pane: one engine capability, framed ── */
+.fe-lab__pane {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 0 var(--space-6) var(--space-16);
+}
+.fe-lab__pane-title {
+	font-family: var(--font-display);
+	font-size: var(--text-xl);
+	font-weight: 700;
+	letter-spacing: var(--tracking-display);
+	color: var(--gray-11);
+	margin: 0 0 var(--space-3);
+}
+.fe-lab__pane-lead {
+	font-size: var(--text-sm);
+	line-height: var(--leading-relaxed);
+	color: var(--gray-9);
+	margin: 0 0 var(--space-6);
+}
+.fe-lab__live {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--gray-8);
+	margin: 0 0 var(--space-4);
+}
+.fe-lab__live-count {
+	color: var(--accent);
+	font-size: var(--text-sm);
+	font-weight: 700;
+}
+
+/* ── The candidate rows ── */
+.fe-lab__rows {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.fe-lab__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-md);
+	background: var(--gray-1);
+}
+.fe-lab__row--committed {
+	border-color: var(--accent-dim);
+	background: rgba(34, 211, 238, 0.05);
+}
+.fe-lab__row-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	flex: 1 1 12rem;
+}
+.fe-lab__row-label {
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--gray-11);
+}
+.fe-lab__row-description {
+	font-size: var(--text-xs);
+	color: var(--gray-8);
+}
+.fe-lab__row-projection {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 2px;
+	font-family: var(--font-mono);
+}
+.fe-lab__projection {
+	font-size: var(--text-sm);
+	font-weight: 700;
+	color: var(--accent);
+}
+.fe-lab__projection--empty {
+	color: var(--gray-8);
+	font-weight: 400;
+	font-style: italic;
+}
+.fe-lab__delta {
+	font-size: var(--text-xs);
+	color: var(--engine);
+}
+.fe-lab__commit {
+	flex: 0 0 auto;
+	min-height: 44px;
+	min-width: 44px;
+	padding: var(--space-2) var(--space-4);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	background: var(--gray-2);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--gray-10);
+	cursor: pointer;
+}
+.fe-lab__commit:hover {
+	border-color: var(--accent-dim);
+	color: var(--accent);
+}
+.fe-lab__commit:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.fe-lab__commit[aria-pressed='true'] {
+	border-color: var(--accent-dim);
+	color: var(--accent);
+}
+
+/* ── An honest empty state. Shared by both panes that can legitimately have
+      nothing to show: no results to anchor on, and an anchor whose LSH bucket
+      holds only itself. Styled as prose rather than as an error, because
+      neither is one. ── */
+.fe-lab__empty {
+	padding: var(--space-4);
+	border: 1px dashed var(--gray-4);
+	border-radius: var(--radius-md);
+	font-size: var(--text-sm);
+	line-height: var(--leading-relaxed);
+	color: var(--gray-9);
+	margin: 0;
+}
+.fe-lab__empty-route {
+	font-family: var(--font-mono);
+	color: var(--gray-10);
+}
+
+/* ── The similarity pane's anchor picker ── */
+.fe-lab__anchor {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-3);
+	margin-bottom: var(--space-4);
+}
+.fe-lab__anchor-label {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--gray-8);
+}
+.fe-lab__anchor-select {
+	flex: 1 1 14rem;
+	min-height: 44px;
+	max-width: 100%;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	background: var(--gray-2);
+	font-size: var(--text-sm);
+	color: var(--gray-11);
+	cursor: pointer;
+}
+.fe-lab__anchor-select:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* ── Neighbor rows. The affinity score is CYAN: it is a fact about the DATA
+      (how alike two books are), not an indication that the engine is working.
+      Phosphor here would claim activity where there is only a measurement. ── */
+.fe-lab__neighbors {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.fe-lab__neighbor {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-md);
+	background: var(--gray-1);
+}
+.fe-lab__neighbor-text {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	min-width: 0;
+	flex: 1 1 14rem;
+}
+.fe-lab__neighbor-title {
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--gray-11);
+}
+.fe-lab__neighbor-meta {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	color: var(--gray-8);
+}
+.fe-lab__neighbor-shared {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
+}
+.fe-lab__neighbor-shared--none {
+	font-size: var(--text-xs);
+	font-style: italic;
+	color: var(--gray-8);
+}
+.fe-lab__tag {
+	padding: 2px var(--space-2);
+	border: 1px solid var(--accent-dim);
+	border-radius: var(--radius-sm);
+	background: rgba(34, 211, 238, 0.06);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	color: var(--accent);
+}
+.fe-lab__affinity {
+	flex: 0 0 auto;
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: var(--accent);
+}
+
+/* ── The suggestion pane's provenance line. Deliberately prominent rather than
+      a footnote: the pane announces that its corpus is synthetic, and that
+      sentence must not read as fine print. ── */
+.fe-lab__provenance {
+	padding: var(--space-3) var(--space-4);
+	border-left: 2px solid var(--gray-5);
+	background: var(--gray-1);
+	font-size: var(--text-xs);
+	line-height: var(--leading-relaxed);
+	color: var(--gray-9);
+	margin: 0 0 var(--space-4);
+}
+.fe-lab__suggestions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.fe-lab__suggestion {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-md);
+	background: var(--gray-1);
+}
+.fe-lab__suggestion-label {
+	flex: 1 1 10rem;
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--gray-11);
+}
+.fe-lab__suggestion-note {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	color: var(--gray-8);
+}
+.fe-lab__suggestion-probability {
+	flex: 0 0 auto;
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: var(--accent);
+}

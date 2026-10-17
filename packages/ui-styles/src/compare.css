@@ -1,0 +1,230 @@
+/**
+ * @filter-enginez/ui-styles — compare: the cross-framework comparison page.
+ *
+ * A partial of `styles.css`, which imports every partial in cascade order; that file explains
+ * the split.
+ */
+
+/* fe-compare — the cross-framework comparison page (`filterenginez.com/compare`, on the landing site).
+ * One filter state shown as a link into each of the six verticals.
+ *
+ * Dual-accent contract, and this block is a place it would be easy to get wrong: EVERY accent here
+ * is cyan, because every accent here refers to DATA or IDENTITY — the state being carried, the
+ * vertical being named, the link being offered. Nothing on this page is the engine computing, so
+ * phosphor (`--engine`) appears nowhere. A "copied!" or "recomputing" affordance would be the first
+ * thing that legitimately earned it. */
+.fe-compare {
+	max-width: 880px;
+	margin: 0 auto;
+	padding: 48px 24px 72px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.fe-compare__eyebrow {
+	margin: 0;
+	font-family: var(--font-mono);
+	font-size: 12px;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--accent);
+}
+
+.fe-compare__heading {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: clamp(26px, 4vw, 38px);
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--gray-11);
+}
+
+.fe-compare__lede {
+	margin: 0;
+	max-width: 62ch;
+	font-size: 16px;
+	line-height: 1.65;
+	color: var(--gray-9);
+}
+
+.fe-compare__controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 4px;
+}
+
+.fe-compare__group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+/* 44px min touch target (WCAG 2.5.5) — the toggles are the page's
+ * only interactive controls, so they carry the whole mobile burden. */
+.fe-compare__toggle {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 14px;
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	background: var(--gray-2);
+	color: var(--gray-10);
+	font-size: 13px;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		border-color 200ms ease,
+		color 200ms ease,
+		background 200ms ease,
+		box-shadow 200ms ease;
+}
+
+/* Hover on an UNSELECTED toggle — a quiet gray lift, the affordance that says "clickable".
+ *
+ * The `:not()` is load-bearing, not defensive styling. `.fe-compare__toggle:hover` is specificity
+ * (0,2,0) and `.fe-compare__toggle--selected` is (0,1,0), so an unqualified hover rule would BEAT the
+ * selected state no matter where it sat in the file: pointing at the currently selected dataset would
+ * repaint it gray, i.e. the page would appear to deselect the thing under the cursor. A
+ * `--selected:hover` rule alone would also work, by arithmetic; scoping the selector says which state
+ * each rule is for, so the next rule added to either cannot silently lose. */
+.fe-compare__toggle:not(.fe-compare__toggle--selected):hover {
+	border-color: var(--gray-5);
+	color: var(--gray-11);
+}
+
+.fe-compare__toggle--selected {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+/* Hover on a SELECTED toggle ENHANCES it rather than replacing it: the accent border stays, the
+ * text brightens to the glow step, and a halo appears. Cyan throughout, per the dual-accent
+ * contract — this control names WHICH dataset and WHICH state, which is data and identity; phosphor
+ * would claim the engine was computing, and nothing on this page computes.
+ *
+ * The halo is a `box-shadow`, not a `transform`, so there is nothing here for a
+ * `prefers-reduced-motion` block to switch off — the eased color and shadow are the whole effect. */
+.fe-compare__toggle--selected:hover {
+	border-color: var(--accent);
+	color: var(--accent-glow);
+	background: rgba(34, 211, 238, 0.11);
+	box-shadow: 0 0 20px -6px rgba(34, 211, 238, 0.55);
+}
+
+.fe-compare__state {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px 14px;
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-md);
+	background: var(--gray-1);
+}
+
+.fe-compare__state-label {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--gray-8);
+}
+
+/* The serialized state is the artifact the page is about, so it is shown rather than hidden — and
+ * it can be long in the readable format, hence the wrap rather than an ellipsis. */
+.fe-compare__state-value {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 1.5;
+	color: var(--accent);
+	word-break: break-all;
+}
+
+.fe-compare__list {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (min-width: 720px) {
+	.fe-compare__list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.fe-compare__row {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px 16px;
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-md);
+	background: var(--gray-1);
+}
+
+.fe-compare__row-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.fe-compare__row-name {
+	font-family: var(--font-display);
+	font-size: 16px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--accent);
+	text-decoration: none;
+}
+
+.fe-compare__row-name:hover {
+	text-decoration: underline;
+}
+
+.fe-compare__row-framework {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-8);
+}
+
+.fe-compare__row-blurb {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--gray-9);
+}
+
+.fe-compare__row-binding {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin: 0;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	color: var(--gray-8);
+}
+
+.fe-compare__row-surface {
+	padding: 2px 8px;
+	border: 1px solid var(--gray-4);
+	border-radius: 999px;
+	color: var(--gray-9);
+}
+
+.fe-compare__footnote {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--gray-8);
+}
+
+.fe-compare__footnote a {
+	color: var(--accent);
+}

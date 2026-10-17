@@ -1,0 +1,14 @@
+/* ============================================================================
+   filterenginez.com's 404 page.
+
+   The page is the apps' dataset-hub hero (`.fe-landing__*`) under the apps'
+   header, so its stylesheet is only imports: the `ui-styles` partials it
+   draws, in the order `ui-styles/styles.css` lists them — `base` (the brand
+   tokens and the reset), `shell` (the header) and `landing` (the hub) — then
+   the site's shared chrome.
+   ============================================================================ */
+
+@import '@filter-enginez/ui-styles/base.css';
+@import '@filter-enginez/ui-styles/shell.css';
+@import '@filter-enginez/ui-styles/landing.css';
+@import './styles.css';

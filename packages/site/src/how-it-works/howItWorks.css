@@ -1,14 +1,15 @@
 /* ============================================================================
    filterenginez.com/how-it-works — the "How the engine works" page.
 
-   The page's one stylesheet. It imports the site's own `styles.css` first
-   (`ui-styles` with the brand tokens, the apps' header and footer), so the
-   cascade order is fixed here rather than by the order the build emits link
-   tags in; everything after that is
-   what this page adds: the narrative's bands, its sticky table of contents,
-   the live benchmark widget, and — imported from `@filter-enginez/ui-styles`
-   — the eight algorithm figures, which the documentation site renders over
-   the same classes.
+   The page's one stylesheet. It imports the `ui-styles` partials the page
+   draws first, in the order `ui-styles/styles.css` lists them — `base` (the
+   brand tokens and the reset) and `shell` (the apps' header and footer) —
+   then the site's shared chrome (`../styles.css`), so the cascade order is
+   fixed here rather than by the order the build emits link tags in;
+   everything after that is what this page adds: the narrative's bands, its
+   sticky table of contents, the live benchmark widget, and — imported from
+   `@filter-enginez/ui-styles` — the eight algorithm figures, which the
+   documentation site renders over the same classes.
 
    Dual-accent contract: DATA (bits, results, counts, chips, links) is CYAN;
    the ENGINE DOING WORK (scanlines, sparks, probes, timings) is PHOSPHOR and
@@ -17,6 +18,8 @@
    the figure is on screen.
    ============================================================================ */
 
+@import '@filter-enginez/ui-styles/base.css';
+@import '@filter-enginez/ui-styles/shell.css';
 @import '../styles.css';
 @import '@filter-enginez/ui-styles/figures.css';
 

@@ -25,24 +25,28 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { enclosingLayer, stripCssComments as stripComments } from './support/cssLayers.js';
+import { readUiStyles } from './support/uiStylesSheet.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** Stylesheets that declare bare-element rules, and must therefore layer them. */
-const SHEETS: Readonly<Record<string, string>> = {
-	'brand/tokens.css': 'packages/brand/src/tokens.css',
-	'ui-styles/styles.css': 'packages/ui-styles/src/styles.css',
+/**
+ * Stylesheets that declare bare-element rules, and must therefore layer them, each with how to read
+ * it. `ui-styles` is read whole, its partials inlined in cascade order (`support/uiStylesSheet.ts`).
+ */
+const SHEETS: Readonly<Record<string, () => string>> = {
+	'brand/tokens.css': () => readFileSync(resolve(REPO_ROOT, 'packages/brand/src/tokens.css'), 'utf8'),
+	'ui-styles/styles.css': readUiStyles,
 };
 
 describe('cascade layers', () => {
-	it.each(Object.entries(SHEETS))('%s layers its heading defaults', (_name, path) => {
-		const css = stripComments(readFileSync(resolve(REPO_ROOT, path), 'utf8'));
+	it.each(Object.entries(SHEETS))('%s layers its heading defaults', (name, read) => {
+		const css = stripComments(read());
 		const offsets = [...css.matchAll(/(?:^|\})\s*(h[1-6])[\s,{]/gu)].map((match) => match.index);
 
 		expect(offsets.length).toBeGreaterThan(0);
 
 		for (const offset of offsets) {
-			expect(enclosingLayer(css, offset), `heading rule at offset ${offset} in ${path} is unlayered`)
+			expect(enclosingLayer(css, offset), `heading rule at offset ${offset} in ${name} is unlayered`)
 				.toBe('base');
 		}
 	});
@@ -53,7 +57,7 @@ describe('cascade layers', () => {
 		// that misses it renders white checkboxes on dark panels with no rule anywhere to point at.
 		// Asserting it sits in the brand sheet keeps it shared: a
 		// seventh vertical gets it by importing tokens, without anyone remembering to.
-		const tokens = stripComments(readFileSync(resolve(REPO_ROOT, SHEETS['brand/tokens.css'] ?? ''), 'utf8'));
+		const tokens = stripComments(SHEETS['brand/tokens.css']?.() ?? '');
 
 		expect(tokens).toMatch(/^\s*color-scheme:\s*dark;$/mu);
 	});
@@ -97,7 +101,7 @@ describe('cascade layers', () => {
 		// must keep outranking the layered element defaults; moving them into `base` would put them in
 		// a specificity fight with `h3` instead of cleanly winning, and moving them into a layer
 		// declared before `utilities` would hand React's utilities the final say over component CSS.
-		const css = stripComments(readFileSync(resolve(REPO_ROOT, SHEETS['ui-styles/styles.css'] ?? ''), 'utf8'));
+		const css = stripComments(readUiStyles());
 		const offset = css.indexOf('.fe-books-section-label');
 
 		expect(offset).toBeGreaterThan(-1);

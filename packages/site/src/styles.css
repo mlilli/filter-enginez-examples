@@ -1,57 +1,45 @@
 /* ============================================================================
-   filterenginez.com — the chrome every page of the site shares (skip link,
-   header, footer) and the home page's own layout. The how-it-works and
-   compare pages' sheets import this one and build on it.
+   filterenginez.com — the chrome every page of the site shares: the page
+   frame, the skip link and the footer's spacing.
 
    The site wears the demo apps' visual language because it IS their front
-   door: it imports `@filter-enginez/ui-styles` (which brings the brand tokens
-   and the self-hosted fonts from `@filter-enginez/brand`) and renders the same
-   classes the apps do —
+   door, and it renders the same classes the apps do, from
+   `@filter-enginez/ui-styles`:
 
    - the header is the apps' topbar, `.fe-books-app__header` and its brand
      (logomark, Orbitron wordmark, mono uppercase subtitle), with the site's
      page links set as `.fe-books-app__nav-link`;
-   - the home page's hero and demo cards are the apps' dataset hub,
-     `.fe-landing__*`: the glowing mark, the uppercase wordmark, mono labels,
-     the hub's primary call-to-action pill, and cards with an accent top line
-     and a "Live" pill;
+   - the home page's hero and demo cards, and the 404's hero, are the apps'
+     dataset hub, `.fe-landing__*`;
    - the footer is the apps' `.fe-books-app__footer`;
    - the compare page is `.fe-compare__*`, the classes the apps' own
      comparison pages were drawn with.
 
-   What is left here is only what the site has and the apps do not: the skip
-   link, the home page's grouped hero actions and install command (with its
-   copy button), and the sections below the hero. Those are site-only, so their layout lives here
-   rather than in `ui-styles`, where the apps' hubs would inherit it.
+   This sheet imports none of them. Each page's own sheet imports the
+   `ui-styles` partials that page draws, in the order `ui-styles/styles.css`
+   lists them, then this sheet, then its own rules:
 
-   Mobile first, at the apps' breakpoints: the base rules are the phone layout
-   and every media query is a `min-width` override —
+   - `home/home.css` (`/`): `base`, `shell` and `landing`, then the home
+     page's hero actions, install command and sections;
+   - `notFound.css` (the 404): `base`, `shell` and `landing`;
+   - `compare/compare.css`: `base`, `shell` and `compare`;
+   - `how-it-works/howItWorks.css`: `base` and `shell`, then the algorithm
+     figures and the page's narrative.
 
-   - 360px, the narrowest width the apps lay out for (below it their header
-     drops its wordmark): the hero's actions pair up two to a row;
-   - 720px, where the apps' grids go to two columns: the hero's two groups of
-     actions sit side by side, labeled, and the install command's copy button
-     moves up beside the command;
-   - 1024px, `DESKTOP_MIN_WIDTH_PX` in `examples-shared`: the card grids go to
-     three columns and the page takes its desktop gutters and rhythm.
+   So a page carries only the rules it can use, every one of them the apps'
+   own rule from the same source, in the same cascade order. The build checks
+   that each class a page uses, in its HTML or from its scripts, has its rule
+   in that page's CSS (`scripts/check-site-css.mjs`).
+
+   What is left here is only what the site has and the apps do not: the page
+   frame and the skip link, and room above the footer.
 
    Every link and button is at least 44px tall.
    ============================================================================ */
 
-@import '@filter-enginez/ui-styles/styles.css';
-
 :root {
 	/* WCAG 2.2 target size, the floor for every link and button on the site. */
 	--touch-target: 44px;
-	/* The page's side gutter: the same 16px / 24px the shared header pads itself with, so content
-	   below it starts on the header's edge. */
-	--page-gutter: 16px;
-	/* The vertical space between the home page's sections, and above the footer. */
-	--home-section-gap: var(--space-12);
-	/* The widest the home page's sections grow, so three cards per row keep a readable measure. */
-	--home-content-max-width: 1120px;
-	/* The width of the hero's actions and of the install block under them, so the two share edges. */
-	--home-hero-actions-max-width: 100%;
 }
 
 body {
@@ -92,317 +80,12 @@ main:focus {
 	transform: none;
 }
 
-/* ---- Home: the hero ----------------------------------------------------------
-   The hub's hero (`.fe-landing`), tightened for a landing page that continues
-   below it: no full-viewport height, and on a phone a smaller mark and
-   wordmark and no paragraph margins, so the actions arrive in the first screen.
-   Order: mark, title, tagline, the four actions, then the install command —
-   the actions come before the install block because they are what most
-   visitors are here for. */
-.home-hero {
-	min-height: 0;
-	padding: var(--space-8) var(--page-gutter) 0;
-}
-.home-hero .fe-landing__hero {
-	width: 100%;
-	gap: var(--space-4);
-	margin: 0;
-}
-.home-hero .fe-landing__mark {
-	width: 56px;
-	height: 56px;
-}
-.home-hero .fe-landing__wordmark {
-	margin: 0;
-	font-size: 24px;
-	line-height: 1.2;
-}
-.home-hero .fe-landing__tagline {
-	margin: 0;
-	text-wrap: balance;
-}
-
-/* ---- Home: the hero's actions ------------------------------------------------
-   Four links in two labeled groups, every one the same size at every width:
-
-   - "Live demos", the primary group, in the hub's cyan call-to-action pill:
-     the demo list below and the comparison page;
-   - "Learn the engine", the secondary group, outlined and neutral: the
-     how-it-works page and the documentation.
-
-   Each group is a two-column grid of equal tracks and the groups share one
-   width, so the cells line up into a 2 × 2 grid on a phone and into one row
-   of four equal buttons from 720px. Below 360px the four stack in one column
-   instead, at full width, rather than squeezing a label onto two lines. The
-   group labels name the groups to assistive technology at every width; they
-   are shown from 720px, where the groups sit side by side and need them, and
-   stay visually hidden below it, where the two pill styles already tell the
-   rows apart. */
-.hero-actions {
-	display: grid;
-	gap: var(--space-3);
-	width: 100%;
-	max-width: var(--home-hero-actions-max-width);
-	margin-top: var(--space-2);
-}
-.hero-actions__group {
-	display: grid;
-	gap: var(--space-2);
-	min-width: 0;
-}
-/* Visually hidden below 720px, still the group's accessible name (`aria-labelledby`). */
-.hero-actions__label {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	margin: -1px;
-	padding: 0;
-	overflow: hidden;
-	clip-path: inset(50%);
-	white-space: nowrap;
-}
-.hero-actions__list {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	gap: var(--space-3);
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-/* The list item is the grid cell; the link fills it, so all four links share the cells' size. */
-.hero-actions__list > li {
-	display: flex;
-	min-width: 0;
-}
-/* The size every action shares, set after (and more specific than) `.fe-landing__cta`, whose hub
-   padding and margin are for a lone pill. Mono, sentence case, no arrows, like the hub's pills. */
-.hero-actions .hero-actions__link {
-	display: flex;
-	flex: 1 1 auto;
-	align-items: center;
-	justify-content: center;
-	min-height: var(--touch-target);
-	margin: 0;
-	padding: var(--space-2) var(--space-3);
-	border-radius: var(--radius-md);
-	font-family: var(--font-mono);
-	font-size: 13px;
-	letter-spacing: 0.04em;
-	line-height: 1.3;
-	text-align: center;
-	text-decoration: none;
-}
-/* The secondary group: the same box, outlined in the neutral border with high-emphasis text, and no
-   hover lift, so the primary pills stay the brightest thing in the hero. */
-.hero-actions__link--secondary {
-	color: var(--gray-10);
-	background: transparent;
-	border: 1px solid var(--gray-5);
-	transition:
-		color 200ms ease,
-		border-color 200ms ease,
-		background 200ms ease;
-}
-.hero-actions__link--secondary:hover {
-	color: var(--accent-glow);
-	border-color: var(--accent-dim);
-	background: var(--gray-1);
-}
-
-/* ---- Home: the install command -----------------------------------------------
-   Under the actions, centered with the rest of the hero and as wide as the
-   actions, so the two blocks share their edges. */
-.install {
-	width: 100%;
-	max-width: var(--home-hero-actions-max-width);
-	margin-top: var(--space-2);
-	text-align: center;
-}
-.install__label {
-	margin: 0 0 var(--space-2);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.22em;
-	text-transform: uppercase;
-	color: var(--gray-8);
-}
-.install__command {
-	margin: 0;
-	padding: var(--space-3) var(--space-4);
-	/* Wraps rather than scrolls on the narrowest phones: a scrolling region would need its own focus stop. */
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-	border: 1px solid var(--gray-3);
-	border-radius: var(--radius-lg);
-	background: linear-gradient(180deg, var(--gray-1), var(--gray-0));
-	font-size: var(--text-sm);
-}
-.install__command code {
-	padding: 0;
-	background: none;
-	color: var(--accent);
-}
-/* The command and its copy button. Stacked on a phone, where the command needs the full width to set
-   on one line, the button centered under it like the rest of the hero; side by side from 720px. */
-.install__row {
-	display: grid;
-	justify-items: center;
-	gap: var(--space-2);
-}
-.install__row .install__command {
-	justify-self: stretch;
-	min-width: 0;
-}
-/* The copy button: the hero's secondary action (outlined, high-emphasis text) wearing the site's mono
-   label type. In the HTML with `hidden`, which the home page's script removes only where the browser
-   can copy, so `[hidden]` has to beat the `display` below. Wide enough for its longest label, so
-   "Copy" becoming "Copied" does not move it. */
-.install__copy {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: max(var(--touch-target), 6.5rem);
-	min-height: var(--touch-target);
-	margin: 0;
-	padding: var(--space-2) var(--space-4);
-	border: 1px solid var(--gray-5);
-	border-radius: var(--radius-lg);
-	background: transparent;
-	color: var(--gray-10);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.22em;
-	line-height: 1.3;
-	text-transform: uppercase;
-	cursor: pointer;
-	transition:
-		color 200ms ease,
-		border-color 200ms ease,
-		background 200ms ease;
-}
-.install__copy[hidden] {
-	display: none;
-}
-/* Hover and keyboard focus light alike, as the apps' header buttons do. */
-.install__copy:hover,
-.install__copy:focus-visible {
-	color: var(--accent-glow);
-	border-color: var(--accent-dim);
-	background: var(--gray-1);
-}
-/* The outcome, for the two seconds the label shows it: cyan for copied (data, per the brand's accent
-   contract), the danger red for a refused write. */
-.install__copy[data-copy-state='copied'] {
-	color: var(--accent);
-	border-color: var(--accent);
-}
-.install__copy[data-copy-state='failed'] {
-	color: var(--danger);
-	border-color: var(--danger);
-}
-/* The live region that announces the outcome; the button's own label is what sighted visitors read. */
-.install__status {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	margin: -1px;
-	padding: 0;
-	overflow: hidden;
-	clip-path: inset(50%);
-	white-space: nowrap;
-}
-.install__note {
-	margin: var(--space-3) 0 0;
-	font-size: 13px;
-	line-height: 1.55;
-	color: var(--gray-8);
-}
-
-/* ---- Home: the sections below the hero --------------------------------------
-   The demos, then what the engine does. One rhythm for both: a centered head
-   (the hub's mono uppercase label, an Orbitron uppercase title, an intro),
-   then the hub's card grid, one column on a phone, two from 720px and three
-   from 1024px — six cards in each grid, so every row is full at every width. */
-.section {
-	width: 100%;
-	max-width: calc(var(--home-content-max-width) + 2 * var(--page-gutter));
-	margin: 0 auto;
-	padding: var(--home-section-gap) var(--page-gutter) 0;
-}
-.section__head {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-}
-.section__eyebrow {
-	margin: 0;
-}
-.section__title {
-	margin: var(--space-2) 0 0;
-	font-family: var(--font-display);
-	font-size: 20px;
-	font-weight: 700;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--gray-11);
-	/* "Six stacks, one engine" breaks as two even lines on a phone, not one word on its own. */
-	text-wrap: balance;
-}
-.section__intro {
-	max-width: 46rem;
-	margin: var(--space-3) 0 0;
-	font-size: 15px;
-	line-height: 1.6;
-	color: var(--gray-9);
-	text-wrap: pretty;
-}
-.section__grid {
-	margin: var(--space-6) 0 0;
-	padding: 0;
-	list-style: none;
-}
-/* A demo card is a link inside its list item; it fills the cell so a row's cards share one height. */
-.section__grid > li > .fe-landing__card {
-	height: 100%;
-}
-.feature__body code {
-	font-size: 0.9em;
-}
-
-/* The demo section's closing line: where the six apps' source lives. The only link on the page to
-   the examples repository; underlined because it follows a run of text, and 44px tall. */
-.section__footnote {
-	max-width: 46rem;
-	margin: var(--space-6) auto 0;
-	font-size: 13px;
-	line-height: 1.55;
-	text-align: center;
-	color: var(--gray-8);
-}
-.section__footnote-link {
-	display: inline-flex;
-	align-items: center;
-	min-height: var(--touch-target);
-	font-family: var(--font-mono);
-	overflow-wrap: anywhere;
-	text-decoration: underline;
-	text-decoration-color: var(--gray-6);
-	text-underline-offset: 3px;
-}
-.section__footnote-link:hover {
-	text-decoration-color: currentColor;
-}
-
 /* ---- Footer ---------------------------------------------------------------
-   The apps' footer, with room above it: on the home page, the sections' own
-   rhythm. */
+   The apps' footer, with room above it (the home page gives it its sections'
+   own rhythm instead), and every link in it 44px tall. */
 .fe-books-app__footer {
 	margin-top: var(--space-16);
 	line-height: 1.6;
-}
-.home + .fe-books-app__footer {
-	margin-top: var(--home-section-gap);
 }
 .fe-books-app__footer a {
 	display: inline-flex;
@@ -410,122 +93,8 @@ main:focus {
 	min-height: var(--touch-target);
 }
 
-/* ---- 360px: the hero's actions pair up ------------------------------------- */
-@media (min-width: 360px) {
-	.hero-actions__list {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
-/* ---- 720px: tablets ---------------------------------------------------------
-   The two groups side by side under their labels, four equal buttons in one
-   row; the card grids at two columns (the hub's own rule, with tracks that
-   cannot be widened by their content). */
-@media (min-width: 720px) {
-	:root {
-		--home-section-gap: var(--space-16);
-		--home-hero-actions-max-width: 44rem;
-	}
-	.home-hero {
-		padding-top: var(--space-12);
-	}
-	.home-hero .fe-landing__hero {
-		gap: var(--space-5);
-	}
-	.home-hero .fe-landing__mark {
-		width: 72px;
-		height: 72px;
-	}
-	.home-hero .fe-landing__wordmark {
-		font-size: 30px;
-	}
-	/* A wider measure than the hub's 44ch, so the tagline sets in three balanced lines, not five. */
-	.home-hero .fe-landing__tagline {
-		max-width: 52ch;
-	}
-	.hero-actions {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		column-gap: var(--space-6);
-	}
-	/* Shown: a mono label between two hairlines, centered over its pair. */
-	.hero-actions__label {
-		position: static;
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		width: auto;
-		height: auto;
-		margin: 0;
-		overflow: visible;
-		clip-path: none;
-		white-space: nowrap;
-		font-family: var(--font-mono);
-		font-size: 11px;
-		letter-spacing: 0.22em;
-		text-transform: uppercase;
-		color: var(--gray-8);
-	}
-	.hero-actions__label::before,
-	.hero-actions__label::after {
-		content: '';
-		flex: 1 1 0;
-		height: 1px;
-		background: var(--gray-4);
-	}
-	.hero-actions .hero-actions__link {
-		font-size: 14px;
-	}
-	/* Beside the command, as tall as its box. */
-	.install__row {
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: stretch;
-	}
-	.section__grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-}
-
 /* ---- 1024px: desktop -------------------------------------------------------- */
 @media (min-width: 1024px) {
-	:root {
-		--page-gutter: 24px;
-		--home-section-gap: var(--space-20);
-		--home-hero-actions-max-width: 47.5rem;
-	}
-	.home-hero {
-		padding-top: var(--space-16);
-	}
-	.home-hero .fe-landing__hero {
-		gap: var(--space-6);
-	}
-	.home-hero .fe-landing__wordmark {
-		font-size: 36px;
-	}
-	.home-hero .fe-landing__tagline {
-		font-size: var(--text-base);
-	}
-	.hero-actions {
-		column-gap: var(--space-8);
-	}
-	.hero-actions .hero-actions__link {
-		min-height: 48px;
-		padding: var(--space-3);
-		font-size: 15px;
-		letter-spacing: 0.06em;
-	}
-	.install__command {
-		font-size: var(--text-base);
-	}
-	.install__copy {
-		font-size: 12px;
-	}
-	.section__title {
-		font-size: 24px;
-	}
-	.section__grid {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		margin-top: var(--space-8);
-	}
 	.fe-books-app__footer {
 		padding: 12px 24px;
 	}

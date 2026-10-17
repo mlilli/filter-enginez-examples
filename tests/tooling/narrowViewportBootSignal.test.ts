@@ -41,6 +41,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { readUiStyles } from './support/uiStylesSheet.js';
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 /** The React dataset headers, each of which must render the shared brand rather than its own wordmark. */
@@ -76,7 +78,7 @@ function read(path: string): string {
  * @returns The `max-width` value in pixels.
  */
 function wordmarkHideBreakpoint(): number {
-	const css = read('packages/ui-styles/src/styles.css');
+	const css = readUiStyles();
 	const match = /@media \(max-width: (\d+)px\) \{\s*\.fe-books-app__wordmark \{\s*display: none;/u.exec(css);
 
 	expect(match, 'the .fe-books-app__wordmark hide rule moved or changed shape').not.toBeNull();

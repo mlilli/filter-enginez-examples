@@ -1,0 +1,387 @@
+/**
+ * @filter-enginez/ui-styles — shell: the app shell — header, main, sidebar layout, footer.
+ *
+ * A partial of `styles.css`, which imports every partial in cascade order; that file explains
+ * the split.
+ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   App shell (`fe-books-app__*`, `fe-sidebar-app__*`)
+   ─────────────────────────────────────────────────────────────────────────────
+   Despite the `books` prefix, `fe-books-app__*` is the app shell — header,
+   control cluster, main, footer — of EVERY dataset route in SvelteKit, Vue,
+   Angular and vanilla, rendered over ONE stylesheet, like the `fe-notfound__*`
+   family. The landing site wears the same header and footer.
+
+   These are the *shell* families (layout chrome, not reusable controls).
+   The reusable control families it composes with (`fe-chip*`, `fe-range-slider*`,
+   `fe-search-input*`, `fe-results-header`, `fe-active-filters*`, `fe-filter-chip*`,
+   `fe-result-count*`, `fe-computing-indicator*`, `fe-book-card*`) are in
+   `components.css`, and the panel and grid chrome inside the shell in
+   `dataset-view.css`.
+
+   NOTE: the two React apps style their shell with Tailwind utilities rather
+   than these classes, so they are unaffected by this block.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── App shell (BooksView) ───────────────────────────────────────────────── */
+.fe-books-app {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+/* `flex-wrap` so the brand and the control cluster can separate onto their own lines rather than
+   overrunning each other — see the arithmetic on `.fe-books-app__url-controls` below. This is the
+   outer half of that layout; the cluster wraps internally too. */
+.fe-books-app__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 16px;
+	background: var(--gray-0);
+	border-bottom: 1px solid var(--gray-3);
+}
+/* ── The header brand: the way home, the way back to this app's hub, and every other demo ──
+
+   One family for every header in the system: the dataset routes of all six apps, their hubs, 404s
+   and lab, the documentation, and the landing site's own pages. Markup, left to right:
+
+       <nav class="fe-books-app__brand" aria-label="Filter EngineZ">
+         <a class="fe-books-app__home" href="https://filterenginez.com/" aria-label="Filter EngineZ home">
+           (the logomark, `.fe-books-app__mark`)
+         </a>
+         <span class="fe-books-app__wordmark">
+           <a class="fe-books-app__name" href="…same…" tabindex="-1" aria-hidden="true">Filter EngineZ</a>
+           <span class="fe-books-app__subtitle">Wine · <a class="fe-books-app__hub" href="/">SvelteKit</a> (server)</span>
+         </span>
+         <a class="fe-books-app__nav-link fe-books-app__all-demos" href="https://filterenginez.com/#demos">All demos</a>
+       </nav>
+
+   The logomark link is the one home link a keyboard or screen reader meets; the wordmark repeats it
+   for the pointer only, so the whole brand is a target without announcing the same link twice. The
+   app's name in the subtitle opens this app's own hub. "All demos" shows from the `lg` breakpoint up
+   (1024px, `DESKTOP_MIN_WIDTH_PX`): below it the header already wraps its controls onto a second row,
+   and the logomark alone carries the way home. */
+.fe-books-app__brand {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+.fe-books-app__home {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	min-width: 44px;
+	min-height: 44px;
+	border-radius: var(--radius-md);
+}
+.fe-books-app__mark {
+	display: block;
+}
+/* The header's control cluster — shared by SvelteKit, Vue, vanilla and Angular. (Both React apps
+   build their own header in Tailwind; they carry the same `flex-wrap` for the same reason.)
+
+   ── THE ROW DOES NOT FIT A PHONE, AND NO AMOUNT OF SHRINKING MAKES IT ──
+
+   Do the arithmetic before reaching for `flex-shrink` here, because it is not close. At 412px the
+   header offers 412 − 32 padding − 12 gap ≈ 368px, less whatever the brand keeps (~36px for the
+   mark) — call it 332px. The four controls want, at their intrinsic widths:
+
+       time travel (3 × .fe-icon-button @ 36px + gaps)   ~124px
+       .fe-url-format-toggle  ("URL READABLE")           ~125px
+       .fe-copy-link          ("COPY LINK" + 16px icon)  ~131px
+       .fe-compare-link       ("COMPARE"  + 16px icon)   ~114px
+       3 × 8px gaps                                        24px
+                                                        ────────
+                                                          ~518px
+
+   186px short. `flex-shrink` cannot close that, and worse, it converts one failure into another:
+   compress a `min-height: 44px` inline-flex control below its content and the CONTENT overflows the
+   box — that 16px `<svg>` paints straight onto the neighboring control. Without wrapping, a
+   `flex-shrink: 0` cluster overflows the header; a shrinkable one makes Playwright report
+   `<svg> from <button class="fe-copy-link"> subtree intercepts pointer events` while sitting on the
+   Compare link. A control that is present, focusable, correctly labelled and impossible to click is
+   worse than a missing one, and only a browser can see it.
+
+   So the row WRAPS, which makes overflow geometrically impossible rather than tuned away, and every
+   control is `flex-shrink: 0` so its contents can never spill out of its box. The header grows a
+   second line on a phone. That is the cost, and it is the honest one.
+
+   ── Why every vertical needs it, React included ──
+
+   The control order decides which control gets shoved off the edge. React's cluster is
+   `UrlFormatToggle, CopyLinkButton, CompareLinkButton, TimeTravelControls`, so there it would be
+   time travel rather than Compare — just as unreachable, only less often clicked.
+
+   ── Time-travel controls wrap individually ──
+
+   `TimeTravelControls` renders three `.fe-icon-button`s and a divider as DIRECT children in every
+   shell — there is no wrapper element — so the trio can wrap apart from itself at some widths.
+   `justify-content: flex-end` makes a wrapped row read as deliberate. */
+.fe-books-app__url-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+}
+.fe-books-app__wordmark {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.2;
+}
+/* Below 360px the wordmark yields its width to the controls, mirroring the React apps'
+   `hidden min-[360px]:flex`. This is headroom for genuinely narrow devices, not the answer to the
+   overflow above — the wrap is.
+
+   ── Why 360 and not wider ──
+
+   Because the row wraps, the brand gets a line to itself and there is nothing left to compete with:
+   the header is the SAME HEIGHT at 360, 390 and 412 in all six verticals, wordmark hidden or not. A
+   wider breakpoint would cost a visible wordmark and buy nothing — and would hide it at 390, the
+   commonest iPhone width, which no Playwright project covers.
+
+   ⚠ The `__subtitle` inside this element is the boot signal ~25 e2e specs wait on
+   (`tests/e2e/subtitles.ts` → `getByText(subtitle(…))` → `toBeVisible()`). Hiding its container
+   hides that signal, and the failure reads as "the app never booted" in twenty-five files rather
+   than as one CSS rule. `tests/tooling/narrowViewportBootSignal.test.ts` fails the moment a
+   Playwright project narrower than this breakpoint is added, naming both. If you add such a project,
+   move the subtitle out or assert it differently — do not widen this breakpoint to make specs pass. */
+@media (max-width: 359px) {
+	.fe-books-app__wordmark {
+		display: none;
+	}
+}
+.fe-books-app__name {
+	font-size: 16px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: var(--gray-11);
+	font-family: var(--font-display);
+	text-decoration: none;
+}
+.fe-books-app__name:hover {
+	color: var(--accent-glow);
+}
+.fe-books-app__subtitle {
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--gray-8);
+	font-family: var(--font-mono);
+}
+/* The app's name inside the subtitle, linking to the app's hub. Underlined, because it sits in a run
+   of plain text and color alone must not be what marks it as a link; 24px tall, the WCAG 2.2 minimum
+   target, without growing the header. */
+.fe-books-app__hub {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	color: var(--gray-10);
+	text-decoration: underline;
+	text-decoration-color: var(--gray-6);
+	text-underline-offset: 3px;
+}
+.fe-books-app__hub:hover,
+.fe-books-app__hub[aria-current='page'] {
+	color: var(--accent);
+	text-decoration-color: currentColor;
+}
+/* A text link in a header: "All demos" in the apps, and the landing site's page links. Set like the
+   header's controls (display face, uppercase, tracked), without their outline, so it reads as
+   navigation rather than as one more control. */
+.fe-books-app__nav-link {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 12px;
+	border-radius: var(--radius-md);
+	font-family: var(--font-display);
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	text-decoration: none;
+	white-space: nowrap;
+	color: var(--gray-10);
+	transition:
+		color 150ms ease,
+		background 150ms ease;
+}
+.fe-books-app__nav-link:hover {
+	color: var(--accent);
+	background: var(--gray-2);
+}
+.fe-books-app__nav-link[aria-current='page'] {
+	color: var(--accent);
+}
+/* After `__nav-link`, so this `display` wins at equal specificity. */
+.fe-books-app__all-demos {
+	display: none;
+}
+/* The landing site's row of page links, beside its brand. Wraps rather than overflows on a phone,
+   like `.fe-books-app__url-controls`. */
+.fe-books-app__nav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 4px;
+}
+.fe-books-app__main {
+	flex: 1 1 0%;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	width: 100%;
+	max-width: 1600px;
+	margin: 0 auto;
+	padding: 12px 16px;
+}
+.fe-books-app__sidebar {
+	display: flex;
+	flex-direction: column;
+	background: var(--gray-1);
+	border: 1px solid var(--gray-3);
+	border-radius: var(--radius-lg);
+}
+.fe-books-app__filters-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	align-self: flex-start;
+	min-height: 44px;
+	margin: 12px;
+	padding: 0 16px;
+	font-family: var(--font-display);
+	font-size: 14px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--gray-10);
+	background: var(--gray-1);
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+}
+.fe-books-app__results {
+	flex: 1 1 0%;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.fe-books-app__footer {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: auto;
+	padding: 12px 16px;
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	color: var(--gray-8);
+	background: var(--gray-0);
+	border-top: 1px solid var(--gray-3);
+	font-family: var(--font-mono);
+}
+.fe-books-app__footer code {
+	color: var(--accent);
+}
+
+@media (min-width: 1024px) {
+	.fe-books-app__header {
+		padding: 16px 24px;
+	}
+	.fe-books-app__all-demos {
+		display: inline-flex;
+		margin-left: 8px;
+	}
+	.fe-books-app__main {
+		flex-direction: row;
+		gap: 24px;
+		padding: 16px 24px;
+	}
+	.fe-books-app__sidebar {
+		width: 320px;
+		flex-shrink: 0;
+		position: sticky;
+		top: 16px;
+		align-self: flex-start;
+		/* Cap to the viewport (minus the sticky top offset) so the panel's own body scrolls its
+		   overflow instead of pushing the page tall; `overflow: hidden` clips the scroll region to
+		   the aside's rounded corners. */
+		max-height: calc(100vh - 2rem);
+		overflow: hidden;
+	}
+	.fe-books-app__footer {
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 12px 24px;
+	}
+}
+
+/* ═══ STICKY-SIDEBAR APP SHELL ════════════════════════════════════════════════
+ *
+ * The page-layout classes for a dataset app whose filter panel is a sticky
+ * sidebar: mobile-first single column, promoting to a fixed 20rem sidebar plus a
+ * fluid results column at `lg`. Wine and real estate both use it, so the name
+ * describes the LAYOUT rather than a dataset. Nothing about a 20rem sticky card
+ * is wine.
+ *
+ * Distinct from `fe-books-app__main`, which is a flex row — that difference is
+ * real, which is why there are two body layouts and not one.
+ *
+ * ⚠️ The header / footer / brand / filters-toggle chrome is spelled
+ * `fe-books-app__*` and is the shared app shell of every dataset route, books or
+ * not. The prefix names the dataset, not the scope, but there is exactly one
+ * definition. Compose it as-is; do NOT copy it under a new prefix.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+/* Mobile-first: one stacked column; the filter panel promotes to a sidebar at `lg`. */
+.fe-sidebar-app__main {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: 1fr;
+}
+
+.fe-sidebar-app__filters {
+	min-width: 0;
+}
+
+.fe-sidebar-app__results {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+@media (min-width: 1024px) {
+	.fe-sidebar-app__main {
+		grid-template-columns: 20rem 1fr;
+	}
+
+	/* The sticky sidebar card. No internal padding — the panel header and its scroll container
+	 * own their own insets so the scrollbar sits flush against the card's right edge. */
+	.fe-sidebar-app__filters {
+		align-self: start;
+		background: var(--gray-1);
+		border: 1px solid var(--gray-3);
+		border-radius: var(--radius-lg);
+		display: flex;
+		flex-direction: column;
+		max-height: calc(100vh - 2rem);
+		/* Matches `.fe-books-app__sidebar`, and for the same two reasons: it clips the scroll region to
+		 * the card's rounded corners, and it means a broken height chain shows as CLIPPED content rather
+		 * than as panel sections painting over the page. Without it, a broken chain shows on wine and
+		 * real estate as "the map bleeds over the filter beneath it". */
+		overflow: hidden;
+		position: sticky;
+		top: 1rem;
+	}
+}

@@ -1,12 +1,17 @@
 /* ============================================================================
    filterenginez.com/compare — one filter state, linked into every demo app.
 
-   The page's one stylesheet. It imports the site's `styles.css` first
-   (`ui-styles` with the brand tokens, the apps' header and footer); the page
-   itself is drawn entirely with `ui-styles`' `.fe-compare__*` classes, the
-   ones the apps' comparison pages used.
+   The page's one stylesheet. The page is drawn entirely with `ui-styles`'
+   `.fe-compare__*` classes, the ones the apps' comparison pages used, so it
+   imports the `ui-styles` partials it draws, in the order
+   `ui-styles/styles.css` lists them — `base` (the brand tokens and the reset),
+   `shell` (the apps' header and footer) and `compare` — then the site's
+   shared chrome (`../styles.css`), and adds one rule of its own.
    ============================================================================ */
 
+@import '@filter-enginez/ui-styles/base.css';
+@import '@filter-enginez/ui-styles/shell.css';
+@import '@filter-enginez/ui-styles/compare.css';
 @import '../styles.css';
 
 /* The element the view is rendered into. It takes no box of its own, so the

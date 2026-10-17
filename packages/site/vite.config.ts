@@ -3,8 +3,10 @@
  * "How the engine works" page and the comparison page.
  *
  * @remarks
- * Four HTML entry points. For every one Vite bundles `src/styles.css` (which pulls
- * `@filter-enginez/ui-styles` and, through it, the brand tokens and the self-hosted fonts out of
+ * Four HTML entry points. For every one Vite bundles the page's own stylesheet (`src/home/home.css`,
+ * `src/notFound.css`, `src/compare/compare.css`, `src/how-it-works/howItWorks.css`: each the
+ * `@filter-enginez/ui-styles` partials the page draws, the site's shared chrome in `src/styles.css`,
+ * then the page's own rules; through `ui-styles` come the brand tokens and the self-hosted fonts out of
  * `@filter-enginez/brand`, hashed for long-lived caching) and copies `public/` (`robots.txt` and the
  * `_headers` that lets browsers keep those hashed files) as-is. `404.html` ships no JavaScript, and
  * `index.html` ships one small module, `src/home/main.ts`, which reveals and wires the install command's
@@ -18,7 +20,10 @@
  * {@link criticalAssets} replaces each page's stylesheet link with the stylesheet itself and adds a
  * preload for each font its first screen sets, so the first render waits on the HTML alone rather than
  * on a second round trip for the CSS and a third for the fonts (`src/criticalAssets.ts`). The
- * inlined stylesheets are then dropped from the build, since no page links them any more.
+ * inlined stylesheets are then dropped from the build, since no page links them any more. After the
+ * build, the package's `build` script checks each page's inline CSS: every class the page uses, in its
+ * HTML or from its scripts, has its rule there, and the page stays within its CSS budget
+ * (`scripts/check-site-css.mjs`).
  *
  * ### `sitemap.xml` is generated
  *

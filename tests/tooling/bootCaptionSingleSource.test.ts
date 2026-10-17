@@ -50,6 +50,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { readUiStyles, UI_STYLES_SHEET } from './support/uiStylesSheet.js';
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 /** The one module allowed to word the caption. */
@@ -118,8 +120,8 @@ function filesWordingTheCaption(includeSpecs: boolean): string[] {
 		.sort();
 }
 
-/** The one stylesheet allowed to declare the caption's classes. */
-const CAPTION_STYLESHEET = 'packages/ui-styles/src/styles.css';
+/** The one stylesheet allowed to declare the caption's classes: `ui-styles`, read whole. */
+const CAPTION_STYLESHEET = UI_STYLES_SHEET;
 
 /** Every `fe-boot-caption*` class name, wherever it appears. */
 const CAPTION_CLASS_PATTERN = /fe-boot-caption[\w-]*/gu;
@@ -145,7 +147,7 @@ const CAPTION_VARIANTS = ['fe-boot-caption--hero', 'fe-boot-caption--inline'] as
  * @returns The declared class names.
  */
 function declaredCaptionClasses(): Set<string> {
-	const css = readFileSync(resolve(REPO_ROOT, CAPTION_STYLESHEET), 'utf8');
+	const css = readUiStyles();
 
 	// Declarations only — a selector is a `.` followed by the name. The file's own comments mention
 	// these names in prose, so anchoring on the dot is what separates the rule from the explanation.

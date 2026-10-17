@@ -1,0 +1,222 @@
+/**
+ * @filter-enginez/ui-styles — loaders: the brand's idle and computing animations.
+ *
+ * A partial of `styles.css`, which imports every partial in cascade order; that file explains
+ * the split.
+ */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Brand loaders — SynapticOrbit (ambient / idle) + NeuralCluster (computing)
+   ─────────────────────────────────────────────────────────────────────────────
+   The dual-accent contract in motion: the acid orbit means "idle, data at rest";
+   the phosphor cluster means "the engine is recomputing right now". A distinct
+   animation TYPE per state, not just a recolor.
+
+   Defined here rather than in per-app stylesheets so there is exactly ONE
+   definition of the busy animation across every vertical — including the
+   framework-less one, which has no per-app stylesheet — and a timing change is
+   made once rather than per app.
+
+   Theme colors come from `--nc-*` / `--orbit-*` custom properties set inline by
+   the caller, so one rule set serves both the acid and phosphor themes. The React
+   brand components generate scoped equivalents of these keyframes internally.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Tempo knobs. The keyframes are defined ONCE; only the durations vary by context, so a caller can
+   retune the pace without forking the animation. Defaults are the canonical full-size timings. */
+.fe-cluster {
+	--fe-cluster-spin-duration: 8s;
+	--fe-cluster-fire-duration: 1.4s;
+	--fe-cluster-edge-duration: 1.5s;
+}
+
+/* The books header renders this loader at 30px, where the 1.6× scale pulse and the drop-shadow glow
+   subtend only a few pixels — far less signal per cycle than the 168px 404 rendering. Double the
+   tempo there so the motion still reads as "the engine is working"; the large rendering keeps the
+   canonical pace, where the same speed would look frantic. */
+.fe-computing-indicator .fe-cluster {
+	--fe-cluster-spin-duration: 4s;
+	--fe-cluster-fire-duration: 0.7s;
+	--fe-cluster-edge-duration: 0.75s;
+}
+
+.fe-cluster__rotate {
+	transform-origin: 100px 100px;
+	animation: fe-cluster-spin var(--fe-cluster-spin-duration) linear infinite;
+}
+@keyframes fe-cluster-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.fe-cluster__edge {
+	stroke: var(--nc-line);
+	stroke-width: 0.5;
+	fill: none;
+}
+.fe-cluster__node {
+	fill: var(--nc-node);
+}
+.fe-cluster__node-fire {
+	fill: var(--nc-glow);
+	filter: drop-shadow(0 0 3px var(--nc-loader)) drop-shadow(0 0 7px var(--nc-deep));
+	animation: fe-cluster-fire var(--fe-cluster-fire-duration) ease-out infinite;
+	transform-box: fill-box;
+	transform-origin: center;
+}
+@keyframes fe-cluster-fire {
+	0%,
+	70%,
+	100% {
+		opacity: 0.3;
+		transform: scale(1);
+	}
+	75% {
+		opacity: 1;
+		transform: scale(1.6);
+	}
+	85% {
+		opacity: 0.7;
+		transform: scale(1.1);
+	}
+}
+.fe-cluster__edge-pulse {
+	animation: fe-cluster-edge-pulse var(--fe-cluster-edge-duration) ease-in-out infinite;
+}
+@keyframes fe-cluster-edge-pulse {
+	0%,
+	78%,
+	100% {
+		stroke: var(--nc-line);
+		stroke-width: 0.5;
+		opacity: 0.5;
+		filter: none;
+	}
+	85% {
+		stroke: var(--nc-loader);
+		stroke-width: 1;
+		opacity: 1;
+		filter: drop-shadow(0 0 2px var(--nc-loader));
+	}
+	95% {
+		stroke: var(--nc-burnt);
+		stroke-width: 0.7;
+		opacity: 0.6;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.fe-cluster__rotate,
+	.fe-cluster__node-fire,
+	.fe-cluster__edge-pulse {
+		animation: none;
+	}
+	.fe-cluster__node-fire {
+		opacity: 0.8;
+	}
+}
+.fe-orbit__rotate {
+	transform-origin: 100px 100px;
+	animation: fe-orbit-spin 11s linear infinite;
+}
+@keyframes fe-orbit-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.fe-orbit__ring {
+	fill: none;
+	stroke: var(--orbit-line);
+	stroke-width: 0.5;
+	opacity: 0.4;
+}
+.fe-orbit__sat {
+	fill: var(--orbit-node);
+}
+.fe-orbit__sat-glow {
+	fill: var(--orbit-glow);
+	filter: drop-shadow(0 0 3px var(--orbit-loader)) drop-shadow(0 0 6px var(--orbit-deep));
+	animation: fe-orbit-sat-pulse 1.4s ease-in-out infinite;
+	transform-box: fill-box;
+	transform-origin: center;
+}
+@keyframes fe-orbit-sat-pulse {
+	0%,
+	100% {
+		opacity: 0.6;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+.fe-orbit__core {
+	fill: var(--orbit-glow);
+	filter: drop-shadow(0 0 4px var(--orbit-loader)) drop-shadow(0 0 10px var(--orbit-deep));
+	animation: fe-orbit-core-pulse 1.6s ease-in-out infinite;
+	transform-origin: 100px 100px;
+}
+@keyframes fe-orbit-core-pulse {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 0.8;
+	}
+	50% {
+		transform: scale(1.3);
+		opacity: 1;
+	}
+}
+.fe-orbit__syn {
+	stroke: var(--orbit-loader);
+	stroke-width: 0.6;
+	fill: none;
+	opacity: 0;
+	filter: drop-shadow(0 0 2px var(--orbit-loader));
+}
+.fe-orbit__syn--1 {
+	animation: fe-orbit-flick 2.4s ease-out infinite 0s;
+}
+.fe-orbit__syn--2 {
+	animation: fe-orbit-flick 2.4s ease-out infinite 0.6s;
+}
+.fe-orbit__syn--3 {
+	animation: fe-orbit-flick 2.4s ease-out infinite 1.2s;
+}
+.fe-orbit__syn--4 {
+	animation: fe-orbit-flick 2.8s ease-out infinite 0.4s;
+}
+.fe-orbit__syn--5 {
+	animation: fe-orbit-flick 2.8s ease-out infinite 1.6s;
+}
+.fe-orbit__syn--6 {
+	animation: fe-orbit-flick 3.2s ease-out infinite 0.9s;
+}
+@keyframes fe-orbit-flick {
+	0%,
+	8%,
+	100% {
+		opacity: 0;
+		stroke-width: 0.6;
+	}
+	10% {
+		opacity: 1;
+		stroke-width: 1.2;
+	}
+	18% {
+		opacity: 0.6;
+		stroke-width: 0.8;
+	}
+	26% {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.fe-orbit__rotate,
+	.fe-orbit__sat-glow,
+	.fe-orbit__core,
+	.fe-orbit__syn {
+		animation: none;
+	}
+	.fe-orbit__syn {
+		opacity: 0.6;
+	}
+}
