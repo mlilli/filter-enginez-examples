@@ -14,7 +14,8 @@
  *   who asked for less motion sees that frame too.
  * - **The live benchmark.** `[data-benchmark]` holds the committed reference numbers as text; the
  *   widget replaces them, starts on those same reference numbers, and upgrades to a live measurement
- *   when the wine corpus has loaded and the timing is stable enough to trust.
+ *   once the engine and the wine corpus have loaded — fetched only when the widget nears the viewport
+ *   or is used — and the timing is stable enough to trust.
  * - **Cross-app links.** A demo link names its vertical and path (`data-vertical`, `data-path`) and
  *   ships with the deployed URL; here it is re-resolved from the page's own location, so a developer
  *   running everything locally lands on the local dev server — the same rule `/compare` follows.

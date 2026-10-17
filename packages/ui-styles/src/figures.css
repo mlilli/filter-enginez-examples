@@ -3,8 +3,10 @@
  *
  * Two consumers render the same figures over these classes: the documentation's React illustrations
  * (`examples-shared/src/docs/illustrations`, served by the docs site and by the `/docs` route of both
- * React apps, each of which imports this file after `styles.css`) and the framework-free figures on
- * the landing site's how-it-works page (`packages/site`, which imports this file alone). The SvelteKit,
+ * React apps; the two documentation pages that draw figures, `RuleDocPage` and `AlgorithmDocPage`,
+ * import this file, so it loads with their chunk, after the app's `styles.css`) and the framework-free
+ * figures on the landing site's how-it-works page (`packages/site`, whose page stylesheet imports this
+ * file after the `ui-styles` partials it draws). The SvelteKit,
  * Vue, Angular and framework-free apps draw no figures and do not import it. One copy, so the figures
  * animate identically everywhere they appear.
  *

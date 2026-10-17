@@ -4,7 +4,7 @@
  * or carries more CSS than its budget.
  *
  *     node ../../scripts/check-site-css.mjs dist \
- *       --reference @filter-enginez/ui-styles/styles.css --budget index.html=27    # from packages/site
+ *       --reference @filter-enginez/ui-styles/styles.css --budget index.html=29    # from packages/site
  *
  * @remarks
  * ### Why

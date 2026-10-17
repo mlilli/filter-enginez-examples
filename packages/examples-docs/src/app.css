@@ -5,9 +5,9 @@
  * so this file only has to provide the two foundations that live in the workspace CSS packages: the
  * brand design tokens (the `--gray-*` / `--accent` / `--engine` custom properties + base element
  * styling every `fe-doc-*` block reads) and the shared `ui-styles` component classes. No Tailwind —
- * the docs use none. The algorithm pages render the eight animated figures, whose `fe-fig-*` classes
- * are a separate sheet, imported only where figures are drawn (see `ui-styles/src/figures.css`).
+ * the docs use none. The rule and algorithm pages draw the animated figures, whose `fe-fig-*` classes
+ * are a separate sheet that those two pages import themselves (`examples-shared/src/docs/RuleDocPage.tsx`,
+ * `AlgorithmDocPage.tsx`), so it loads with them, after this one, and not with the home page.
  */
 @import '@filter-enginez/brand/tokens.css';
 @import '@filter-enginez/ui-styles/styles.css';
-@import '@filter-enginez/ui-styles/figures.css';

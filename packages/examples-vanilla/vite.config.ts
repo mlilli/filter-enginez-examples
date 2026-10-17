@@ -17,6 +17,8 @@
 
 import { defineConfig } from 'vite';
 
+import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
+
 export default defineConfig({
 	build: {
 		sourcemap: true,
@@ -41,6 +43,9 @@ export default defineConfig({
 	optimizeDeps: {
 		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
 	},
+	// Preload the first screen's two brand fonts from the built index.html, so they download beside the
+	// startup script instead of after the stylesheet (scripts/lib/font-preloads.mjs).
+	plugins: [fontPreloadsPlugin()],
 	resolve: {
 		// ONE @preact/signals-core instance across the engine + this app's direct subscriptions.
 		dedupe: ['@preact/signals-core'],

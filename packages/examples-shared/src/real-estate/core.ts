@@ -18,9 +18,9 @@
  * re-exports `realEstateEngine.js`, which would re-admit the signals surface through the back door.
  * Same relationship `./books-boot-core` has to `./books-core`, for the same reason.
  *
- * The corpus itself streams over `/api/real-estate` via `loadDefaultTierCorpus`, falling back to a
- * dynamically-imported bundled copy where no endpoint is available. That is transparent to consumers:
- * await the boot, get an engine.
+ * The corpus itself comes through `loadDefaultTierCorpus`: streamed over `/api/real-estate` where the
+ * development mock API serves it, and a dynamically-imported bundled copy everywhere else. That is
+ * transparent to consumers: await the boot, get an engine.
  *
  * Pure logic — the extractors, the location tree, the custom rule, the chip summarizer — lives in the
  * sibling `./real-estate-domain` subpath, and the imperative Leaflet controller in `./real-estate-map`.

@@ -13,6 +13,8 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
+
 export default defineConfig({
 	build: {
 		sourcemap: true,
@@ -85,6 +87,9 @@ export default defineConfig({
 		// Tailwind v4 — replaces the v3 PostCSS plugin; reads `@import "tailwindcss"` directly
 		// from the globals.css file and produces the on-demand utility set.
 		tailwindcss(),
+		// Preload the first screen's two brand fonts from the built index.html, so they download beside
+		// the startup scripts instead of after the stylesheet (scripts/lib/font-preloads.mjs).
+		fontPreloadsPlugin(),
 	],
 	// Workspace deps are linked via pnpm — Vite's deduplication keeps a single React copy.
 	// Bitmap acceleration is provided by `roaring-wasm` (browser + Node + Deno via WASM);

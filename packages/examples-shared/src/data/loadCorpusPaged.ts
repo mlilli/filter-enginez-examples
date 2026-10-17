@@ -5,9 +5,9 @@
  * The realistic-streaming corpus loader behind the MSW-backed data path. Instead of a single
  * monolithic `fetch` of the whole corpus (or a static `import` that bundles the JSON), this walks
  * the `GET /api/<dataset>?tier=&limit=&offset=` endpoint page by page, accumulating records and reporting progress after each page — so a boot screen can render
- * "Loaded N of M" copy while the load is in flight. The endpoint is served in dev by MSW (the
- * `@filter-enginez/mock-data` handlers) and could be a real backend in production; this loader is
- * transport-only and framework-free.
+ * "Loaded N of M" copy while the load is in flight. The endpoint is served in development by MSW (the
+ * `@filter-enginez/mock-data` handlers); `loadDefaultTierCorpus` calls this only once that mock API has
+ * announced itself (`./corpusApi.ts`). The loader itself is transport-only and framework-free.
  *
  * The response envelope matches the mock-data handler factory's `PagedResponse<T>`
  * (`{ items, limit, offset, total }`); only the fields this loader reads are typed here so it takes

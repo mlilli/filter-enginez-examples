@@ -16,9 +16,16 @@
  * - **A character the subset does not have.** A page or a dataset that starts using one renders it in
  *   a fallback font, with no error anywhere. The site's pages and the mock-data vocabulary every demo
  *   generates its records from are checked against the subset's code points.
+ * - **A fallback face that no longer matches its webfont.** Each webfont has a metric-matched fallback
+ *   face (`packages/brand/scripts/fallback-font-metrics.py` computes them), named second in its
+ *   `--font-*` stack. A stack that drops it, or an override edited by hand or left behind by a changed
+ *   TTF, brings back the layout shift on every page with no error; the vertical overrides are checked
+ *   against the TTFs' own metrics here.
  *
  * @packageDocumentation
  */
+
+// cspell:ignore hhea
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
@@ -98,16 +105,81 @@ function uncovered(text: string): readonly string[] {
 		.sort();
 }
 
+/** One `@font-face` rule of `tokens.css`. */
+interface FontFace {
+	/** Its `font-family`. */
+	readonly family: string;
+	/** Its other descriptors, by name, as written. */
+	readonly descriptors: ReadonlyMap<string, string>;
+	/** Its `src`, with runs of whitespace made single spaces (Prettier wraps a long list). */
+	readonly sources: string;
+}
+
 /**
- * The `@font-face` rules of `tokens.css`, each as its family and its sources.
+ * The `@font-face` rules of `tokens.css`.
  *
- * @returns One entry per rule.
+ * @returns One entry per rule, in source order.
  */
-function fontFaces(): readonly { readonly family: string; readonly sources: string }[] {
+function fontFaces(): readonly FontFace[] {
 	return [...readFileSync(TOKENS_SHEET, 'utf8').matchAll(/@font-face\s*\{([^}]*)\}/gu)].map(([, body = '']) => ({
+		descriptors: new Map([...body.matchAll(/([a-z-]+):\s*([^;]+);/gu)].map(([, name = '', value = '']) => [name, value.trim()])),
 		family: /font-family:\s*'([^']+)'/u.exec(body)?.[1] ?? '',
-		sources: /src:\s*([^;]+);/u.exec(body)?.[1]?.trim() ?? '',
+		sources: /src:\s*([^;]+);/u.exec(body)?.[1]?.trim().replaceAll(/\s+/gu, ' ') ?? '',
 	}));
+}
+
+/** The faces that load a webfont: every face with a `url()` source. */
+const WEBFONT_FACES = fontFaces().filter((face) => face.sources.includes('url('));
+
+/** The metric-matched fallback faces: every other face. */
+const FALLBACK_FACES = fontFaces().filter((face) => !face.sources.includes('url('));
+
+/** A TTF's vertical metrics, in font units. */
+interface VerticalMetrics {
+	/** `hhea.ascender`. */
+	readonly ascender: number;
+	/** `hhea.descender`, negative below the baseline. */
+	readonly descender: number;
+	/** `hhea.lineGap`. */
+	readonly lineGap: number;
+	/** `head.unitsPerEm`. */
+	readonly unitsPerEm: number;
+}
+
+/**
+ * Read a TTF's vertical metrics from its `head` and `hhea` tables.
+ *
+ * @param font - The font file's bytes.
+ * @returns The metrics.
+ */
+function verticalMetrics(font: Buffer): VerticalMetrics {
+	const tableOffset = (tag: string): number => {
+		for (let entry = 12; entry < 12 + font.readUInt16BE(4) * 16; entry += 16) {
+			if (font.toString('latin1', entry, entry + 4) === tag) {
+				return font.readUInt32BE(entry + 8);
+			}
+		}
+
+		throw new Error(`no ${tag} table`);
+	};
+	const hhea = tableOffset('hhea');
+
+	return {
+		ascender: font.readInt16BE(hhea + 4),
+		descender: font.readInt16BE(hhea + 6),
+		lineGap: font.readInt16BE(hhea + 8),
+		unitsPerEm: font.readUInt16BE(tableOffset('head') + 18),
+	};
+}
+
+/**
+ * A CSS percentage as a fraction.
+ *
+ * @param value - E.g. `107.35%`.
+ * @returns E.g. `1.0735`, or `NaN` for anything that is not a percentage.
+ */
+function fraction(value: string | undefined): number {
+	return /^\d+(?:\.\d+)?%$/u.test(value ?? '') ? Number.parseFloat(value ?? '') / 100 : Number.NaN;
 }
 
 /**
@@ -170,7 +242,9 @@ describe('tokens.css', () => {
 	it('declares exactly the subsets, in WOFF2, under the family each carries', () => {
 		const expected = SUBSETS.map(([key, font]) => ({ family: font.family, sources: `url('fonts/${key}') format('woff2')` }));
 
-		expect(fontFaces().slice().sort((a, b) => a.family.localeCompare(b.family))).toEqual(
+		expect(
+			WEBFONT_FACES.map(({ family, sources }) => ({ family, sources })).sort((a, b) => a.family.localeCompare(b.family)),
+		).toEqual(
 			expected.sort((a, b) => a.family.localeCompare(b.family)),
 		);
 	});
@@ -181,6 +255,64 @@ describe('tokens.css', () => {
 
 	it('names the renamed display face first in --font-display', () => {
 		expect(readFileSync(TOKENS_SHEET, 'utf8')).toMatch(/--font-display: 'Filter EngineZ Display',/u);
+	});
+});
+
+describe('the fallback faces', () => {
+	it('are a regular and a bold face for each webfont family, so the cases below are not vacuous', () => {
+		expect(WEBFONT_FACES).toHaveLength(SUBSETS.length);
+		expect(FALLBACK_FACES.map((face) => `${face.family} ${face.descriptors.get('font-weight') ?? ''}`).sort()).toEqual(
+			SUBSETS.flatMap(([, font]) => [`${font.family} Fallback 400`, `${font.family} Fallback 700`]).sort(),
+		);
+	});
+
+	it.each(FALLBACK_FACES.map((face) => [`${face.family} ${face.descriptors.get('font-weight') ?? ''}`, face] as const))(
+		'%s renders a local font: no download, no swap of its own',
+		(_name, face) => {
+			expect(face.sources).toMatch(/^local\('[^']+'\)(?:, local\('[^']+'\))*$/u);
+			expect(face.descriptors.has('font-display')).toBe(false);
+		},
+	);
+
+	it.each(FALLBACK_FACES.map((face) => [`${face.family} ${face.descriptors.get('font-weight') ?? ''}`, face] as const))(
+		'%s takes its webfont’s ascent, descent and line gap, at its own size-adjust',
+		(_name, face) => {
+			const webfont = SUBSETS.find(([, font]) => `${font.family} Fallback` === face.family)?.[1];
+			const metrics = verticalMetrics(readFileSync(join(FONTS_DIRECTORY, webfont?.source ?? '')));
+			const sizeAdjust = fraction(face.descriptors.get('size-adjust'));
+
+			// The browser multiplies each override by size-adjust; the product is the webfont's metric in em.
+			// Two decimals of a percentage each leave the product within 0.0002 em of it.
+			expect(sizeAdjust).toBeGreaterThan(0.5);
+			expect(fraction(face.descriptors.get('ascent-override')) * sizeAdjust).toBeCloseTo(metrics.ascender / metrics.unitsPerEm, 3);
+			expect(fraction(face.descriptors.get('descent-override')) * sizeAdjust).toBeCloseTo(-metrics.descender / metrics.unitsPerEm, 3);
+			expect(fraction(face.descriptors.get('line-gap-override')) * sizeAdjust).toBeCloseTo(metrics.lineGap / metrics.unitsPerEm, 3);
+		},
+	);
+
+	it('sit between the markers the generator rewrites, once', () => {
+		const sheet = readFileSync(TOKENS_SHEET, 'utf8');
+		const block = /\/\* fallback-font-metrics:start[\s\S]*?\/\* fallback-font-metrics:end \*\//gu.exec(sheet)?.[0] ?? '';
+
+		expect(sheet.match(/fallback-font-metrics:start/gu)).toHaveLength(1);
+		expect(block.match(/@font-face/gu)).toHaveLength(FALLBACK_FACES.length);
+	});
+
+	it.each(SUBSETS.map(([, font]) => font.family))('%s is followed by its fallback face in its --font-* stack', (family) => {
+		const stacks = [...readFileSync(TOKENS_SHEET, 'utf8').matchAll(/--font-[a-z]+:\s*([^;]+);/gu)].map(([, stack = '']) => stack);
+
+		expect(stacks.filter((stack) => stack.startsWith(`'${family}', '${family} Fallback',`))).toHaveLength(1);
+	});
+
+	it('reads a TTF’s metrics and rejects a non-percentage, so the cases above can fail', () => {
+		expect(verticalMetrics(readFileSync(join(FONTS_DIRECTORY, 'inter/Inter-VariableFont.ttf')))).toEqual({
+			ascender: 1984,
+			descender: -494,
+			lineGap: 0,
+			unitsPerEm: 2048,
+		});
+		expect(fraction('1.5')).toBeNaN();
+		expect(fraction(undefined)).toBeNaN();
 	});
 });
 

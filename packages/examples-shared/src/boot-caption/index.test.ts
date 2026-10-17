@@ -11,7 +11,17 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { bootCaptionParts, bootCaptionText, DEFAULT_IDLE_CAPTION } from './index.js';
+import * as booksDomain from '../books/books-domain/index.js';
+import * as realEstateDomain from '../real-estate/real-estate-domain/index.js';
+import {
+	BOOKS_BOOT_IDLE_CAPTION,
+	BOOKS_RECORD_NOUN,
+	bootCaptionParts,
+	bootCaptionText,
+	DEFAULT_IDLE_CAPTION,
+	REAL_ESTATE_BOOT_IDLE_CAPTION,
+	REAL_ESTATE_RECORD_NOUN,
+} from './index.js';
 
 /** The caption as a reader sees it. */
 function caption(progress: Parameters<typeof bootCaptionParts>[0], recordNoun = 'bottles'): string {
@@ -115,6 +125,31 @@ describe('bootCaptionParts', () => {
 		['listings', 'Loaded 500 of 1,000 listings'],
 	])('interpolates the %s noun', (recordNoun, expected) => {
 		expect(caption({ loaded: 500, total: 1000 }, recordNoun)).toBe(expected);
+	});
+});
+
+describe('the dataset wording re-exported for engine-free screens', () => {
+	// A screen drawn before the engine loads (Angular's root component, while a resolver boots) reads
+	// these through this module instead of the domain barrels. The two routes must be the SAME
+	// constants, not equal copies, so a wording change in a domain reaches that screen too.
+	it.each([
+		['BOOKS_BOOT_IDLE_CAPTION', BOOKS_BOOT_IDLE_CAPTION, booksDomain.BOOKS_BOOT_IDLE_CAPTION],
+		['BOOKS_RECORD_NOUN', BOOKS_RECORD_NOUN, booksDomain.BOOKS_RECORD_NOUN],
+		['REAL_ESTATE_BOOT_IDLE_CAPTION', REAL_ESTATE_BOOT_IDLE_CAPTION, realEstateDomain.REAL_ESTATE_BOOT_IDLE_CAPTION],
+		['REAL_ESTATE_RECORD_NOUN', REAL_ESTATE_RECORD_NOUN, realEstateDomain.REAL_ESTATE_RECORD_NOUN],
+	])('%s is the domain barrel’s constant', (_name, reExported, fromDomain) => {
+		expect(reExported).toBe(fromDomain);
+		expect(reExported.length).toBeGreaterThan(0);
+	});
+
+	it('words each dataset’s idle state with its own sentence, not the worker default', () => {
+		for (const [idleCaption, recordNoun] of [
+			[BOOKS_BOOT_IDLE_CAPTION, BOOKS_RECORD_NOUN],
+			[REAL_ESTATE_BOOT_IDLE_CAPTION, REAL_ESTATE_RECORD_NOUN],
+		] as const) {
+			expect(bootCaptionText(bootCaptionParts(null, { idleCaption, recordNoun }))).toBe(idleCaption);
+			expect(idleCaption).not.toBe(DEFAULT_IDLE_CAPTION);
+		}
 	});
 });
 

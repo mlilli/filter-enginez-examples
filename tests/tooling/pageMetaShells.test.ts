@@ -108,7 +108,13 @@ describe('the documentation site', () => {
 	});
 
 	it('writes each route’s head as it navigates, and answers / with a redirect to /docs', () => {
-		expect(readRepoFile('packages/examples-docs/src/App.tsx')).toContain('followRouterPageMeta(router, docsPageMeta)');
+		const app = readRepoFile('packages/examples-docs/src/App.tsx');
+
+		expect(app).toContain('followRouterPageMeta(router, docsPageMetaFor)');
+		// On demand, as the React apps load it: a static import would pin the catalog into the entry
+		// chunk and leave every dynamic import of it ineffective.
+		expect(app).toContain("(await import('@filter-enginez/examples-shared/page-meta-docs')).docsPageMeta(pathname)");
+		expect(app).not.toMatch(/^import [^;]*from '@filter-enginez\/examples-shared\/page-meta-docs';$/mu);
 		expect(readRepoFile('packages/examples-docs/public/_redirects').split('\n')).toContain('/ /docs 301');
 	});
 });

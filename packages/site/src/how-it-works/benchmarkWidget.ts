@@ -9,15 +9,21 @@
  * from `@filter-enginez/examples-shared/how-it-works`; only this stateful shell + its hand-built DOM is
  * local. The markup renders over the `fe-bench__*` classes in `howItWorks.css`.
  *
- * Until the corpus resolves, and whenever the browser's timing is too noisy to trust, the widget shows
- * the committed reference numbers and says so; a live measurement replaces them in place. The state is
+ * Until the engine and the corpus have loaded, and whenever the browser's timing is too noisy to trust,
+ * the widget shows the committed reference numbers and says so; a live measurement replaces them in
+ * place, in boxes that are already laid out, so nothing on the page moves when it arrives. The engine
+ * is not part of the page's startup JavaScript: it is fetched when the widget comes within a viewport
+ * height of the screen, or as soon as a reader uses it (`benchmarkLive.ts`, `benchmarkEngine.ts`). A
+ * fetch that fails leaves the reference numbers standing, and "retry live" fetches again. The state is
  * plain closure-local `let` bindings plus a single `render()` that re-applies every derived string —
  * the framework-less equivalent of a reactive re-render.
  *
+ * The timing bar moves by `transform` (see {@link liveBarStyle}), so the browser animates it on the
+ * compositor; under `prefers-reduced-motion: reduce` the tokens' global rule makes that transition
+ * instant.
+ *
  * @packageDocumentation
  */
-
-import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import {
@@ -28,13 +34,13 @@ import {
 	formatDuration,
 	formatSpeedup,
 	HEAVY_TIMED_PASSES,
-	loadWineCorpus,
 	logBarWidthPercent,
-	measureConfig,
 	NAIVE_BASELINE_MS,
 	REFERENCE_LABEL,
 	referenceMsFor,
 } from '@filter-enginez/examples-shared/how-it-works';
+
+import { createLiveBenchmarkLoader, liveBarStyle, type LiveBenchmark, whenNearViewport } from './benchmarkLive.js';
 
 /** The three toggle rows, with their display copy. */
 const LAYERS: readonly { readonly descriptor: string; readonly key: keyof BenchmarkConfig; readonly name: string }[] = [
@@ -50,7 +56,7 @@ const ALL_ON: BenchmarkConfig = { bitmap: true, exclusionGraph: true, memoizatio
 export interface BenchmarkWidget {
 	/** The widget root. */
 	readonly element: HTMLElement;
-	/** Cancel any in-flight corpus load / measurement so a late resolve can't touch a dead tree. */
+	/** Stop watching the viewport and cancel any in-flight load or measurement, so a late resolve can't touch a dead tree. */
 	readonly dispose: () => void;
 }
 
@@ -68,9 +74,11 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	let isMeasuring = false;
 	let passCount = 0;
 
-	// Non-reactive scratch state: the resident corpus, the per-config live cache, and a monotonic token
-	// so a slow measurement from an earlier config can't clobber a newer one.
-	let corpus: null | readonly Wine[] = null;
+	// Non-reactive scratch state: the loaded engine workload and corpus, the per-config live cache, and a
+	// monotonic token so a slow measurement from an earlier config can't clobber a newer one.
+	let live: LiveBenchmark | null = null;
+	// The one dynamic import of the engine: a chunk of its own, fetched on first use.
+	const loadLive = createLiveBenchmarkLoader(async () => import('./benchmarkEngine.js'));
 	let measuredMsByKey: Record<string, number> = {};
 	let requestToken = 0;
 	let isCancelled = false;
@@ -141,6 +149,8 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	const liveBar = el('div', { className: 'fe-bench__bar is-live' });
 	const liveValue = el('span', { className: 'fe-bench__bar-value' });
 
+	// The naive bar never moves, so it keeps a plain width (and its dashed fill starts at the track's
+	// edge); the live bar slides by transform in `render()`.
 	naiveBar.style.width = `${logBarWidthPercent(NAIVE_BASELINE_MS)}%`;
 
 	const statusDot = el('span', { attrs: { 'aria-hidden': 'true' }, className: 'fe-bench__status-dot' });
@@ -226,7 +236,10 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 		badge.textContent = `${formatSpeedup(computeSpeedup(NAIVE_BASELINE_MS, displayMs))} faster than naive scan`;
 		numberSub.textContent = isMeasuring ? 'measuring…' : `median of ${passCount || '—'} passes`;
 
-		liveBar.style.width = `${logBarWidthPercent(displayMs)}%`;
+		const barStyle = liveBarStyle(logBarWidthPercent(displayMs));
+
+		liveBar.style.opacity = barStyle.opacity;
+		liveBar.style.transform = barStyle.transform;
 		liveValue.textContent = formatDuration(displayMs);
 
 		statusDot.className = `fe-bench__status-dot is-${measurementMode}`;
@@ -235,7 +248,8 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	}
 
 	/**
-	 * Measure `next` live if the corpus is ready; otherwise fall back to the reference number.
+	 * Measure `next` live if the engine and the corpus are ready; otherwise fall back to the reference
+	 * number.
 	 *
 	 * @param next - The configuration to time.
 	 * @param isHeavy - Run the 20-pass sweep and bypass the cache.
@@ -243,7 +257,7 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	async function measure(next: BenchmarkConfig, isHeavy = false): Promise<void> {
 		const localToken = (requestToken += 1);
 
-		if (corpus === null) {
+		if (live === null) {
 			measurementMode = 'reference';
 			displayMs = referenceMsFor(next);
 			render();
@@ -266,7 +280,7 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 		// Yield a frame so the "measuring" state paints before the synchronous sweep blocks the thread.
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		const measurement = await measureConfig(corpus, next, isHeavy ? { timedPasses: HEAVY_TIMED_PASSES } : {});
+		const measurement = await live.measureConfig(live.corpus, next, isHeavy ? { timedPasses: HEAVY_TIMED_PASSES } : {});
 		const assessment = assessSamples(measurement.samples);
 
 		if (localToken !== requestToken || isCancelled) {
@@ -297,33 +311,51 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	function toggleLayer(key: keyof BenchmarkConfig): void {
 		config = { ...config, [key]: !config[key] };
 		render();
+		goLive();
 		void measure(config);
 	}
 
-	/** Clear the live cache and re-measure the current config (the "retry live" affordance). */
+	/**
+	 * Clear the live cache and re-measure the current config (the "retry live" affordance); fetch the
+	 * engine again if the last fetch failed.
+	 */
 	function retryLive(): void {
 		measuredMsByKey = {};
+		goLive();
 		void measure(config);
+	}
+
+	/**
+	 * Fetch the engine and the corpus (each a chunk of its own, loaded once), then measure the current
+	 * config live. A failed fetch leaves the reference numbers on screen, and "retry live" calls this
+	 * again.
+	 */
+	function goLive(): void {
+		if (live !== null || isCancelled) {
+			return;
+		}
+
+		loadLive()
+			.then(async (loaded) => {
+				if (isCancelled || live !== null) {
+					return; // The widget went away, or an earlier call already went live.
+				}
+				live = loaded;
+
+				return measure(config);
+			})
+			.catch(() => {
+				// The engine or the corpus failed to load — the reference numbers already on screen stand in.
+			});
 	}
 
 	render();
 
-	// On mount: load the corpus (a separate async chunk), then measure the default config live.
-	loadWineCorpus()
-		.then(async (loaded) => {
-			if (isCancelled) {
-				return;
-			}
-			corpus = loaded;
-
-			return measure(ALL_ON);
-		})
-		.catch(() => {
-			// Corpus failed to load — the reference numbers already on screen stand in.
-		});
+	const stopWatching = whenNearViewport(element, goLive);
 
 	return {
 		dispose: () => {
+			stopWatching();
 			isCancelled = true;
 			requestToken += 1;
 		},

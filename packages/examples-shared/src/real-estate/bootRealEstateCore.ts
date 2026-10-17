@@ -107,17 +107,17 @@ export async function bootRealEstateCore(): Promise<RealEstateCoreBundle> {
 }
 
 /**
- * The boot: initialize acceleration, STREAM the default tier over `/api/real-estate` (MSW in dev, or a
- * real backend where one is deployed) with a bundled fallback, build the engine, publish progress.
+ * The boot: initialize acceleration, load the default tier, build the engine, publish progress.
  *
  * @remarks
- * The corpus is streamed via {@link loadDefaultTierCorpus} rather than statically imported, so the
- * ~10k default tier stays out of the main-thread bundle. Where the endpoint is unavailable (a
- * production build with no API, or an environment where MSW is not running), the bundled corpus is
- * DYNAMICALLY imported as a fallback, so it still code-splits out of the streamed path. On that
- * fallback path a single final progress ping fires. The `Listing` type comes in through `import type`,
- * which is erased: under `verbatimModuleSyntax` an inline `import { type Listing }` survives as a
- * side-effect import of the dataset and undoes the split.
+ * The corpus comes through {@link loadDefaultTierCorpus} rather than a static import, so the ~10k
+ * default tier stays out of the main-thread bundle. In development, where the mock API serves
+ * `/api/real-estate`, it streams page by page and reports progress as it goes. Everywhere else — every
+ * production build — no site serves that endpoint, so the bundled corpus is DYNAMICALLY imported
+ * straight away, as a chunk of its own, with no request first; on that path a single final progress
+ * ping fires. The `Listing` type comes in through `import type`, which is erased: under
+ * `verbatimModuleSyntax` an inline `import { type Listing }` survives as a side-effect import of the
+ * dataset and undoes the split.
  *
  * @internal
  */

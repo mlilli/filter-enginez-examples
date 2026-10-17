@@ -15,6 +15,11 @@
  *   - `examples-vue/src/pages/RealEstatePage.vue`
  *   - `examples-vanilla/src/pages/realEstatePage.ts`
  *
+ * Angular's root component shows the idle state while its `/real-estate` resolver boots the engine
+ * (`examples-angular/src/app/app.component.ts`), reading these constants through
+ * `examples-shared/boot-caption`, which re-exports them: this module's own barrel carries rules over
+ * the core and would bring the engine into the app's startup chunk.
+ *
  * @packageDocumentation
  */
 

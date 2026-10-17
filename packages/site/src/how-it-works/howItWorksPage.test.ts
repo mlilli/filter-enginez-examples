@@ -7,15 +7,15 @@
  * hook on either side fails here rather than leaving a deployed page with silent empty frames.
  *
  * The heavy benchmark workload is mocked so the widget never loads the wine corpus. jsdom has no
- * `IntersectionObserver`, which exercises the scroll-spy's and the figures' no-observer paths; the
- * observer path of the scroll-spy is driven with a fake below.
+ * `IntersectionObserver`, which exercises the scroll-spy's, the figures' and the benchmark's
+ * no-observer paths; their observer paths are driven with a fake below.
  *
  * @packageDocumentation
  */
 
 import type * as HowItWorks from '@filter-enginez/examples-shared/how-it-works';
 
-import { HOW_IT_WORKS_DEMO_LINKS, HOW_IT_WORKS_SECTIONS } from '@filter-enginez/examples-shared/how-it-works';
+import { HOW_IT_WORKS_DEMO_LINKS, HOW_IT_WORKS_SECTIONS, loadWineCorpus, measureConfig } from '@filter-enginez/examples-shared/how-it-works';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderBands, renderBenchmarkReference, renderTableOfContents } from './prerender.js';
@@ -25,16 +25,16 @@ vi.mock('@filter-enginez/examples-shared/how-it-works', async (importActual) => 
 
 	return {
 		...actual,
-		loadWineCorpus: async (): Promise<readonly unknown[]> => {
+		loadWineCorpus: vi.fn(async (): Promise<readonly unknown[]> => {
 			await Promise.resolve();
 
 			return [];
-		},
-		measureConfig: async (): Promise<{ resultCount: number; samples: number[] }> => {
+		}),
+		measureConfig: vi.fn(async (): Promise<{ resultCount: number; samples: number[] }> => {
 			await Promise.resolve();
 
 			return { resultCount: 0, samples: []};
-		},
+		}),
 	};
 });
 
@@ -303,6 +303,104 @@ describe('the scroll-spy', () => {
 		page.querySelector('.fe-about__toc')?.remove();
 		enhanceHowItWorksPage(page, DEV_LOCATION);
 
-		expect(observers).toHaveLength(HOW_IT_WORKS_SECTIONS.length);
+		// One per figure, and the benchmark's: no scroll-spy.
+		expect(observers).toHaveLength(HOW_IT_WORKS_SECTIONS.length + 1);
+	});
+});
+
+describe('the live benchmark’s engine', () => {
+	beforeEach(async () => {
+		// Widgets mounted by earlier tests (never torn down) finish measuring a macrotask after they go
+		// live; let them, so the counts below are this test's alone.
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		vi.mocked(loadWineCorpus).mockClear();
+		vi.mocked(measureConfig).mockClear();
+	});
+
+	/**
+	 * Enhance the page with a fake `IntersectionObserver` installed.
+	 *
+	 * @returns The page, and the observer the benchmark widget watches the viewport with.
+	 */
+	function enhanceWatched(): { readonly page: HTMLElement; readonly watcher: FakeObserver | undefined } {
+		const observers = installObserver();
+		const page = mountPrerenderedPage();
+
+		enhanceHowItWorksPage(page, DEV_LOCATION);
+
+		// Constructed after the figures' observers and before the scroll-spy's.
+		return { page, watcher: observers.at(-2) };
+	}
+
+	it('is not fetched while the widget is far from the viewport', async () => {
+		const { watcher } = enhanceWatched();
+
+		expect(watcher?.observedIds).toEqual(['']);
+		await Promise.resolve();
+		expect(loadWineCorpus).not.toHaveBeenCalled();
+	});
+
+	it('is fetched once the widget nears the viewport, and measures the configuration on screen', async () => {
+		const { watcher } = enhanceWatched();
+
+		watcher?.emit([{ id: '', ratio: 1 }]);
+
+		await vi.waitFor(() => {
+			expect(measureConfig).toHaveBeenCalledTimes(1);
+		});
+		expect(loadWineCorpus).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(measureConfig).mock.calls[0]?.[1]).toEqual({ bitmap: true, exclusionGraph: true, memoization: true });
+	});
+
+	it('is fetched as soon as the widget is used, before it nears the viewport', async () => {
+		const { page } = enhanceWatched();
+
+		page.querySelector<HTMLButtonElement>('[role="switch"]')?.click();
+
+		await vi.waitFor(() => {
+			expect(loadWineCorpus).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it('is fetched at once where there is no IntersectionObserver', async () => {
+		enhanceHowItWorksPage(mountPrerenderedPage(), DEV_LOCATION);
+
+		await vi.waitFor(() => {
+			expect(loadWineCorpus).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it('leaves the reference numbers standing when it fails to load, and "retry live" fetches it again', async () => {
+		vi.mocked(loadWineCorpus).mockRejectedValueOnce(new Error('offline'));
+
+		const page = mountPrerenderedPage();
+
+		enhanceHowItWorksPage(page, DEV_LOCATION);
+		await vi.waitFor(() => {
+			expect(loadWineCorpus).toHaveBeenCalledTimes(1);
+		});
+		// Let the rejection settle (a macrotask runs after every pending microtask).
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(page.querySelector('.fe-bench__status')?.textContent).toContain('reference bench');
+		expect(page.querySelector<HTMLElement>('.fe-bench__retry')?.hidden).toBe(false);
+
+		page.querySelector<HTMLButtonElement>('.fe-bench__retry')?.click();
+
+		await vi.waitFor(() => {
+			expect(loadWineCorpus).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	it('places the live bar by transform, never by width', () => {
+		const page = mountPrerenderedPage();
+
+		enhanceHowItWorksPage(page, DEV_LOCATION);
+
+		const liveBar = page.querySelector<HTMLElement>('.fe-bench__bar.is-live');
+
+		expect(liveBar?.style.width).toBe('');
+		expect(liveBar?.style.transform).toMatch(/^translateX\(-\d+(?:\.\d+)?%\)$/u);
+		expect(liveBar?.style.opacity).toBe('1');
 	});
 });

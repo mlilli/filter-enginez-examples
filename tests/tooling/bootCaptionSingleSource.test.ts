@@ -183,16 +183,18 @@ function captionClassListsByFile(): Map<string, string[]> {
  * Every file rendering a caption class.
  *
  * @remarks
- * Fourteen files for thirteen captions: `examples-vanilla/src/brand/indicators.ts` builds the value
+ * Fifteen files for fourteen captions: `examples-vanilla/src/brand/indicators.ts` builds the value
  * span for both of that app's captions, because the framework verticals emit theirs inline in the
- * same template and vanilla has no template to emit it in.
+ * same template and vanilla has no template to emit it in. Angular's root component is the one site
+ * outside a route: it draws a resolving route's idle caption while the outlet is still empty.
  *
  * A roster rather than a count, for the reason `brandAssets.test.ts` gives: a count tells you
  * something changed, a roster tells you what. Removing a site fails here — the direction in which a caption
  * quietly stops being styled like the others — and
- * adding a fifteenth requires saying so, which is the conscious decision this file exists to force.
+ * adding a sixteenth requires saying so, which is the conscious decision this file exists to force.
  */
 const CAPTION_RENDER_SITES = [
+	'packages/examples-angular/src/app/app.component.ts',
 	'packages/examples-angular/src/app/pages/wine-page.component.ts',
 	'packages/examples-react-plain/src/routes/DatasetRoute.tsx',
 	'packages/examples-react-rtk/src/routes/DatasetRoute.tsx',

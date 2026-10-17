@@ -6,6 +6,14 @@
  * @packageDocumentation
  */
 
+// The figures' stylesheet, loaded with this page rather than with the app: the eight algorithm
+// illustrations and the rule figure are the only `fe-fig-*` markup, and only the two figure pages draw
+// it. Imported here, the bundler puts the sheet beside this page's chunk and links it when the page
+// loads, after the app's own sheet, which is the order the cascade needs (`figures.css` builds on the
+// brand tokens and overrides nothing in `ui-styles`). The documentation site and both React apps'
+// `/docs` routes all get it this way, and none of them carries it on any other page.
+import '@filter-enginez/ui-styles/figures.css';
+
 import { Link, Navigate, useParams } from 'react-router';
 
 import { CodeBlock } from './CodeBlock.js';

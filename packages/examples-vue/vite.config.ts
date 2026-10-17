@@ -13,6 +13,8 @@
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
+import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
+
 export default defineConfig({
 	build: {
 		sourcemap: true,
@@ -36,7 +38,9 @@ export default defineConfig({
 	optimizeDeps: {
 		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
 	},
-	plugins: [vue()],
+	// `fontPreloadsPlugin` preloads the first screen's two brand fonts from the built index.html, so they
+	// download beside the startup scripts instead of after the stylesheet (scripts/lib/font-preloads.mjs).
+	plugins: [vue(), fontPreloadsPlugin()],
 	resolve: {
 		// One @preact/signals-core instance across the engine + the vue-signals adapter (load-bearing).
 		//

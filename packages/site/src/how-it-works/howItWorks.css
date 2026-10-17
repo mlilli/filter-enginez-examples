@@ -483,14 +483,21 @@ main.fe-about {
 .fe-bench__bar {
 	height: 100%;
 	border-radius: var(--radius-sm);
-	transition: width var(--dur-slow) var(--ease-out);
 }
+/* Fixed: its width is set once, so its dashes start at the track's edge. */
 .fe-bench__bar.is-naive {
 	background: repeating-linear-gradient(90deg, var(--gray-6) 0 4px, transparent 4px 8px);
 }
+/* As wide as the track, slid left by a transform the widget sets (and transparent when empty): the
+   browser animates a transform and an opacity on the compositor, where a width would be laid out
+   again every frame. The track clips the part outside it with the same rounded corner the bar has. */
 .fe-bench__bar.is-live {
+	width: 100%;
 	background: var(--engine);
 	box-shadow: 0 0 8px var(--engine-haze);
+	transition:
+		transform var(--dur-slow) var(--ease-out),
+		opacity var(--dur-slow) var(--ease-out);
 }
 .fe-bench__bar-value {
 	font-family: var(--font-mono);

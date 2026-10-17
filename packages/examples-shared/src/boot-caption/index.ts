@@ -32,11 +32,24 @@
  * would make a books route import a wine type to render a caption. {@link BootProgress} is the
  * intersection, declared here so the caption owns its own input.
  *
- * This module imports NOTHING. That is the strongest available form of the React-free promise
+ * This module imports NOTHING but the two datasets' boot-copy modules, which import nothing
+ * themselves. That is the strongest available form of the React-free promise
  * `tests/tooling/reactFreeSubpaths.test.ts` enforces: there is no transitive graph to taint.
+ *
+ * ### Why it re-exports the books and real-estate wording
+ *
+ * Each dataset's idle sentence and record noun live beside its domain logic (`books-domain`,
+ * `real-estate-domain`), and those barrels are the right import for a route that is booting anyway.
+ * They are the wrong import for a screen drawn BEFORE the engine arrives: each barrel also carries
+ * rules and summaries over the core, so importing a sentence through one pulls the engine into the
+ * importer's chunk. Angular's root component draws the boot caption while a dataset route's resolver
+ * is still downloading the engine, so it reads the same constants here, where nothing comes with them.
  *
  * @packageDocumentation
  */
+
+export { BOOKS_BOOT_IDLE_CAPTION, BOOKS_RECORD_NOUN } from '../books/books-domain/bootCopy.js';
+export { REAL_ESTATE_BOOT_IDLE_CAPTION, REAL_ESTATE_RECORD_NOUN } from '../real-estate/real-estate-domain/bootCopy.js';
 
 /** The default pre-stream caption. Overridden by routes whose cold start is not a worker spin-up. */
 export const DEFAULT_IDLE_CAPTION = 'Spinning up worker thread';

@@ -14,30 +14,43 @@ import './app.css';
 
 import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
 
-import { renderBooksPage } from './pages/booksPage.js';
-import { renderBooksRawPage } from './pages/booksRawPage.js';
 import { renderLandingPage } from './pages/landingPage.js';
 import { renderNotFoundPage } from './pages/notFoundPage.js';
-import { renderRealEstatePage } from './pages/realEstatePage.js';
-import { renderWinePage } from './pages/winePage.js';
-import { renderWineServerPage } from './pages/wineServerPage.js';
 import { type Route, startRouter } from './router.js';
 
 /**
  * The route table. `/books` and `/books-raw` render the SAME view over the two reactive surfaces —
  * fine-grained signals vs one coarse subscribe. `/real-estate` is the second dataset and the widest
- * panel here — fourteen sections, including a lazily-loaded Leaflet map. The trailing `'*'` catch-all renders the shared "filtered to zero" 404.
+ * panel here — fourteen sections, including a lazily-loaded Leaflet map. The trailing `'*'` catch-all
+ * renders the shared "filtered to zero" 404.
+ *
+ * **Every dataset route loads its page module on demand**, through a dynamic `import()` inside its
+ * `render`; only the landing hub and the 404, which hold no engine, are static imports. A dataset page
+ * brings the engine (the core plus the WebAssembly bitmap library it initializes) and its own panel
+ * and controls, so a static import puts all of it on the hub's first screen. Loaded on demand, each
+ * page arrives with the route that shows it, and `startupBudget.test.ts` holds the hub to that through
+ * the build's startup budget.
+ *
+ * The router already awaits `render`, and its per-render mount keeps a navigation that overtakes a
+ * slow load from painting into the live route, so a module still downloading needs nothing extra. Each
+ * page paints its own first frame (its boot screen) as soon as its module runs.
  */
 const routes: readonly Route[] = [
 	{ path: '/', render: renderLandingPage },
-	{ path: '/books', render: renderBooksPage },
-	{ path: '/books-raw', render: renderBooksRawPage },
-	{ path: '/real-estate', render: renderRealEstatePage },
-	{ path: '/wine', render: renderWinePage },
+	{ path: '/books', render: async (mount) => (await import('./pages/booksPage.js')).renderBooksPage(mount) },
+	{ path: '/books-raw', render: async (mount) => (await import('./pages/booksRawPage.js')).renderBooksRawPage(mount) },
+	{
+		path: '/real-estate',
+		render: async (mount) => (await import('./pages/realEstatePage.js')).renderRealEstatePage(mount),
+	},
+	{ path: '/wine', render: async (mount) => (await import('./pages/winePage.js')).renderWinePage(mount) },
 	// The same wine app with the filtering moved off the browser entirely — over HTTP to
 	// `examples-server`, where SvelteKit's equivalent runs the core in its own Node tier. Between the
 	// two, the repo shows both server-tier arrangements of one engine rather than one twice.
-	{ path: '/wine-server', render: renderWineServerPage },
+	{
+		path: '/wine-server',
+		render: async (mount) => (await import('./pages/wineServerPage.js')).renderWineServerPage(mount),
+	},
 	{ path: '*', render: renderNotFoundPage },
 ];
 

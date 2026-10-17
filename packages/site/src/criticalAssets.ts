@@ -13,13 +13,16 @@
  *   so carrying it in every page costs less than the round trip it removes.
  * - {@link preloadFonts} adds a `<link rel="preload">` for each font the first screen sets, ahead of the
  *   page's first other link, where the browser's preload scanner meets it within the HTML's first few
- *   kilobytes.
+ *   kilobytes. It is the demo apps' font preload too, so it lives with theirs in
+ *   `scripts/lib/font-preloads.mjs` and is re-exported here, where the site's build reads it.
  *
  * Pure string functions, so they are tested on their own; `vite.config.ts` reads the built stylesheets
  * and fonts out of the bundle and calls them.
  *
  * @packageDocumentation
  */
+
+export { preloadFonts } from '../../../scripts/lib/font-preloads.mjs';
 
 /** A stylesheet link exactly as Vite writes one into a built page. */
 const STYLESHEET_LINK = /<link rel="stylesheet" crossorigin href="([^"]+)">/gu;
@@ -71,28 +74,4 @@ export function inlineStylesheets(html: string, readStylesheet: (href: string) =
 	});
 
 	return { html: page, inlined };
-}
-
-/**
- * Add a font preload for each URL, before the page's first `<link>`.
- *
- * @remarks
- * `crossorigin` is required: fonts are always fetched in CORS mode, and a preload without it is a
- * different request, so the font would be downloaded twice.
- *
- * @param html - The page.
- * @param fontHrefs - The WOFF2 files to preload, as the page's stylesheet names them.
- * @returns The page with the preloads in its head.
- * @throws {Error} When the page has no `<link>` to put them before.
- */
-export function preloadFonts(html: string, fontHrefs: readonly string[]): string {
-	const firstLink = html.indexOf('<link');
-
-	if (firstLink === -1) {
-		throw new Error('The page has no <link> in its head to put the font preloads before.');
-	}
-
-	const preloads = fontHrefs.map((href) => `<link rel="preload" href="${href}" as="font" type="font/woff2" crossorigin>\n\t\t`).join('');
-
-	return `${html.slice(0, firstLink)}${preloads}${html.slice(firstLink)}`;
 }

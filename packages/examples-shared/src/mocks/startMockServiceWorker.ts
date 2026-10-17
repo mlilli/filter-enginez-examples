@@ -22,10 +22,12 @@
  * }
  * ```
  *
- * **Always-on, all three datasets.** Every route's default tier streams its corpus over
- * `GET /api/<dataset>?tier=&limit=&offset=` (see `../data/loadDefaultTierCorpus.ts`) instead of
+ * **Always-on, all three datasets.** In development every route's default tier streams its corpus
+ * over `GET /api/<dataset>?tier=&limit=&offset=` (see `../data/loadDefaultTierCorpus.ts`) instead of
  * statically importing it, so wine, books, AND real estate all need handlers registered — hence
- * `allHandlers`. Registration is cheap: each per-dataset handler module in `mock-data` loads its
+ * `allHandlers`. Once the worker has started, this announces the endpoint (`../data/corpusApi.ts`);
+ * that announcement is what turns the stream on, so a production build, which never starts MSW,
+ * makes no corpus request at all. Registration is cheap: each per-dataset handler module in `mock-data` loads its
  * corpus through a dynamic import, so `setupWorker` costs nothing until a request arrives.
  *
  * **Why the server-backed routes still reach their real backends.** The React apps proxy `/api/*` to
@@ -40,6 +42,8 @@
 import { allHandlers } from '@filter-enginez/mock-data/handlers';
 import { http, passthrough } from 'msw';
 import { setupWorker } from 'msw/browser';
+
+import { announceCorpusApi } from '../data/corpusApi.js';
 
 /**
  * Explicit passthrough for the wine worker tier's full-corpus files — `/data-real-full.ndjson` and
@@ -86,6 +90,9 @@ export async function startMockServiceWorker(): Promise<boolean> {
 			...allHandlers,
 		);
 		await worker.start({ onUnhandledRequest: 'bypass', quiet: true });
+		// Only now does `/api/<dataset>` exist on this page; until this line, and in every production
+		// build, the dataset boots import their bundled corpus without trying the stream.
+		announceCorpusApi();
 
 		return true;
 	} catch (error) {

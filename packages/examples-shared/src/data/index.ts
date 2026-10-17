@@ -5,6 +5,7 @@
  * @packageDocumentation
  */
 
+export { announceCorpusApi, hasCorpusApi } from './corpusApi.js';
 export {
 	type CorpusPageProgress,
 	loadCorpusPaged,
@@ -13,4 +14,5 @@ export {
 export {
 	type DefaultTierCorpus,
 	loadDefaultTierCorpus,
+	type LoadDefaultTierCorpusOptions,
 } from './loadDefaultTierCorpus.js';

@@ -94,11 +94,13 @@
 	/* ========================================================================
 		TYPOGRAPHY
 		======================================================================== */
-	--font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
-	--font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+	/* The "… Fallback" families are the sites' metric-matched fallback faces
+	   (packages/brand/src/tokens.css); this sheet declares none, so here they are skipped. */
+	--font-sans: 'Inter', 'Inter Fallback', -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', 'SF Mono', Menlo, Consolas, monospace;
 	/* The sites serve a renamed subset of Orbitron (packages/brand/src/tokens.css); this sheet
 	   loads the unmodified TTF, under its own name. */
-	--font-display: 'Filter EngineZ Display', 'Orbitron', 'Inter', sans-serif;
+	--font-display: 'Filter EngineZ Display', 'Filter EngineZ Display Fallback', 'Orbitron', 'Inter', sans-serif;
 
 	--text-xs: 12px;
 	--text-sm: 14px;

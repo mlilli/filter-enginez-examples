@@ -74,6 +74,10 @@ component constructs, `injectFilterEngine()` is guaranteed live — no boot flag
 `/books-server` follow the same pattern. `/wine` is the exception: a 150k-record worker boot takes seconds, so the page
 boots itself and renders its own progress instead of blocking navigation.
 
+Each resolver `import()`s the module that boots its engine, so the engine and the RxJS surface load with the route and
+never with the landing page, and it starts the page's own chunk downloading at the same time. While a resolver works on
+a direct visit, the root component shows the route's boot caption, so the page is never blank before the engine is up.
+
 ### 4. Two tsconfigs, and `noEmit` is the tricky one
 
 `tsconfig.json` (`noEmit: true`) is what `typecheck` runs; `tsconfig.app.json` (`noEmit: false`) is what the builder

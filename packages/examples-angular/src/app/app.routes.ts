@@ -11,87 +11,60 @@
  * render the component until it settles.
  *
  * So `/books` resolves the booted engine into route data, and the page component republishes it into
- * component-scoped DI (see `books-page.component.ts`). The upshot is that the landing page paints
- * instantly and never waits on a corpus it doesn't use, and by the time any books component runs,
+ * component-scoped DI (see `books-page.component.ts`). By the time any books component runs,
  * `injectFilterEngine()` is guaranteed to hand back a live engine — no null checks, no boot flags.
  *
- * `bootBooksCore()` is itself idempotent and cached, so re-navigating to `/books` costs nothing; the
- * `RxJsEngine` wrapper is memoized here for the same reason (one engine, one set of streams, one
- * subscription graph for the life of the tab).
+ * ### Everything behind a route loads with the route
  *
- * ### Why `/books-boot-core` and not `/books-core`
+ * The landing hub is the one eager page (`component:`), so the first screen needs no request beyond
+ * the startup chunks. Every other page is a `loadComponent`, and every resolver `import()`s the module
+ * that does its work — `books/books-route-data.ts`, `books/books-server-route-data.ts`,
+ * `real-estate/real-estate-route-data.ts`. Those modules carry the engine (the core plus the
+ * WebAssembly bitmap library it initializes) and the RxJS surface, so this file imports nothing from
+ * them but types: a static import of one would put the engine on the landing page's startup graph.
+ * `tests/tooling/startupBudget.test.ts` holds the build to that through its startup budget.
  *
- * The broader `./books-core` subpath re-exports BOTH boots — the bare one and `bootBooksEngine`, which
- * wraps it in `createSignalsEngine`. Importing it therefore drags `@preact/signals-core` into this
- * bundle, which is precisely what splitting the boot into its own module was meant to prevent. The
- * narrow `./books-boot-core` subpath exposes only the surface-neutral half, so the one vertical that
- * doesn't use signals doesn't ship them.
+ * The router loads a route's component only after its resolvers settle, so each resolver also starts
+ * the page's own chunk downloading ({@link resolveWithPage}); by the time the boot finishes, the
+ * component is already in the module cache rather than one more round trip away.
  *
- * The server-backed route below takes the same care for the same reason: it imports
- * `createHttpFilterEngine` from the narrow `./books-server-engine` subpath, NOT `./books-server-core`
- * — the latter re-exports `bootBooksServerEngine`, which wraps the transport in
- * `createSignalsEngineFromAsync` and would re-admit `@preact/signals-core` through the back door.
- * The transport is surface-neutral; only the boot around it isn't.
+ * ### A first frame while the resolver works
  *
- * ### Two resolvers, two failure contracts
+ * A resolver holds activation, so a direct visit to `/books` would otherwise show an empty page until
+ * the engine had booted. Each booting route names its cold-start caption in its static `data`
+ * ({@link ROUTE_BOOT_CAPTION_KEY}), and the root component draws it while the outlet is still empty —
+ * see `app.component.ts`.
  *
- * `booksResolver` may reject only if the corpus itself is broken, which is a bug. `booksServerResolver`
- * has a routine failure — the Node process isn't running — so it never rejects: it catches, reports the
- * failure as route data, and lets the page render an offline screen. A rejected resolver aborts the
- * navigation, which would present a dead server as a page that simply doesn't respond to the click.
+ * ### Two failure contracts
+ *
+ * The `/books` and `/real-estate` loads may reject only if the corpus itself is broken, which is a
+ * bug. `/books-server` has a routine failure — the Node process isn't running — so its load never
+ * rejects: it catches, reports the failure as route data, and lets the page render an offline screen.
+ * A rejected resolver aborts the navigation, which would present a dead server as a page that simply
+ * doesn't respond to the click.
  *
  * @packageDocumentation
  */
 
+import type { Type } from '@angular/core';
 import type { ResolveFn, Routes } from '@angular/router';
-import type { Book } from '@filter-enginez/mock-data/books';
-import type { Listing } from '@filter-enginez/mock-data/real-estate';
-
-import { type BooksBootMeta, bootBooksCore } from '@filter-enginez/examples-shared/books-boot-core';
-import { createHttpFilterEngine } from '@filter-enginez/examples-shared/books-server-engine';
-import {
-	bootRealEstateCore,
-	type RealEstateBootMeta,
-} from '@filter-enginez/examples-shared/real-estate-boot-core';
-import {
-	createRxJsEngine,
-	createRxJsEngineFromAsync,
-	type RxJsEngine,
-} from '@filter-enginez/reactive-rxjs';
 
 import {
-	deriveRealEstateFacets,
-	type RealEstateFacets,
-} from './real-estate/real-estate-facets.js';
-import { readConfigFromUrl } from './url/url-state.js';
+	BOOKS_BOOT_IDLE_CAPTION,
+	BOOKS_RECORD_NOUN,
+	bootCaptionParts,
+	bootCaptionText,
+	REAL_ESTATE_BOOT_IDLE_CAPTION,
+	REAL_ESTATE_RECORD_NOUN,
+} from '@filter-enginez/examples-shared/boot-caption';
 
-/** What the `/books` resolver puts on the route's `data`. */
-export interface BooksRouteData {
-	/** The RxJS reactive surface over the booted core. */
-	readonly engine: RxJsEngine<Book>;
-	/** Boot metadata (record count, boot duration, tier) for the results header. */
-	readonly meta: BooksBootMeta;
-}
+import type { BooksRouteData } from './books/books-route-data.js';
+import type { BooksServerRouteData } from './books/books-server-route-data.js';
+import type { RealEstateRouteData } from './real-estate/real-estate-route-data.js';
 
-/**
- * What the `/books-server` resolver puts on the route's `data`.
- *
- * @remarks
- * Deliberately NOT `BooksRouteData`: the engine is nullable, because "the filtering server isn't
- * running" is an ordinary outcome on this route rather than a bug. Boot metadata is carried as flat
- * scalars instead of a `BooksBootMeta` because none of that shape applies — there is no `mode:
- * 'main-thread'` here, and the boot measures a corpus fetch rather than an index build.
- */
-export interface BooksServerRouteData {
-	/** Corpus size, for the results header's "filtered from N total". Zero on a failed boot. */
-	readonly bookCount: number;
-	/** Wall-clock ms from first fetch to a usable engine. Zero on a failed boot. */
-	readonly bootMs: number;
-	/** The RxJS surface over the HTTP-backed async engine, or `null` when the server is unreachable. */
-	readonly engine: RxJsEngine<Book> | null;
-	/** Why the boot failed, or `null` on success. Exactly one of this and `engine` is non-null. */
-	readonly error: Error | null;
-}
+import { LandingPageComponent } from './pages/landing-page.component.js';
+
+export type { BooksRouteData, BooksServerRouteData, RealEstateRouteData };
 
 /** The key `/books` route data is stored under — one constant, so the read site can't typo it. */
 export const BOOKS_ROUTE_DATA_KEY = 'books';
@@ -99,175 +72,98 @@ export const BOOKS_ROUTE_DATA_KEY = 'books';
 /** The key `/books-server` route data is stored under. */
 export const BOOKS_SERVER_ROUTE_DATA_KEY = 'booksServer';
 
-/**
- * What the `/real-estate` resolver puts on the route's `data`.
- *
- * @remarks
- * Carries more than the books equivalent because this panel needs more than an engine: fourteen
- * sections' worth of vocabularies, slider extents, a location hierarchy and metro centroids, all
- * derived from the booted corpus in one pass here rather than repeatedly in the panel. See
- * `real-estate/real-estate-facets.ts` for why they are derived at the route.
- */
-export interface RealEstateRouteData {
-	/** The RxJS reactive surface over the booted core. */
-	readonly engine: RxJsEngine<Listing>;
-	/** Everything the panel needs that is not the engine. */
-	readonly facets: RealEstateFacets;
-	/** Boot metadata (record count, boot duration, tier) for the footer. */
-	readonly meta: RealEstateBootMeta;
-}
-
 /** The key `/real-estate` route data is stored under. */
 export const REAL_ESTATE_ROUTE_DATA_KEY = 'realEstate';
 
 /**
- * Memoized wrapper so repeat navigations reuse one engine (and therefore one set of `shareReplay`ed
- * streams) rather than building a parallel subscription graph each time.
- */
-let cachedRouteData: Promise<BooksRouteData> | null = null;
-
-/**
- * Boot the books engine and wrap it in the RxJS surface.
- *
- * @returns The engine + boot metadata, for the route's `data`.
- */
-export const booksResolver: ResolveFn<BooksRouteData> = async () => {
-	cachedRouteData ??= bootBooksCore().then(({ core, meta }) => {
-		// Hydrate from a shared `?f` link BEFORE the engine is wrapped and anything subscribes.
-		// `loadConfig` fires its change synchronously, so restoring first avoids an immediate,
-		// redundant write straight back to the URL.
-		const urlConfig = readConfigFromUrl();
-
-		if (urlConfig !== null) {
-			try {
-				core.loadConfig(urlConfig);
-			} catch {
-				// Malformed or incompatible link — open on the neutral corpus rather than failing the
-				// navigation. A bad URL should never cost someone the page.
-			}
-		}
-
-		return { engine: createRxJsEngine<Book>(core), meta };
-	});
-
-	return cachedRouteData;
-};
-
-/** Memoized for the same reason as `/books` — one engine, one subscription graph, one corpus fetch. */
-let cachedServerRouteData: Promise<BooksServerRouteData> | null = null;
-
-/**
- * Build the HTTP-backed engine and wrap it in the RxJS surface.
+ * The static-`data` key under which a booting route names the caption the root component shows
+ * while that route's resolver works.
  *
  * @remarks
- * The URL config is loaded onto the transport BEFORE the adapter is constructed, so the adapter's
- * one-shot initial state pull already reflects the shared link — the same ordering `/books` uses, for
- * the same reason. On the transport that also means the shared state costs no extra round-trip.
- *
- * @returns Resolved route data — either a live engine or the error that stopped it.
+ * Static data rather than anything the resolver produces, because the caption has to be readable the
+ * moment the route is recognized, before a byte of the route's own code has arrived.
  */
-async function bootBooksServerRouteData(): Promise<BooksServerRouteData> {
-	const startedAt = performance.now();
+export const ROUTE_BOOT_CAPTION_KEY = 'bootCaption';
 
-	try {
-		const asyncEngine = createHttpFilterEngine();
-		const urlConfig = readConfigFromUrl();
-
-		if (urlConfig !== null) {
-			try {
-				await asyncEngine.loadConfig(urlConfig);
-			} catch {
-				// Malformed or incompatible link — open on the neutral corpus, as `/books` does.
-			}
-		}
-
-		// This is where an unreachable server surfaces: the adapter awaits `getSourceData()`, which is
-		// the corpus fetch. It also means the corpus is fully resident before anything renders, which is
-		// what lets the filter panel read `core.getSourceData()` synchronously for its vocabularies.
-		const engine = await createRxJsEngineFromAsync<Book>(asyncEngine);
-
-		return {
-			bookCount: engine.core.getSourceData().length,
-			bootMs: performance.now() - startedAt,
-			engine,
-			error: null,
-		};
-	} catch (caught: unknown) {
-		// Drop the memo so a later navigation retries rather than replaying a stale failure — someone
-		// who starts the server and clicks back through should get a working page.
-		cachedServerRouteData = null;
-
-		return {
-			bookCount: 0,
-			bootMs: 0,
-			engine: null,
-			error: caught instanceof Error ? caught : new Error(String(caught)),
-		};
-	}
+/**
+ * The idle caption for a dataset route, worded by the one module every vertical renders.
+ *
+ * @param idleCaption - The dataset's cold-start sentence.
+ * @param recordNoun - The dataset's plural record noun.
+ * @returns The caption as plain text: before any progress it has no value to highlight.
+ */
+function idleBootCaption(idleCaption: string, recordNoun: string): string {
+	return bootCaptionText(bootCaptionParts(null, { idleCaption, recordNoun }));
 }
 
 /**
- * Resolve the server-backed books engine.
- *
- * @returns The engine + boot metadata, or the failure, for the route's `data`. Never rejects.
- */
-export const booksServerResolver: ResolveFn<BooksServerRouteData> = async () => {
-	cachedServerRouteData ??= bootBooksServerRouteData();
-
-	return cachedServerRouteData;
-};
-
-/** Memoized for the same reason `/books` is — one engine, one subscription graph, one corpus pass. */
-let cachedRealEstateRouteData: Promise<RealEstateRouteData> | null = null;
-
-/**
- * Boot the real-estate engine and wrap it in the RxJS surface.
+ * Run a route's data load and fetch its page chunk at the same time.
  *
  * @remarks
- * The narrow `./real-estate-boot-core` subpath, NOT `./real-estate-core` — the latter re-exports
- * `realEstateEngine.js`, which wraps the core in `createSignalsEngine` and would pull
- * `@preact/signals-core` into the one vertical that does not use it. Exactly the relationship
- * `./books-boot-core` has to `./books-core`, and the reason both bare boots exist at all.
+ * The router asks for `loadComponent` only once every resolver on the route has settled, so on its
+ * own a booting route pays its download sequence end to end: resolver module, boot, page module.
+ * Starting the page's `import()` here as well overlaps the last of those with the boot; the router's
+ * own `loadComponent` call then finds the module already loaded. A failed page download rejects the
+ * resolver, which ends the navigation exactly as a failed `loadComponent` would.
  *
- * The facets are derived here, once, from the BOOTED corpus — the records the engine holds, which
- * is also what keeps the dataset itself out of this bundle: nothing on this path imports more than
- * the `Listing` type from it.
+ * @typeParam T - The route data.
+ * @param loadPage - The route's `loadComponent`.
+ * @param loadData - Imports the route's data module and runs its load.
+ * @returns The route data.
+ */
+async function resolveWithPage<T>(loadPage: () => Promise<unknown>, loadData: () => Promise<T>): Promise<T> {
+	const [data] = await Promise.all([loadData(), loadPage()]);
+
+	return data;
+}
+
+/** `/books`' page component, loaded on demand. */
+const loadBooksPage = async (): Promise<Type<unknown>> =>
+	(await import('./pages/books-page.component.js')).BooksPageComponent;
+
+/** `/books-server`'s page component, loaded on demand. */
+const loadBooksServerPage = async (): Promise<Type<unknown>> =>
+	(await import('./pages/books-server-page.component.js')).BooksServerPageComponent;
+
+/** `/real-estate`'s page component, loaded on demand. */
+const loadRealEstatePage = async (): Promise<Type<unknown>> =>
+	(await import('./pages/real-estate-page.component.js')).RealEstatePageComponent;
+
+/**
+ * Resolve `/books`: boot the books engine behind the RxJS surface (`books/books-route-data.ts`).
  *
- * Importing `real-estate-facets.js` also transitively imports `real-estate-domain`, whose
- * `ContainsAllRule` self-registers with `ruleRegistry` as a module side effect. That registration is
- * what lets the must-have-features facet survive a `?f` round trip, and it happens because this
- * graph is imported at all — worth knowing before anyone "cleans up" an import that looks unused.
+ * @returns The engine + boot metadata, for the route's `data`.
+ */
+export const booksResolver: ResolveFn<BooksRouteData> = async () =>
+	resolveWithPage(loadBooksPage, async () => (await import('./books/books-route-data.js')).loadBooksRouteData());
+
+/**
+ * Resolve `/books-server`: the HTTP-backed engine, or the error that stopped it
+ * (`books/books-server-route-data.ts`). Never rejects on an unreachable server.
+ *
+ * @returns The engine + boot metadata, or the failure, for the route's `data`.
+ */
+export const booksServerResolver: ResolveFn<BooksServerRouteData> = async () =>
+	resolveWithPage(
+		loadBooksServerPage,
+		async () => (await import('./books/books-server-route-data.js')).loadBooksServerRouteData(),
+	);
+
+/**
+ * Resolve `/real-estate`: boot the real-estate engine and derive its panel's facets
+ * (`real-estate/real-estate-route-data.ts`).
  *
  * @returns The engine, the derived facets and boot metadata, for the route's `data`.
  */
-export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () => {
-	cachedRealEstateRouteData ??= bootRealEstateCore().then(({ core, meta }) => {
-		// Hydrate from a shared `?f` link BEFORE the engine is wrapped and anything subscribes — same
-		// ordering, and the same reason, as `/books`.
-		const urlConfig = readConfigFromUrl();
-
-		if (urlConfig !== null) {
-			try {
-				core.loadConfig(urlConfig);
-			} catch {
-				// Malformed or incompatible link — open on the neutral corpus rather than failing the
-				// navigation. A bad URL should never cost someone the page.
-			}
-		}
-
-		return {
-			engine: createRxJsEngine<Listing>(core),
-			facets: deriveRealEstateFacets(core.getSourceData()),
-			meta,
-		};
-	});
-
-	return cachedRealEstateRouteData;
-};
+export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () =>
+	resolveWithPage(
+		loadRealEstatePage,
+		async () => (await import('./real-estate/real-estate-route-data.js')).loadRealEstateRouteData(),
+	);
 
 /**
- * The app routes. Every real page is lazy (`loadComponent`), so the landing bundle carries neither the
- * books corpus nor the engine.
+ * The app routes. The landing hub is eager; every other page, and everything a resolver boots, loads
+ * with its route, so the landing page's startup chunks carry neither a corpus nor the engine.
  *
  * The catch-all renders the shared "filtered to zero" 404 rather than redirecting home. That is partly
  * parity with the other verticals and partly diagnostics: a redirecting catch-all makes an unmatched
@@ -276,25 +172,24 @@ export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () => {
  */
 export const routes: Routes = [
 	{
-		loadComponent: async () =>
-			(await import('./pages/landing-page.component.js')).LandingPageComponent,
+		component: LandingPageComponent,
 		path: '',
 		pathMatch: 'full',
 	},
 	{
-		loadComponent: async () => (await import('./pages/books-page.component.js')).BooksPageComponent,
+		data: { [ROUTE_BOOT_CAPTION_KEY]: idleBootCaption(BOOKS_BOOT_IDLE_CAPTION, BOOKS_RECORD_NOUN) },
+		loadComponent: loadBooksPage,
 		path: 'books',
 		resolve: { [BOOKS_ROUTE_DATA_KEY]: booksResolver },
 	},
 	{
-		loadComponent: async () =>
-			(await import('./pages/books-server-page.component.js')).BooksServerPageComponent,
+		loadComponent: loadBooksServerPage,
 		path: 'books-server',
 		resolve: { [BOOKS_SERVER_ROUTE_DATA_KEY]: booksServerResolver },
 	},
 	{
-		loadComponent: async () =>
-			(await import('./pages/real-estate-page.component.js')).RealEstatePageComponent,
+		data: { [ROUTE_BOOT_CAPTION_KEY]: idleBootCaption(REAL_ESTATE_BOOT_IDLE_CAPTION, REAL_ESTATE_RECORD_NOUN) },
+		loadComponent: loadRealEstatePage,
 		path: 'real-estate',
 		resolve: { [REAL_ESTATE_ROUTE_DATA_KEY]: realEstateResolver },
 	},

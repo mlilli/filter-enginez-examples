@@ -9,7 +9,7 @@
     "dev": "vite",
     "dev:fresh": "vite --force",
     "typecheck": "tsc --noEmit",
-    "build": "vite build && node ../../scripts/check-startup-budget.mjs dist --max-kb 400 && node ../../scripts/strip-local-corpus.mjs dist",
+    "build": "vite build && node ../../scripts/check-startup-budget.mjs dist --max-kb 400 && node ../../scripts/check-font-preloads.mjs dist/index.html && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",

@@ -39,6 +39,78 @@
 	font-display: swap;
 }
 
+/* ---- Fallback faces — a local system font sized to each webfont ----------
+   Until a webfont arrives, a page renders in the next family of its stack.
+   Each `--font-*` stack names one of these second: Arial (for Inter and the
+   display face) or Courier New (for JetBrains Mono), scaled by `size-adjust`
+   to the webfont's average character width and given the webfont's ascent,
+   descent and line gap, so the swap changes the letterforms without moving
+   the lines. A regular and a bold face per family, so bold text renders in
+   the bold system font rather than a synthesized one. A device with none of
+   the local fonts skips the face and uses the rest of the stack. */
+/* cspell:ignore Arimo Cousine PSMT */
+/* fallback-font-metrics:start — written by packages/brand/scripts/fallback-font-metrics.py; run it with
+   --write rather than editing these rules. */
+@font-face {
+	font-family: 'Inter Fallback';
+	src: local('Arial'), local('ArialMT'), local('Helvetica'), local('Liberation Sans'), local('Arimo');
+	font-weight: 400;
+	size-adjust: 107.35%;
+	ascent-override: 90.25%;
+	descent-override: 22.47%;
+	line-gap-override: 0%;
+}
+@font-face {
+	font-family: 'Inter Fallback';
+	src:
+		local('Arial Bold'), local('Arial-BoldMT'), local('Helvetica Bold'), local('Helvetica-Bold'),
+		local('Liberation Sans Bold'), local('Arimo Bold');
+	font-weight: 700;
+	size-adjust: 102.02%;
+	ascent-override: 94.96%;
+	descent-override: 23.64%;
+	line-gap-override: 0%;
+}
+@font-face {
+	font-family: 'JetBrains Mono Fallback';
+	src: local('Courier New'), local('CourierNewPSMT'), local('Liberation Mono'), local('Cousine');
+	font-weight: 400;
+	size-adjust: 99.98%;
+	ascent-override: 102.02%;
+	descent-override: 30%;
+	line-gap-override: 0%;
+}
+@font-face {
+	font-family: 'JetBrains Mono Fallback';
+	src: local('Courier New Bold'), local('CourierNewPS-BoldMT'), local('Liberation Mono Bold'), local('Cousine Bold');
+	font-weight: 700;
+	size-adjust: 99.98%;
+	ascent-override: 102.02%;
+	descent-override: 30%;
+	line-gap-override: 0%;
+}
+@font-face {
+	font-family: 'Filter EngineZ Display Fallback';
+	src: local('Arial'), local('ArialMT'), local('Helvetica'), local('Liberation Sans'), local('Arimo');
+	font-weight: 400;
+	size-adjust: 124.78%;
+	ascent-override: 81.02%;
+	descent-override: 19.47%;
+	line-gap-override: 0%;
+}
+@font-face {
+	font-family: 'Filter EngineZ Display Fallback';
+	src:
+		local('Arial Bold'), local('Arial-BoldMT'), local('Helvetica Bold'), local('Helvetica-Bold'),
+		local('Liberation Sans Bold'), local('Arimo Bold');
+	font-weight: 700;
+	size-adjust: 117.6%;
+	ascent-override: 85.97%;
+	descent-override: 20.66%;
+	line-gap-override: 0%;
+}
+/* fallback-font-metrics:end */
+
 :root {
 	/* ========================================================================
      COLOR — Grayscale ramp (warm/clay variant)
@@ -106,11 +178,13 @@
 	/* ========================================================================
      TYPOGRAPHY
      ======================================================================== */
-	--font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
-	--font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-	/* The served subset of Orbitron (see the @font-face above), then the unmodified font under its
-	   own name, as the design system's sheet loads it. */
-	--font-display: 'Filter EngineZ Display', 'Orbitron', 'Inter', sans-serif;
+	/* Each stack names its webfont, then the webfont's metric-matched fallback face (see the
+	   fallback faces above), then the system fonts. */
+	--font-sans: 'Inter', 'Inter Fallback', -apple-system, 'Segoe UI', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', 'SF Mono', Menlo, Consolas, monospace;
+	/* The served subset of Orbitron (see the @font-face above) and its fallback face, then the
+	   unmodified font under its own name, as the design system's sheet loads it. */
+	--font-display: 'Filter EngineZ Display', 'Filter EngineZ Display Fallback', 'Orbitron', 'Inter', sans-serif;
 
 	--text-xs: 12px;
 	--text-sm: 14px;

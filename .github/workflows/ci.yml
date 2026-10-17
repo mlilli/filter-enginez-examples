@@ -156,9 +156,10 @@ jobs:
         working-directory: filter-enginez-examples
         run: pnpm test:frameworks
 
-      # Each React app's build also measures the JavaScript its first screen loads and fails over the
+      # Each demo app's build also measures the JavaScript its first screen loads and fails over the
       # budget in its `build` script (`scripts/check-startup-budget.mjs`), so a page that slips back into
-      # the startup bundle fails here rather than shipping.
+      # the startup bundle fails here rather than shipping; and it checks the first page's font preloads
+      # (`scripts/check-font-preloads.mjs`).
       - name: Build all packages
         working-directory: filter-enginez-examples
         run: pnpm build

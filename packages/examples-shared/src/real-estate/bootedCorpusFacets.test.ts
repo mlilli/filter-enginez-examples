@@ -11,7 +11,7 @@
  *
  * - the bundled fallback, a dynamic `import()` of the same dataset module (tests have no
  *   `/api/real-estate`, so {@link bootRealEstateCore} takes this path here);
- * - the streamed default tier, which arrives as JSON pages from MSW or the API. A JSON round trip
+ * - the streamed default tier, which arrives as JSON pages from the development mock API. A JSON round trip
  *   stands in for it: it is the only thing the stream does to a record.
  *
  * "Exactly" is literal. `findMetroLabel` names a geo center by exact coordinate equality, so a

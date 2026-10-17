@@ -14,6 +14,11 @@
  *   - `examples-vue/src/pages/BooksPage.vue`
  *   - `examples-vanilla/src/pages/booksPage.ts`
  *
+ * Angular's root component shows the same idle state while its `/books` resolver boots the engine
+ * (`examples-angular/src/app/app.component.ts`). It reads the sentence through
+ * `examples-shared/boot-caption`, which re-exports this module, because this barrel would bring the
+ * engine into the app's startup chunk with it.
+ *
  * `bootCaptionSingleSource.test.ts` pins only the phrases the shared caption module owns, so it
  * cannot see a sentence that module never says. Agreement between independently written copies
  * would be a coincidence with a shelf life, so the sentence lives here, beside the domain logic those

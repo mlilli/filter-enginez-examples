@@ -90,17 +90,17 @@ export async function bootBooksCore(): Promise<BooksCoreBundle> {
 }
 
 /**
- * The boot: initialize acceleration, STREAM the default tier over `/api/books` (MSW in dev, a real
- * backend in prod) with a bundled fallback, build the engine, publish progress.
+ * The boot: initialize acceleration, load the default tier, build the engine, publish progress.
  *
  * @remarks
- * The corpus is streamed via {@link loadDefaultTierCorpus} rather than statically imported, so the ~10k
- * default tier stays out of the main-thread bundle — it arrives over the wire, page by page,
- * reporting progress as it goes. Where the endpoint is unavailable (a production build with no API, or
- * a vertical that has not started MSW), the bundled corpus is DYNAMICALLY imported as a fallback, so it
- * still code-splits out of the streamed path. On that fallback path a single final progress ping fires.
- * The `Book` type comes in through `import type`, which is erased: under `verbatimModuleSyntax` an
- * inline `import { type Book }` survives as a side-effect import of the dataset and undoes the split.
+ * The corpus comes through {@link loadDefaultTierCorpus} rather than a static import, so the ~10k
+ * default tier stays out of the main-thread bundle. In development, where the mock API serves
+ * `/api/books`, it streams page by page and reports progress as it goes. Everywhere else — every
+ * production build — no site serves that endpoint, so the bundled corpus is DYNAMICALLY imported
+ * straight away, as a chunk of its own, with no request first; on that path a single final progress
+ * ping fires. The `Book` type comes in through `import type`, which is erased: under
+ * `verbatimModuleSyntax` an inline `import { type Book }` survives as a side-effect import of the
+ * dataset and undoes the split.
  *
  * @internal
  */
