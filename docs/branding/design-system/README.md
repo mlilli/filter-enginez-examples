@@ -211,7 +211,9 @@ favicon set, OG card, and animated SVG are pre-built.
 ## Notes
 
 - **Fonts are self-hosted** variable TTFs in `fonts/` — Inter, JetBrains Mono and Orbitron — each shipped alongside its
-  SIL Open Font License (`OFL.txt`).
+  SIL Open Font License (`OFL.txt`). The sites serve WOFF2 subsets of them from `@filter-enginez/brand`; Orbitron's is
+  named Filter EngineZ Display, because its license reserves the name Orbitron for the unmodified font, and
+  `--font-display` names both.
 - **Icons** follow [Lucide](https://lucide.dev) and are inlined as SVG paths; no icon set is vendored or loaded here.
 - **Algorithm illustrations** ship as standalone HTML previews in `preview/algo-*.html`; the
   [how-it-works page](https://filterenginez.com/how-it-works) and the documentation site render eight algorithm figures

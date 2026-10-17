@@ -11,8 +11,8 @@
  * load-bearing rule the Vue + Svelte verticals document). This app is the one place that matters most,
  * since it subscribes to the raw signals with no adapter in between.
  *
- * A dedicated port so it runs alongside every other vertical — Angular 5190, RTK 5191, SvelteKit 5192,
- * plain React 5193, Vue 5194. The canonical port map lives in `playwright.config.ts`.
+ * A dedicated port so it runs alongside every other vertical — Angular 24610, RTK 24611, SvelteKit 24612,
+ * plain React 24613, Vue 24614. The canonical port map lives in `playwright.config.ts`.
  */
 
 import { defineConfig } from 'vite';
@@ -47,14 +47,14 @@ export default defineConfig({
 	},
 	server: {
 		host: '127.0.0.1',
-		port: 5195,
+		port: 24615,
 		/**
 		 * Proxy `/api/*` to the `@filter-enginez/examples-server` Node process (start it with
 		 * `pnpm --filter @filter-enginez/examples-server serve:api`).
 		 *
 		 * @remarks
 		 * This is what powers `/wine-server`: the browser calls same-origin `/api/query`, Vite forwards
-		 * it to `http://localhost:5198/query`, so there is no CORS and the base URL stays a dev-server
+		 * it to `http://localhost:24618/query`, so there is no CORS and the base URL stays a dev-server
 		 * concern rather than something baked into a bundle. Copied deliberately from
 		 * `examples-react-rtk`'s `/books-server` arrangement rather than invented — the two routes are
 		 * the same transport over different datasets.
@@ -66,7 +66,7 @@ export default defineConfig({
 			'/api': {
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/api/, ''),
-				target: 'http://localhost:5198',
+				target: 'http://localhost:24618',
 			},
 		},
 		strictPort: true,

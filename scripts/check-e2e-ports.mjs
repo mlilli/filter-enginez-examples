@@ -64,15 +64,15 @@ function paint(codes, text) {
  */
 /** @type {Record<number, readonly [label: string, startCommand: string]>} */
 const PORT_LABELS = {
-	5190: ['Angular', 'pnpm dev:angular'],
-	5191: ['React RTK', 'pnpm dev:rtk'],
-	5192: ['SvelteKit', 'pnpm dev:svelte'],
-	5193: ['React plain', 'pnpm dev:plain'],
-	5194: ['Vue', 'pnpm dev:vue'],
-	5195: ['vanilla', 'pnpm dev:vanilla'],
-	5196: ['Docs site', 'pnpm --filter @filter-enginez/examples-docs dev'],
-	5197: ['Landing site', 'pnpm dev:site'],
-	5198: ['examples-server API', 'pnpm dev:api'],
+	24610: ['Angular', 'pnpm dev:angular'],
+	24611: ['React RTK', 'pnpm dev:rtk'],
+	24612: ['SvelteKit', 'pnpm dev:svelte'],
+	24613: ['React plain', 'pnpm dev:plain'],
+	24614: ['Vue', 'pnpm dev:vue'],
+	24615: ['vanilla', 'pnpm dev:vanilla'],
+	24616: ['Docs site', 'pnpm --filter @filter-enginez/examples-docs dev'],
+	24617: ['Landing site', 'pnpm dev:site'],
+	24618: ['examples-server API', 'pnpm dev:api'],
 };
 
 /**

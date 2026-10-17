@@ -128,7 +128,7 @@ export const DocsPlaygroundPage = (): React.ReactElement => {
 	}, [configText, dataset]);
 
 	const curlHint = useMemo(
-		() => `curl -X POST localhost:5198/filter \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify({ config: '<the config on the left>', dataset })}'`,
+		() => `curl -X POST localhost:24618/filter \\\n  -H 'content-type: application/json' \\\n  -d '${JSON.stringify({ config: '<the config on the left>', dataset })}'`,
 		[dataset],
 	);
 

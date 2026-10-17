@@ -16,7 +16,7 @@
 # the grandchild. Killing by port frees it. What that establishes is the MECHANISM — a single
 # `kill` signals one PID, not the process group.
 #
-# It matters because a stray dev server is not a cosmetic leak: one left on :5190 turns every
+# It matters because a stray dev server is not a cosmetic leak: one left on :24610 turns every
 # Angular e2e spec red across healthy routes, and the failures point anywhere but the port.
 #
 # In this repository its callers are `scripts/clear-angular-cache.sh`, which `pretest:e2e` runs, and
@@ -30,8 +30,8 @@
 # "canonical — every other reference should cite this list". Cite it; do not restate it.
 #
 #     VERTICALS=(
-#         'vue|5194|@filter-enginez/examples-vue'
-#         'angular|5190|@filter-enginez/examples-angular'
+#         'vue|24614|@filter-enginez/examples-vue'
+#         'angular|24610|@filter-enginez/examples-angular'
 #     )
 #
 # ── Usage ────────────────────────────────────────────────────────────────────

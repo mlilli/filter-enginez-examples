@@ -41,9 +41,9 @@ export default defineConfig({
 	},
 	server: {
 		host: '127.0.0.1',
-		// 5196 — the next free slot after the demo apps + API server (see the port map in
+		// 24616 — the next free slot after the demo apps + API server (see the port map in
 		// `playwright.config.ts`). `strictPort` so a collision fails loudly instead of drifting.
-		port: 5196,
+		port: 24616,
 		strictPort: true,
 	},
 });

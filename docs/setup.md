@@ -61,6 +61,7 @@ Run from the repository root. Each script's header explains why it exists and ho
 | `bash scripts/measure-react-plain-coverage.sh` | The same for `examples-react-plain`                                                      |
 | `bash scripts/secret-scan.sh`                  | Sweep the tree, commit messages and history for credentials (`--tree` for the tree only) |
 | `node scripts/recheck-accepted-advisories.mjs` | Fail when an advisory this repository accepts has become fixable                         |
+| `node scripts/subset-brand-fonts.mjs`          | Write the sites' WOFF2 font subsets from the brand TTFs (`--check` compares hashes)      |
 
 The coverage measurements are slow and memory-hungry; run them on a workstation with headroom.
 

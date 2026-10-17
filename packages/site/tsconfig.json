@@ -1,6 +1,7 @@
 // Type-checks the site's Cloudflare Worker (`src/*.ts`) for `tsc --noEmit` and ESLint's typed lint.
 // The Worker runs on the Workers runtime, whose `Request`, `Response` and `URL` are the standard ones
-// Node's types describe, which is also where its tests run — so no DOM library here.
+// Node's types describe, which is also where its tests run — so no DOM library here. The build's page
+// edits (`src/criticalAssets.ts`) are here too: string functions the Vite config runs, in Node.
 //
 // The pages' browser code (`src/home/`, `src/how-it-works/`, `src/compare/`) and the sitemap (`src/sitemap/`) have their own `tsconfig.json`, with
 // the DOM library, and is excluded below: ESLint's project service picks the nearest `tsconfig.json`, so each

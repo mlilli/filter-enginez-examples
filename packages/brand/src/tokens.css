@@ -4,24 +4,36 @@
    type scale, spacing, radii, motion. Dark-mode only.
    ============================================================================ */
 
-/* ---- Fonts — self-hosted variable TTFs in fonts/ ---- */
+/* ---- Fonts — self-hosted variable WOFF2 subsets in fonts/ ----------------
+   Each is a subset of the variable TTF beside it in its directory, written by
+   `scripts/subset-brand-fonts.mjs`: the characters the sites render (Latin,
+   Latin Extended-A for the wine data's place and grape names, and the
+   punctuation, arrows and math symbols the pages set), with every variation
+   axis intact. `fonts/subsets.json` records what each was built from.
+
+   The display face is Orbitron's subset under the name "Filter EngineZ
+   Display": Orbitron's license reserves its name for the unmodified font, and
+   a subset is a modified one.
+
+   WOFF2 only, with no TTF fallback: every browser the apps support reads
+   WOFF2, so a second source would never be fetched. */
 @font-face {
 	font-family: 'Inter';
-	src: url('fonts/inter/Inter-VariableFont.ttf') format('truetype-variations');
+	src: url('fonts/inter/Inter-Subset.woff2') format('woff2');
 	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'JetBrains Mono';
-	src: url('fonts/jetbrains-mono/JetBrainsMono-VariableFont.ttf') format('truetype-variations');
+	src: url('fonts/jetbrains-mono/JetBrainsMono-Subset.woff2') format('woff2');
 	font-weight: 100 800;
 	font-style: normal;
 	font-display: swap;
 }
 @font-face {
-	font-family: 'Orbitron';
-	src: url('fonts/orbitron/Orbitron-VariableFont_wght.ttf') format('truetype-variations');
+	font-family: 'Filter EngineZ Display';
+	src: url('fonts/orbitron/FilterEngineZDisplay-Subset.woff2') format('woff2');
 	font-weight: 400 900;
 	font-style: normal;
 	font-display: swap;
@@ -96,7 +108,9 @@
      ======================================================================== */
 	--font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-	--font-display: 'Orbitron', 'Inter', sans-serif;
+	/* The served subset of Orbitron (see the @font-face above), then the unmodified font under its
+	   own name, as the design system's sheet loads it. */
+	--font-display: 'Filter EngineZ Display', 'Orbitron', 'Inter', sans-serif;
 
 	--text-xs: 12px;
 	--text-sm: 14px;

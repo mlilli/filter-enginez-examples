@@ -18,7 +18,9 @@ documentation site consume.
   the repository's global element defaults. Its `:root` token block matches
   `docs/branding/design-system/colors_and_type.css` declaration for declaration, which
   `tests/tooling/brandTokens.test.ts` enforces.
-- `fonts/` — the self-hosted variable webfonts (Inter, JetBrains Mono, Orbitron) that `tokens.css` loads
+- `fonts/` — the self-hosted variable webfonts (Inter, JetBrains Mono, Orbitron): each font's TTF and `OFL.txt`, and the
+  WOFF2 subset of it that `tokens.css` loads, written by `node scripts/subset-brand-fonts.mjs` (Orbitron's is named
+  Filter EngineZ Display, because its license reserves the name Orbitron for the unmodified font)
 - `./assets/*` — the logomark and favicon files; the four non-React apps serve generated copies
   (`pnpm sync:brand-assets`).
 

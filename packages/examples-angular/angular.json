@@ -68,7 +68,7 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "host": "127.0.0.1",
-            "port": 5190,
+            "port": 24610,
             "proxyConfig": "proxy.config.json"
           },
           "configurations": {

@@ -1,0 +1,21 @@
+# Workers static assets apply these rules to the files they serve. The production build (angular.json:
+# "outputHashing": "all") writes its scripts, stylesheets and media with a content hash in their names,
+# so a file at a given URL never changes, and a browser may keep it for a year without asking again.
+# Every other file, including everything copied from public/, keeps the default: revalidate each time.
+/main-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/polyfills-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/chunk-*
+  Cache-Control: public, max-age=31536000, immutable
+
+/styles-*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/worker-*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/media/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -51,7 +51,7 @@ export const COMPARE_STATE_LABEL = '.fe-compare__state-label';
  * The comparison page's absolute address on the landing site's dev server.
  *
  * @param search - The query, with its leading `?`, or an empty string for a cold visit.
- * @returns For example `http://127.0.0.1:5197/compare?dataset=books`.
+ * @returns For example `http://127.0.0.1:24617/compare?dataset=books`.
  */
 export function comparePageUrl(search = ''): string {
 	return siteUrl(`${COMPARE_PATH}${search}`);

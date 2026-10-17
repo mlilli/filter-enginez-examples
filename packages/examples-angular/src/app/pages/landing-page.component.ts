@@ -34,13 +34,15 @@ import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js'
 		<main class="fe-landing">
 			<div class="fe-landing__inner">
 				<header class="fe-landing__hero">
-					<img
-						class="fe-landing__mark"
-						src="/mark.svg"
-						width="72"
-						height="72"
-						alt="Filter EngineZ"
-					/>
+					<span class="fe-landing__glow">
+						<img
+							class="fe-landing__mark"
+							src="/mark.svg"
+							width="72"
+							height="72"
+							alt="Filter EngineZ"
+						/>
+					</span>
 					<span class="fe-landing__wordmark">Filter EngineZ</span>
 					<p class="fe-landing__tagline">
 						A generic, isomorphic, framework-agnostic TypeScript filter engine: arbitrarily complex

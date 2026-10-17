@@ -310,10 +310,19 @@ describe('production origins', () => {
 });
 
 describe('the landing page', () => {
-	it('is served at the apex and redirects www to it, so the Worker must run first', () => {
+	it('is served at the apex and redirects www to it, so the Worker must run first for every page', () => {
+		const runWorkerFirst = SITE_TARGET?.config.assets?.run_worker_first;
+
 		expect(SITE_TARGET?.hosts.slice().sort()).toEqual([APEX_HOST, `www.${APEX_HOST}`]);
-		expect(SITE_TARGET?.config.assets?.run_worker_first).toBe(true);
+		for (const pagePath of ['/', '/how-it-works', '/compare', '/how-it-works.html', '/sitemap.xml', '/nope']) {
+			expect(workerRunsFirstFor(runWorkerFirst, pagePath), `the Worker must run first for ${pagePath}`).toBe(true);
+		}
 		expect(SITE_TARGET?.config.main).toBe('./src/worker.ts');
+	});
+
+	it('leaves the hashed /assets/ files to the static assets, so _headers caches them', () => {
+		// Workers static assets do not apply `_headers` to a response that comes from Worker code.
+		expect(workerRunsFirstFor(SITE_TARGET?.config.assets?.run_worker_first, '/assets/Inter-Subset-abc123.woff2')).toBe(false);
 	});
 
 	it('generates sitemap.xml in the build, rather than keeping one by hand', () => {
@@ -417,6 +426,24 @@ describe('the landing page', () => {
 
 		expect(scripts('packages/site/index.html')).toEqual(['<script type="module" src="/src/home/main.ts">']);
 		expect(scripts('packages/site/404.html')).toEqual([]);
+	});
+
+	it('builds every page with its stylesheet inline and its first screen’s fonts preloaded, and no polyfill script', () => {
+		// The pages link their stylesheets in source; the build's `criticalAssets` plugin swaps each link
+		// for the stylesheet and preloads the fonts named in `PRELOADED_FONTS`, which must be the brand's
+		// subsets (`brandFonts.test.ts` holds those to their sources). Dropping the plugin from the list,
+		// or renaming a subset without the list, would bring the render-blocking round trips back, or
+		// fail the build on a font it cannot find.
+		const config = readRepoFile('packages/site/vite.config.ts');
+		const preloaded = /const PRELOADED_FONTS: readonly string\[\] = \[([^\]]*)\];/u.exec(config)?.[1] ?? '';
+		const subsets = Object.keys(
+			(JSON.parse(readRepoFile('packages/brand/src/fonts/subsets.json')) as { readonly fonts: Readonly<Record<string, unknown>> }).fonts,
+		).map((path) => posix.basename(path));
+
+		expect(config).toMatch(/plugins: \[[^\]]*\bcriticalAssets\(\)/u);
+		expect(config).toContain('modulePreload: { polyfill: false }');
+		expect(subsets.length).toBe(3);
+		expect([...preloaded.matchAll(/'([^']+)'/gu)].map(([, name]) => name ?? '').sort()).toEqual(subsets.sort());
 	});
 
 	it('keeps that script to the copy button: an entry that imports only its enhancement, which imports nothing', () => {

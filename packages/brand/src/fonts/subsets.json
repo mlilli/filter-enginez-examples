@@ -1,0 +1,34 @@
+{
+  "codePoints": "U+0020-007E, U+00A0-00FF, U+0100-017F, U+01CD-01CE, U+0218-021B, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+2190, U+2192, U+2205, U+2208, U+2212, U+221E, U+2227-222A, U+2248, U+2260, U+2264-2265, U+2286, U+25B8, U+25CF, U+2605, U+2713",
+  "fonts": {
+    "inter/Inter-Subset.woff2": {
+      "bytes": 68008,
+      "family": "Inter",
+      "glyphs": 511,
+      "sha256": "464310b0c81af18efd1325d4841578439657935459614f7294c07473cdfb2679",
+      "source": "inter/Inter-VariableFont.ttf",
+      "sourceSha256": "0be2399ea925f1f83ff974764761da9860ec50742ed29a5d4c1ffd0c5c7ac3a8"
+    },
+    "jetbrains-mono/JetBrainsMono-Subset.woff2": {
+      "bytes": 42424,
+      "family": "JetBrains Mono",
+      "glyphs": 525,
+      "sha256": "1925068a674c7d189691dd18862cd5ca63b57b2a7bc2c1f8ff8471beb1d89b25",
+      "source": "jetbrains-mono/JetBrainsMono-VariableFont.ttf",
+      "sourceSha256": "192a3158a926768d1fa520164f0fb0f40a6ad085435aa854e43eb14cb40d1aab"
+    },
+    "orbitron/FilterEngineZDisplay-Subset.woff2": {
+      "bytes": 11672,
+      "family": "Filter EngineZ Display",
+      "glyphs": 191,
+      "sha256": "13c503b225f259c47ba41fe4149ff3717cbd909181ca76c21dd0ca31e328e624",
+      "source": "orbitron/Orbitron-VariableFont_wght.ttf",
+      "sourceSha256": "46eefc7084fd9abffd87547c47f729b6071c7f7a8d5af281266bb09e5461c435"
+    }
+  },
+  "layoutFeatures": "calt,ccmp,clig,curs,kern,liga,locl,mark,mkmk,rclt,rlig,rvrn,cv01,cv02,cv11,ss01,tnum",
+  "tools": {
+    "brotli": "1.2.0",
+    "fontTools": "4.65.0"
+  }
+}

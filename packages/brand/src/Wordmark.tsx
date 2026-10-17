@@ -126,7 +126,9 @@ export const Wordmark = (props: WordmarkProps): React.ReactElement => {
 					// Vertical alignment: nudge to align with the inline mark's center
 					alignSelf: 'center',
 					color: typeColor,
-					fontFamily: '"Orbitron", system-ui, sans-serif',
+					// The display face from `tokens.css` (a renamed subset of Orbitron); without the tokens,
+					// Orbitron itself where it is installed.
+					fontFamily: 'var(--font-display, "Orbitron", system-ui, sans-serif)',
 					fontSize: `${size}px`,
 					fontWeight: 800,
 					letterSpacing: `${9 * scale}px`,

@@ -3953,18 +3953,73 @@
 	gap: 18px;
 	margin-bottom: 56px;
 }
+/* The hero's logomark and the cyan glow that breathes around it, every 3s.
+
+   The glow is two drop-shadows of the mark — a tight, faint one at rest and a wide, bright one at the
+   height of the breath — and the breath fades from one to the other by animating OPACITY only, which
+   the browser's compositor runs off the main thread. (An animated `filter: drop-shadow()`, its radius
+   and strength changing, would be repainted on the main thread every frame.)
+
+   The markup wraps the `<img class="fe-landing__mark">` in `.fe-landing__glow`, whose `::before`
+   and `::after` are the two shadows, painted behind the mark. Each is the mark image itself with a
+   `drop-shadow()`, placed `--fe-landing-glow-throw` to the LEFT of the mark and its shadow thrown the
+   same distance back to the RIGHT: the shadow lands exactly under the mark, and the copy that cast it
+   sits outside the wrapper, whose `overflow: hidden` cuts it away. So only the shadow shows, and at
+   rest (and at the peak) the pixels are those of the one `drop-shadow()` they replace.
+
+   The wrapper reaches `--fe-landing-glow-reach` past the mark on every side, with the same negative
+   margin, so the glow has room and the layout does not move. The throw must be at least the mark's
+   width plus the reach, or a sliver of the copy would show; 200px allows a mark up to 184px. The
+   mark's URL is resolved by each app's bundler: Vite inlines it as a `data:` URI, so the glow costs
+   no request of its own, and Angular's build emits it as a file beside the fonts. */
+.fe-landing__glow {
+	--fe-landing-glow-reach: 16px;
+	--fe-landing-glow-throw: 200px;
+
+	position: relative;
+	display: block;
+	margin: calc(-1 * var(--fe-landing-glow-reach));
+	padding: var(--fe-landing-glow-reach);
+	overflow: hidden;
+	/* Its own stacking context, so the shadows' `z-index: -1` puts them behind the mark rather than
+	   behind the page. */
+	isolation: isolate;
+}
+.fe-landing__glow::before,
+.fe-landing__glow::after {
+	content: '';
+	position: absolute;
+	top: var(--fe-landing-glow-reach);
+	bottom: var(--fe-landing-glow-reach);
+	left: calc(var(--fe-landing-glow-reach) - var(--fe-landing-glow-throw));
+	z-index: -1;
+	width: calc(100% - 2 * var(--fe-landing-glow-reach));
+	background: url('@filter-enginez/brand/assets/mark.svg') center / contain no-repeat;
+	pointer-events: none;
+}
+/* At rest: the tight, faint glow. */
+.fe-landing__glow::before {
+	filter: drop-shadow(var(--fe-landing-glow-throw) 0 3px rgba(103, 232, 249, 0.35));
+	animation: fe-landing-glow-rest 3s ease-in-out infinite;
+}
+/* At the height of the breath: the wide, bright one. */
+.fe-landing__glow::after {
+	filter: drop-shadow(var(--fe-landing-glow-throw) 0 9px rgba(103, 232, 249, 0.65));
+	opacity: 0;
+	animation: fe-landing-glow-peak 3s ease-in-out infinite;
+}
+@keyframes fe-landing-glow-rest {
+	50% {
+		opacity: 0;
+	}
+}
+@keyframes fe-landing-glow-peak {
+	50% {
+		opacity: 1;
+	}
+}
 .fe-landing__mark {
 	display: block;
-	animation: fe-landing-glow 3s ease-in-out infinite;
-}
-@keyframes fe-landing-glow {
-	0%,
-	100% {
-		filter: drop-shadow(0 0 3px rgba(103, 232, 249, 0.35));
-	}
-	50% {
-		filter: drop-shadow(0 0 9px rgba(103, 232, 249, 0.65));
-	}
 }
 .fe-landing__wordmark {
 	font-family: var(--font-display);
@@ -4190,9 +4245,13 @@
 	text-align: center;
 }
 @media (prefers-reduced-motion: reduce) {
-	.fe-landing::after,
-	.fe-landing__mark {
+	.fe-landing::after {
 		animation: none;
+	}
+	/* No breath, and no glow: the mark stands as it is drawn. */
+	.fe-landing__glow::before,
+	.fe-landing__glow::after {
+		display: none;
 	}
 	/* Every hover lift in the hub, so `prefers-reduced-motion` stills them all. */
 	.fe-landing__about:hover,

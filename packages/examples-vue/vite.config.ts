@@ -6,8 +6,8 @@
  * `.ts` sources compile through Vite directly — a client build needs no `ssr.noExternal`, unlike the
  * SvelteKit app). `@preact/signals-core` is DEDUPED: the engine's internal signals + the `vue-signals`
  * adapter must share one copy, or `.subscribe`/`.value` cross-instance boundaries silently break. A
- * dedicated port so it runs alongside every other vertical — RTK 5191, SvelteKit 5192, plain React
- * 5193. The canonical port map lives in `playwright.config.ts`.
+ * dedicated port so it runs alongside every other vertical — RTK 24611, SvelteKit 24612, plain React
+ * 24613. The canonical port map lives in `playwright.config.ts`.
  */
 
 import vue from '@vitejs/plugin-vue';
@@ -50,7 +50,7 @@ export default defineConfig({
 	},
 	server: {
 		host: '127.0.0.1',
-		port: 5194,
+		port: 24614,
 		strictPort: true,
 	},
 	/**

@@ -16,9 +16,11 @@
     "binding": "ASSETS",
     // Unknown paths get dist/404.html with a 404 status.
     "not_found_handling": "404-page",
-    // Every request reaches the Worker first; otherwise the assets would answer www directly and it would
-    // never redirect.
-    "run_worker_first": true
+    // Every page request reaches the Worker first; otherwise the assets would answer www directly and it
+    // would never redirect. The hashed build files under /assets/ are the exception: the assets answer
+    // them directly, so public/_headers' year-long immutable caching applies (Workers static assets do not
+    // apply _headers to responses that come from Worker code). They are never linked through www.
+    "run_worker_first": ["/*", "!/assets/*"]
   },
   "routes": [
     { "pattern": "filterenginez.com", "custom_domain": true },

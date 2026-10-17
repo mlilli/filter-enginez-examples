@@ -35,14 +35,16 @@ is maintainer-gated, and pull requests are restricted to collaborators.
 unpublished `@filter-enginez/brand` package, which serves them to every example app, so they reach anyone who deploys a
 build of one:
 
-| Font           | Directory               | File                             | Copyright holder             | Reserved Font Name |
-| -------------- | ----------------------- | -------------------------------- | ---------------------------- | ------------------ |
-| Inter          | `fonts/inter/`          | `Inter-VariableFont.ttf`         | The Inter Project Authors    | none declared      |
-| JetBrains Mono | `fonts/jetbrains-mono/` | `JetBrainsMono-VariableFont.ttf` | The JetBrains Mono Authors   | none declared      |
-| Orbitron       | `fonts/orbitron/`       | `Orbitron-VariableFont_wght.ttf` | The Orbitron Project Authors | **"Orbitron"**     |
+| Font           | Directory               | Source file                      | Served subset                       | Copyright holder                   | Reserved Font Name |
+| -------------- | ----------------------- | -------------------------------- | ----------------------------------- | ---------------------------------- | ------------------ |
+| Inter          | `fonts/inter/`          | `Inter-VariableFont.ttf`         | `Inter-Subset.woff2`                | The Inter Project Authors          | none declared      |
+| JetBrains Mono | `fonts/jetbrains-mono/` | `JetBrainsMono-VariableFont.ttf` | `JetBrainsMono-Subset.woff2`        | The JetBrains Mono Project Authors | none declared      |
+| Orbitron       | `fonts/orbitron/`       | `Orbitron-VariableFont_wght.ttf` | `FilterEngineZDisplay-Subset.woff2` | The Orbitron Project Authors       | **"Orbitron"**     |
 
-All three carry their own `OFL.txt`. Copies live under `packages/brand/src/fonts/` and
-`docs/branding/design-system/fonts/` — **both** trees, because both redistribute the `.ttf` files.
+All three carry their own `OFL.txt`. The unmodified `.ttf` files live under `packages/brand/src/fonts/` and
+`docs/branding/design-system/fonts/` — **both** trees, because both redistribute them. The sites serve the subsets
+instead: WOFF2 files that `scripts/subset-brand-fonts.mjs` writes from the `.ttf` beside each, keeping every variation
+axis and the characters the sites render. Each subset sits in its source font's directory, under that font's `OFL.txt`.
 
 **Each font gets its own directory**, because every font's `OFL.txt` carries a different copyright line — and, as the
 table shows, they do not even agree on whether a Reserved Font Name exists. A single flat `fonts/OFL.txt` could only
@@ -51,17 +53,18 @@ ever be correct for one of the three and would silently misattribute the other t
 Three conditions of the OFL are worth stating plainly, because they are easy to breach by accident:
 
 1. **The license text must travel with the fonts.** Any redistribution — including an npm tarball or a deployed build
-   that serves the `.ttf` files — must carry the corresponding `OFL.txt`. Every site deployed from this repository
-   serves each font's license at `/licenses/fonts/<font>/OFL.txt`; the deploy job in `.github/workflows/ci.yml` adds
-   them.
+   that serves the fonts — must carry the corresponding `OFL.txt`. Every site deployed from this repository serves each
+   font's license at `/licenses/fonts/<font>/OFL.txt`; the deploy job in `.github/workflows/ci.yml` adds them.
 2. **The fonts may not be sold on their own.** They may be bundled and sold as part of a larger work; they may not be
    the product.
-3. **A modified font may not keep its Reserved Font Name.** If a font here is ever subsetted, re-hinted or otherwise
-   modified, the derivative has to be renamed. This binds **Orbitron only** — it is the one of the three that declares
-   an RFN. Note that subsetting counts as modification, so the otherwise-obvious optimization of shipping a Latin-only
-   Orbitron subset would require renaming it.
+3. **A modified font may not keep its Reserved Font Name.** A subset is a modified font, so a subset of a font that
+   declares a Reserved Font Name has to be renamed. Of the three, only Orbitron declares one. Its subset is named
+   **Filter EngineZ Display** (PostScript name `FilterEngineZDisplay`) in every name record that names the family, and
+   the stylesheets ask for it by that name; its copyright notice, which the license requires to stay, still credits The
+   Orbitron Project Authors. Inter and JetBrains Mono reserve no name, and their subsets keep their own.
 
-Filter EngineZ neither modifies nor sells the fonts; it bundles them unmodified for the design system.
+Filter EngineZ does not sell the fonts. It serves subsets of all three, under their licenses as described above, and
+redistributes the unmodified files for the design system.
 
 ---
 

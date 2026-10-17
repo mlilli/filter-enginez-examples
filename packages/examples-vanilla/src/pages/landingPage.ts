@@ -43,9 +43,14 @@ export function renderLandingPage(container: HTMLElement): RouteRenderResult {
 					children: [
 						el('header', {
 							children: [
-								el('img', {
-									attrs: { alt: 'Filter EngineZ', height: 72, src: '/mark.svg', width: 72 },
-									className: 'fe-landing__mark',
+								el('span', {
+									children: [
+										el('img', {
+											attrs: { alt: 'Filter EngineZ', height: 72, src: '/mark.svg', width: 72 },
+											className: 'fe-landing__mark',
+										}),
+									],
+									className: 'fe-landing__glow',
 								}),
 								el('span', { className: 'fe-landing__wordmark', text: 'Filter EngineZ' }),
 								el('p', {

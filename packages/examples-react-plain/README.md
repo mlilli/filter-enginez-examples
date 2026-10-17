@@ -3,7 +3,7 @@
 The React demo app with no Redux: the engine runs through `react-signals` alone, over the same shared presentation
 (`react-ui`) and dataset orchestration (`examples-shared`) as the [RTK app](../examples-react-rtk/README.md). The two
 apps differ only in how they read engine state, which is the comparison they exist to make. Dev server:
-`http://127.0.0.1:5193`. Live at [react.filterenginez.com](https://react.filterenginez.com).
+`http://127.0.0.1:24613`. Live at [react.filterenginez.com](https://react.filterenginez.com).
 
 ## Routes
 

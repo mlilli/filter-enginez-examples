@@ -104,16 +104,16 @@ export default defineConfig({
 	server: {
 		// Plain HTTP on the loopback address; no TLS certificate or host alias is involved.
 		//
-		// **5191, not 5173.** With `strictPort: true`, two apps on one port means the second to
+		// **24611, not 5173.** With `strictPort: true`, two apps on one port means the second to
 		// start dies, so the six verticals hold six distinct ports — see the map in
 		// `playwright.config.ts`, which is the canonical list.
 		host: '127.0.0.1',
-		port: 5191,
+		port: 24611,
 		/**
 		 * Proxy `/api/*` to the `@filter-enginez/examples-server` Node server (run it with
 		 * `pnpm --filter @filter-enginez/examples-server serve:api`). This is what powers the
 		 * server-backed `/books-server` route: the browser calls same-origin `/api/query`, Vite
-		 * forwards it to `http://localhost:5198/query`, so there's no CORS and the base URL stays a
+		 * forwards it to `http://localhost:24618/query`, so there's no CORS and the base URL stays a
 		 * dev-server concern. If the API isn't running the proxy errors and the route shows its
 		 * offline state.
 		 */
@@ -121,7 +121,7 @@ export default defineConfig({
 			'/api': {
 				changeOrigin: true,
 				rewrite: (path) => path.replace(/^\/api/, ''),
-				target: 'http://localhost:5198',
+				target: 'http://localhost:24618',
 			},
 		},
 		// Strict so two devs can't accidentally share the same port + cookies cross-app.

@@ -22,18 +22,18 @@ pnpm --filter @filter-enginez/examples-server cli --dataset wine --count-only
 ## HTTP endpoint (zero-dependency `node:http`)
 
 ```bash
-pnpm dev:api                                              # from the repository root; listens on :5198
+pnpm dev:api                                              # from the repository root; listens on :24618
 pnpm --filter @filter-enginez/examples-server serve:api   # the same, from anywhere (override the port with PORT)
 ```
 
 ```bash
-curl localhost:5198/datasets
-curl localhost:5198/corpus/books.json   # the full corpus (for a server-backed browser engine)
-curl -X POST localhost:5198/filter \
+curl localhost:24618/datasets
+curl localhost:24618/corpus/books.json   # the full corpus (for a server-backed browser engine)
+curl -X POST localhost:24618/filter \
   -H 'content-type: application/json' \
   -d '{ "dataset": "books", "config": { "version": 1, "rules": [] }, "limit": 3 }'
 # /query — same body, also returns result indices + predictive-disable facet metadata
-curl -X POST localhost:5198/query \
+curl -X POST localhost:24618/query \
   -H 'content-type: application/json' \
   -d '{ "dataset": "books", "config": { "version": 1, "rules": [] }, "limit": 3 }'
 ```

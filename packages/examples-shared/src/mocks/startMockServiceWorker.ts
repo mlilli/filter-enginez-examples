@@ -29,7 +29,7 @@
  * corpus through a dynamic import, so `setupWorker` costs nothing until a request arrives.
  *
  * **Why the server-backed routes still reach their real backends.** The React apps proxy `/api/*` to
- * `@filter-enginez/examples-server` on :5198 (prefix stripped) for `/books-server`, and SvelteKit's
+ * `@filter-enginez/examples-server` on :24618 (prefix stripped) for `/books-server`, and SvelteKit's
  * `/books-server` + `/wine-server` hit their own in-process endpoints under those route paths. None
  * of those URLs collide with the `/api/<dataset>` namespaces below, and every handler here is a
  * `GET`, so that traffic falls through `onUnhandledRequest: 'bypass'` untouched.

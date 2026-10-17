@@ -96,7 +96,9 @@
 		======================================================================== */
 	--font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
-	--font-display: 'Orbitron', 'Inter', sans-serif;
+	/* The sites serve a renamed subset of Orbitron (packages/brand/src/tokens.css); this sheet
+	   loads the unmodified TTF, under its own name. */
+	--font-display: 'Filter EngineZ Display', 'Orbitron', 'Inter', sans-serif;
 
 	--text-xs: 12px;
 	--text-sm: 14px;

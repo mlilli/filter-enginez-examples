@@ -51,7 +51,7 @@ import {
 const SAMPLE_STATE = 'h~{"version":1,"rules":[]}';
 
 /** Stand-in for `window.location` on a developer's machine. */
-const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5191' };
+const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:24611' };
 
 /** Stand-in for the deployed site. */
 const PROD_LOCATION = { hostname: 'vue.filterenginez.com', origin: 'https://vue.filterenginez.com' };
@@ -132,7 +132,7 @@ describe('resolveSiteOrigin and the landing-site URLs', () => {
 		// Literals, not the constants restated: the deployed URL is what the sitemap, the canonical link
 		// and every app's `_redirects` name, so a change here must be a deliberate one.
 		expect(howItWorksUrl(PROD_LOCATION)).toBe('https://filterenginez.com/how-it-works');
-		expect(howItWorksUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5197/how-it-works');
+		expect(howItWorksUrl(DEV_LOCATION)).toBe('http://127.0.0.1:24617/how-it-works');
 		expect(howItWorksUrl(DEV_LOCATION, 'production')).toBe(`${SITE.productionOrigin}${HOW_IT_WORKS_PATH}`);
 	});
 
@@ -140,16 +140,16 @@ describe('resolveSiteOrigin and the landing-site URLs', () => {
 		// Literals again: `#demos` is the id of the landing page's demo section, which no type ties to
 		// this string, so the deployed URL is pinned exactly.
 		expect(siteHomeUrl(PROD_LOCATION)).toBe('https://filterenginez.com/');
-		expect(siteHomeUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5197/');
+		expect(siteHomeUrl(DEV_LOCATION)).toBe('http://127.0.0.1:24617/');
 		expect(allDemosUrl(PROD_LOCATION)).toBe('https://filterenginez.com/#demos');
-		expect(allDemosUrl(DEV_LOCATION)).toBe('http://127.0.0.1:5197/#demos');
+		expect(allDemosUrl(DEV_LOCATION)).toBe('http://127.0.0.1:24617/#demos');
 		expect(allDemosUrl(DEV_LOCATION, 'production')).toBe('https://filterenginez.com/#demos');
 		expect(siteHomeUrl(PROD_LOCATION, 'dev')).toBe(`${SITE.devOrigin}/`);
 	});
 
 	it('resolves any site path against the same origin', () => {
 		expect(siteUrl('/compare', PROD_LOCATION)).toBe('https://filterenginez.com/compare');
-		expect(siteUrl('/compare', PROD_LOCATION, 'dev')).toBe('http://127.0.0.1:5197/compare');
+		expect(siteUrl('/compare', PROD_LOCATION, 'dev')).toBe('http://127.0.0.1:24617/compare');
 	});
 
 	it('gives the site an origin no vertical uses', () => {

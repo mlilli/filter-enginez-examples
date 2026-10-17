@@ -28,15 +28,15 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
 		fs: {
-			// The workspace `@filter-enginez/*` packages (and brand's `.ttf` fonts referenced by
+			// The workspace `@filter-enginez/*` packages (and brand's `.woff2` fonts referenced by
 			// `tokens.css`) live above the app dir; allow the workspace root so SSR + the dev server can
 			// read + serve them.
 			allow: ['../..'],
 		},
 		// A dedicated port so it runs alongside every other vertical. Canonical port map lives in
-		// `playwright.config.ts`; RTK is 5191 and plain React is 5193.
+		// `playwright.config.ts`; RTK is 24611 and plain React is 24613.
 		host: '127.0.0.1',
-		port: 5192,
+		port: 24612,
 		strictPort: true,
 	},
 	ssr: {

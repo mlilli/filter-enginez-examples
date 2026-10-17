@@ -28,7 +28,7 @@ import {
 const SAMPLE_STATE = 'h~{"version":1,"rules":[]}';
 
 /** Stand-in for `window.location` on a developer's machine. */
-const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:5191' };
+const DEV_LOCATION = { hostname: '127.0.0.1', origin: 'http://127.0.0.1:24611' };
 
 /** Stand-in for the deployed site. */
 const PROD_LOCATION = { hostname: 'react.filterenginez.com', origin: 'https://react.filterenginez.com' };

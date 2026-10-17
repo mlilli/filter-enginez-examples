@@ -50,8 +50,8 @@ describe('GET /compare', () => {
 	});
 
 	it('redirects a local run to the local site server, keeping the query', async () => {
-		expect(await thrownFor(`http://127.0.0.1:5192/compare${SHARED_QUERY}`)).toMatchObject({
-			location: `http://127.0.0.1:5197/compare${SHARED_QUERY}`,
+		expect(await thrownFor(`http://127.0.0.1:24612/compare${SHARED_QUERY}`)).toMatchObject({
+			location: `http://127.0.0.1:24617/compare${SHARED_QUERY}`,
 			status: 301,
 		});
 	});

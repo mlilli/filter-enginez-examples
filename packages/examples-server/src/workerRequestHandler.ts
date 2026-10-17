@@ -5,7 +5,7 @@
  * @remarks
  * In development, each browser app with a server-backed route reaches this package through its dev
  * server's same-origin `/api` proxy (`vite.config.ts`, or Angular's `proxy.config.json`), which strips
- * the prefix and forwards to `server.ts` on port 5198. Deployed, there is no Node process to forward
+ * the prefix and forwards to `server.ts` on port 24618. Deployed, there is no Node process to forward
  * to: each of those apps is a Worker with static assets, and its `wrangler.jsonc` names
  * `cloudflareWorker.ts` as the Worker script with `run_worker_first: ["/api/*", "!/api/corpus/*"]`. So
  * the browser makes exactly the requests it makes in development — same origin, same `/api` prefix,
@@ -86,7 +86,7 @@ export async function handleWorkerRequest(request: Request, environment: ApiWork
 	}
 
 	// The same rewrite the dev proxies apply (`path.replace(/^\/api/, '')`), so a route answers here
-	// exactly when it answers on port 5198.
+	// exactly when it answers on port 24618.
 	const path = pathname.slice(API_PATH_PREFIX.length) || '/';
 	const body = request.method === 'POST' ? await request.text() : undefined;
 	const { body: payload, status } = await handleRequest(request.method, path, body);
