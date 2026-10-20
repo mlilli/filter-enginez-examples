@@ -39,9 +39,9 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 import {
 	BODY_ORDER,
 	COLOR_ORDER,
-	commitExpression,
 	deriveSelectedPresetIds,
 	EMPTY_SELECTION,
+	exitExpressionMode,
 	type OriginNodeSpec,
 	type PickerTreeNode,
 	SWEETNESS_ORDER,
@@ -156,7 +156,7 @@ function leaveExpressionMode(): void {
 		return;
 	}
 	activePresets.value = [];
-	commitExpression(props.engine, null);
+	exitExpressionMode(props.engine);
 }
 
 /**

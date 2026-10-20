@@ -44,9 +44,8 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, output } from '@angular/core';
 import { injectFilterEngine } from '@filter-enginez/angular-rxjs';
 import {
-	buildSmartFilterExpression,
-	clearAllFacetRules,
-	commitExpression,
+	commitSmartFilterSelection,
+	exitExpressionMode,
 	WINE_SMART_FILTERS,
 } from '@filter-enginez/examples-shared/wine-domain';
 
@@ -128,17 +127,11 @@ export class WineSmartFiltersComponent {
 	 */
 	protected apply(next: readonly string[]): void {
 		this.selectedChange.emit(next);
-
-		if (next.length === 0) {
-			commitExpression(this._engine, null);
-
-			return;
-		}
-
-		// Clear the flat facets first. An expression AND a leftover flat rule would both apply, so the
-		// results would be narrower than the preset describes with no control explaining why.
-		clearAllFacetRules(this._engine);
-		commitExpression(this._engine, buildSmartFilterExpression(next));
+		// The shared helper every vertical's preset row calls. A non-empty selection clears the flat
+		// facets first: an expression AND a leftover flat rule would both be on the engine, the rule
+		// dormant behind the expression and back the moment the preset is cleared. An empty selection
+		// only leaves expression mode.
+		commitSmartFilterSelection(this._engine, next);
 	}
 
 	/**
@@ -165,6 +158,6 @@ export class WineSmartFiltersComponent {
 	protected changeMode(event: Event): void {
 		this.isMulti.set((event.currentTarget as HTMLInputElement).checked);
 		this.selectedChange.emit([]);
-		commitExpression(this._engine, null);
+		exitExpressionMode(this._engine);
 	}
 }

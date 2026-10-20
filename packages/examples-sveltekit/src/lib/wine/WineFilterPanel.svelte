@@ -68,7 +68,7 @@
 	import WineRangeSection from './sections/WineRangeSection.svelte';
 	import WinerySearchSection from './sections/WinerySearchSection.svelte';
 	import WineVintageSection from './sections/WineVintageSection.svelte';
-	import { commitExpression } from './wineCommit.js';
+	import { exitExpressionMode } from './wineCommit.js';
 	import WineSmartFilters from './WineSmartFilters.svelte';
 
 	// `baselines` is deliberately NOT a prop. Every slider takes the same bounds off the bundle
@@ -153,7 +153,7 @@
 			return;
 		}
 		activePresets = [];
-		commitExpression(engine, null);
+		exitExpressionMode(engine);
 	}
 </script>
 

@@ -19,6 +19,7 @@ import {
 	notFoundPageMeta,
 	verticalIndexablePaths,
 	verticalPageMeta,
+	verticalPages,
 } from './pageMeta.js';
 
 describe('verticalIndexablePaths', () => {
@@ -30,6 +31,26 @@ describe('verticalIndexablePaths', () => {
 	it('adds the lab only where it is served', () => {
 		expect(verticalIndexablePaths('react-plain')).toContain(LAB_ROUTE_PATH);
 		expect(VERTICALS.filter(({ id }) => verticalIndexablePaths(id).includes(LAB_ROUTE_PATH)).map(({ id }) => id)).toEqual(['react-plain']);
+	});
+});
+
+describe('verticalPages', () => {
+	it('lists every indexable path but the hub, named and described as its head names and describes it', () => {
+		for (const { id, pageTitle } of VERTICALS) {
+			const pages = verticalPages(id);
+
+			expect(pages.map((page) => page.path)).toEqual(verticalIndexablePaths(id).filter((path) => path !== '/'));
+			for (const { description, label, path } of pages) {
+				expect(verticalPageMeta(id, path)).toMatchObject({ description, title: `${label} — ${pageTitle}` });
+			}
+		}
+	});
+
+	it('takes a dataset page’s words from its landing card, and the lab’s from its own copy', () => {
+		const books = DATASET_ROUTES.find((card) => card.href === '/books');
+
+		expect(verticalPages('vue')[0]).toEqual({ description: books?.blurb, label: books?.label, path: '/books' });
+		expect(verticalPages('react-plain').at(-1)).toMatchObject({ label: 'The lab', path: LAB_ROUTE_PATH });
 	});
 });
 

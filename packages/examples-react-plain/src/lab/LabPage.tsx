@@ -39,24 +39,26 @@ export const LabPage = (): React.ReactElement => {
 				</Link>
 			</header>
 
-			<section className="fe-lab__hero">
-				<p className="fe-lab__eyebrow">the lab</p>
-				<h1 className="fe-lab__hero-title">Engine capabilities, running</h1>
-				<p className="fe-lab__hero-lead">
-					Filtering is the part of the engine every demo already shows. These are the parts it
-					does not: projection, similarity and suggestion, driven against the same live books
-					corpus as{' '}
-					<Link to="/books" className="fe-lab__inline-link">
-						/books
-					</Link>
-					{' '}— and against the same engine instance, so any filters you left there are still
-					applied here.
-				</p>
-			</section>
+			<main>
+				<section className="fe-lab__hero">
+					<p className="fe-lab__eyebrow">the lab</p>
+					<h1 className="fe-lab__hero-title">Engine capabilities, running</h1>
+					<p className="fe-lab__hero-lead">
+						Filtering is the part of the engine every demo already shows. These are the parts it
+						does not: projection, similarity and suggestion, driven against the same live books
+						corpus as{' '}
+						<Link to="/books" className="fe-lab__inline-link">
+							/books
+						</Link>
+						{' '}— and against the same engine instance, so any filters you left there are still
+						applied here.
+					</p>
+				</section>
 
-			<SimulationPane />
-			<SimilarityPane />
-			<SuggestionPane />
+				<SimulationPane />
+				<SimilarityPane />
+				<SuggestionPane />
+			</main>
 		</div>
 	);
 };

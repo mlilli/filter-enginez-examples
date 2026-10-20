@@ -13,7 +13,8 @@
  *      `engineBusy` external-store read.
  *   2. The `instanceof`-based rule→summary mapping (`summarizeRule` / `buildRuleSummaries`), which
  *      necessarily imports the concrete `core` rule classes.
- *   3. `resetRule` — the per-chip removal semantics (`removeRule`, never an emptied rule).
+ *   3. The two writes, both through the shared wine commit helpers every vertical calls:
+ *      `removeWineFilterChip` for a chip's × and `clearAllWineFilters` for "Clear all".
  *
  * The container builds a plain `FilterSummary[]` + two callbacks and hands them to the view. The
  * view knows nothing of `FilterRule`, `RuleId`, or signals — the same boundary the RTK app's wine
@@ -36,12 +37,10 @@ import {
 	ValueRule,
 } from '@filter-enginez/core';
 import { commitFilterMutation, formatVintageRange, getIsEngineBusy, markUserAction, subscribeEngineBusy } from '@filter-enginez/examples-shared/wine';
+import { clearAllWineFilters, removeWineFilterChip, SMART_FILTER_SUMMARY } from '@filter-enginez/examples-shared/wine-domain';
 import { useActiveRules, useFilterEngine, useMode, useResultCount } from '@filter-enginez/react-signals';
 import { type FilterSummary, ResultsHeaderView } from '@filter-enginez/react-ui';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
-
-/** Synthetic chip id for the expression-mode "smart filter" chip (not a real rule id). */
-const SMART_FILTER_CHIP_ID = '__smart-filter__';
 
 /**
  * Top-level results header container.
@@ -64,31 +63,30 @@ export const ResultsHeader = (): React.ReactElement => {
 	// here rather than in the presentational layer.
 	const summaries = useMemo<readonly FilterSummary[]>(
 		() => isExpression
-			? [{ isNumeric: false, label: 'Smart filter', ruleId: SMART_FILTER_CHIP_ID, value: 'active' }]
+			? [{ ...SMART_FILTER_SUMMARY, isNumeric: false }]
 			: buildRuleSummaries(activeRules),
 		[isExpression, activeRules],
 	);
 
 	const handleRemoveRule = useCallback((ruleId: string): void => {
 		// No optimistic paint — the chip vanishes when the engine confirms the change. Flip the loader,
-		// then mutate a frame later. The synthetic smart-filter chip exits expression mode.
+		// then mutate a frame later. The synthetic smart-filter chip leaves expression mode and drops
+		// the flat facets with it, as in every other vertical.
 		commitFilterMutation({
 			callEngine: () => {
-				if (ruleId === SMART_FILTER_CHIP_ID) {
-					engine.core.setExpression(null);
-				} else {
-					resetRule(engine.core, ruleId);
-				}
+				removeWineFilterChip(engine, ruleId);
 			},
 			markBusy: markUserAction,
 		});
 	}, [engine]);
 
 	const handleClearAll = useCallback((): void => {
-		// `clearRules()` records a single `RULES_CLEARED` entry in the devtools log (red,
-		// destructive) instead of N separate `removeRule` entries — cleaner semantic + tidier log.
+		// Every flat facet AND expression mode, as one operation — the shared helper the other
+		// verticals' headers call, so the action log records the same entries in every app.
 		commitFilterMutation({
-			callEngine: () => engine.core.clearRules(),
+			callEngine: () => {
+				clearAllWineFilters(engine);
+			},
 			markBusy: markUserAction,
 		});
 	}, [engine]);
@@ -335,27 +333,4 @@ function formatSetValue(set: readonly unknown[]): string {
 	}
 
 	return `${first} (+${set.length - 1} more)`;
-}
-
-/**
- * Remove a rule from the engine entirely. Used by the per-chip remove ×.
- *
- * @remarks
- * **Why removeRule and not addRule(empty config).** A deliberate choice for the
- * devtools log: wine's interactions should organically produce all three rule-mutation
- * action types (`addRule` / `changeRule` / `removeRule`) so the log shows visual variety.
- * Calling `addRule` with an empty config would record as `RULE_CHANGED`, so every clear would
- * look the same as every modify. By calling
- * `engine.removeRule(id)` instead, the chip × records as `RULE_REMOVED` (red in the devtools
- * panel), and the next user interaction with that filter records as `RULE_ADDED` (cyan)
- * because the rule no longer exists. Subsequent modifications then become `RULE_CHANGED`
- * (gray) as before.
- *
- * Origin is no exception. Its rule carries only the selection — the picker's tree comes from the
- * loaded records — so removing it writes the same "nothing selected" every app writes.
- *
- * @internal
- */
-function resetRule(core: { removeRule: (id: RuleId) => void }, ruleId: RuleId): void {
-	core.removeRule(ruleId);
 }

@@ -44,8 +44,11 @@ import { workerRunsFirstFor } from './support/workersRouting.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
-/** The `run_worker_first` every API Worker app carries: the API, minus the corpus files. */
-const API_RUN_WORKER_FIRST = ['/api/*', `!/${API_CORPUS_ASSETS_SUBDIRECTORY}/*`];
+/**
+ * The `run_worker_first` every API Worker app carries: the API, minus the corpus files, and the
+ * well-known URIs the Worker answers with a 404 (`wellKnownNotFound.test.ts`).
+ */
+const API_RUN_WORKER_FIRST = ['/api/*', `!/${API_CORPUS_ASSETS_SUBDIRECTORY}/*`, '/.well-known/*'];
 
 /** The SvelteKit app's routes directory, relative to the repository root. */
 const SVELTEKIT_ROUTES = 'packages/examples-sveltekit/src/routes';

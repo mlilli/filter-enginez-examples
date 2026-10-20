@@ -21,6 +21,18 @@
  * error rather than a silent fallback, so a typo in the deploy job cannot ship a Node build to a
  * Worker.
  *
+ * ### Every page carries its stylesheets
+ *
+ * An `inlineStyleThreshold` of infinity has SvelteKit write the CSS each page needs into the page, in a
+ * `<style>` where the `<link rel="stylesheet">` would be, instead of linking it: a browser renders
+ * nothing until a linked stylesheet arrives, so every first visit would wait a round trip for it. The
+ * prerendered hub and every server-rendered page draw their markup before any script runs, so the CSS
+ * has to be there for the first paint, and in the page is the only place that costs no round trip.
+ * SvelteKit rewrites each `url()` to resolve from the page, and keeps the link, `disabled`, so the
+ * client router knows the stylesheet is already applied and never fetches it. The CSS is the same, in
+ * the same order, so every page renders as before. `scripts/check-startup-budget.mjs` fails the build
+ * if the hub links a stylesheet that holds up its first render.
+ *
  * ### The local-only wine corpus never reaches either adapter
  *
  * On a machine where `pnpm link:wine-corpus` has run, `static/` holds two ~116 MB corpus files, and
@@ -99,6 +111,8 @@ export default {
 			await loadAdapter(adapterTarget),
 			ADAPTER_ACTIVITIES[adapterTarget] ?? adapterTarget,
 		),
+		// Every page carries the CSS it needs instead of linking it (see the remarks above).
+		inlineStyleThreshold: Number.POSITIVE_INFINITY,
 	},
 	preprocess: vitePreprocess(),
 };

@@ -142,9 +142,12 @@ export async function renderBooksRawPage(container: HTMLElement): Promise<RouteT
  */
 function bootingNotice(): HTMLElement {
 	// The shared boot caption, not `.fe-books-section-label` — a panel SECTION HEADING would read as
-	// a heading rather than as body copy on a boot screen.
-	return el('p', {
+	// a heading rather than as body copy on a boot screen. Inside a `<main>`: until the engine boots,
+	// the caption is the page's main content.
+	const caption = el('p', {
 		className: 'fe-boot-caption fe-boot-caption--inline',
 		text: 'Building the bare engine…',
 	});
+
+	return el('main', { children: [caption]});
 }

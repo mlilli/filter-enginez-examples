@@ -21,11 +21,11 @@
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { buildSmartFilterExpression, WINE_SMART_FILTERS } from '@filter-enginez/examples-shared/wine-domain';
+	import { WINE_SMART_FILTERS } from '@filter-enginez/examples-shared/wine-domain';
 	import ChipToggleGroup from '$lib/controls/ChipToggleGroup.svelte';
 	import SectionHeader from '$lib/controls/SectionHeader.svelte';
 
-	import { clearAllFacetRules, commitExpression } from './wineCommit.js';
+	import { commitSmartFilterSelection, exitExpressionMode } from './wineCommit.js';
 
 	const {
 		engine,
@@ -71,23 +71,12 @@
 	 */
 	function apply(next: readonly string[]): void {
 		onSelectedChange(next);
-
-		if (next.length === 0) {
-			commitExpression(engine, null);
-
-			return;
-		}
-
-		// Clear the flat facets first. An expression AND a leftover flat rule would both apply, so the
-		// results would be narrower than the preset describes with no control explaining why. Removing
-		// the rules is the whole job: every facet section adopts its own rule's removal, so there is no
-		// second call needed to blank the controls.
-		clearAllFacetRules(engine);
-
-		// The single-selection special case lives in `buildSmartFilterExpression`, beside the
-		// `deriveSelectedPresetIds` that has to read it back. Open-coding it here is what made it a
-		// second copy; three more verticals were about to make it five.
-		commitExpression(engine, buildSmartFilterExpression(next));
+		// The shared helper every vertical's preset row calls. A non-empty selection clears the flat
+		// facets first: an expression AND a leftover flat rule would both be on the engine, the rule
+		// dormant behind the expression and back the moment the preset is cleared. Removing the rules is
+		// the whole job: every facet section adopts its own rule's removal, so there is no second call
+		// needed to blank the controls. An empty selection only leaves expression mode.
+		commitSmartFilterSelection(engine, next);
 	}
 
 	/**
@@ -112,7 +101,7 @@
 	function changeMode(multi: boolean): void {
 		isMulti = multi;
 		onSelectedChange([]);
-		commitExpression(engine, null);
+		exitExpressionMode(engine);
 	}
 
 	/**

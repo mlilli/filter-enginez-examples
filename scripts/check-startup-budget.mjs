@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * `check-startup-budget` — fail a build whose first screen downloads more JavaScript than its budget.
+ * `check-startup-budget` — fail a build whose first screen downloads more JavaScript than its budget,
+ * or waits on a stylesheet before it renders.
  *
  *     node ../../scripts/check-startup-budget.mjs dist --max-kb 400                    # a Vite app, after `vite build`
  *     node ../../scripts/check-startup-budget.mjs dist/browser --max-kb 300            # Angular, after `ng build`
@@ -33,6 +34,19 @@
  *
  * A missing page, an entry that cannot be found, or a listed chunk that is not on disk is an error
  * rather than a pass: a budget check that measured nothing looks exactly like one that passed.
+ *
+ * ### No stylesheet holds up the first render
+ *
+ * The same page fails, too, when it links a stylesheet the browser must download before it renders
+ * anything: a `<link rel="stylesheet">` that is not `disabled` and not loaded as `media="print"` (the
+ * idiom for loading a sheet without blocking, and swapping it in once it arrives), or an `@import` in an
+ * inline `<style>`. Markup inside `<noscript>` is skipped, since a browser running scripts never loads
+ * it. Each app keeps its stylesheets off that path its own way: the Vite apps inline their first
+ * screen's part of the sheet and load the rest with the routes that use it
+ * (`scripts/lib/critical-css.mjs`), SvelteKit inlines every page's CSS (`inlineStyleThreshold` in its
+ * `svelte.config.js`), and Angular inlines its critical CSS and loads the sheet as `media="print"`
+ * (its `optimization.styles.inlineCritical`, on by default). A change that brought a blocking link
+ * back would cost every first visit a round trip and break nothing else, so the build is where it shows.
  * `tests/tooling/startupBudget.test.ts` pins this script's behavior and that every app runs it.
  *
  * ### The budgets
@@ -40,7 +54,8 @@
  * Each app passes its own, set from what its hub measures plus modest headroom, and well below what
  * the engine alone costs: the core with the WebAssembly bitmap library it carries is about 350 kB, so
  * a static import that drags it onto a first screen cannot fit under any of them. The React apps and
- * the documentation site start with React, ReactDOM and react-router (about 310 kB of each); Vue,
+ * the documentation site start with React, ReactDOM and React Router in its declarative mode (about
+ * 300 kB of each first screen; the documentation site also preloads its layout and home page); Vue,
  * Angular and SvelteKit with their own runtimes; the framework-free app with nothing but itself.
  *
  * @packageDocumentation
@@ -73,6 +88,18 @@ const INLINE_IMPORT = /\bimport\(\s*["'`](\.{0,2}\/[^"'`]+?\.js)["'`]\s*\)/gu;
 
 /** An HTML comment, which may quote markup that is not part of the page. */
 const HTML_COMMENT = /<!--[\s\S]*?-->/gu;
+
+/** A `<noscript>` element, whose markup a browser running scripts never loads. */
+const NOSCRIPT = /<noscript\b[\s\S]*?<\/noscript>/giu;
+
+/** A `<link>` whose `rel` names a stylesheet, however its attributes are quoted. */
+const STYLESHEET_LINK = /<link\b(?=[^>]*\brel\s*=\s*["']?(?:[^"'>]*\s)?stylesheet\b)[^>]*>/giu;
+
+/** A `<link>` attribute that keeps a stylesheet from holding up the first render. */
+const NON_BLOCKING_ATTRIBUTE = /\sdisabled(?=[\s/>=])|\smedia\s*=\s*["']?print["'\s/>]/iu;
+
+/** An inline `<style>` that imports a stylesheet, which the first render then waits for. */
+const STYLE_IMPORT = /<style\b[^>]*>(?:(?!<\/style)[\s\S])*?@import\b/iu;
 
 /**
  * Parse the command line.
@@ -180,6 +207,21 @@ function startupFiles(directory, htmlPath) {
 }
 
 /**
+ * Every stylesheet the page makes its first render wait for.
+ *
+ * @param {string} htmlPath - The built page.
+ * @returns {string[]} Each blocking `<link>`, as written, and a note for each inline `@import`.
+ */
+function renderBlockingStylesheets(htmlPath) {
+	const html = readFileSync(htmlPath, 'utf8').replaceAll(HTML_COMMENT, '').replaceAll(NOSCRIPT, '');
+
+	return [
+		...[...html.matchAll(STYLESHEET_LINK)].map(([tag]) => tag).filter((tag) => !NON_BLOCKING_ATTRIBUTE.test(tag)),
+		...(STYLE_IMPORT.test(html) ? ['an @import in an inline <style>'] : []),
+	];
+}
+
+/**
  * Format a byte count as Vite prints it.
  *
  * @param {number} bytes - The size in bytes.
@@ -191,8 +233,21 @@ function kilobytes(bytes) {
 
 const { directory, htmlPath, maxKb } = parseArguments(process.argv.slice(2));
 const sizes = startupFiles(directory, htmlPath);
+const blockingStylesheets = renderBlockingStylesheets(htmlPath);
+
+if (blockingStylesheets.length > 0) {
+	const tags = blockingStylesheets.map((stylesheet) => `    ${stylesheet}`).join('\n');
+
+	console.error(
+		`✗ check-startup-budget: ${htmlPath} makes its first render wait for a stylesheet:\n${tags}\n` +
+			"  Carry the first screen's CSS in the page instead: the Vite apps through scripts/lib/critical-css.mjs,\n" +
+			'  SvelteKit through its inlineStyleThreshold, Angular through its inlined critical CSS.',
+	);
+	process.exit(1);
+}
+
 const total = [...sizes.values()].reduce((sum, size) => sum + size, 0);
-const summary = `${kilobytes(total)} of JavaScript before the first render (${sizes.size} files; budget ${maxKb} kB)`;
+const summary = `${kilobytes(total)} of JavaScript before the first render (${sizes.size} files; budget ${maxKb} kB), and no stylesheet holds it up`;
 
 if (total > maxKb * 1000) {
 	const largest = [...sizes]

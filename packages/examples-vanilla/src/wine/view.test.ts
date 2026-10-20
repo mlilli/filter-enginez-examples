@@ -220,6 +220,58 @@ describe('vanilla wine panel', () => {
 		expect((core.getRules().get('color') as InSetRule<string>).config.set).toEqual(['white']);
 	});
 
+	it('a preset applied over a manual facet leaves only the expression, and the facet adopts the removal', () => {
+		const { core, repaint, root } = mountView();
+
+		chipByText(root, 'white').click();
+		repaint();
+		expect(chipByText(root, 'white').getAttribute('aria-pressed')).toBe('true');
+
+		chipByText(root, 'Bold reds').click();
+		repaint();
+
+		expect([...core.getRules().keys()]).toEqual([]);
+		expect(core.getExpression()).not.toBeNull();
+		expect(chipByText(root, 'white').getAttribute('aria-pressed')).toBe('false');
+	});
+
+	it('the smart-filter pill\'s × leaves expression mode, where removing a rule by its id would do nothing', () => {
+		const { core, repaint, root } = mountView();
+
+		chipByText(root, 'Bold reds').click();
+		repaint();
+		root.querySelector<HTMLElement>('.fe-filter-chip__remove')?.click();
+		repaint();
+
+		expect(core.getExpression()).toBeNull();
+		expect(chipByText(root, 'Bold reds').getAttribute('aria-pressed')).toBe('false');
+	});
+
+	it('a facet pill\'s × removes only that facet\'s rule', () => {
+		const { core, repaint, root } = mountView();
+
+		chipByText(root, 'white').click();
+		repaint();
+		root.querySelector<HTMLElement>('.fe-filter-chip__remove')?.click();
+
+		expect(core.getRules().has('color')).toBe(false);
+	});
+
+	it('"Clear all" drops every flat facet AND expression mode', () => {
+		const { core, repaint, root } = mountView();
+
+		chipByText(root, 'white').click();
+		repaint();
+		root.querySelector<HTMLElement>('.fe-active-filters__clear')?.click();
+		expect([...core.getRules().keys()]).toEqual([]);
+
+		chipByText(root, 'Bold reds').click();
+		repaint();
+		root.querySelector<HTMLElement>('.fe-active-filters__clear')?.click();
+
+		expect(core.getExpression()).toBeNull();
+	});
+
 	it('does not dim the body for a recompute while a preset is driving the results', () => {
 		// `--busy` and `--expression` mean different things — one is transient, one is chosen — and
 		// stacking them reads as a recompute that never ends.

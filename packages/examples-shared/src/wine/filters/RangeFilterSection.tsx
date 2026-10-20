@@ -28,6 +28,7 @@ import { markUserAction } from '../engineBusy.js';
 import { WINE_SLIDER_TEXT, wineSliderScale } from '../wine-domain/filterConfig.js';
 import { useBundleFieldMeta, useBundleSliderHistogram } from './filterBundle.js';
 import { type SliderFieldId, useBaselineBounds } from './filterConfig.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /**
  * Props for `<RangeFilterSection />`.
@@ -54,6 +55,8 @@ export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactE
 	const { ariaLabel, fieldKey, label, openEnded: isOpenEnded = false, ruleId, step } = props;
 	const { format, parse } = WINE_SLIDER_TEXT[ruleId];
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(ruleId) as RangeRule | undefined;
 	const baseline = useBaselineBounds(ruleId);
 
@@ -80,13 +83,14 @@ export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactE
 		// keeps the "no upper bound" semantic.
 		const ruleMax = isOpenEnded && next.max >= baseline.max ? Number.POSITIVE_INFINITY : next.max;
 
+		leaveExpressionMode();
 		// The slider already painted its committed thumb position (internal state), so no optimistic
 		// paint here — just flip the loader, then call the engine a frame later.
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(ruleId, range(fieldKey, { max: ruleMax, min: next.min })),
 			markBusy: markUserAction,
 		});
-	}, [engine, ruleId, fieldKey, isOpenEnded, baseline.max]);
+	}, [engine, ruleId, fieldKey, isOpenEnded, baseline.max, leaveExpressionMode]);
 
 	// Wrapped in a <section>, like every other facet. The shared panel CSS targets
 	// `.fe-filter-panel section` for the rhythm between filters, so a bare slider silently

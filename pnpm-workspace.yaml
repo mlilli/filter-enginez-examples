@@ -34,7 +34,7 @@ allowBuilds:
   # `wrangler deploy` never runs it; `wrangler dev` does.
   workerd: true
 
-# ─── Supply-chain policy exceptions ────────────────────────────────────────────
+# ─── Supply-chain policy: the 7-day release-age quarantine ─────────────────────
 # 🟢 **pnpm 12 REPORTS an unrecognized setting in this file instead of ignoring it.** A misspelled
 # `minimumReleaseAge` or `minimumReleaseAgeExclude` would otherwise drop the policy silently — a
 # supply-chain guard that evaporates with no output. The build-script settings pnpm 12 removed
@@ -45,14 +45,38 @@ allowBuilds:
 # so an unrelated comment edit would arrive as a whole-file diff in the file that carries the
 # supply-chain policy. The quoting below is deliberate; leave it alone.
 #
-# pnpm defaults `minimumReleaseAge` to 1440 (24h): a newly-published version can't be installed
-# until it has aged a day, on the theory that malicious releases are usually yanked within the hour.
-# The check runs twice — once during resolution, and again as a verification pass over every entry of
-# an already-written lockfile.
+# `minimumReleaseAge` is 10080 minutes — 7 days. pnpm refuses any version published less than 7 days
+# ago, so a compromised release has a week to be noticed and pulled before it can reach this tree.
+# The check runs twice — once during resolution (`pnpm add`, `pnpm update`), and again as a
+# verification pass over every entry of an already-written lockfile, `--frozen-lockfile` installs
+# included. The engine tarballs the `overrides` below point at are local files, so the quarantine
+# never applies to them.
 #
-# Nothing in this lockfile needs an exemption, so there is no `minimumReleaseAgeExclude` list. When one
-# is needed, pin it to the ONE version, not the package, so a later release gets the full 24h soak like
-# everything else, and delete the entry once the lockfile moves past it.
+# 🟢 The value is written out rather than left to pnpm's built-in 1440 (24h) default, and that also
+# changes how a violation behaves: an explicitly set `minimumReleaseAge` makes `minimumReleaseAgeStrict`
+# default to `true`, so a too-young version FAILS the install (`ERR_PNPM_NO_MATURE_MATCHING_VERSION`
+# when resolving, `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` when verifying the lockfile) instead of being
+# added to `minimumReleaseAgeExclude` without anyone deciding to.
+#
+# `.github/dependabot.yml` gives GitHub Actions the same 7 days (`cooldown.default-days: 7`), and
+# `tests/tooling/releaseAgeCooldown.test.ts` keeps every cooldown there at least as long as this
+# quarantine, so raising this value means raising the cooldown in the same change.
+#
+# ── Exemptions: `minimumReleaseAgeExclude` ──
+#
+# Nothing in this lockfile needs one, so there is no list. When a security fix is younger than 7 days,
+# exempt that ONE version:
+#
+#   minimumReleaseAgeExclude:
+#     # GHSA-xxxx-xxxx-xxxx: fixed in 1.2.3
+#     - 'some-package@1.2.3'
+#
+# pnpm 12 accepts an exact version or a union of exact versions (`'some-package@1.2.3 || 1.2.4'`) and
+# rejects a range (`some-package@^1.2.3` fails with `ERR_PNPM_INVALID_MINIMUM_RELEASE_AGE_EXCLUDE`). A
+# bare package name exempts every version, the next release included, so it is never the fix, and
+# the same test rejects one. Delete the entry once the lockfile has moved past that version or the
+# version is older than 7 days. SECURITY.md → "Dependency release age" has the whole procedure.
+minimumReleaseAge: 10080
 
 # ─── Security remediation — force patched transitive versions ─────────────────────────────────────
 # Every advisory these address is in DEV TOOLING or the unpublished demo apps. These pin the patched
@@ -166,18 +190,18 @@ overrides:
   # tree and resolves its peers here. It also exercises the real publish surface — `dist/`, the `files`
   # allow-list, `publishConfig.exports` — rather than raw source.
   #
-  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz'
-  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz'
-  '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz'
-  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz'
-  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz'
-  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz'
-  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz'
-  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz'
-  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz'
-  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz'
-  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz'
-  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz'
+  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz'
+  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz'
+  '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz'
+  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz'
+  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz'
+  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz'
+  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz'
+  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz'
+  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz'
+  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz'
+  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz'
+  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz'
 
 # ─── Accepted / false-positive advisories (kept out of `pnpm audit` noise) ─────────────────────────
 # `auditConfig.ignoreGhsas` (pnpm 11+) suppresses the specific GHSA IDs below from `pnpm audit`. Each is

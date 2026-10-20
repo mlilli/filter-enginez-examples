@@ -448,11 +448,10 @@ function compilePattern(source: string): RegExp | null {
 
 /**
  * Order-insensitive membership equality for two string selections. Lets an external rule change
- * that produces a referentially-new-but-equal set be a no-op (no render churn).
- *
- * @internal
+ * that produces a referentially-new-but-equal set be a no-op (no render churn). The books chip
+ * groups' `useSeedAndAdopt` comparison, here and in `BookCuratedFilterSections.tsx`.
  */
-function sameMembers(a: readonly string[], b: readonly string[]): boolean {
+export function sameMembers(a: readonly string[], b: readonly string[]): boolean {
 	if (a === b) {
 		return true;
 	}

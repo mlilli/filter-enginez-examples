@@ -15,8 +15,9 @@
  * plain React 24613, Vue 24614. The canonical port map lives in `playwright.config.ts`.
  */
 
-import { defineConfig } from 'vite';
+import { defineConfig, runnerImport } from 'vite';
 
+import { criticalCssPlugin } from '../../scripts/lib/critical-css.mjs';
 import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
 
 export default defineConfig({
@@ -44,8 +45,10 @@ export default defineConfig({
 		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
 	},
 	// Preload the first screen's two brand fonts from the built index.html, so they download beside the
-	// startup script instead of after the stylesheet (scripts/lib/font-preloads.mjs).
-	plugins: [fontPreloadsPlugin()],
+	// startup script instead of after the stylesheet (scripts/lib/font-preloads.mjs); put the first
+	// screen's part of the stylesheet into that page, so the first render waits on no stylesheet, and
+	// load the whole sheet with the routes that use the rest (scripts/lib/critical-css.mjs).
+	plugins: [fontPreloadsPlugin(), criticalCssPlugin({ runnerImport })],
 	resolve: {
 		// ONE @preact/signals-core instance across the engine + this app's direct subscriptions.
 		dedupe: ['@preact/signals-core'],

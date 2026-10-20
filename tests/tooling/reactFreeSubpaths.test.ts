@@ -70,6 +70,9 @@ const REACT_FREE_SUBPATHS = [
 	// The `?f=` serializer every app's URL layer builds, on every route.
 	'./link-serializer',
 	'./notfound-core',
+	// The words of the screen a page that cannot be shown falls back to. Vue, Angular and the
+	// framework-free app render it from their routers' failure paths. Import-free.
+	'./page-error-core',
 	// Each demo page's title, description and canonical URL, written on every navigation by every app,
 	// and read by the landing site's build for the sitemap. The documentation's half reads the rule and
 	// algorithm catalogs' words, never their React figures.

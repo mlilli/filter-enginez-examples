@@ -21,8 +21,16 @@
 # Minor and patch bumps arrive as one grouped PR; a major bump arrives on its own,
 # because it is the one that changes inputs or the runtime an action needs.
 #
-# `cooldown.default-days: 3` waits three days after a release before proposing it,
-# so a release that is yanked soon after publishing never becomes a PR.
+# `cooldown.default-days: 7` waits seven days after a release before proposing
+# it, the same 7 days as pnpm's `minimumReleaseAge` in `pnpm-workspace.yaml`, so a
+# release that is pulled within its first week never becomes a PR.
+# `tests/tooling/releaseAgeCooldown.test.ts` keeps the cooldown at least as long
+# as that quarantine.
+#
+# Security updates are not subject to `cooldown` (GitHub's options reference:
+# "The `cooldown` option is only available for version updates, not security
+# updates";
+# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#cooldown-).
 # ─────────────────────────────────────────────────────────────────────────────
 version: 2
 
@@ -34,7 +42,7 @@ updates:
       day: monday
     open-pull-requests-limit: 3
     cooldown:
-      default-days: 3
+      default-days: 7
     commit-message:
       prefix: ci
       include: scope

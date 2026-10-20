@@ -173,18 +173,18 @@ overrides:
   markdown-it: '>=15.0.2 <16.0.0'
   smol-toml: '>=1.9.0 <2.0.0'
   brace-expansion@^5.0.0: '>=5.0.8 <6.0.0'
-  '@filter-enginez/angular-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz
-  '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-  '@filter-enginez/eslint': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-  '@filter-enginez/mock-data': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-  '@filter-enginez/react-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
-  '@filter-enginez/reactive-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz
-  '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-  '@filter-enginez/redux-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz
-  '@filter-enginez/svelte-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz
-  '@filter-enginez/url-state-router': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-  '@filter-enginez/vue-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz
-  '@filter-enginez/worker-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
+  '@filter-enginez/angular-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz
+  '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+  '@filter-enginez/eslint': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+  '@filter-enginez/mock-data': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+  '@filter-enginez/react-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz
+  '@filter-enginez/reactive-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz
+  '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+  '@filter-enginez/redux-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz
+  '@filter-enginez/svelte-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz
+  '@filter-enginez/url-state-router': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+  '@filter-enginez/vue-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz
+  '@filter-enginez/worker-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
 
 importers:
 
@@ -200,8 +200,8 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
       '@filter-enginez/eslint':
-        specifier: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.64.0
@@ -279,8 +279,8 @@ importers:
         version: 19.3.0
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.2
@@ -315,29 +315,29 @@ importers:
         specifier: ^22.0.7
         version: 22.2.2(@angular/common@22.2.2(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(@angular/platform-browser@22.2.2(@angular/common@22.2.2(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@filter-enginez/angular-rxjs':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
       '@filter-enginez/brand':
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-shared':
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-rxjs':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz(rxjs@7.8.2)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz(rxjs@7.8.2)
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
@@ -355,8 +355,8 @@ importers:
         specifier: ^22.0.7
         version: 22.2.2(@angular/compiler@22.2.2)(typescript@6.0.3)
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       angular-eslint:
         specifier: ^22.1.0
         version: 22.5.0(chokidar@5.0.0)(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript-eslint@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(typescript@6.0.3)
@@ -367,23 +367,23 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-shared':
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz(react@19.3.0)
       '@filter-enginez/react-ui':
         specifier: workspace:*
         version: link:../react-ui
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
@@ -398,8 +398,8 @@ importers:
         version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@types/react':
         specifier: ^19.2.15
         version: 19.3.0
@@ -419,29 +419,29 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-shared':
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz(react@19.3.0)
       '@filter-enginez/react-ui':
         specifier: workspace:*
         version: link:../react-ui
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
@@ -456,8 +456,8 @@ importers:
         version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.3(vite@8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(tsx@4.23.15)(yaml@2.9.1))
@@ -501,35 +501,35 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-shared':
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz(react@19.3.0)
       '@filter-enginez/react-ui':
         specifier: workspace:*
         version: link:../react-ui
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/redux-bridge':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz(@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz(@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0))
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@filter-enginez/worker-bridge':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
       '@radix-ui/react-toast':
         specifier: ^1.2.15
         version: 1.2.24(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -574,8 +574,8 @@ importers:
         version: 1.0.7(tailwindcss@4.3.3)
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@tailwindcss/cli':
         specifier: ^4.3.0
         version: 4.3.3
@@ -616,14 +616,14 @@ importers:
   packages/examples-server:
     devDependencies:
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       tsx:
         specifier: ^4.23.0
         version: 4.23.15
@@ -634,29 +634,29 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/react-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz(react@19.3.0)
       '@filter-enginez/react-ui':
         specifier: workspace:*
         version: link:../react-ui
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@filter-enginez/worker-bridge':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
@@ -674,8 +674,8 @@ importers:
         version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.2
@@ -698,8 +698,8 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-server':
         specifier: workspace:*
         version: link:../examples-server
@@ -707,20 +707,20 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/svelte-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz(svelte@5.57.2(@typescript-eslint/types@8.71.1))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz(svelte@5.57.2(@typescript-eslint/types@8.71.1))
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
@@ -729,8 +729,8 @@ importers:
         version: 1.1.0
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@sveltejs/adapter-cloudflare':
         specifier: ^7.2.9
         version: 7.2.9(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2(@typescript-eslint/types@8.71.1))(vite@8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.57.2(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(tsx@4.23.15)(yaml@2.9.1)))(wrangler@4.149.0(@types/node@24.19.1))
@@ -774,23 +774,23 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-shared':
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@preact/signals-core':
         specifier: ^1.14.2
         version: 1.14.4
@@ -799,8 +799,8 @@ importers:
         version: 1.9.4
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       vite:
         specifier: ^8.1.5
         version: 8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -811,26 +811,26 @@ importers:
         specifier: workspace:*
         version: link:../brand
       '@filter-enginez/core':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@filter-enginez/examples-shared':
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/reactive-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
       '@filter-enginez/url-state-router':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@filter-enginez/vue-signals':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz(vue@3.5.43(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz(vue@3.5.43(typescript@6.0.3))
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
@@ -842,8 +842,8 @@ importers:
         version: 4.6.4(vue@3.5.43(typescript@6.0.3))
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@vitejs/plugin-vue':
         specifier: ^6.0.8
         version: 6.0.9(vite@8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.43(typescript@6.0.3))
@@ -879,8 +879,8 @@ importers:
         version: 19.3.0
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       '@testing-library/dom':
         specifier: ^10.4.1
         version: 10.4.2
@@ -906,15 +906,15 @@ importers:
         specifier: workspace:*
         version: link:../examples-shared
       '@filter-enginez/mock-data':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
     devDependencies:
       '@filter-enginez/eslint':
-        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz
-        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
+        specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz
+        version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)
       vite:
         specifier: ^8.1.5
         version: 8.3.4(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1889,74 +1889,74 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@filter-enginez/angular-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz':
-    resolution: {integrity: sha512-9HvOVSjRe1IQuFazXY1RWYA2DhXIfq8Vk3mVux8rmaQOryfOHinOrd5m+hrK1nam2Xnsv422M3xzubCqbyrM5A==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/angular-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz':
+    resolution: {integrity: sha512-K+wu7jOLoAeWKrrHHIsdy5PWWIJtFCjWHlQv3gpCzqkRaSvF+1tEC3O4aztbBF8U6ldsEaX+daeffzjjMM6sgg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       '@angular/core': ^22.0.0
       rxjs: ^7.8.1
 
-  '@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz':
-    resolution: {integrity: sha512-wMF6Oaw00UJeriySeSWw3FQSOr2gTeNA8MMWgGvDtONUFjSOMh3vvzk7kSCCxdeTHIyeMOVHBkn0kS8f9GxZTA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz':
+    resolution: {integrity: sha512-Q6C+pMdy2SWW40jRKXDOjkorrKoo07L1/DQ3EL+IKTRVIsyzRPI/T6ZE1mZ4wX3WURQIjMmEmPhEE8+tVjKwCQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz}
+    version: 0.0.3
 
-  '@filter-enginez/eslint@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz':
-    resolution: {integrity: sha512-+2BdMBd0GTwk4Jt7hpTDDfwZc34eGQv3+rA88rb6xX16EO9NcG06b5+O8Z+6g0Unkfn+QhgV4Q22lrkitCctfA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/eslint@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz':
+    resolution: {integrity: sha512-dtP3V3lCGUKUn0y8HACZDilZiatxuMcPBsv3+teaPCs0XgbeejY7euUZBd81MOxRvWs3DUyMVUN2ZpcIClOCUQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       eslint: ^10.0.0
 
-  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz':
-    resolution: {integrity: sha512-LL4mnvSF3dDF3gLayvXBM40Yy+mWRFaAI8tg1bJk88wkBN9gBpW+pGazPm8GitLdMMGbfc5GvOxGA0qwV3qUpw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz}
-    version: 0.1.0
+  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz':
+    resolution: {integrity: sha512-mP7FoFJoXAy27Z8LfY3CdCXmpD4d0Ngt/80StUgxhqEjqYBSYML97wecDt2HcVxpLcWwo8SyxG+zigiMCCaN3w==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz}
+    version: 0.2.1
     peerDependencies:
-      '@filter-enginez/core': ^0.0.2
+      '@filter-enginez/core': ^0.0.3
       msw: ^2.0.0
 
-  '@filter-enginez/react-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-RpPQNuNSLNEcSMQIttSbKQVoJhxiugp6YfLvEEbqjBpLBDPkORDqM/R+wYNfGGtLU9MKRZVYkgSfczBmer8u1w==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/react-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz':
+    resolution: {integrity: sha512-HpGHZGgW3WyHKX7S84S8UtqaYYQdbc6yRxDaN/fnvVIsfvEbw/hsNC8IV6TWadI3hODwpo1JmAhm7u+Lfpe1Ww==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       react: ^19.2.7
 
-  '@filter-enginez/reactive-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz':
-    resolution: {integrity: sha512-wvzLRfQen/9Hi50BPxed4zfqR7okctxeMosmYzSAqBkuvwaQ0SNSBOkG4JSe75e9wAgG3wU/qMGX4ife659qsg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/reactive-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz':
+    resolution: {integrity: sha512-Q4esDjW5/+B9rVb9OvSKGbZjqUoVgWBr0afYACgVol7Eg/tw1RypOQTUoeY5zEnX1SpP3gzjCJEEMbfTQ7cJXg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       rxjs: ^7.8.1
 
-  '@filter-enginez/reactive-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-N+Z6C3nOjjQGtU/Ac8d18KETyBigg3Zl25KAQ7yzifCB59RdtMmopXmDhGZV1EEG9Sszp2TGTWPzBlVK9biuGQ==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/reactive-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz':
+    resolution: {integrity: sha512-bgT2O7inqe9b2RUYXqG2uOETTNEmlfq2HNUGdT7e5o5B6BLhtw+j9yywFB3sfZFoSMfEtdQGGSPz4gAfCYrIJA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz}
+    version: 0.0.3
 
-  '@filter-enginez/redux-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz':
-    resolution: {integrity: sha512-Y/w0JwBdND0d0BHPBMhMlNm5CVtRvsMBJ8Q+6RLASplK8650hxJnyx6J2t276bFcav0MQz+urY5K++iHZFQn7w==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/redux-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz':
+    resolution: {integrity: sha512-0gUYQVs8elt+HVVjjONL60QaikGuF5mhMQVT0z6QcozJBXcm23bLjvd9pXLD7jNuLHWR2FO3CZqgOtAi5WyGvw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       '@reduxjs/toolkit': ^2.0.0
 
-  '@filter-enginez/svelte-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-FCIULt1Y3zR83OAMFJzIiXlRgBlxPknnmBuKy0/Xp6NI1hqhaqQ72GA/xV2fVXROh5+4KV+5SJNubvGZehlrAA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/svelte-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz':
+    resolution: {integrity: sha512-5zi7x34tcUPkTm1cm73jkojQtXiesTjt31O6Qrl1sAyYpREXQJ7fis5dlKVfyQ75w+Q0bOKMyH9d5di3XfVP4g==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       svelte: ^5.0.0
 
-  '@filter-enginez/url-state-router@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz':
-    resolution: {integrity: sha512-rblKkEWsML/RQ6GZs+nFmakLXgWi/x9o22Yhl+OmEjaiFY2awFcxjJZYoHvJQsHmw3lXaYcT3A9Gn8oRQ+snBA==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/url-state-router@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz':
+    resolution: {integrity: sha512-BiqRw7xdmUBrHcvvt1mHwARdaRy2fmgXi3qn9Sg6wJ55LH5ysrcDkYL5v68XlV46ABonbpDaojezGIhgiN/4Yg==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       react: ^19.2.7
       react-router: ^8.3.0
 
-  '@filter-enginez/vue-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz':
-    resolution: {integrity: sha512-iYAVszxLd70+Ox2tyRrktSxqC9RvoqybkyrLECHmj/Fh/FQJ4gcmw4gsInAfH1A0X1jMn3Wo//1t9SRWSqAoBw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/vue-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz':
+    resolution: {integrity: sha512-Fd2UxRiXzXq1tZ/O1dpdRSFzVfIg6PC3qHFYejuVG1ZEykJWitK+X4F+/MhvekIesqc/KlpkqgnTRZF7Oa0A/g==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz}
+    version: 0.0.3
     peerDependencies:
       vue: ^3.5.0
 
-  '@filter-enginez/worker-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz':
-    resolution: {integrity: sha512-mxCrgxoX4oCfAh/QxqW1n8TCDNM5XeJphtRfENl6YruJha4JUiJmRoJ/ktq266AsBw6tXRARxP+FsYCMurLiNw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz}
-    version: 0.0.2
+  '@filter-enginez/worker-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz':
+    resolution: {integrity: sha512-wOVwMdvrWTqasoU9B+SX3s3gFj9hoPXrTNILTDFldgbgda2SAlizLMV4E4fRjKWPwPjlLH8Mll4ETZyyzOH9cw==, tarball: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz}
+    version: 0.0.3
 
   '@floating-ui/core@1.8.0':
     resolution: {integrity: sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ==}
@@ -8372,14 +8372,14 @@ snapshots:
 
   '@exodus/bytes@1.16.0': {}
 
-  '@filter-enginez/angular-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.2.tgz(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2)':
+  '@filter-enginez/angular-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2)':
     dependencies:
       '@angular/core': 22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2)
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-      '@filter-enginez/reactive-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz(rxjs@7.8.2)
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+      '@filter-enginez/reactive-rxjs': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz(rxjs@7.8.2)
       rxjs: 7.8.2
 
-  '@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz':
+  '@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz':
     dependencies:
       '@preact/signals-core': 1.14.4
       fuse.js: 7.5.0
@@ -8388,7 +8388,7 @@ snapshots:
       roaring-wasm: 1.1.0
       zod: 4.6.5
 
-  '@filter-enginez/eslint@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.2.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)':
+  '@filter-enginez/eslint@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz(@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.11)':
     dependencies:
       '@eslint-community/eslint-plugin-eslint-comments': 4.8.1(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))
       '@eslint-react/eslint-plugin': 5.24.10(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
@@ -8409,57 +8409,57 @@ snapshots:
       - typescript
       - vitest
 
-  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.1.0.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))':
+  '@filter-enginez/mock-data@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz)(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       msw: 2.15.0(@types/node@24.19.1)(typescript@6.0.3)
 
-  '@filter-enginez/react-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.2.tgz(react@19.3.0)':
+  '@filter-enginez/react-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz(react@19.3.0)':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-      '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+      '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       '@preact/signals-react': 3.12.0(react@19.3.0)
       react: 19.3.0
 
-  '@filter-enginez/reactive-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.2.tgz(rxjs@7.8.2)':
+  '@filter-enginez/reactive-rxjs@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz(rxjs@7.8.2)':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-      '@filter-enginez/worker-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+      '@filter-enginez/worker-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
       rxjs: 7.8.2
 
-  '@filter-enginez/reactive-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz':
+  '@filter-enginez/reactive-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-      '@filter-enginez/worker-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+      '@filter-enginez/worker-bridge': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz
       '@preact/signals-core': 1.14.4
 
-  '@filter-enginez/redux-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.2.tgz(@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0))':
+  '@filter-enginez/redux-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz(@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0))':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       '@reduxjs/toolkit': 2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.0)(redux@5.0.1))(react@19.3.0)
 
-  '@filter-enginez/svelte-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.2.tgz(svelte@5.57.2(@typescript-eslint/types@8.71.1))':
+  '@filter-enginez/svelte-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz(svelte@5.57.2(@typescript-eslint/types@8.71.1))':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-      '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+      '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       svelte: 5.57.2(@typescript-eslint/types@8.71.1)
 
-  '@filter-enginez/url-state-router@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.2.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
+  '@filter-enginez/url-state-router@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       lz-string: 1.5.0
       react: 19.3.0
       react-router: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
-  '@filter-enginez/vue-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.2.tgz(vue@3.5.43(typescript@6.0.3))':
+  '@filter-enginez/vue-signals@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz(vue@3.5.43(typescript@6.0.3))':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
-      '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
+      '@filter-enginez/reactive-signals': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz
       vue: 3.5.43(typescript@6.0.3)
 
-  '@filter-enginez/worker-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.2.tgz':
+  '@filter-enginez/worker-bridge@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz':
     dependencies:
-      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.2.tgz
+      '@filter-enginez/core': file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz
       comlink: 4.4.2
 
   '@floating-ui/core@1.8.0':

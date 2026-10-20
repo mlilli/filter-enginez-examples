@@ -51,7 +51,9 @@
 	<AppHeaderBrand page="Wine" tier="server" />
 </header>
 
-<div class="fe-server-fallback">
+<!-- `<main>`: the server-rendered results are the page's main content until the live view replaces
+     them. It also keeps the banner below a plain header of this region rather than a second page banner. -->
+<main class="fe-server-fallback">
 	<header class="fe-server-fallback__banner">
 		<span class="fe-server-fallback__dot" aria-hidden="true"></span>
 		<p class="fe-server-fallback__banner-text">
@@ -136,4 +138,4 @@
 	{:else}
 		<p class="fe-server-fallback__empty">No wines match these filters. Try relaxing them.</p>
 	{/if}
-</div>
+</main>

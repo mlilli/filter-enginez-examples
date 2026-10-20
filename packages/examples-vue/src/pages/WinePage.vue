@@ -168,7 +168,8 @@ onUnmounted(() => {
 		:vocabularies="vocabularies"
 	/>
 
-	<div v-else-if="bootError" class="fe-boot-error">
+	<!-- Each state below is a `<main>`: until the engine boots, it is the page's main content. -->
+	<main v-else-if="bootError" class="fe-boot-error">
 		<p class="fe-boot-error__title">The wine engine could not start.</p>
 		<p class="fe-boot-error__detail">{{ bootError }}</p>
 		<p class="fe-boot-error__detail">
@@ -176,9 +177,9 @@ onUnmounted(() => {
 			worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
 			tier on the main thread instead.
 		</p>
-	</div>
+	</main>
 
-	<div v-else class="vue-wine__booting">
+	<main v-else class="vue-wine__booting">
 		<BrainSynapse loader-label="Loading wine reviews" :width="520" />
 		<p class="fe-boot-caption fe-boot-caption--hero">
 			<template v-for="part in bootCaption" :key="part.kind + part.text">
@@ -186,7 +187,7 @@ onUnmounted(() => {
 				<template v-else>{{ part.text }}</template>
 			</template>
 		</p>
-	</div>
+	</main>
 </template>
 
 <style scoped>

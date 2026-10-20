@@ -102,8 +102,9 @@ const NO_STRUCTURAL_KEY = 'no-structural-key';
  * every comparison are produced by the same serializer, so key order cannot differ.
  *
  * Verified against a real `?f` round-trip — `exportConfig` → JSON → `loadConfig` — for all four
- * presets, INCLUDING `cellar-picks`, whose `Number.POSITIVE_INFINITY` upper bound was the obvious
- * candidate to be mangled by `JSON.stringify` and is not.
+ * presets, INCLUDING `cellar-picks`: JSON writes its `Number.POSITIVE_INFINITY` upper bound as
+ * `null`, and the engine loads a `null` bound back as open, so the key and the result count both
+ * survive the trip.
  *
  * **Returns {@link NO_STRUCTURAL_KEY} for a rule it cannot serialize.** An expression that has
  * crossed a structured-clone / JSON boundary is a plain object shaped like a rule: the right `.config`

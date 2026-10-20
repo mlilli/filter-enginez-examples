@@ -1,11 +1,12 @@
 /**
  * Vue Router config for the Vue app. Client-side history routing — the plain-SPA counterpart to the
- * React apps' `createBrowserRouter` and SvelteKit's file routes.
+ * React apps' `AppRouter` and SvelteKit's file routes.
  *
  * @packageDocumentation
  */
 
 import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { shallowRef } from 'vue';
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 import LandingPage from './pages/LandingPage.vue';
@@ -40,10 +41,34 @@ export const router = createRouter({
 	routes,
 });
 
+/** A navigation that failed, and what it threw. */
+export interface PageFailure {
+	/** What the router reported; anything, since a lazy import or a guard can throw anything. */
+	readonly error: unknown;
+}
+
+/**
+ * The failure the page being opened hit, or `null` while every navigation succeeds.
+ *
+ * @remarks
+ * A lazy route whose code does not load (a dropped connection, or a deploy that replaced the chunk an
+ * open tab asks for) fails its navigation, and Vue Router reports it to `onError` and renders nothing
+ * new: on a first visit, nothing at all. `App.vue` shows the shared page-error screen while this is
+ * set, and the next navigation that succeeds clears it.
+ */
+export const pageFailure = shallowRef<PageFailure | null>(null);
+
+router.onError((error) => {
+	pageFailure.value = { error };
+});
+
 // Each route's title, description and canonical URL, written after every navigation, the first
 // included: one static shell serves every route, so the head has to follow the route
 // (`examples-shared/page-meta`). A change of query alone (a filter state in `?f=`) keeps the path, and
 // writing the same tags again is harmless.
-router.afterEach((to) => {
+router.afterEach((to, _from, failure) => {
+	if (failure === undefined) {
+		pageFailure.value = null;
+	}
 	applyPageMeta(document, verticalPageMeta('vue', to.path));
 });

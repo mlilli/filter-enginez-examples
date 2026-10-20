@@ -87,6 +87,19 @@ describe('LabPage', () => {
 		);
 	});
 
+	it('puts everything below the header in one main landmark: the hero and the three panes', () => {
+		// The header is the banner; the rest is the page's content. Outside a landmark, the hero's title
+		// and lead would be content no landmark navigation reaches (axe's `region`).
+		mountPage();
+
+		const [main, ...others] = screen.getAllByRole('main');
+
+		expect(others).toEqual([]);
+		expect(within(main as HTMLElement).getByRole('heading', { level: 1 })).toBeDefined();
+		expect(within(main as HTMLElement).getByText('suggestions')).toBeDefined();
+		expect(main?.contains(screen.getByRole('banner'))).toBe(false);
+	});
+
 	it('links back to /books, which is where the shared engine state comes from', () => {
 		mountPage();
 

@@ -12,9 +12,11 @@
  */
 
 import react from '@vitejs/plugin-react';
-import { defineConfig, type HtmlTagDescriptor, type Plugin } from 'vite';
+import { defineConfig, type HtmlTagDescriptor, type Plugin, runnerImport } from 'vite';
 
+import { criticalCssPlugin } from '../../scripts/lib/critical-css.mjs';
 import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
+import { SIDE_EFFECT_FREE_BARRELS } from '../../scripts/lib/tree-shaking.mjs';
 
 /**
  * The modules every first visit to this site renders, by the end of their source path: the docs
@@ -92,6 +94,10 @@ function preloadDocsShell(): Plugin {
 
 export default defineConfig({
 	build: {
+		// The brand package's barrels re-export every brand component; declared free of side effects, they
+		// no longer pull a component only some other page draws into the first screen's chunks
+		// (scripts/lib/tree-shaking.mjs).
+		rolldownOptions: { treeshake: { moduleSideEffects: [...SIDE_EFFECT_FREE_BARRELS]}},
 		sourcemap: true,
 		target: 'es2022',
 	},
@@ -111,7 +117,9 @@ export default defineConfig({
 		// which Vite would snapshot once and then serve stale on every source edit.
 		include: ['react', 'react-dom', 'react-dom/client'],
 	},
-	plugins: [react(), fontPreloadsPlugin(), preloadDocsShell()],
+	// `criticalCssPlugin` comes after `preloadDocsShell`: the docs shell it preloads draws from the whole
+	// stylesheet, so the page preloads the sheet as well (scripts/lib/critical-css.mjs).
+	plugins: [react(), fontPreloadsPlugin(), preloadDocsShell(), criticalCssPlugin({ runnerImport })],
 	resolve: {
 		// One React + one signals-core copy across the linked workspace graph. Comlink is kept in the
 		// dedupe list for parity with the React apps even though the docs never spawn a worker.

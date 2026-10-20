@@ -153,6 +153,10 @@ words:
   # `createWireRehydrator` — the shared worker-wire rehydration factory in `worker-bridge`,
   # named in three packages. `rehydrate`/`rehydration` are already known; the agent noun is not.
   - rehydrator
+  # `llms.txt` (llmstxt.org) — the Markdown index for language-model tools every host serves, its
+  # generator `llmsTxt.ts`, and the spec's site. A file name, not a word.
+  - llms
+  - llmstxt
   # `smol-toml` — the TOML parser markdownlint-cli2 depends on. A package name, so it appears in
   # SECURITY.md and pnpm-workspace.yaml's override notes. The allowlist case exactly: a real library whose name is not a word.
   - smol

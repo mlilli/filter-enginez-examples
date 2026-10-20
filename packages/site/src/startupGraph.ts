@@ -193,6 +193,6 @@ export function describeStartupViolations(violations: readonly StartupViolation[
 	return [
 		'A page loads JavaScript at startup that only the live benchmark needs, on demand:',
 		...lines.values(),
-		'Import it through how-it-works/benchmarkEngine.ts with a dynamic import(), and keep the engine’s modules declared side-effect free in vite.config.ts.',
+		'Import it through how-it-works/benchmarkEngine.ts with a dynamic import(), and keep examples-shared’s how-it-works modules declared side-effect free in vite.config.ts.',
 	].join('\n');
 }

@@ -181,6 +181,11 @@ export const HISTOGRAM_BAR = '.fe-range-histogram__bar';
  * a substring match, which collides on this panel ("Price" inside "Price per square foot" if one is
  * ever added), so the label is matched exactly.
  *
+ * **The label is matched as TEXT, not as a pattern.** The wine labels carry their unit in
+ * parentheses (`Price (USD)`, `ABV (%)`), and those parentheses written raw into the anchored pattern
+ * are a capture group: `^Price (USD)$` matches "Price USD" and nothing on the page. Every
+ * pattern-special character is escaped by {@link literalPattern} first.
+ *
  * @param page - The page under test.
  * @param label - The slider's visible label, matched exactly.
  * @returns A locator for the single matching `.fe-range-slider`.
@@ -188,7 +193,17 @@ export const HISTOGRAM_BAR = '.fe-range-histogram__bar';
 export function rangeSliderByLabel(page: Page, label: string): Locator {
 	return page
 		.locator('.fe-range-slider')
-		.filter({ has: page.locator('.fe-range-slider__label', { hasText: new RegExp(`^${label}$`, 'u') }) });
+		.filter({ has: page.locator('.fe-range-slider__label', { hasText: new RegExp(`^${literalPattern(label)}$`, 'u') }) });
+}
+
+/**
+ * A string with every regular-expression metacharacter escaped, so it matches only itself.
+ *
+ * @param text - The literal text, e.g. a control's visible label.
+ * @returns The pattern source that matches exactly `text`.
+ */
+function literalPattern(text: string): string {
+	return text.replaceAll(/[$()*+.?[\\\]^{|}]/gu, String.raw`\$&`);
 }
 
 /**

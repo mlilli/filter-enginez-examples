@@ -52,59 +52,64 @@ export const BooksConfigApp = (): React.ReactElement => {
 	return (
 		<div className="min-h-screen flex flex-col">
 			<Header />
-			<div className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pt-3">
-				<ThesisNote />
-			</div>
-			{/* Below `xl`, the config is a full-width collapsible banner (open on desktop widths). */}
-			<details
-				className="xl:hidden max-w-[1600px] w-full mx-auto px-4 lg:px-6 pt-3"
-				open={isDesktop}
-			>
-				<summary
-					className="text-xs uppercase cursor-pointer"
-					style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', paddingBottom: '0.5rem' }}
+			{/* One main landmark for everything between the header and the footer: the thesis line and the
+			    config banner frame the panel and the results, and outside a landmark they would be content
+			    no landmark navigation reaches. */}
+			<main className="flex-1 flex flex-col">
+				<div className="max-w-[1600px] w-full mx-auto px-4 lg:px-6 pt-3">
+					<ThesisNote />
+				</div>
+				{/* Below `xl`, the config is a full-width collapsible banner (open on desktop widths). */}
+				<details
+					className="xl:hidden max-w-[1600px] w-full mx-auto px-4 lg:px-6 pt-3"
+					open={isDesktop}
 				>
-					Filter config (JSON) — the panel below is generated from this
-				</summary>
-				<ConfigJsonView config={booksFilterConfig} maxHeight="40vh" />
-			</details>
-			<main className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 px-4 py-3 lg:px-6 lg:py-4 max-w-[1600px] w-full mx-auto">
-				{/* Side-by-side config JSON — a sticky column at `xl` and up. */}
-				<aside
-					className="hidden xl:flex xl:flex-col w-96 shrink-0 sticky top-4 self-start"
-					style={{ maxHeight: 'calc(100vh - 2rem)' }}
-				>
-					<ConfigColumnLabel />
-					<ConfigJsonView config={booksFilterConfig} maxHeight="calc(100vh - 8rem)" />
-				</aside>
-				{isDesktop ? (
+					<summary
+						className="text-xs uppercase cursor-pointer"
+						style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', paddingBottom: '0.5rem' }}
+					>
+						Filter config (JSON) — the panel below is generated from this
+					</summary>
+					<ConfigJsonView config={booksFilterConfig} maxHeight="40vh" />
+				</details>
+				<div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 px-4 py-3 lg:px-6 lg:py-4 max-w-[1600px] w-full mx-auto">
+					{/* Side-by-side config JSON — a sticky column at `xl` and up. */}
 					<aside
-						className="w-80 shrink-0 sticky top-4 self-start flex flex-col"
-						style={{
-							background: 'var(--gray-1)',
-							border: '1px solid var(--gray-3)',
-							borderRadius: 'var(--radius-lg)',
-							maxHeight: 'calc(100vh - 2rem)',
-						}}
+						className="hidden xl:flex xl:flex-col w-96 shrink-0 sticky top-4 self-start"
+						style={{ maxHeight: 'calc(100vh - 2rem)' }}
 					>
-						<ConfigDrivenPanel config={booksFilterConfig} />
+						<ConfigColumnLabel />
+						<ConfigJsonView config={booksFilterConfig} maxHeight="calc(100vh - 8rem)" />
 					</aside>
-				) : (
-					<FilterDrawer
-						isOpen={isFilterDrawerOpen}
-						onClose={() => setIsFilterDrawerOpen(false)}
-						title="Filters"
-						ariaLabel="Book filters (config-generated)"
-						keepMounted
-					>
-						<ConfigDrivenPanel config={booksFilterConfig} isHeaderVisible={false} />
-					</FilterDrawer>
-				)}
-				<section className="flex-1 min-w-0 flex flex-col gap-4">
-					{!isDesktop ? <FiltersTrigger onOpen={() => setIsFilterDrawerOpen(true)} /> : null}
-					<BooksResultsHeader />
-					<BooksResultGrid />
-				</section>
+					{isDesktop ? (
+						<aside
+							className="w-80 shrink-0 sticky top-4 self-start flex flex-col"
+							style={{
+								background: 'var(--gray-1)',
+								border: '1px solid var(--gray-3)',
+								borderRadius: 'var(--radius-lg)',
+								maxHeight: 'calc(100vh - 2rem)',
+							}}
+						>
+							<ConfigDrivenPanel config={booksFilterConfig} />
+						</aside>
+					) : (
+						<FilterDrawer
+							isOpen={isFilterDrawerOpen}
+							onClose={() => setIsFilterDrawerOpen(false)}
+							title="Filters"
+							ariaLabel="Book filters (config-generated)"
+							keepMounted
+						>
+							<ConfigDrivenPanel config={booksFilterConfig} isHeaderVisible={false} />
+						</FilterDrawer>
+					)}
+					<section className="flex-1 min-w-0 flex flex-col gap-4">
+						{!isDesktop ? <FiltersTrigger onOpen={() => setIsFilterDrawerOpen(true)} /> : null}
+						<BooksResultsHeader />
+						<BooksResultGrid />
+					</section>
+				</div>
 			</main>
 			<Footer />
 		</div>

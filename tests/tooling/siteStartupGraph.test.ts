@@ -7,10 +7,12 @@
  *
  * The how-it-works page's live benchmark runs the real engine (about 350 kB minified, most of it the
  * WebAssembly bitmap library) over the wine corpus. It fetches both on demand, through one dynamic
- * `import()` of `packages/site/src/how-it-works/benchmarkEngine.ts`, and the site's `vite.config.ts`
- * declares the engine's modules side-effect free so that the pages which import a constant or an error
- * class from next to it do not pull in the rest. Undoing either still builds, passes every other test
- * and renders the same pages; it only adds the engine to their first download.
+ * `import()` of `packages/site/src/how-it-works/benchmarkEngine.ts`. The pages that import a constant or
+ * an error class from next to it do not pull in the rest because the bundler may drop what they leave
+ * unused: the engine's packages declare `"sideEffects": false`, and the site's `vite.config.ts` declares
+ * the same of examples-shared's how-it-works subpath, whose barrel re-exports the workload. Undoing
+ * either still builds, passes every other test and renders the same pages; it only adds the engine to
+ * their first download.
  *
  * ### What this file pins
  *
@@ -130,9 +132,10 @@ describe('the site build', () => {
 		expect(VITE_CONFIG).toMatch(/findDeferredModulesAtStartup\(pages, chunks\)/u);
 	});
 
-	it('tells the bundler the engine’s modules, and the subpath that re-exports the workload, run nothing at import', () => {
-		expect(VITE_CONFIG).toMatch(/treeshake: \{ moduleSideEffects: ENGINE_SIDE_EFFECT_FREE \}/u);
-		expect(VITE_CONFIG).toContain('{ sideEffects: false, test: /[/\\\\]node_modules[/\\\\]@filter-enginez[/\\\\]core[/\\\\]dist[/\\\\]/u }');
+	it('tells the bundler the subpath that re-exports the workload runs nothing at import', () => {
+		// The engine's modules need no rule: its packages declare `"sideEffects": false`, and the build's
+		// startup check above fails if that ever stops keeping the engine off a page.
+		expect(VITE_CONFIG).toMatch(/treeshake: \{ moduleSideEffects: HOW_IT_WORKS_SIDE_EFFECT_FREE \}/u);
 		expect(VITE_CONFIG).toContain('{ sideEffects: false, test: /[/\\\\]examples-shared[/\\\\]src[/\\\\]how-it-works[/\\\\]/u }');
 	});
 });

@@ -49,8 +49,8 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	buildWineBundleQuery,
-	commitExpression,
 	deriveWineFacets,
+	exitExpressionMode,
 	type WineBundleQuery,
 } from '@filter-enginez/examples-shared/wine-domain';
 
@@ -134,7 +134,7 @@ export function createWinePanel(core: FilterEngine<Wine>): WinePanel {
 			return;
 		}
 		smartFilters.update(null);
-		commitExpression(host, null);
+		exitExpressionMode(host);
 	};
 
 	const context = { facets, host, leaveExpressionMode };

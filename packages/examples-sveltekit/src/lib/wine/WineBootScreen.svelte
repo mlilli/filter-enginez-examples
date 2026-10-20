@@ -57,7 +57,8 @@
 	const captionParts = $derived(bootCaptionParts(progress, { idleCaption, recordNoun: 'bottles' }));
 </script>
 
-<div class="fe-wine-boot">
+<!-- `<main>`: until the engine boots, the loader and its caption are the page's main content. -->
+<main class="fe-wine-boot">
 	<BrainSynapse width={520} ariaLabel="Loading wine reviews" />
 
 	<p class="fe-boot-caption fe-boot-caption--hero">
@@ -77,7 +78,7 @@
 			wines in the worker.
 		</p>
 	{/if}
-</div>
+</main>
 
 <style>
 	.fe-wine-boot {

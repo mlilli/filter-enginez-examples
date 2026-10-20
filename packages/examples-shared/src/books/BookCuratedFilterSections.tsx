@@ -16,18 +16,24 @@
  *     It's a _pre-screen_ (no false negatives; a tunable, tiny false-positive rate), which is exactly
  *     the point of the demo; a correctness-critical use would pair it with an exact check.
  *
+ * The super-group table, its toggle and its inverse, and the Bloom builder all live in the
+ * framework-neutral `books-domain/curated`, which the SvelteKit, Vue, Angular and vanilla panels
+ * read too, so every vertical commits and reads back the same rule shapes.
+ *
  * @packageDocumentation
  */
 
 import type { Book, BookGenre } from '@filter-enginez/mock-data/books';
 
-import { BloomFilter, bloomMembership, type BloomMembershipRule, inSetofSets, type InSetofSetsRule } from '@filter-enginez/core';
+import { type BloomFilter, bloomMembership, type BloomMembershipRule, inSetofSets, type InSetofSetsRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { ChipToggleGroup } from '@filter-enginez/react-ui';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
+import { useSeedAndAdopt } from '../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../scheduling/index.js';
-import { SectionHeader } from './BookFilterSections.js';
+import { sameMembers, SectionHeader } from './BookFilterSections.js';
+import { deriveSelectedGroupKeys, nextSuperGroupSets, SUPER_GROUP_KEYS } from './books-domain/curated.js';
 import { CheckboxControl } from './CheckboxControl.js';
 import { markUserAction } from './engineBusy.js';
 import { useBooksChipExclusion, useToggleWouldBeEmpty } from './filterBundle.js';
@@ -38,72 +44,39 @@ const GENRE_GROUPS_RULE_ID = 'genre-groups';
 /** Rule id + registry key for the Editor's-picks BloomMembershipRule. */
 const EDITORS_PICKS_RULE_ID = 'editors-picks';
 
-/** Minimum average rating for a book to count as an "editor's pick" (drives the Bloom set). */
-const EDITORS_PICK_MIN_RATING = 4.5;
-
 /** Stable empty key selection so an unset rule doesn't churn referential identity. */
 const EMPTY_KEYS: readonly string[] = [];
 
 /**
- * Curated genre super-groups — each maps a human label to a set of `BookGenre`s. A book passes the
- * `InSetofSetsRule` when its single `genre` is a member of ANY selected group's set. Every genre is
- * covered exactly once across the five groups.
- */
-const GENRE_SUPER_GROUPS: Record<string, readonly BookGenre[]> = {
-	'Fiction & drama': ['children', 'fiction', 'romance', 'young-adult'],
-	'Knowledge & ideas': ['biography', 'business', 'history', 'philosophy', 'reference', 'science'],
-	'Lifestyle & arts': ['cookbook', 'poetry', 'travel'],
-	'Mystery & thriller': ['mystery', 'thriller'],
-	Speculative: ['fantasy', 'science-fiction'],
-};
-
-/** The super-group labels, in declaration order — the chip vocabulary. */
-const SUPER_GROUP_KEYS: readonly string[] = Object.keys(GENRE_SUPER_GROUPS);
-
-/**
- * The super-group node specs the predictive-disable bundle simulates — one entry per group carrying
- * the genre set that selecting it would add. Mirrors wine's origin node specs (the `inSetOfSets`
- * chip-group shape `applyFiltersAndQuery` expects).
- */
-export function getSuperGroupNodeSpecs(): readonly { readonly leafIds: readonly string[]; readonly value: string; }[] {
-	return SUPER_GROUP_KEYS.map((key) => ({ leafIds: GENRE_SUPER_GROUPS[key] ?? [], value: key }));
-}
-
-/**
  * A genre super-group section committing an `InSetofSetsRule`. Selecting a group chip adds that
  * group's genre-set; a book matches if its genre is in any selected set.
+ *
+ * @remarks
+ * **Seed and adopt**, like every other chip group in the React panels: the lit groups derive from the
+ * committed rule through `deriveSelectedGroupKeys`, so a `?f` restore, time travel and a clear-all all
+ * reach the chips, and a click paints at once ahead of the engine. The restore matters at mount:
+ * `<FilterEngineUrlSync>` loads `?f` in an effect, after this section has already rendered.
+ *
+ * A click's local selection is read back from the very sets it commits, so it holds exactly what the
+ * engine's echo derives; the echo then matches and the local value stays.
  */
 export const SuperGroupSection = (): React.ReactElement => {
 	const engine = useFilterEngine<Book>();
 	const rule = useRule(GENRE_GROUPS_RULE_ID) as InSetofSetsRule<BookGenre> | undefined;
-	const engineGroupCount = rule?.config.set.length ?? 0;
-	const [selectedKeys, setSelectedKeys] = useState<readonly string[]>(EMPTY_KEYS);
-	const [lastSeenGroupCount, setLastSeenGroupCount] = useState(engineGroupCount);
-
-	// Re-sync on an external clear (clear-all / chip removal empties the rule) — reset local keys so
-	// the chips agree with the engine. Partial external edits have no UI here, so this suffices.
-	// Adjusted during render rather than in an effect, so the cleared chips never paint a stale frame.
-	if (engineGroupCount !== lastSeenGroupCount) {
-		setLastSeenGroupCount(engineGroupCount);
-
-		if (engineGroupCount === 0) {
-			setSelectedKeys(EMPTY_KEYS);
-		}
-	}
+	// Memoized so the adopted value keeps its identity until the rule changes — `useSeedAndAdopt`
+	// treats a new array as a new commit.
+	const engineKeys = useMemo(() => (rule === undefined ? EMPTY_KEYS : deriveSelectedGroupKeys(rule.config.set)), [rule]);
+	const [selectedKeys, setSelectedKeys] = useSeedAndAdopt(engineKeys, sameMembers);
 
 	const handleToggle = useCallback((groupKey: string): void => {
-		const isSelected = selectedKeys.includes(groupKey);
-		const nextKeys = isSelected ? selectedKeys.filter((key) => key !== groupKey) : [...selectedKeys, groupKey];
-		const nextSets = nextKeys
-			.map((key) => GENRE_SUPER_GROUPS[key])
-			.filter((set): set is readonly BookGenre[] => set !== undefined);
+		const nextSets = nextSuperGroupSets(selectedKeys, groupKey);
 
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(GENRE_GROUPS_RULE_ID, inSetofSets<BookGenre>('genre', nextSets)),
 			markBusy: markUserAction,
-			paintOptimisticUi: () => setSelectedKeys(nextKeys),
+			paintOptimisticUi: () => setSelectedKeys(deriveSelectedGroupKeys(nextSets)),
 		});
-	}, [engine, selectedKeys]);
+	}, [engine, selectedKeys, setSelectedKeys]);
 	// Predictive-disable — a super-group whose selection would empty the set (given the active genre
 	// chips / other filters) is disabled, so the group ↔ chip interaction can never reach zero.
 	const exclusion = useBooksChipExclusion(GENRE_GROUPS_RULE_ID);
@@ -156,29 +129,3 @@ export const FeaturedSection = (props: FeaturedSectionProps): React.ReactElement
 
 	return <CheckboxControl isChecked={isChecked} isDisabled={isDisabled} label="Editor's picks (top-rated)" onToggle={handleToggle} />;
 };
-
-/**
- * Build the Editor's-picks Bloom filter from the corpus — the set of `book.id`s whose
- * `averageRating` meets {@link EDITORS_PICK_MIN_RATING}. Sized to that count at a 0.1% target
- * false-positive rate. The `BloomMembershipRule` keys on `String(id)`, and `id` is already a string,
- * so `filter.add(book.id)` and the rule's probe agree.
- */
-export function buildEditorsPicksFilter(books: readonly Book[]): BloomFilter {
-	const pickIds = books.filter(isEditorsPick).map((book) => book.id);
-	const filter = BloomFilter.forCapacity(Math.max(1, pickIds.length), 0.001);
-
-	for (const id of pickIds) {
-		filter.add(id);
-	}
-
-	return filter;
-}
-
-/**
- * Whether a book qualifies as an editor's pick (non-null rating at or above the threshold).
- *
- * @internal
- */
-function isEditorsPick(book: Book): boolean {
-	return book.averageRating !== null && book.averageRating >= EDITORS_PICK_MIN_RATING;
-}

@@ -197,11 +197,12 @@ function bootingNotice(): BootingNotice {
 	// `.fe-boot-caption--inline` is the class for what this element actually is, padding included —
 	// not `.fe-filter-section-label`, a panel SECTION HEADING that is 14px and semibold and would read
 	// as a heading rather than as body copy on a boot screen.
-	const element = el('p', { className: 'fe-boot-caption fe-boot-caption--inline' });
+	const caption = el('p', { className: 'fe-boot-caption fe-boot-caption--inline' });
 	const notice: BootingNotice = {
-		element,
+		// Inside a `<main>`: until the engine boots, the caption is the page's main content.
+		element: el('main', { children: [caption]}),
 		setProgress: (progress) => {
-			element.replaceChildren(
+			caption.replaceChildren(
 				...bootCaptionParts(progress, {
 					idleCaption: REAL_ESTATE_BOOT_IDLE_CAPTION,
 					recordNoun: REAL_ESTATE_RECORD_NOUN,

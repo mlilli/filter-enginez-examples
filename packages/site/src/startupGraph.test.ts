@@ -185,7 +185,7 @@ describe('describeStartupViolations', () => {
 			'A page loads JavaScript at startup that only the live benchmark needs, on demand:',
 			`  compare.html loads the engine at startup, in assets/engine.js (e.g. ${ENGINE_MODULE})`,
 			`  compare.html loads rbush at startup, in assets/engine.js (e.g. ${NODE_MODULES}/rbush/index.js)`,
-			'Import it through how-it-works/benchmarkEngine.ts with a dynamic import(), and keep the engine’s modules declared side-effect free in vite.config.ts.',
+			'Import it through how-it-works/benchmarkEngine.ts with a dynamic import(), and keep examples-shared’s how-it-works modules declared side-effect free in vite.config.ts.',
 		]);
 	});
 });

@@ -92,7 +92,8 @@ import { WineViewComponent } from '../wine/wine-view.component.js';
 		@if (store.isReady()) {
 			<fe-wine-view />
 		} @else if (store.error(); as message) {
-			<div class="fe-boot-error">
+			<!-- Each state below is a main landmark: until the engine boots, it is the page's main content. -->
+			<main class="fe-boot-error">
 				<p class="fe-boot-error__title">The wine engine could not start.</p>
 				<p class="fe-boot-error__detail">{{ message }}</p>
 				<p class="fe-boot-error__detail">
@@ -101,9 +102,9 @@ import { WineViewComponent } from '../wine/wine-view.component.js';
 					set <code>WINE_DATASET_SIZE</code> to <code>10_000</code> in
 					<code>src/app/wine/wineBoot.ts</code>.
 				</p>
-			</div>
+			</main>
 		} @else {
-			<div class="fe-wine-booting">
+			<main class="fe-wine-booting">
 				<fe-brain-synapse loaderLabel="Loading wine reviews" [width]="520" />
 				<p class="fe-boot-caption fe-boot-caption--hero">
 					@for (part of bootCaption(); track part.kind + part.text) {
@@ -114,7 +115,7 @@ import { WineViewComponent } from '../wine/wine-view.component.js';
 						}
 					}
 				</p>
-			</div>
+			</main>
 		}
 	`,
 })

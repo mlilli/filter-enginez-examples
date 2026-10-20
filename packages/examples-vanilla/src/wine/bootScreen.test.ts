@@ -34,6 +34,16 @@ describe('createWineBootScreen', () => {
 		expect(element.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('Loading wine reviews');
 	});
 
+	it('is the page’s main landmark, holding the loader and the caption', () => {
+		// Until the engine boots this screen is all the page shows, and an accessibility audit run in
+		// that moment finds no main landmark unless the screen is one.
+		const { element } = createWineBootScreen('Loading wine reviews');
+
+		expect(element.tagName).toBe('MAIN');
+		expect(element.querySelector('[role="img"]')).not.toBeNull();
+		expect(element.querySelector('.fe-boot-caption')).not.toBeNull();
+	});
+
 	it('REPLACES the caption rather than appending to it', () => {
 		// The screen is narrated once per progress event — a few hundred times across a full stream. An
 		// `append` here would grow the caption into a paragraph rather than update it, which is a defect
@@ -58,8 +68,11 @@ describe('createWineBootFailure', () => {
 		const failure = createWineBootFailure('worker never handshook');
 		const lines = [...failure.querySelectorAll('p')].map((line) => line.textContent);
 
-		// An alert, so a screen reader that was hearing the boot caption hears the failure instead.
-		expect(failure.getAttribute('role')).toBe('alert');
+		// An alert, so a screen reader that was hearing the boot caption hears the failure instead —
+		// inside the page's main landmark, which a `role` on the root itself would replace.
+		expect(failure.tagName).toBe('MAIN');
+		expect(failure.getAttribute('role')).toBeNull();
+		expect(failure.querySelector('[role="alert"]')?.textContent).toContain('worker never handshook');
 		expect(lines).toEqual([
 			'The wine engine could not start.',
 			'worker never handshook',

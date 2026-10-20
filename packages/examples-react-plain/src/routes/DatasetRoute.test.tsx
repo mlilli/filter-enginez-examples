@@ -34,7 +34,7 @@ import type * as UrlStateRouter from '@filter-enginez/url-state-router';
 // `IS_REACT_ACT_ENVIRONMENT` around the call, and React's own `act` without it prints "the current
 // testing environment is not configured to support act(...)" and does not batch — so every
 // assertion after an emission would be racing the render it is about.
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -343,6 +343,37 @@ describe('DatasetRoute', () => {
 			expect(screen.getByText('the live dataset app')).toBeDefined();
 			expect(screen.queryByTestId('url-sync')).toBeNull();
 			expect(urlSyncRenders).toEqual([]);
+		});
+	});
+
+	describe('the main landmark', () => {
+		// Every state has exactly one `<main>`, holding what the state shows: an audit run while the
+		// corpus is still loading reads the boot screen, not the app.
+		it('holds the loader on the first frame, before the dataset code has loaded', () => {
+			render(<DatasetRoute entry={makeEntry()} />);
+
+			expect(screen.getAllByRole('main')).toHaveLength(1);
+			expect(within(screen.getByRole('main')).getByLabelText('Loading Books')).toBeDefined();
+		});
+
+		it('holds the loader and its caption while the engine boots', async () => {
+			await renderBooting();
+			await emitProgress({ loaded: 40_000, total: 130_000 });
+
+			expect(screen.getAllByRole('main')).toHaveLength(1);
+			expect(within(screen.getByRole('main')).getByText(/Loaded/u)).toBeDefined();
+		});
+
+		it('holds the failure message when boot fails', async () => {
+			await renderBooting();
+			await act(async () => {
+				bootOf('books').reject(new Error('corpus fetch returned 503'));
+				await Promise.resolve();
+			});
+			await flush();
+
+			expect(screen.getAllByRole('main')).toHaveLength(1);
+			expect(within(screen.getByRole('main')).getByText('Engine failed to boot')).toBeDefined();
 		});
 	});
 

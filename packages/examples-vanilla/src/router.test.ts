@@ -452,3 +452,61 @@ describe('history integration', () => {
 		expect(container.textContent).toBe('BOOKS');
 	});
 });
+
+describe('a route that fails', () => {
+	/** A route whose code does not arrive, as when a deploy replaced the chunk an open tab asks for. */
+	const unloadable: Route = {
+		path: '/wine',
+		render: async () => Promise.reject(new TypeError('Failed to fetch dynamically imported module: /assets/winePage.js')),
+	};
+
+	it('shows the page-error screen, one main landmark around an alert, for a route whose code does not load', async () => {
+		const { container } = await mountRouter('/wine', [unloadable]);
+		const mains = container.querySelectorAll('main');
+
+		expect(mains).toHaveLength(1);
+		expect(mains[0]?.querySelector('[role="alert"]')?.textContent).toContain(
+			'Failed to fetch dynamically imported module: /assets/winePage.js',
+		);
+	});
+
+	it('shows it for a route whose render throws', async () => {
+		const throwing: Route = {
+			path: '/books',
+			render: () => {
+				throw new Error('the books page broke');
+			},
+		};
+		const { container } = await mountRouter('/books', [throwing]);
+
+		expect(container.querySelector('main [role="alert"]')?.textContent).toContain('the books page broke');
+	});
+
+	it('renders the next route normally once the visitor moves on', async () => {
+		const { container, handle } = await mountRouter('/wine', [unloadable, wordRoute('/', 'HUB')]);
+
+		handle.navigate('/');
+		await flush();
+
+		expect(container.querySelector('main')).toBeNull();
+		expect(container.textContent).toBe('HUB');
+	});
+
+	it('keeps a superseded route’s failure off the page', async () => {
+		let rejectSlow: (error: Error) => void = () => undefined;
+		const slow: Route = {
+			path: '/wine',
+			render: async () => new Promise<undefined>((_resolve, reject) => {
+				rejectSlow = reject;
+			}),
+		};
+		const { container, handle } = await mountRouter('/wine', [slow, wordRoute('/', 'HUB')]);
+
+		handle.navigate('/');
+		await flush();
+		rejectSlow(new Error('too late'));
+		await flush();
+
+		expect(container.textContent).toBe('HUB');
+	});
+});

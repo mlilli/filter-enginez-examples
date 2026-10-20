@@ -13,7 +13,9 @@
  *   a quietly five-row table; here it produces a failure that names it.
  * - **Preset loading** is the rot-guard for the decision to hand-author states. A renamed rule id
  *   yields an empty result set rather than an error at runtime, so the assertion is on the RESULT
- *   COUNT, not merely on `loadConfig` not throwing.
+ *   COUNT, not merely on `loadConfig` not throwing. The portability suite then carries every preset
+ *   through each `?f=` format and requires the same count, which is what proves an open bound
+ *   (written as `null`) loads back as open.
  *
  * @packageDocumentation
  */
@@ -358,8 +360,12 @@ describe('resolveCompareState', () => {
 
 		expect(state.sourceLabel).toBe(`preset · ${chosen?.label}`);
 		// Decoded rather than string-compared: the assertion is that the STATE survives, which is what
-		// the six links carry, not that the encoder emits a particular byte sequence.
-		expect(createTaggedSerializer('human-readable').decode(state.serialized)).toEqual(chosen?.config);
+		// the six links carry, not that the encoder emits a particular byte sequence. It survives as JSON
+		// carries it, so an open bound decodes as `null`; the portability suite proves the engine loads
+		// that back as open.
+		const configAsJsonCarriesIt: unknown = JSON.parse(JSON.stringify(chosen?.config));
+
+		expect(createTaggedSerializer('human-readable').decode(state.serialized)).toEqual(configAsJsonCarriesIt);
 	});
 
 	it('falls back to the first preset for an unknown or stale id rather than throwing', () => {
@@ -440,4 +446,33 @@ describe('portability — the claim the page exists to make', () => {
 			expect(createTaggedSerializer('compact').decode(encoded)).toEqual(preset.config);
 		},
 	);
+
+	it('holds at least one preset with an open bound, so the round trip below carries one', () => {
+		const openBoundPresetIds = COMPARE_DATASETS.flatMap((dataset) => COMPARE_PRESETS[dataset])
+			.filter((preset) => preset.config.rules.some(({ rule }) => rule.type === 'RangeRule' && JSON.stringify(rule.config).includes('null')))
+			.map((preset) => preset.id);
+
+		expect(openBoundPresetIds).toEqual(expect.arrayContaining(['family-home', 'long-fantasy']));
+	});
+
+	it.each(COMPARE_DATASETS)('keeps every %s preset\'s result count through each ?f= format, open bounds included', (dataset) => {
+		const sourceData = CORPORA[dataset];
+
+		for (const preset of COMPARE_PRESETS[dataset]) {
+			const loadedDirectly = createFilterEngine({ sourceData });
+
+			loadedDirectly.loadConfig(preset.config);
+			const expectedCount = loadedDirectly.getResults().length;
+
+			for (const format of ['human-readable', 'compact', 'json-base64'] as const) {
+				// JSON writes an open bound as `null`; the engine must load it back as open, not as 0.
+				const carried = createTaggedSerializer('compact').decode(createTaggedSerializer(format).encode(preset.config));
+				const loadedFromLink = createFilterEngine({ sourceData });
+
+				loadedFromLink.loadConfig(carried);
+
+				expect(loadedFromLink.getResults().length, `${dataset}/${preset.id} via ${format}`).toBe(expectedCount);
+			}
+		}
+	});
 });

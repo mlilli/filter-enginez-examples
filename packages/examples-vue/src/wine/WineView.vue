@@ -23,7 +23,8 @@
  * expression, as one operation. Splitting them is how a clear-all comes to drop the facets while
  * leaving a preset driving the results, with every control blank.
  *
- * **`SMART_FILTER_CHIP_ID` is a synthetic chip, not a rule.** Its × exits expression mode, which is
+ * **`SMART_FILTER_CHIP_ID` is a synthetic chip, not a rule.** Its × (through the shared
+ * `removeWineFilterChip`, which every vertical's header calls) exits expression mode, which is
  * the only way back to the flat facets once a preset is driving the results — and it clears the facets
  * too, deliberately. Dropping only the expression would let any flat rule that somehow survived the
  * takeover start filtering with nothing on screen explaining it.
@@ -55,9 +56,8 @@ import {
 	type NumericBounds,
 	type OriginNodeSpec,
 	type PickerTreeNode,
-	removeFacet,
+	removeWineFilterChip,
 	type SliderFieldId,
-	SMART_FILTER_CHIP_ID,
 	type WineChipVocabularies,
 } from '@filter-enginez/examples-shared/wine-domain';
 import { provideFilterEngine, useBusy, useEngineRefs } from '@filter-enginez/vue-signals';
@@ -185,12 +185,7 @@ function handleClearAll(): void {
  * @param ruleId - The rule the chip represents, or the synthetic smart-filter id.
  */
 function handleRemove(ruleId: string): void {
-	if (ruleId === SMART_FILTER_CHIP_ID) {
-		clearAllWineFilters(props.engine);
-
-		return;
-	}
-	removeFacet(props.engine, ruleId);
+	removeWineFilterChip(props.engine, ruleId);
 }
 </script>
 

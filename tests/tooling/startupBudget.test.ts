@@ -30,6 +30,10 @@
  * - **That it fails loudly** over budget, and on a build it cannot measure: no page, no entry,
  *   a listed chunk missing from disk, or a malformed command line. A budget check that measured
  *   nothing would otherwise read exactly like one that passed.
+ * - **That it fails a page whose first render waits for a stylesheet,** in each form a build writes
+ *   one (Vite's link, SvelteKit's, unquoted attributes, an inline `@import`), and passes the forms that
+ *   do not block: SvelteKit's `disabled` link beside its inlined CSS, Angular's `media="print"` link and
+ *   its `<noscript>` fallback, a preload, and markup quoted in a comment.
  *
  * @packageDocumentation
  */
@@ -171,11 +175,15 @@ describe('check-startup-budget.mjs', () => {
 		return spawnSync(process.execPath, [BUDGET_SCRIPT, ...args], { encoding: 'utf8' });
 	}
 
-	/** A fixture shaped like a Vite build: an entry, a preloaded vendor chunk, and code beyond them. */
+	/**
+	 * A fixture shaped like a Vite build: an entry, a preloaded vendor chunk, and code beyond them, with
+	 * a stylesheet linked the one way that does not block the first render, so that its size is in the
+	 * build without being JavaScript the first screen counts.
+	 */
 	const VITE_LIKE_HTML =
 		'<script type="module" crossorigin src="/assets/index.js"></script>' +
 		'<link rel="modulepreload" crossorigin href="/assets/vendor.js">' +
-		'<link rel="stylesheet" crossorigin href="/assets/index.css">';
+		'<link rel="stylesheet" href="/assets/index.css" media="print">';
 
 	/**
 	 * The fixture's chunks, each found by exactly one of the two routes the script reads, so dropping
@@ -288,6 +296,38 @@ describe('check-startup-budget.mjs', () => {
 
 		expect(run.status).toBe(1);
 		expect(run.stderr).toContain('/no/such/page.html does not exist');
+	});
+
+	it.each([
+		['Vite\'s stylesheet link', '<link rel="stylesheet" crossorigin href="/assets/index.css">'],
+		['SvelteKit\'s stylesheet link', '<link href="./_app/immutable/assets/0.css" rel="stylesheet">'],
+		['a link with unquoted attributes', '<link rel=stylesheet href=/assets/index.css>'],
+		['a link whose media matches the screen', '<link rel="stylesheet" href="/assets/index.css" media="all">'],
+		['an inline @import', '<style>@import url(/assets/index.css);body{margin:0}</style>'],
+	])('fails a page whose first render waits for a stylesheet: %s', (_case, tag) => {
+		const run = runBudget(writeBuild(`${VITE_LIKE_HTML}${tag}`, viteLikeAssets()), '--max-kb', '1');
+
+		expect(run.status).toBe(1);
+		expect(run.stderr).toContain('makes its first render wait for a stylesheet');
+		expect(run.stderr).toContain(tag.startsWith('<style') ? 'an @import in an inline <style>' : tag);
+		expect(run.stderr).toContain('scripts/lib/critical-css.mjs');
+	});
+
+	it('passes the stylesheets that do not hold up the first render', () => {
+		const tags = [
+			// SvelteKit, beside the CSS it inlined: the link is there so its client knows the sheet is applied.
+			'<style>body{margin:0}</style><link href="./_app/immutable/assets/0.css" rel="stylesheet" disabled media="(max-width: 0)">',
+			// Angular: its sheet loaded as print and swapped in, and the fallback for a browser without scripts.
+			'<link rel="stylesheet" href="styles-X.css" media="print" data-beasties-media="all">',
+			'<noscript><link rel="stylesheet" href="styles-X.css"></noscript>',
+			// A preload of the whole sheet, and markup that is only quoted.
+			'<link rel="preload" as="style" crossorigin href="/assets/index.css">',
+			'<!-- <link rel="stylesheet" href="/assets/old.css"> -->',
+		];
+		const run = runBudget(writeBuild(`${VITE_LIKE_HTML}${tags.join('')}`, viteLikeAssets()), '--max-kb', '1');
+
+		expect(run.status, run.stderr).toBe(0);
+		expect(run.stdout).toContain('before the first render (4 files; budget 1 kB), and no stylesheet holds it up');
 	});
 
 	it.each([

@@ -37,6 +37,7 @@ import { writeOriginSelection } from '../wine-domain/originRule.js';
 import { useBundleOriginCounts, useBundleOriginDisabledSet } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /** Props for {@link OriginFilterSection}. */
 export interface OriginFilterSectionProps {
@@ -54,6 +55,8 @@ export interface OriginFilterSectionProps {
  */
 export const OriginFilterSection = ({ specs, tree }: OriginFilterSectionProps): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(ORIGIN_RULE_ID) as InSetofSetsRule<string> | undefined;
 	// Memoized so the adopted value keeps its identity until the rule or the tree changes —
 	// `useSeedAndAdopt` treats a new array as a new commit.
@@ -66,13 +69,14 @@ export const OriginFilterSection = ({ specs, tree }: OriginFilterSectionProps): 
 	const [selected, setSelected] = useSeedAndAdopt(engineSelected, sameSelection);
 
 	const handleChange = useCallback((nextSelected: readonly string[]): void => {
+		leaveExpressionMode();
 		// Paint the tree's new checked state first, then disable+loader, then the engine.
 		commitFilterMutation({
 			callEngine: () => writeOriginSelection(engine.core, nextSelected, specs),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(nextSelected),
 		});
-	}, [engine, setSelected, specs]);
+	}, [engine, setSelected, specs, leaveExpressionMode]);
 
 	// Disabled-node set from the bundle's `origin` chip group — every tree node whose subtree would
 	// yield 0 results given the engine's currently-active OTHER rules. Selected nodes always stay

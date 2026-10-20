@@ -160,8 +160,10 @@ const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): Re
 	// yet.
 	const caption = bootCaptionParts(progress, { recordNoun: entry.recordNoun });
 
+	// `<main>`: until the dataset arrives, the loader and its caption are the page's main content, and
+	// a page with no main landmark fails the accessibility audit a visitor's tools run mid-boot.
 	return (
-		<div
+		<main
 			className="min-h-screen flex flex-col items-center justify-center gap-6 px-6"
 			style={{ background: 'var(--gray-0)' }}
 		>
@@ -175,7 +177,7 @@ const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): Re
 					),
 				)}
 			</p>
-		</div>
+		</main>
 	);
 };
 
@@ -186,8 +188,9 @@ const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): Re
  * @internal
  */
 const BootError = ({ error }: { readonly error: Error }): React.ReactElement => {
+	// `<main>`, as the boot screen is: the failure is the page's main content.
 	return (
-		<div
+		<main
 			className="min-h-screen flex flex-col items-center justify-center gap-4 p-8 text-center"
 			style={{ background: 'var(--gray-0)', color: 'var(--gray-10)' }}
 		>
@@ -203,6 +206,6 @@ const BootError = ({ error }: { readonly error: Error }): React.ReactElement => 
 			<p className="text-xs" style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)' }}>
 				Refresh the page to retry.
 			</p>
-		</div>
+		</main>
 	);
 };

@@ -20,6 +20,7 @@ import {
 	type CompositeRule,
 	createFilterEngine,
 	exportConfig,
+	type FilterEngine,
 	type FilterEngineConfig,
 	inSet,
 	loadConfig,
@@ -74,6 +75,16 @@ const corpus: readonly Wine[] = [
 ];
 
 /**
+ * Ids of the wines an engine currently selects.
+ *
+ * @param engine - Any engine over {@link corpus}.
+ * @returns The selected wines' ids, in result order.
+ */
+function selectedWineIds(engine: FilterEngine<Wine>): string[] {
+	return engine.getResults().map((row) => (row as unknown as { id: string }).id);
+}
+
+/**
  * Apply a preset by id and return the matching wine ids.
  *
  * @param id - The preset's stable id.
@@ -90,7 +101,7 @@ function idsMatching(id: string): string[] {
 
 	engine.setExpression(preset.build());
 
-	return engine.getResults().map((row) => (row as unknown as { id: string }).id);
+	return selectedWineIds(engine);
 }
 
 describe('preset catalog', () => {
@@ -187,28 +198,58 @@ describe('cellar-picks — a nested OR inside an AND, with a NOT', () => {
 });
 
 describe('deriveSelectedPresetIds', () => {
+	/** An expression on both sides of a shared link, and the wines each side selects. */
+	interface ShareLinkRoundTrip {
+		/** The JSON the link carries, as `JSON.stringify` wrote it. */
+		readonly linkJson: string;
+		/** The expression rebuilt from the link. */
+		readonly restoredExpression: CompositeRule | null;
+		/** Ids of the wines the rebuilt expression selects. */
+		readonly restoredWineIds: readonly string[];
+		/** Ids of the wines the expression selects before it is shared. */
+		readonly sourceWineIds: readonly string[];
+	}
+
 	/**
 	 * Push an expression through the real share-link path: `exportConfig` → JSON → `loadConfig`.
 	 *
 	 * @remarks
 	 * A plain `build()` comparison would prove far less. What has to survive is the ROUND TRIP — the
 	 * expression is serialized into `?f`, parsed back, and rebuilt through the rule registry, and it is
-	 * that rebuilt tree the panel must recognize. `cellar-picks` is the reason to be careful: it carries
-	 * `Number.POSITIVE_INFINITY`, which `JSON.stringify` writes as `null`.
+	 * that rebuilt tree the panel must recognize AND filter by. `cellar-picks` is the reason to be
+	 * careful: it carries `Number.POSITIVE_INFINITY`, which `JSON.stringify` writes as `null`. The
+	 * structural key alone cannot see whether that `null` loads back as open, because an open bound and
+	 * a `null` left as it arrived stringify alike; the selected wines can.
 	 *
 	 * @param expression - What the panel would commit.
-	 * @returns The expression as it comes back out of a shared link.
+	 * @returns Both sides of the link: the JSON, the rebuilt expression, and each side's selection.
 	 */
-	function throughShareLink(expression: CompositeRule): CompositeRule | null {
+	function shareLinkRoundTrip(expression: CompositeRule): ShareLinkRoundTrip {
 		const source = createFilterEngine<Wine>({ sourceData: corpus });
 
 		source.setExpression(expression);
 
+		const linkJson = JSON.stringify(exportConfig(source));
 		const restored = createFilterEngine<Wine>({ sourceData: corpus });
 
-		loadConfig(restored, JSON.parse(JSON.stringify(exportConfig(source))) as FilterEngineConfig);
+		loadConfig(restored, JSON.parse(linkJson) as FilterEngineConfig);
 
-		return restored.getExpression();
+		return {
+			linkJson,
+			restoredExpression: restored.getExpression(),
+			restoredWineIds: selectedWineIds(restored),
+			sourceWineIds: selectedWineIds(source),
+		};
+	}
+
+	/**
+	 * The expression as it comes back out of a shared link.
+	 *
+	 * @param expression - What the panel would commit.
+	 * @returns The rebuilt expression.
+	 */
+	function throughShareLink(expression: CompositeRule): CompositeRule | null {
+		return shareLinkRoundTrip(expression).restoredExpression;
 	}
 
 	/** Build one preset by id. */
@@ -226,10 +267,26 @@ describe('deriveSelectedPresetIds', () => {
 		expect(deriveSelectedPresetIds(null)).toEqual([]);
 	});
 
-	it.each(WINE_SMART_FILTERS.map((preset) => preset.id))('recovers %s from a shared link', (id) => {
+	it.each(WINE_SMART_FILTERS.map((preset) => preset.id))('recovers %s from a shared link, with the same matches', (id) => {
 		// Every preset, not a sample: the recovery is a structural match, so a preset whose tree
 		// serializes differently after a round trip fails alone and silently.
-		expect(deriveSelectedPresetIds(throughShareLink(buildPreset(id)))).toEqual([id]);
+		const { restoredExpression, restoredWineIds, sourceWineIds } = shareLinkRoundTrip(buildPreset(id));
+
+		expect(deriveSelectedPresetIds(restoredExpression)).toEqual([id]);
+		// The chip can light over a filter that matches the wrong wines, so the selection is compared
+		// too: the count first, for a failure that names it, then the wines themselves.
+		expect(sourceWineIds.length, `${id} selects nothing in the fixture`).toBeGreaterThan(0);
+		expect(restoredWineIds.length, `${id} lost matches through the link`).toBe(sourceWineIds.length);
+		expect(restoredWineIds).toEqual(sourceWineIds);
+	});
+
+	it('keeps cellar-picks\' open price bound open through the link', () => {
+		const { linkJson, restoredWineIds } = shareLinkRoundTrip(buildPreset('cellar-picks'));
+
+		// The link really carries the open bound as `null` ...
+		expect(linkJson).toContain('"max":null');
+		// ... and the wine only that open bound admits ($75, 85 points) is still selected after it.
+		expect(restoredWineIds).toContain('cellar-by-price');
 	});
 
 	it('recovers a multi-select OR of presets, in order', () => {

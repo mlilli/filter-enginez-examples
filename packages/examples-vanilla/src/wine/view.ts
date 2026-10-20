@@ -16,6 +16,11 @@
  * are dormant. Listing them would show chips for filters that are not applying; listing nothing would
  * claim no filters are active over a visibly narrowed corpus.
  *
+ * **The pills write through the shared wine helpers.** "Clear all" is `clearAllWineFilters` and a
+ * pill's × is `removeWineFilterChip`, the same two calls every other vertical's results header
+ * makes. The synthetic smart-filter pill names no rule, so the results view's default
+ * `core.removeRule` would leave the preset on.
+ *
  * **The panel's state carries the expression, not a boolean.** The strip needs to know WHICH presets
  * are lit and the sections only need to know that some are, so passing the tree serves both from one
  * value — and keeps the route from computing a derived boolean the panel would have to trust.
@@ -29,6 +34,8 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import {
 	buildWineFilterSummaries,
+	clearAllWineFilters,
+	removeWineFilterChip,
 	type WineBundleQuery,
 } from '@filter-enginez/examples-shared/wine-domain';
 
@@ -91,11 +98,21 @@ export function createWineView(core: FilterEngine<Wine>, options: WineViewOption
 	// owns when it re-summarizes. Holding it here and reading it in the callback keeps the pills
 	// honest without giving the results view a wine-shaped parameter.
 	let isExpressionMode = false;
+	// The pills write through the shared wine helpers every vertical's header calls: "Clear all" drops
+	// every flat facet AND expression mode, and the smart-filter pill's × does the same, because that
+	// pill names no rule a plain `removeRule` could drop.
+	const host = { core };
 	const results = createResultsView<Wine>(core, {
+		clearAll: () => {
+			clearAllWineFilters(host);
+		},
 		emptyHint: 'Try widening the price range — or clearing a varietal.',
 		emptyTitle: 'No wines match these filters',
 		listLabel: 'Matching wines',
 		noun: 'bottles',
+		removePill: (ruleId) => {
+			removeWineFilterChip(host, ruleId);
+		},
 		renderCard: wineCard,
 		scrollRegionLabel: 'Wine results',
 		summarize: (rules) => buildWineFilterSummaries(rules, isExpressionMode),

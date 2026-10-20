@@ -20,8 +20,10 @@
  *
  *   - **`WineApp`** — the RTK copy reads evaluation `mode` from the Redux mirror.
  *   - **`ResultsHeader`** — the RTK copy sources `resultCount` and `activeRuleIds` from the mirror
- *     and dispatches `forwardToEngine('clearRules')` as an intent, so redux-logger and the Redux
- *     DevTools see it. The plain copy reads the identical values through `useResultCount()`.
+ *     and dispatches a single facet's removal as a `forwardToEngine('removeRule')` intent, so
+ *     redux-logger and the Redux DevTools see it. The plain copy reads the identical values through
+ *     `useResultCount()` and removes the rule directly. Both write through the same shared wine
+ *     commit helpers, so the engine records the same actions either way.
  *
  * That contrast is the whole point of maintaining two React apps, so those two stay local. Everything
  * else lives here, tested once.

@@ -4,7 +4,7 @@
  *
  * @remarks
  * The real-estate "must-have features" filter is an AND over `Listing.features` (a `string[]`): a
- * listing passes only if its features include every selected one. None of the 15 built-in rules
+ * listing passes only if its features include every selected one. None of the engine's built-in rules
  * expresses "array ⊇ set", and a `PredicateRule` would not do: a predicate's closure can't serialize,
  * so its state couldn't round-trip through JSON config / the URL. This registry-registered subclass
  * can: its config is a plain `{ required: string[] }`, so it serializes

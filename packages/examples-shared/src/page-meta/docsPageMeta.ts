@@ -27,21 +27,47 @@ import { BRAND_NAME, DOCS_BASE_PATH, docsCanonicalUrl, notFoundPageMeta, type Pa
 /** The documentation home's title, which the documentation site's HTML shell carries too. */
 export const DOCS_HOME_TITLE = `${BRAND_NAME} — Documentation`;
 
-/** The documentation home's description, which the documentation site's HTML shell carries too. */
-export const DOCS_HOME_DESCRIPTION
-	= 'Filter EngineZ documentation — the 15-rule filter catalog, the acceleration algorithms, a live in-browser playground, and the API reference.';
+/**
+ * The documentation home's description, which the documentation site's HTML shell carries too.
+ *
+ * @remarks
+ * The rule count is the catalog's own length, so a rule added to the catalog is counted here, in the
+ * head of every documentation page that falls back to the home's description, and in every host's
+ * `llms.txt`. The shell is static HTML and states the number itself; `tests/tooling/pageMetaShells.test.ts`
+ * holds it to this template and to the catalog.
+ */
+export const DOCS_HOME_DESCRIPTION = `${BRAND_NAME} documentation — the ${String(RULE_DOCS.length)}-rule filter catalog, the acceleration algorithms, a live in-browser playground, and the API reference.`;
 
 /** The suffix every documentation page's title ends with, after the page's own name. */
 const DOCS_TITLE_SUFFIX = `${BRAND_NAME} docs`;
 
 /** One documentation page: its path, and what it is called and about. */
-interface DocsPage {
+export interface DocsPage {
 	/** The path, under `/docs`. */
 	readonly path: string;
 	/** The page's own name, before {@link DOCS_TITLE_SUFFIX}. */
 	readonly name: string;
 	/** The meta description. */
 	readonly description: string;
+	/**
+	 * What the page is about in one sentence, without its name: the catalog's one-line summary for a
+	 * rule or an algorithm, the description itself for the other pages. For a list that already shows
+	 * the name, such as the `llms.txt` every host serves.
+	 */
+	readonly summary: string;
+}
+
+/**
+ * A page whose one description serves as its summary too: one that is not in a catalog, so there is
+ * no shorter sentence to tell apart from it.
+ *
+ * @param name - The page's own name.
+ * @param path - Its path, under `/docs`.
+ * @param description - Its meta description, and its summary.
+ * @returns The page.
+ */
+function pageDescribedOnce(name: string, path: string, description: string): DocsPage {
+	return { description, name, path, summary: description };
 }
 
 /**
@@ -55,25 +81,35 @@ const DOCS_PAGES: readonly DocsPage[] = [
 		description: `${rule.name}: ${rule.simple}`,
 		name: rule.name,
 		path: `${DOCS_BASE_PATH}/rules/${rule.id}`,
+		summary: rule.simple,
 	})),
 	...ALGORITHM_TEXTS.map((algorithm) => ({
 		description: `${algorithm.name}: ${algorithm.simple}`,
 		name: algorithm.name,
 		path: `${DOCS_BASE_PATH}/algorithms/${algorithm.id}`,
+		summary: algorithm.simple,
 	})),
-	{
-		description:
-			'Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.',
-		name: 'Playground',
-		path: `${DOCS_BASE_PATH}/playground`,
-	},
-	{
-		description:
-			'The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.',
-		name: 'API reference',
-		path: `${DOCS_BASE_PATH}/api`,
-	},
+	pageDescribedOnce(
+		'Playground',
+		`${DOCS_BASE_PATH}/playground`,
+		'Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.',
+	),
+	pageDescribedOnce(
+		'API reference',
+		`${DOCS_BASE_PATH}/api`,
+		'The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.',
+	),
 ];
+
+/**
+ * Every documentation page except the home, in sidebar order: each rule, each algorithm, the
+ * playground and the API reference.
+ *
+ * @returns The pages, the same list {@link docsPagePaths} and {@link docsPageMeta} read.
+ */
+export function docsPages(): readonly DocsPage[] {
+	return DOCS_PAGES;
+}
 
 /**
  * Every documentation path that is a page: the home, then {@link DOCS_PAGES}.

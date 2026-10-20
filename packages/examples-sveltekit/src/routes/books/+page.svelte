@@ -58,5 +58,8 @@
 {#if engine}
 	<BooksView {engine} />
 {:else}
-	<p class="fe-boot-caption fe-boot-caption--inline">{bootCaption}</p>
+	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
+	<main>
+		<p class="fe-boot-caption fe-boot-caption--inline">{bootCaption}</p>
+	</main>
 {/if}

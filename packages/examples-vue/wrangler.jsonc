@@ -5,11 +5,17 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "filter-enginez-vue",
   "compatibility_date": "2026-10-01",
-  // Static assets only: no Worker script runs, and no request is billed as a Worker invocation.
+  // Static assets, and a Worker for one path: `/.well-known/*`, which it answers with a 404. The site
+  // publishes nothing there, and the fallback below would answer with index.html and a 200. The Worker
+  // is examples-server's src/staticAssetsWorker.ts, which holds that answer and nothing else
+  // (src/wellKnown.ts); no other request runs it, so none is billed as a Worker invocation.
+  "main": "../examples-server/src/staticAssetsWorker.ts",
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // Client-side routing (Vue Router's `createWebHistory`): any other path gets index.html.
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/.well-known/*"]
   },
   "routes": [{ "pattern": "vue.filterenginez.com", "custom_domain": true }],
   // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.

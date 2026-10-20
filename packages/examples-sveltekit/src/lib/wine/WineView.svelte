@@ -26,7 +26,6 @@
 		type OriginNodeSpec,
 		type PickerTreeNode,
 		type SliderFieldId,
-		SMART_FILTER_CHIP_ID,
 		type WineChipVocabularies,
 	} from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
@@ -41,7 +40,7 @@
 	import UrlFormatToggle from '../url/UrlFormatToggle.svelte';
 	import { setWineBundle } from './wineBundle.js';
 	import { captureCurrentVersion, isEngineBusy, markResolvedAtLeast, markUserAction } from './wineBusy.js';
-	import { clearAllWineFilters, removeFacet } from './wineCommit.js';
+	import { clearAllWineFilters, removeWineFilterChip } from './wineCommit.js';
 	import WineFilterPanel from './WineFilterPanel.svelte';
 	import WineResultGrid from './WineResultGrid.svelte';
 
@@ -240,16 +239,11 @@
 			}}
 			onRemove={(ruleId) => {
 				// The synthetic expression chip is not a rule — its × exits expression mode, which is
-				// the only way back to the flat facets once a preset is driving the results. It clears
-				// the facets too, and deliberately: dropping only the expression would let any flat rule
-				// that somehow survived the preset takeover start filtering with nothing on screen
-				// explaining it. Landing in a neutral panel is the state the user is asking for.
-				if (ruleId === SMART_FILTER_CHIP_ID) {
-					clearAllWineFilters(engine);
-
-					return;
-				}
-				removeFacet(engine, ruleId);
+				// the only way back to the flat facets once a preset is driving the results. The shared
+				// helper clears the facets too, and deliberately: dropping only the expression would let
+				// any flat rule that somehow survived the preset takeover start filtering with nothing on
+				// screen explaining it. Landing in a neutral panel is the state the user is asking for.
+				removeWineFilterChip(engine, ruleId);
 			}}
 			recentRuleId={$lastChange.ruleId}
 			resultCount={$results.length}

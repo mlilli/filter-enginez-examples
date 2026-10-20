@@ -178,10 +178,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<div v-if="bootError !== null" class="fe-boot-error" role="alert">
-		<p class="fe-boot-error__title">The real-estate engine did not boot</p>
-		<p class="fe-boot-error__detail">{{ bootError }}</p>
-	</div>
+	<!-- `<main>` around the alert rather than on it: a `role` on the element would replace the landmark. -->
+	<main v-if="bootError !== null">
+		<div class="fe-boot-error" role="alert">
+			<p class="fe-boot-error__title">The real-estate engine did not boot</p>
+			<p class="fe-boot-error__detail">{{ bootError }}</p>
+		</div>
+	</main>
 	<RealEstateView
 		v-else-if="engine"
 		:baselines="baselines"
@@ -191,12 +194,15 @@ onUnmounted(() => {
 		:metro-centers="metroCenters"
 		:vocabularies="vocabularies"
 	/>
-	<p v-else class="fe-boot-caption fe-boot-caption--inline">
-		<template v-for="part in bootCaption" :key="part.kind + part.text">
-			<span v-if="part.kind === 'value'" class="fe-boot-caption__value">{{ part.text }}</span>
-			<template v-else>{{ part.text }}</template>
-		</template>
-	</p>
+	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
+	<main v-else>
+		<p class="fe-boot-caption fe-boot-caption--inline">
+			<template v-for="part in bootCaption" :key="part.kind + part.text">
+				<span v-if="part.kind === 'value'" class="fe-boot-caption__value">{{ part.text }}</span>
+				<template v-else>{{ part.text }}</template>
+			</template>
+		</p>
+	</main>
 </template>
 
 <style scoped>

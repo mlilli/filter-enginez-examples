@@ -25,7 +25,10 @@ export {
 	commitOriginSelection,
 	commitRule,
 	commitSelection,
+	commitSmartFilterSelection,
+	exitExpressionMode,
 	removeFacet,
+	removeWineFilterChip,
 	WINE_FACET_RULE_IDS,
 	type WineEngineHost,
 } from '@filter-enginez/examples-shared/wine-domain';

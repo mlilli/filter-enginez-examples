@@ -3,7 +3,7 @@
  *
  * The filter controls (range slider and histogram, chips, checkbox lists, the hierarchical picker,
  * search, select, number fields), the results header and cards, the devtools panel, the geo-radius
- * section, the "filtered to zero" 404 and the /lab route.
+ * section, the "filtered to zero" 404, the page-error screen and the /lab route.
  *
  * A partial of `styles.css`, which imports every partial in cascade order; that file explains
  * the split.
@@ -2280,6 +2280,67 @@
 	filter: brightness(1.08);
 }
 .fe-notfound__cta:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   fe-page-error — the screen every app shows when a page cannot be shown:
+   its code did not load, or it failed while rendering or resolving its data.
+   The markup and the words are `examples-shared/page-error-core`'s; every
+   app renders them, in its own framework, over these classes.
+
+   The card is the boot-error card the dataset routes draw (a bordered
+   `--gray-1` panel, a `--danger` title, mono details), centered in a
+   full-viewport main landmark, because nothing else is on the page. Each
+   app's code that renders it is on the app's first screen, so its rules are
+   in the CSS the page carries inline and it is styled even when the rest of
+   the stylesheet is what failed to arrive.
+   ───────────────────────────────────────────────────────────────────────── */
+.fe-page-error {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: var(--gray-0);
+}
+.fe-page-error__card {
+	width: 100%;
+	max-width: 34rem;
+	padding: 1.5rem;
+	border: 1px solid var(--gray-4);
+	border-radius: var(--radius-lg);
+	background: var(--gray-1);
+}
+.fe-page-error__title {
+	margin-bottom: 0.5rem;
+	color: var(--danger);
+	font-weight: 600;
+}
+.fe-page-error__detail {
+	color: var(--gray-9);
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	overflow-wrap: anywhere;
+}
+.fe-page-error__hint {
+	margin-top: 0.5rem;
+	color: var(--gray-8);
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+}
+/* A 44px row, like every touch target in these apps. */
+.fe-page-error__link {
+	display: inline-flex;
+	min-height: 44px;
+	align-items: center;
+	margin-top: 0.5rem;
+	color: var(--accent);
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+}
+.fe-page-error__link:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 3px;
 }

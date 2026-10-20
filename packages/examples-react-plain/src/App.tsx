@@ -19,22 +19,23 @@
  *
  * What this module imports statically is what every visit downloads before it can render anything, so
  * it is held to the first screen: the hub, the route shells that show a loader the moment a route
- * opens, and the 404. Every page behind those shells is its own chunk, fetched on the route's first
- * visit — the datasets and the lab through their registry entries (`datasets.tsx`, `lab/labEntry.ts`),
- * the docs through `docsRoute`'s lazy routes, and `/books-server` through `React.lazy` below. The build
- * checks the result against a budget (`scripts/check-startup-budget.mjs`).
+ * opens, the 404 and the page-error screen. Every page behind those shells is its own chunk, fetched on
+ * the route's first visit — the datasets and the lab through their registry entries (`datasets.tsx`,
+ * `lab/labEntry.ts`), the docs through `docsRoute`'s lazy pages, and `/books-server` through
+ * `React.lazy` below. The router is React Router's declarative mode (`AppRouter`), which leaves the
+ * data router's loaders, actions and fetchers out of the bundle. The build checks the result against a
+ * budget (`scripts/check-startup-budget.mjs`).
  *
  * @packageDocumentation
  */
 
 import { AppVerticalContext } from '@filter-enginez/examples-shared/app-header';
+import { AppRouter } from '@filter-enginez/examples-shared/app-router';
 import { docsHostedPageMeta, docsRoute } from '@filter-enginez/examples-shared/docs';
 import { NotFoundPage, notFoundRoute } from '@filter-enginez/examples-shared/notfound';
-import { followRouterPageMeta } from '@filter-enginez/examples-shared/page-meta';
 import { LAB_ROUTE_PATH } from '@filter-enginez/examples-shared/verticals';
-import { lazy, Suspense, useEffect } from 'react';
-import { createBrowserRouter, useParams } from 'react-router';
-import { RouterProvider } from 'react-router/dom';
+import { lazy, Suspense } from 'react';
+import { type RouteObject, useParams } from 'react-router';
 
 import { ServerConnecting } from './books/ServerConnecting.js';
 import { findDataset } from './datasets.js';
@@ -46,9 +47,9 @@ import { LandingPage } from './routes/LandingPage.js';
  * `/books-server`'s route element, loaded on the route's first visit.
  *
  * @remarks
- * `React.lazy` with the route's own connecting screen as the fallback, rather than react-router's
- * `lazy`, because the route has a loading screen of its own to show. The fallback is that same screen,
- * so a visit reads as one wait, from the first frame to the connected app.
+ * `React.lazy` with the route's own connecting screen as the fallback. The fallback is the same screen
+ * the route shows while it connects, so a visit reads as one wait, from the first frame to the
+ * connected app.
  */
 const BooksServerRoute = lazy(async () => ({
 	default: (await import('./books/BooksServerRoute.js')).BooksServerRoute,
@@ -73,7 +74,8 @@ const DatasetRouteResolver = (): React.ReactElement => {
 	return <DatasetRoute key={entry.id} entry={entry} />;
 };
 
-const router = createBrowserRouter([
+/** The route table, in match order. */
+const ROUTES: RouteObject[] = [
 	{ element: <LandingPage />, path: '/' },
 	{
 		element: (
@@ -91,27 +93,26 @@ const router = createBrowserRouter([
 	{ element: <LabRoute />, path: LAB_ROUTE_PATH },
 	{ element: <DatasetRouteResolver />, path: '/:datasetId' },
 	notFoundRoute,
-]);
+];
+
+/** Each route's title, description and canonical URL: the documentation's on demand, the app's own at once. */
+const PAGE_META = docsHostedPageMeta('react-plain');
 
 /**
  * Root component — mounts the router.
  *
  * @remarks
  * The head follows the route: each page's title, description and canonical URL (the documentation's
- * canonical on the documentation site) are written on every navigation by `followRouterPageMeta`.
+ * canonical on the documentation site) are written on every navigation, one static shell serving every
+ * route (`examples-shared/page-meta`). A page that fails to load or render shows the shared page-error
+ * screen (`AppRouter`'s error boundary).
  *
  * The router sits inside {@link AppVerticalContext}, so the pages this app shares with the other React
  * app as route objects — the documentation and the 404 — name this app in their header and link back
  * to its hub without being told which app they are in.
  */
-export const App = (): React.ReactElement => {
-	// Each route's title, description and canonical URL, written as the router navigates: one static
-	// shell serves every route, so the head has to follow the route (`examples-shared/page-meta`).
-	useEffect(() => followRouterPageMeta(router, docsHostedPageMeta('react-plain')), []);
-
-	return (
-		<AppVerticalContext value="react-plain">
-			<RouterProvider router={router} />
-		</AppVerticalContext>
-	);
-};
+export const App = (): React.ReactElement => (
+	<AppVerticalContext value="react-plain">
+		<AppRouter pageMeta={PAGE_META} routes={ROUTES} />
+	</AppVerticalContext>
+);

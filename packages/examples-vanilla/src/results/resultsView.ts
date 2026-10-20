@@ -92,6 +92,16 @@ export interface ResultsViewOptions<T> {
 	readonly scrollRegionLabel: string;
 	/** How to summarize the active rules into pills. See {@link RuleSummarizer}. */
 	readonly summarize: RuleSummarizer;
+	/**
+	 * What a pill's × does. Defaults to removing the pill's rule.
+	 *
+	 * @remarks
+	 * A dataset passes its own when a pill can stand for something other than one rule: wine's
+	 * synthetic smart-filter pill names no rule, so `core.removeRule` on it would do nothing.
+	 */
+	readonly removePill?: (ruleId: RuleId) => void;
+	/** What "Clear all" does. Defaults to `core.clearRules()`. */
+	readonly clearAll?: () => void;
 }
 
 /**
@@ -108,6 +118,16 @@ export function createResultsView<T>(
 ): ResultsView<T> {
 	const { emptyHint, emptyTitle, listLabel, noun, renderCard, scrollRegionLabel, summarize } =
 		options;
+	const removePill =
+		options.removePill ??
+		((ruleId: RuleId): void => {
+			core.removeRule(ruleId);
+		});
+	const clearAll =
+		options.clearAll ??
+		((): void => {
+			core.clearRules();
+		});
 
 	const computing = createComputingIndicator();
 	const countNode = el('span', { className: 'fe-result-count__number' });
@@ -336,7 +356,7 @@ export function createResultsView<T>(
 								className: 'fe-filter-chip__remove',
 								on: {
 									click: () => {
-										core.removeRule(summary.ruleId);
+										removePill(summary.ruleId);
 									},
 								},
 							}),
@@ -354,7 +374,7 @@ export function createResultsView<T>(
 					className: 'fe-active-filters__clear',
 					on: {
 						click: () => {
-							core.clearRules();
+							clearAll();
 						},
 					},
 					text: 'Clear all',

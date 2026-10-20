@@ -1,7 +1,7 @@
 /**
  * Content-model types for the documentation site — the data shapes that drive every rule and
  * algorithm page. Keeping the docs data-driven (rather than hand-written per page) guarantees a
- * consistent structure across all 15 rules and 8 algorithms, and lets the pages be pure templates.
+ * consistent structure across every rule and algorithm page, and lets the pages be pure templates.
  *
  * @packageDocumentation
  */

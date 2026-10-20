@@ -11,8 +11,9 @@
  */
 
 import vue from '@vitejs/plugin-vue';
-import { defineConfig } from 'vite';
+import { defineConfig, runnerImport } from 'vite';
 
+import { criticalCssPlugin } from '../../scripts/lib/critical-css.mjs';
 import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
 
 export default defineConfig({
@@ -40,7 +41,10 @@ export default defineConfig({
 	},
 	// `fontPreloadsPlugin` preloads the first screen's two brand fonts from the built index.html, so they
 	// download beside the startup scripts instead of after the stylesheet (scripts/lib/font-preloads.mjs).
-	plugins: [vue(), fontPreloadsPlugin()],
+	// `criticalCssPlugin` puts the first screen's part of the stylesheet into that page, so the first
+	// render waits on no stylesheet, and loads the whole sheet with the routes that use the rest
+	// (scripts/lib/critical-css.mjs).
+	plugins: [vue(), fontPreloadsPlugin(), criticalCssPlugin({ runnerImport })],
 	resolve: {
 		// One @preact/signals-core instance across the engine + the vue-signals adapter (load-bearing).
 		//

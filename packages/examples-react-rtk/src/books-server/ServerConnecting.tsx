@@ -15,8 +15,9 @@ import { BrainSynapse } from '@filter-enginez/brand';
 
 /** Full-screen "talking to the server" loader — the brand `<BrainSynapse>` + a server caption. */
 export const ServerConnecting = (): React.ReactElement => {
+	// `<main>`: until the server answers, the loader is the page's main content.
 	return (
-		<div
+		<main
 			className="min-h-screen flex flex-col items-center justify-center gap-6 px-6"
 			style={{ background: 'var(--gray-0)' }}
 		>
@@ -27,6 +28,6 @@ export const ServerConnecting = (): React.ReactElement => {
 			>
 				Filtering on the Node server · fetching corpus + initial state
 			</p>
-		</div>
+		</main>
 	);
 };

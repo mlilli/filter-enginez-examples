@@ -37,6 +37,7 @@ import { markUserAction } from '../engineBusy.js';
 import { useBundleChipExclusion } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /**
  * Props for `<ChipFilterSection />`.
@@ -60,6 +61,8 @@ export interface ChipFilterSectionProps<T extends string> {
 export const ChipFilterSection = <T extends string>(props: ChipFilterSectionProps<T>): React.ReactElement => {
 	const { formatLabel, label, options, ruleId, showCount: shouldShowCount = false } = props;
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(ruleId) as InSetRule<T> | undefined;
 	const engineSelected: readonly T[] = rule?.config.set ?? EMPTY_SELECTION;
 	const [selected, setSelected] = useSeedAndAdopt<readonly T[]>(engineSelected, sameSelection);
@@ -68,13 +71,14 @@ export const ChipFilterSection = <T extends string>(props: ChipFilterSectionProp
 	const handleToggle = useCallback((value: T): void => {
 		const next = toggleSetValue(selected, value);
 
+		leaveExpressionMode();
 		// Paint the chip's new state first, then disable+loader, then the engine — each its own frame.
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(ruleId, inSet<T>(ruleId, next)),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(next),
 		});
-	}, [engine, ruleId, selected, setSelected]);
+	}, [engine, ruleId, selected, setSelected, leaveExpressionMode]);
 
 	return (
 		<section>

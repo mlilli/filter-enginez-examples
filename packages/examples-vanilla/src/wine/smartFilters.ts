@@ -40,9 +40,7 @@ import type { CompositeRule } from '@filter-enginez/core';
 
 import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import {
-	buildSmartFilterExpression,
-	clearAllFacetRules,
-	commitExpression,
+	commitSmartFilterSelection,
 	deriveSelectedPresetIds,
 	sameSelection,
 	WINE_SMART_FILTERS,
@@ -157,16 +155,11 @@ export function createWineSmartFilters(options: WineSmartFiltersOptions): WineSm
 		// a round trip after the write, so waiting would blank the chips between click and settle.
 		selection.paint(next);
 		repaint();
-
-		if (next.length === 0) {
-			commitExpression(host, null);
-
-			return;
-		}
-		// Clear the flat facets FIRST. An expression and a leftover flat rule would both apply, so the
-		// results would be narrower than the preset describes with no control on screen explaining why.
-		clearAllFacetRules(host);
-		commitExpression(host, buildSmartFilterExpression(next));
+		// The shared helper every vertical's preset row calls. A non-empty selection clears the flat
+		// facets FIRST: an expression and a leftover flat rule would both be on the engine, the rule
+		// dormant behind the expression and back the moment the preset is cleared. An empty selection
+		// only leaves expression mode.
+		commitSmartFilterSelection(host, next);
 	}
 
 	/** Repaint the chips, the mode box and the paused notice from local state. */

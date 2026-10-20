@@ -22,6 +22,7 @@ import { useCallback, useState } from 'react';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /** Rule id + registry key for the points NumericComparisonRule. */
 const POINTS_COMPARE_RULE_ID = 'points-compare';
@@ -44,6 +45,8 @@ const OPERATOR_OPTIONS: readonly SelectOption[] = [
  */
 export const PointsCompareFilterSection = (): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(POINTS_COMPARE_RULE_ID) as NumericComparisonRule | undefined;
 	const activeOp: string = rule?.config.op ?? '';
 	const ruleThreshold = rule?.config.value;
@@ -63,6 +66,7 @@ export const PointsCompareFilterSection = (): React.ReactElement => {
 	}
 
 	const handleOperatorChange = useCallback((nextOp: string): void => {
+		leaveExpressionMode();
 		commitFilterMutation({
 			callEngine: () => {
 				if (nextOp === '') {
@@ -73,7 +77,7 @@ export const PointsCompareFilterSection = (): React.ReactElement => {
 			},
 			markBusy: markUserAction,
 		});
-	}, [engine, threshold]);
+	}, [engine, threshold, leaveExpressionMode]);
 
 	const handleThresholdChange = useCallback((nextValue: number): void => {
 		setThreshold(nextValue);
@@ -81,11 +85,12 @@ export const PointsCompareFilterSection = (): React.ReactElement => {
 		if (activeOp === '') {
 			return;
 		}
+		leaveExpressionMode();
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(POINTS_COMPARE_RULE_ID, numCompare('points', { op: activeOp as NumericComparisonOp, value: nextValue })),
 			markBusy: markUserAction,
 		});
-	}, [activeOp, engine]);
+	}, [activeOp, engine, leaveExpressionMode]);
 
 	return (
 		<section>

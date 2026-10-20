@@ -56,9 +56,9 @@ import { injectFilterEngine } from '@filter-enginez/angular-rxjs';
 import {
 	BODY_ORDER,
 	COLOR_ORDER,
-	commitExpression,
 	deriveSelectedPresetIds,
 	EMPTY_SELECTION,
+	exitExpressionMode,
 	type OriginNodeSpec,
 	type PickerTreeNode,
 	SWEETNESS_ORDER,
@@ -317,6 +317,6 @@ export class WineFilterPanelComponent {
 			return;
 		}
 		this.activePresets.set([]);
-		commitExpression(this._engine, null);
+		exitExpressionMode(this._engine);
 	};
 }

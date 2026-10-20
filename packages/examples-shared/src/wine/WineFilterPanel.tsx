@@ -11,6 +11,11 @@
  * origin node specs, fire the one bundle fetch, and distribute the result via `FilterBundleContext`
  * to the section stack.
  *
+ * **Expression mode replaces the flat rules entirely**, as in every other vertical's panel. Applying a
+ * smart-filter preset clears every facet rule (each section adopts its own rule's removal), and a
+ * facet edit drops the active preset first. The panel holds the lit presets for both halves and
+ * provides them through `SmartFilterSelectionContext`.
+ *
  * Filters wired: Origin (InSetofSetsRule, the same rule every app commits), Price/Points/ABV (RangeRule), Vintage (InSetRule-of-
  * years), Color/Body/Sweetness (InSetRule chips), Single color (ValueRule, exact single-select),
  * Score comparison (NumericComparisonRule, one-sided operator), Varietal (InSetRule checkbox list),
@@ -52,6 +57,7 @@ import { PanelHeader } from './filters/PanelHeader.js';
 import { PointsCompareFilterSection } from './filters/PointsCompareFilterSection.js';
 import { RangeFilterSection } from './filters/RangeFilterSection.js';
 import { SmartFilterPresets } from './filters/SmartFilterPresets.js';
+import { SmartFilterSelectionContext, useSmartFilterSelectionState } from './filters/smartFilterSelection.js';
 import { VarietalFilterSection } from './filters/VarietalFilterSection.js';
 import { VintageFilterSection } from './filters/VintageFilterSection.js';
 import { buildWineOriginTree, rankWineVarietals } from './wine-domain/facets.js';
@@ -111,39 +117,44 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 
 	const bundle = useFetchFilterBundle(baselines, chipVocabularies, originNodeSpecs);
 	const bundleCtx = useMemo<BundleContextValue>(() => ({ baselines, bundle }), [bundle, baselines]);
+	// The lit smart-filter presets, held here rather than in the preset row because every facet section
+	// reads it too: each one drops the active preset before it commits. See `smartFilterSelection.ts`.
+	const smartFilterSelection = useSmartFilterSelectionState();
 
 	return (
 		<FilterBundleContext value={bundleCtx}>
-			{/* Two-zone structure: PanelHeader stays fixed at the aside's top (outside the scroller);
-			    FilterSectionGuard owns the overflow + the global dim-during-compute treatment. In the
-			    mobile drawer the drawer's own header stands in for PanelHeader, so it's suppressed. */}
-			{isHeaderVisible ? <PanelHeader /> : null}
-			{/*
-			    Section order is MOST-USED-FIRST, and is byte-matched by the Svelte panel. Price and points
-			    are what a wine shopper reaches for before anything else; body and sweetness are refinements
-			    people apply once they already have a shortlist; the two free-text searches sit last, where
-			    they read as "narrow this further" rather than as a starting point.
+			<SmartFilterSelectionContext value={smartFilterSelection}>
+				{/* Two-zone structure: PanelHeader stays fixed at the aside's top (outside the scroller);
+				    FilterSectionGuard owns the overflow + the global dim-during-compute treatment. In the
+				    mobile drawer the drawer's own header stands in for PanelHeader, so it's suppressed. */}
+				{isHeaderVisible ? <PanelHeader /> : null}
+				{/*
+				    Section order is MOST-USED-FIRST, and is byte-matched by the Svelte panel. Price and points
+				    are what a wine shopper reaches for before anything else; body and sweetness are refinements
+				    people apply once they already have a shortlist; the two free-text searches sit last, where
+				    they read as "narrow this further" rather than as a starting point.
 
-			    The two rule-type demos sit BESIDE their relatives rather than grouped together: score
-			    comparison under Points, single-color under Color. Each is there to contrast a rule type with
-			    the one above it (NumericComparisonRule vs RangeRule, ValueRule vs InSetRule), and that
-			    contrast only reads if they are adjacent.
-			*/}
-			<FilterSectionGuard topSlot={<SmartFilterPresets />}>
-				<RangeFilterSection ruleId="price" fieldKey="priceUsd" label="Price (USD)" ariaLabel="Price range in USD" step={1} openEnded />
-				<RangeFilterSection ruleId="points" fieldKey="points" label="Points" ariaLabel="Wine Enthusiast points score" step={1} />
-				<PointsCompareFilterSection />
-				<ChipFilterSection ruleId="color" label="Color" options={COLOR_ORDER} showCount />
-				<ColorValueFilterSection />
-				<VarietalFilterSection />
-				<OriginFilterSection tree={originTree} specs={originNodeSpecs} />
-				<VintageFilterSection />
-				<RangeFilterSection ruleId="abv" fieldKey="abv" label="ABV (%)" ariaLabel="Alcohol by volume range" step={0.1} />
-				<ChipFilterSection ruleId="body" label="Body" options={BODY_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
-				<ChipFilterSection ruleId="sweetness" label="Sweetness" options={SWEETNESS_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
-				<FuzzySearchFilterSection ruleId="notes" label="Tasting notes search" placeholder="blackberry, citrus, oak..." ariaLabel="Search tasting notes (fuzzy)" field="description" threshold={0.45} keys={['description', 'tastingNotes']} />
-				<FuzzySearchFilterSection ruleId="winery" label="Winery (typo-tolerant)" placeholder="Vandermark, Caruso, Hartmann..." ariaLabel="Search wineries with typo tolerance" field="winery" threshold={0.35} />
-			</FilterSectionGuard>
+				    The two rule-type demos sit BESIDE their relatives rather than grouped together: score
+				    comparison under Points, single-color under Color. Each is there to contrast a rule type with
+				    the one above it (NumericComparisonRule vs RangeRule, ValueRule vs InSetRule), and that
+				    contrast only reads if they are adjacent.
+				*/}
+				<FilterSectionGuard topSlot={<SmartFilterPresets />}>
+					<RangeFilterSection ruleId="price" fieldKey="priceUsd" label="Price (USD)" ariaLabel="Price range in USD" step={1} openEnded />
+					<RangeFilterSection ruleId="points" fieldKey="points" label="Points" ariaLabel="Wine Enthusiast points score" step={1} />
+					<PointsCompareFilterSection />
+					<ChipFilterSection ruleId="color" label="Color" options={COLOR_ORDER} showCount />
+					<ColorValueFilterSection />
+					<VarietalFilterSection />
+					<OriginFilterSection tree={originTree} specs={originNodeSpecs} />
+					<VintageFilterSection />
+					<RangeFilterSection ruleId="abv" fieldKey="abv" label="ABV (%)" ariaLabel="Alcohol by volume range" step={0.1} />
+					<ChipFilterSection ruleId="body" label="Body" options={BODY_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
+					<ChipFilterSection ruleId="sweetness" label="Sweetness" options={SWEETNESS_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
+					<FuzzySearchFilterSection ruleId="notes" label="Tasting notes search" placeholder="blackberry, citrus, oak..." ariaLabel="Search tasting notes (fuzzy)" field="description" threshold={0.45} keys={['description', 'tastingNotes']} />
+					<FuzzySearchFilterSection ruleId="winery" label="Winery (typo-tolerant)" placeholder="Vandermark, Caruso, Hartmann..." ariaLabel="Search wineries with typo tolerance" field="winery" threshold={0.35} />
+				</FilterSectionGuard>
+			</SmartFilterSelectionContext>
 		</FilterBundleContext>
 	);
 };

@@ -14,7 +14,7 @@
  * (`ExistsRule` over nullable `averageRating`), Description (`TextSearchRule`), Authors
  * (`FuzzySearchRule`, typo-tolerant), an ISBN pattern (`RegexRule` over `isbn13`), genre super-groups
  * (`InSetofSetsRule`), and Editor's picks (`BloomMembershipRule`, a Bloom pre-screen). That
- * exercises nine of the fifteen rule types through the same commit contract the SvelteKit, Vue,
+ * exercises nine of the engine's rule types through the same commit contract the SvelteKit, Vue,
  * Angular and vanilla books panels reuse.
  *
  * @packageDocumentation
@@ -28,9 +28,10 @@ import { deriveBaselineBounds, type NumericBounds } from '@filter-enginez/react-
 import { useMemo } from 'react';
 
 import { uniqueSorted } from '../vocabulary/index.js';
-import { buildEditorsPicksFilter, FeaturedSection, SuperGroupSection } from './BookCuratedFilterSections.js';
+import { FeaturedSection, SuperGroupSection } from './BookCuratedFilterSections.js';
 import { BooleanSection, ChipSection, ExistsSection, FuzzySection, RangeSection, RegexSection, TextSection } from './BookFilterSections.js';
 import { buildBooksBundleQuery } from './books-domain/bundle.js';
+import { buildEditorsPicksFilter } from './books-domain/curated.js';
 import { useIsEngineBusy } from './engineBusy.js';
 import { BooksBundleContext, useFetchBooksBundle } from './filterBundle.js';
 

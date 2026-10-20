@@ -175,22 +175,28 @@
 </script>
 
 {#if bootError !== null}
-	<div class="fe-boot-error" role="alert">
-		<p class="fe-boot-error__title">The real-estate engine did not boot</p>
-		<p class="fe-boot-error__detail">{bootError}</p>
-	</div>
+	<!-- `<main>` around the alert rather than on it: a `role` on the element would replace the landmark. -->
+	<main>
+		<div class="fe-boot-error" role="alert">
+			<p class="fe-boot-error__title">The real-estate engine did not boot</p>
+			<p class="fe-boot-error__detail">{bootError}</p>
+		</div>
+	</main>
 {:else if engine}
 	<RealEstateView {baselines} {engine} {locationSpecs} {locationTree} {metroCenters} {vocabularies} />
 {:else}
-	<p class="fe-boot-caption fe-boot-caption--inline">
-		{#each bootCaption as part (part.kind + part.text)}
-			{#if part.kind === 'value'}
-				<span class="fe-boot-caption__value">{part.text}</span>
-			{:else}
-				{part.text}
-			{/if}
-		{/each}
-	</p>
+	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
+	<main>
+		<p class="fe-boot-caption fe-boot-caption--inline">
+			{#each bootCaption as part (part.kind + part.text)}
+				{#if part.kind === 'value'}
+					<span class="fe-boot-caption__value">{part.text}</span>
+				{:else}
+					{part.text}
+				{/if}
+			{/each}
+		</p>
+	</main>
 {/if}
 
 <style>

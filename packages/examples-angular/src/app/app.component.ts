@@ -1,6 +1,7 @@
 /**
- * Root component — the router outlet, the document head kept on the route it shows, and the boot
- * caption a resolving route shows before it can render.
+ * Root component — the router outlet, the document head kept on the route it shows, the boot
+ * caption a resolving route shows before it can render, and the page-error screen a failed navigation
+ * shows.
  *
  * @remarks
  * Kept deliberately thin so every route owns its own layout, matching the React / Svelte / Vue shells.
@@ -28,6 +29,16 @@
  * instance, keeps that page until the new one activates, so the caption never sits beside a page or
  * replaces one that is still usable.
  *
+ * ### A failed navigation shows the page-error screen
+ *
+ * A page whose code does not load (a failed `loadComponent`, or a resolver's `import()` of its data
+ * module) or whose resolver rejects ends its navigation with `NavigationError`, and the router renders
+ * nothing new: on a direct visit, nothing at all. So a `NavigationError` puts the shared page-error
+ * screen (`<fe-page-error>`) in place of the routed page, as the other apps do, and the next
+ * navigation that ends clears it. A page already on screen is hidden behind it rather than destroyed,
+ * so the outlet and the router's state are left exactly as the router has them. `main.ts`'s
+ * navigation-error handler still logs the error.
+ *
  * @packageDocumentation
  */
 
@@ -48,6 +59,7 @@ import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared
 import { filter } from 'rxjs';
 
 import { ROUTE_BOOT_CAPTION_KEY } from './app.routes.js';
+import { PageErrorComponent } from './shell/page-error.component.js';
 
 /** A base for reading the path out of the router's URL, which carries no origin. */
 const URL_BASE = 'https://angular.filterenginez.com';
@@ -76,18 +88,30 @@ export function routeBootCaption(root: ActivatedRouteSnapshot): string | null {
 
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [RouterOutlet],
+	imports: [PageErrorComponent, RouterOutlet],
 	selector: 'fe-root',
 	template: `
-		@if (bootCaption(); as caption) {
-			<p class="fe-boot-caption fe-boot-caption--inline">{{ caption }}</p>
+		@if (pageFailure(); as failure) {
+			<fe-page-error [error]="failure.error" />
+		} @else if (bootCaption(); as caption) {
+			<!-- A main landmark: while the route resolves, the caption is all the page shows. -->
+			<main>
+				<p class="fe-boot-caption fe-boot-caption--inline">{{ caption }}</p>
+			</main>
 		}
-		<router-outlet (activate)="isOutletActive.set(true)" (deactivate)="isOutletActive.set(false)" />
+		<!-- Layout-transparent, so the routed page stays a direct layout child of the root; hidden, not
+		     destroyed, behind a failure. An inline display, which no stylesheet can override. -->
+		<div [style.display]="pageFailure() === null ? 'contents' : 'none'">
+			<router-outlet (activate)="isOutletActive.set(true)" (deactivate)="isOutletActive.set(false)" />
+		</div>
 	`,
 })
 export class AppComponent {
 	/** The caption of the route being navigated to, while that navigation is in flight. */
 	private readonly _pendingBootCaption = signal<string | null>(null);
+
+	/** The last navigation's failure, until a navigation ends; `null` while navigations succeed. */
+	protected readonly pageFailure = signal<{ readonly error: unknown } | null>(null);
 
 	/** Whether the outlet currently holds a page. */
 	protected readonly isOutletActive = signal(false);
@@ -101,6 +125,12 @@ export class AppComponent {
 		const events = inject(Router).events.pipe(takeUntilDestroyed());
 
 		events.subscribe((event) => {
+			if (event instanceof NavigationError) {
+				this.pageFailure.set({ error: event.error });
+			} else if (event instanceof NavigationEnd) {
+				this.pageFailure.set(null);
+			}
+
 			if (event instanceof RoutesRecognized) {
 				this._pendingBootCaption.set(routeBootCaption(event.state.root));
 			} else if (

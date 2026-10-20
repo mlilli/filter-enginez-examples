@@ -7,7 +7,7 @@
  * server's same-origin `/api` proxy (`vite.config.ts`, or Angular's `proxy.config.json`), which strips
  * the prefix and forwards to `server.ts` on port 24618. Deployed, there is no Node process to forward
  * to: each of those apps is a Worker with static assets, and its `wrangler.jsonc` names
- * `cloudflareWorker.ts` as the Worker script with `run_worker_first: ["/api/*", "!/api/corpus/*"]`. So
+ * `cloudflareWorker.ts` as the Worker script with `run_worker_first: ["/api/*", "!/api/corpus/*", "/.well-known/*"]`. So
  * the browser makes exactly the requests it makes in development — same origin, same `/api` prefix,
  * same bodies — and the isomorphic core answers them from the Worker, the third runtime it runs on
  * unchanged (after the browser and Node).
@@ -21,9 +21,11 @@
  * `handleRequest`: the Node server answers it in development, and the files are written from it.)
  *
  * Like `server.ts`, this is a thin adapter: it strips `/api`, reads the body, calls
- * {@link handleRequest}, and writes the JSON. Anything outside `/api` is handed to the static-assets
- * binding, so a request that reaches the Worker by some other path is answered exactly as the
- * assets-only configuration would answer it.
+ * {@link handleRequest}, and writes the JSON. The other path it is sent, `/.well-known/*`, gets a 404,
+ * because these sites publish nothing there and the assets would answer it with the app shell and a
+ * 200 (`wellKnown.ts`). Anything else is handed to the static-assets binding, so a request that
+ * reaches the Worker by some other path is answered exactly as the assets-only configuration would
+ * answer it.
  *
  * **Why the entry point is a separate file.** The Workers runtime reads every named export of the
  * Worker's main module as an entry point, and refuses to start when one is not a handler — a module
@@ -42,6 +44,7 @@
  */
 
 import { handleRequest } from './requestHandler.js';
+import { isWellKnownPath, wellKnownNotFound } from './wellKnown.js';
 
 /** The path prefix the browser apps put in front of every API route, in development and deployed. */
 export const API_PATH_PREFIX = '/api';
@@ -72,7 +75,8 @@ export function isApiPath(pathname: string): boolean {
 }
 
 /**
- * Answer one request: an `/api` route through the shared handler, anything else from the assets.
+ * Answer one request: an `/api` route through the shared handler, a well-known URI with a 404
+ * (`wellKnown.ts`), anything else from the assets.
  *
  * @param request - The incoming request.
  * @param environment - The Worker's bindings.
@@ -81,6 +85,9 @@ export function isApiPath(pathname: string): boolean {
 export async function handleWorkerRequest(request: Request, environment: ApiWorkerEnvironment): Promise<Response> {
 	const { pathname } = new URL(request.url);
 
+	if (isWellKnownPath(pathname)) {
+		return wellKnownNotFound();
+	}
 	if (!isApiPath(pathname)) {
 		return environment.ASSETS.fetch(request);
 	}

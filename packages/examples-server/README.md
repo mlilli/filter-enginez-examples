@@ -64,9 +64,9 @@ own server tier instead.)
 
 Deployed, the same four apps have no Node process to proxy to. Each is a Cloudflare Worker with static assets, and its
 `wrangler.jsonc` names [`src/cloudflareWorker.ts`](./src/cloudflareWorker.ts) as the Worker script with
-`run_worker_first: ["/api/*", "!/api/corpus/*"]`. So the browser sends exactly the requests it sends in development, and
-the Worker answers them with the same `handleRequest` — the isomorphic core on a third runtime, after the browser and
-Node.
+`run_worker_first: ["/api/*", "!/api/corpus/*", "/.well-known/*"]`. So the browser sends exactly the requests it sends
+in development, and the Worker answers them with the same `handleRequest` — the isomorphic core on a third runtime,
+after the browser and Node.
 
 **The corpus is the exception: a static file, not a Worker response.** The sites run on the Workers Free plan, which
 allows 10 ms of CPU per request, and serializing a corpus of several megabytes takes several times that; a Worker that
@@ -85,7 +85,12 @@ resolves against the directory pnpm was started from. To try a deployed build of
 build it and run `corpus:write` into its assets first.
 
 - [`src/workerRequestHandler.ts`](./src/workerRequestHandler.ts) strips the `/api` prefix (as the dev proxies do), calls
-  `handleRequest`, and hands every other path to the static assets.
+  `handleRequest`, and hands every other path to the static assets, except `/.well-known/*`.
+- **`/.well-known/*` is a 404.** The sites publish nothing there (no agent or tool catalog, nothing else), and an app's
+  assets would answer such a path with its `index.html` and a 200, so [`src/wellKnown.ts`](./src/wellKnown.ts) answers
+  it instead. The documentation site and the Vue app, which have no server-backed route, run
+  [`src/staticAssetsWorker.ts`](./src/staticAssetsWorker.ts) for that path alone: that module and nothing else, no
+  engine.
 - The entry module exports only its default handler: the Workers runtime treats every named export of the main module as
   an entry point.
 - Workers do not compile WebAssembly from bytes at runtime, so the Roaring-Bitmap acceleration stays off there; the

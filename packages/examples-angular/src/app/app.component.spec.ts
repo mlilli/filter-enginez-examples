@@ -12,6 +12,10 @@
  * They pin the three things the caption must do — appear while the outlet is empty, leave once the
  * page activates, never appear beside a page already on screen — plus the routes that name none.
  *
+ * The page-error cases fail a navigation the two ways a page cannot be shown: its resolver rejects, or
+ * its code does not load. Either shows the shared page-error screen, one main landmark, in place of
+ * the routed page, until the next navigation ends.
+ *
  * @packageDocumentation
  */
 
@@ -75,6 +79,12 @@ beforeEach(() => {
 								};
 							}),
 					},
+				},
+				{ component: BootedComponent, path: 'page' },
+				{
+					// A page whose code does not arrive, as when a deploy replaced the chunk an open tab asks for.
+					loadComponent: async () => Promise.reject(new TypeError('Failed to fetch dynamically imported module: /chunk-wine.js')),
+					path: 'unloadable',
 				},
 				{ component: BlankComponent, path: '**' },
 			]),
@@ -158,6 +168,24 @@ describe('<fe-root> boot caption', () => {
 		releaseBoot();
 	});
 
+	it('draws the caption in the page’s one main landmark, which leaves with it', async () => {
+		// While the resolver works, the caption is all the page shows, so it is the main content; an
+		// accessibility audit run in that moment would otherwise find no main landmark at all.
+		const navigation = TestBed.inject(Router).navigateByUrl('/booting');
+		const root = fixture.nativeElement as HTMLElement;
+
+		await settle();
+
+		expect(root.querySelectorAll('main')).toHaveLength(1);
+		expect(root.querySelector('main .fe-boot-caption')?.textContent).toBe(TEST_CAPTION);
+
+		releaseBoot();
+		await navigation;
+		await settle();
+
+		expect(root.querySelectorAll('main')).toHaveLength(0);
+	});
+
 	it('never draws the caption beside a page already on screen', async () => {
 		const router = TestBed.inject(Router);
 
@@ -207,6 +235,66 @@ describe('<fe-root> boot caption', () => {
 		await settle();
 
 		expect(captionText()).toBeNull();
+	});
+});
+
+describe('<fe-root> page-error screen', () => {
+	/**
+	 * The page-error screen on screen, if any.
+	 *
+	 * @returns Its `<main>`, or `null`.
+	 */
+	function errorScreen(): HTMLElement | null {
+		return (fixture.nativeElement as HTMLElement).querySelector('main.fe-page-error');
+	}
+
+	it('shows it, one main landmark around an alert, when a direct visit’s resolver fails', async () => {
+		const navigation = TestBed.inject(Router).navigateByUrl('/failing');
+
+		await settle();
+		failBoot();
+		await expect(navigation).rejects.toThrow('boot failed');
+		await settle();
+
+		const root = fixture.nativeElement as HTMLElement;
+
+		expect(root.querySelectorAll('main')).toHaveLength(1);
+		expect(errorScreen()?.querySelector('[role="alert"]')?.textContent).toContain('boot failed');
+		expect(captionText()).toBeNull();
+	});
+
+	it('shows it when a page’s code does not load, naming what failed', async () => {
+		await expect(TestBed.inject(Router).navigateByUrl('/unloadable')).rejects.toThrow('Failed to fetch');
+		await settle();
+
+		expect(errorScreen()?.textContent).toContain('Failed to fetch dynamically imported module: /chunk-wine.js');
+	});
+
+	it('hides the page already on screen behind it, and gives it back once a navigation ends', async () => {
+		const router = TestBed.inject(Router);
+		const root = fixture.nativeElement as HTMLElement;
+
+		await router.navigateByUrl('/page');
+		await settle();
+		await expect(router.navigateByUrl('/unloadable')).rejects.toThrow('Failed to fetch');
+		await settle();
+
+		// Still there, as the router has it, but not shown.
+		expect(errorScreen()).not.toBeNull();
+		expect(root.querySelector<HTMLElement>('.booted-page')?.closest('div')?.style.display).toBe('none');
+
+		await router.navigateByUrl('/wine');
+		await settle();
+
+		expect(errorScreen()).toBeNull();
+		expect(root.querySelector('router-outlet')?.parentElement?.style.display).toBe('contents');
+	});
+
+	it('shows nothing of it while navigations succeed', async () => {
+		await TestBed.inject(Router).navigateByUrl('/page');
+		await settle();
+
+		expect(errorScreen()).toBeNull();
 	});
 });
 

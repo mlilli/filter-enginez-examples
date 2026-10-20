@@ -58,7 +58,9 @@ export interface WineBootScreen {
  */
 export function createWineBootScreen(loaderLabel: string): WineBootScreen {
 	const caption = el('p', { className: 'fe-boot-caption fe-boot-caption--hero' });
-	const element = el('div', {
+	// A `<main>`: until the engine boots, the loader and its caption are the page's main content, and a
+	// page with no main landmark fails the accessibility audit a visitor's tools run mid-boot.
+	const element = el('main', {
 		children: [createBootLoader(loaderLabel), caption],
 		style: {
 			alignItems: 'center',
@@ -97,8 +99,9 @@ const BOOT_FAILURE_DETAIL_STYLE: Readonly<Record<string, string>> = {
  * instead. Without it the boot screen would animate forever, which reads as a hang and sends someone
  * looking in the wrong place.
  *
- * `role="alert"`, so a screen reader announces the failure where it was announcing progress. The
- * block is the other apps' boot-error card (`fe-boot-error`: a bordered `--gray-1` panel, a
+ * `role="alert"`, so a screen reader announces the failure where it was announcing progress, inside
+ * a `<main>`, because the failure is the page's main content (a `role` on the `<main>` itself would
+ * replace its landmark role). The block is the other apps' boot-error card (`fe-boot-error`: a bordered `--gray-1` panel, a
  * `--danger` title, mono details), authored as a style bag for the reason given above for the boot
  * screen's layout.
  *
@@ -106,7 +109,7 @@ const BOOT_FAILURE_DETAIL_STYLE: Readonly<Record<string, string>> = {
  * @returns The screen's root.
  */
 export function createWineBootFailure(message: string): HTMLElement {
-	return el('div', {
+	const alert = el('div', {
 		attrs: { role: 'alert' },
 		children: [
 			el('p', {
@@ -132,4 +135,6 @@ export function createWineBootFailure(message: string): HTMLElement {
 			padding: '1.5rem',
 		},
 	});
+
+	return el('main', { children: [alert]});
 }

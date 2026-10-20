@@ -1,6 +1,6 @@
 // cspell:ignore Tolkein tolkein — deliberate misspellings demonstrating typo-tolerant fuzzy search.
 /**
- * The filter-rule catalog as documentation data — 15 concrete rules + `CompositeRule`. Each entry
+ * The filter-rule catalog as documentation data — every rule the engine exports, `CompositeRule` included. Each entry
  * drives one `/docs/rules/:id` page. Code examples use only the real ergonomic factories from
  * `@filter-enginez/core` (`packages/core/src/rules/factories.ts` + `composition/factories.ts`), so a
  * reader can paste them and have them mean something.

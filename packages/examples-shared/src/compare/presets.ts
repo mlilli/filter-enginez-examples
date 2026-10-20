@@ -29,12 +29,13 @@
  *
  * ## `RangeRule` needs BOTH bounds
  *
- * `RangeRuleConfig` declares `min: number` and `max: number`, neither optional. Omitting one leaves
- * it `undefined`, and `n >= undefined` is `false` for every `n`, so an "open-ended" range silently
- * matches nothing — no throw, no warning, an empty grid; the result-count assertion in `core.test.ts`
- * is what catches it. `RangeRule`'s own docblock suggests `{ min: 4, max: Infinity }` for the open-ended case, which is
- * right for a runtime rule and wrong here: `JSON.stringify(Infinity)` is `null`, so it cannot
- * survive the trip through `?f=`. Give both bounds concrete numbers.
+ * `RangeRuleConfig` declares `min: number` and `max: number`, neither optional, and `loadConfig`
+ * rejects a range that omits one with `RULE_INVALID_SERIALIZED_CONFIG`. Where the field has a natural
+ * limit (the 100-point scale, the 5-star rating, a price of 0) a preset states it, so the readable URL
+ * shows a number. Where it has none ("4+ bd", "over 500pp", "built since 1990") the bound is
+ * `Number.POSITIVE_INFINITY`, as `RangeRule`'s own docblock suggests: JSON writes it as `null` in
+ * `?f=`, and the engine loads a `null` bound back as open. `core.test.ts` carries every preset through
+ * each `?f=` format and back and requires the same result count.
  *
  * @packageDocumentation
  */
@@ -111,7 +112,7 @@ const BOOKS_PRESETS: readonly [ComparePreset, ...ComparePreset[]] = [
 				{ id: 'genre', rule: { config: { set: ['fantasy']}, field: 'genre', type: 'InSetRule' }},
 				{
 					id: 'page-count',
-					rule: { config: { max: 1_000, min: 500 }, field: 'pageCount', type: 'RangeRule' },
+					rule: { config: { max: Number.POSITIVE_INFINITY, min: 500 }, field: 'pageCount', type: 'RangeRule' },
 				},
 			],
 			version: 1,
@@ -156,14 +157,17 @@ const REAL_ESTATE_PRESETS: readonly [ComparePreset, ...ComparePreset[]] = [
 		config: {
 			label: 'family homes · 4+ bd · built since 1990',
 			rules: [
-				{ id: 'bedrooms', rule: { config: { max: 10, min: 4 }, field: 'bedrooms', type: 'RangeRule' }},
+				{
+					id: 'bedrooms',
+					rule: { config: { max: Number.POSITIVE_INFINITY, min: 4 }, field: 'bedrooms', type: 'RangeRule' },
+				},
 				{
 					id: 'property-type',
 					rule: { config: { set: ['single-family']}, field: 'propertyType', type: 'InSetRule' },
 				},
 				{
 					id: 'year-built',
-					rule: { config: { max: 2_025, min: 1_990 }, field: 'yearBuilt', type: 'RangeRule' },
+					rule: { config: { max: Number.POSITIVE_INFINITY, min: 1_990 }, field: 'yearBuilt', type: 'RangeRule' },
 				},
 			],
 			version: 1,
@@ -200,8 +204,8 @@ const WINE_PRESETS: readonly [ComparePreset, ...ComparePreset[]] = [
 			label: 'bold reds · under $25 · 88+ points',
 			rules: [
 				{ id: 'color', rule: { config: { set: ['red']}, field: 'color', type: 'InSetRule' }},
-				// Both bounds concrete. 100 is the scale's ceiling rather than a guess — see the module
-				// docblock on why `Infinity` cannot survive the trip through `?f=`.
+				// 100 is the scale's ceiling, so "88+ points" states it rather than an open bound, and the
+				// readable URL shows a number (see the module docblock).
 				{ id: 'points', rule: { config: { max: 100, min: 88 }, field: 'points', type: 'RangeRule' }},
 				{ id: 'price', rule: { config: { max: 25, min: 0 }, field: 'priceUsd', type: 'RangeRule' }},
 			],

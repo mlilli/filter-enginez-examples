@@ -38,6 +38,36 @@ The apps, the shared UI packages, and the `examples-server` demo endpoint are de
 Problems confined to them are handled as ordinary bugs unless they reveal a defect in an engine package — then report
 them privately against the engine, as above.
 
+## Dependency release age
+
+A dependency version is installed here only once it is 7 days old. `minimumReleaseAge: 10080` in
+[`pnpm-workspace.yaml`](./pnpm-workspace.yaml) makes pnpm refuse a younger version, both when it resolves one
+(`pnpm add`, `pnpm update`) and when it verifies an existing lockfile (`--frozen-lockfile` included). Dependabot's
+GitHub Actions updates wait the same 7 days (`cooldown.default-days` in
+[`.github/dependabot.yml`](./.github/dependabot.yml)); `tests/tooling/releaseAgeCooldown.test.ts` keeps that cooldown at
+least as long as the quarantine. npm dependencies here are updated by hand, because Dependabot cannot resolve the engine
+tarballs this workspace installs.
+
+When the fix for an advisory is younger than 7 days, the quarantine refuses it: asking for the exact version fails with
+`ERR_PNPM_NO_MATURE_MATCHING_VERSION`, and a range resolves to the newest version that is old enough, which predates the
+fix. To take the fix without waiting:
+
+1. Exempt the exact patched version in `pnpm-workspace.yaml`, with a comment naming the advisory:
+
+   ```yaml
+   minimumReleaseAgeExclude:
+     # GHSA-xxxx-xxxx-xxxx: fixed in 1.2.3
+     - 'some-package@1.2.3'
+   ```
+
+   List one version, or a union of exact versions (`'some-package@1.2.3 || 1.2.4'`) when the fix needs two. pnpm rejects
+   a range, and a bare package name would exempt every later release of the package too.
+
+2. Install the patched version: `pnpm update some-package` for a direct dependency, or an `overrides` floor in
+   `pnpm-workspace.yaml` for a transitive one. Commit the lockfile together with the exemption.
+3. Delete the entry once the lockfile has moved past that version, or once the version is more than 7 days old, then run
+   `pnpm install --frozen-lockfile`: it passes only if nothing in the lockfile still needs the exemption.
+
 ## Accepted advisories
 
 A small set of advisories are deliberately suppressed from `pnpm audit` via `auditConfig.ignoreGhsas` in

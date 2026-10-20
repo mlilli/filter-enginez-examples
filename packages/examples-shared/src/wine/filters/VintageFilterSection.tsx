@@ -27,12 +27,15 @@ import { WINE_SLIDER_TEXT, wineSliderScale } from '../wine-domain/filterConfig.j
 import { vintageBoundsFromSet, vintageYearsFromRange } from '../wine-domain/vintage.js';
 import { useBundleFieldMeta, useBundleSliderHistogram } from './filterBundle.js';
 import { EMPTY_SELECTION, useBaselineBounds } from './filterConfig.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /**
  * The vintage range slider section.
  */
 export const VintageFilterSection = (): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const baseline = useBaselineBounds('vintage');
 	const fieldMeta = useBundleFieldMeta('vintage');
 	const available: NumericBounds = fieldMeta !== null && fieldMeta.bounds.min !== null
@@ -55,11 +58,12 @@ export const VintageFilterSection = (): React.ReactElement => {
 		// loader, then call the engine a frame later. Full-baseline span → "no constraint" (empty set).
 		const years = vintageYearsFromRange(next, baseline);
 
+		leaveExpressionMode();
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule('vintage', inSet<number>('vintage', years)),
 			markBusy: markUserAction,
 		});
-	}, [engine, baseline]);
+	}, [engine, baseline, leaveExpressionMode]);
 
 	// Wrapped in a <section>, like every other facet. The shared panel CSS targets
 	// `.fe-filter-panel section` for the rhythm between filters, so a bare slider silently

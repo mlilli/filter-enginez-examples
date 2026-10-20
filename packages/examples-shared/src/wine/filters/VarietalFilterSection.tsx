@@ -26,12 +26,15 @@ import { rankWineVarietals } from '../wine-domain/facets.js';
 import { useBundleChipExclusion } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /**
  * The varietal checkbox-list section.
  */
 export const VarietalFilterSection = (): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule('varietal') as InSetRule<string> | undefined;
 	const engineSelected: readonly string[] = rule?.config.set ?? EMPTY_SELECTION;
 	const [selected, setSelected] = useSeedAndAdopt(engineSelected, sameSelection);
@@ -47,13 +50,14 @@ export const VarietalFilterSection = (): React.ReactElement => {
 		const isSelected = selected.includes(varietal);
 		const next = isSelected ? selected.filter((v) => v !== varietal) : [...selected, varietal];
 
+		leaveExpressionMode();
 		// Paint the checkbox row first, then disable+loader, then the engine — each its own frame.
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule('varietal', inSet<string>('varietal', next)),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(next),
 		});
-	}, [engine, selected, setSelected]);
+	}, [engine, selected, setSelected, leaveExpressionMode]);
 
 	return (
 		<section>

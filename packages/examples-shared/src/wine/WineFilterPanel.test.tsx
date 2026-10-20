@@ -12,13 +12,14 @@
  * belongs to `react-ui`'s own suite.
  */
 
-import { createFilterEngine, inSet } from '@filter-enginez/core';
+import { createFilterEngine, inSet, range } from '@filter-enginez/core';
 import { type Wine, wines } from '@filter-enginez/mock-data/wine';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { createSignalsEngine } from '@filter-enginez/reactive-signals';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { deriveSelectedPresetIds } from './smartFilters.js';
 import { WineFilterPanel } from './WineFilterPanel.js';
 
 beforeAll(() => {
@@ -42,13 +43,16 @@ afterEach(cleanup);
 /** A small deterministic slice — the panel derives vocabularies, so it needs real-shaped rows. */
 const CORPUS: readonly Wine[] = wines.slice(0, 400);
 
+/** The synchronous wine engine core. */
+type WineCore = ReturnType<typeof createFilterEngine<Wine>>;
+
 /**
  * Mount the panel over a real engine.
  *
  * @param seed - Optional callback to apply rules before mounting.
  * @returns The engine core, so a test can assert against it.
  */
-function renderPanel(seed?: (core: ReturnType<typeof createFilterEngine<Wine>>) => void): void {
+function renderPanel(seed?: (core: WineCore) => void): WineCore {
 	const core = createFilterEngine<Wine>({ sourceData: CORPUS });
 
 	seed?.(core);
@@ -58,6 +62,22 @@ function renderPanel(seed?: (core: ReturnType<typeof createFilterEngine<Wine>>) 
 			<WineFilterPanel />
 		</FilterEngineProvider>,
 	);
+
+	return core;
+}
+
+/**
+ * The first chip button carrying a label, from the facet sections.
+ *
+ * @param label - The chip's visible label, e.g. `red`.
+ * @returns The chip button.
+ */
+function facetChip(label: string): HTMLButtonElement {
+	const button = screen.getAllByText(label)[0]?.closest('button');
+
+	expect(button).not.toBeNull();
+
+	return button as HTMLButtonElement;
 }
 
 describe('<WineFilterPanel />', () => {
@@ -144,5 +164,57 @@ describe('<WineFilterPanel />', () => {
 		const sweet = screen.getAllByText('sweet')[0]?.closest('button');
 
 		expect((sweet as HTMLButtonElement).disabled).toBe(false);
+	});
+});
+
+describe('<WineFilterPanel /> — a smart-filter preset replaces the manual filters', () => {
+	it('clears every manual facet rule before setting the expression, and the sections adopt the removal', () => {
+		const core = renderPanel((seeded) => {
+			seeded.addRule('color', inSet<string>('color', ['red']));
+			seeded.addRule('price', range('priceUsd', { max: 40, min: 10 }));
+		});
+
+		expect(facetChip('red').getAttribute('aria-pressed')).toBe('true');
+
+		fireEvent.click(screen.getByRole('button', { name: 'Bold reds' }));
+
+		// Only the expression is left: no dormant rule waiting behind it in `?f`, the action log, or the
+		// facet controls.
+		expect([...core.getRules().keys()]).toEqual([]);
+		expect(deriveSelectedPresetIds(core.getExpression())).toEqual(['bold-reds']);
+		// The color section adopted its rule's removal on its own; nothing blanked it by hand.
+		expect(facetChip('red').getAttribute('aria-pressed')).toBe('false');
+	});
+
+	it('drops the active preset before a facet edit commits, so the engine accepts the flat rule', async () => {
+		// The window this closes: on the worker tier the sections lock (`inert`) only once the engine's
+		// MODE reports expression, a round trip after the preset click. jsdom dispatches the click even
+		// though the body is already inert here, which is what lets the test reach the same state on a
+		// synchronous engine. Without the leave, `addRule` would throw MODE_EXPRESSION_ACTIVE.
+		const core = renderPanel();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Bold reds' }));
+		expect(core.getExpression()).not.toBeNull();
+
+		fireEvent.click(facetChip('white'));
+
+		expect(core.getExpression()).toBeNull();
+		expect(screen.getByRole('button', { name: 'Bold reds' }).getAttribute('aria-pressed')).toBe('false');
+		await waitFor(() => {
+			expect((core.getRule('color') as { config: { set: readonly string[] }} | undefined)?.config.set).toEqual(['white']);
+		});
+	});
+
+	it('writes no expression at all when a facet is edited with no preset lit', async () => {
+		// The guard keeps a flat-map panel's every slider drag off the action log.
+		const core = renderPanel();
+		const setExpression = vi.spyOn(core, 'setExpression');
+
+		fireEvent.click(facetChip('white'));
+
+		await waitFor(() => {
+			expect(core.getRule('color')).toBeDefined();
+		});
+		expect(setExpression).not.toHaveBeenCalled();
 	});
 });

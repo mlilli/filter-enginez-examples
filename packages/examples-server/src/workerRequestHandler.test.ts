@@ -89,6 +89,17 @@ describe('handleWorkerRequest', () => {
 		expect(assetsFetch).not.toHaveBeenCalled();
 	});
 
+	it('answers a well-known URI with a 404 rather than the app shell', async () => {
+		// The SPA fallback would answer `/.well-known/ai-catalog.json` with `index.html` and a 200: a
+		// catalog that exists and fails to parse, where the truth is that there is none.
+		const { assetsFetch, environment } = fakeEnvironment();
+		const response = await handleWorkerRequest(new Request(`${ORIGIN}/.well-known/ai-catalog.json`), environment);
+
+		expect(response.status).toBe(404);
+		expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+		expect(assetsFetch).not.toHaveBeenCalled();
+	});
+
 	it('hands every non-API request to the static assets untouched', async () => {
 		const { assetsFetch, environment } = fakeEnvironment();
 		const request = new Request(`${ORIGIN}/books-server?f=x`);

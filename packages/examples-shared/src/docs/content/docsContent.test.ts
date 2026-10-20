@@ -11,7 +11,7 @@ import { API_GROUPS } from './apiContent.js';
 import { findRuleDoc, RULE_DOCS } from './rulesContent.js';
 
 describe('rule catalog', () => {
-	it('lists 15 rules + CompositeRule with unique ids and complete fields', () => {
+	it('lists the engine’s 16 rules, CompositeRule included, with unique ids and complete fields', () => {
 		expect(RULE_DOCS).toHaveLength(16);
 		expect(new Set(RULE_DOCS.map((rule) => rule.id)).size).toBe(RULE_DOCS.length);
 

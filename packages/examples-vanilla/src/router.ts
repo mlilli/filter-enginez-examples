@@ -13,8 +13,13 @@
  * without a `<Link>` component (this is what SvelteKit does natively and Vue does NOT — hence the Vue
  * app's `<RouterLink>` requirement).
  *
+ * A route whose `render` throws or rejects shows the shared page-error screen in its mount
+ * (`shell/pageErrorScreen.ts`), so a page whose code fails to load is never a blank page.
+ *
  * @packageDocumentation
  */
+
+import { createPageErrorScreen } from './shell/pageErrorScreen.js';
 
 /** Tear down whatever a route's `render` set up (listeners, engine subscriptions, observers). */
 export type RouteTeardown = () => void;
@@ -148,7 +153,18 @@ export function startRouter(container: HTMLElement, routes: readonly Route[], op
 		// clears the old route and gives the new one a surface no other render can reach.
 		container.replaceChildren(mount);
 
-		const result = await route.render(mount);
+		let result: RouteRenderResult;
+
+		try {
+			result = await route.render(mount);
+		} catch (error) {
+			// A page whose code did not load (a rejected `import()`) or whose render threw: its mount
+			// shows the page-error screen rather than staying empty. A superseded route's failure lands
+			// on its detached mount, as its paint would have, and it has no resources to release.
+			mount.replaceChildren(createPageErrorScreen(error));
+
+			return;
+		}
 
 		// A newer navigation started while this route was still resolving. Whatever it just painted
 		// went into a mount that navigation already detached, so only the route's own resources are

@@ -8,8 +8,8 @@
  * needed since it's already outside the scrolling area.
  *
  * **No "clear all" button here.** By design the canonical clear-all
- * affordance lives in the ActiveFiltersBar inside `<ResultsHeader />`; that single button
- * dispatches `engine.clearRules()` (one action, one log entry) rather than looping per-rule resets.
+ * affordance lives in the ActiveFiltersBar inside `<ResultsHeader />`, where that single button calls
+ * the shared `clearAllWineFilters`: every flat facet and expression mode, as in every vertical.
  *
  * @packageDocumentation
  */

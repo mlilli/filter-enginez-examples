@@ -1,0 +1,43 @@
+# Filter EngineZ · React
+
+> Filter EngineZ demo app in React with signals and no Redux — wine, books and real-estate filtering, plus a lab of projection, similarity search and co-occurrence suggestions.
+
+Filter EngineZ is a generic, isomorphic, framework-agnostic TypeScript data filter engine: one engine in the browser, in Node or in a Web Worker, with bindings for React, Svelte, Vue and Angular. This is one of its six demo apps, which run the same engine over the same three synthetic datasets (books, wine reviews and real-estate listings) under different front-end stacks.
+
+React plain is built with React 19 and @filter-enginez/react-signals. The same app with no store library at all, proving the Redux mirror is optional.
+
+## This app
+
+- [React plain](https://react.filterenginez.com/): The hub: one card per dataset this app serves.
+- [Books](https://react.filterenginez.com/books): About 10k Open Library titles — genre, format and language facets, publication-year and rating ranges, and fuzzy author search.
+- [Books · server-filtered](https://react.filterenginez.com/books-server): The exact same books app, but the browser never filters — every mutation round-trips to a server running the isomorphic engine.
+- [Books · JSON config](https://react.filterenginez.com/books-config): The same corpus again, but the entire filter panel is generated from a JSON config the engine loads — the filter UI as a function of the data.
+- [Wine reviews](https://react.filterenginez.com/wine): 150,000 synthetic wine reviews — a cascading origin hierarchy, points, price and ABV ranges, and typo-tolerant tasting-note search. The worker-backed tier: the wines are generated and filtered in a Web Worker, and every filter is a Comlink round trip.
+- [Real estate](https://react.filterenginez.com/real-estate): Property listings — geo-radius search, price, beds and baths ranges, a metro to neighborhood hierarchy, and must-have features.
+- [The lab](https://react.filterenginez.com/lab): Engine capabilities beyond filtering, running against a live books corpus: projection, similarity search and co-occurrence suggestions.
+
+## Documentation
+
+- [Filter EngineZ — Documentation](https://docs.filterenginez.com/docs): Filter EngineZ documentation — the 16-rule filter catalog, the acceleration algorithms, a live in-browser playground, and the API reference.
+- [Playground](https://docs.filterenginez.com/docs/playground): Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.
+- [API reference](https://docs.filterenginez.com/docs/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.
+
+## Other demos
+
+- [React RTK](https://react-rtk.filterenginez.com/): Built with React 19 and @filter-enginez/react-signals. Adds the optional Redux mirror via redux-bridge — the engine stays the source of truth.
+- [SvelteKit](https://svelte.filterenginez.com/): Built with SvelteKit 5 and @filter-enginez/svelte-signals. Runs the isomorphic core in SvelteKit’s own server tier, with a zero-JS SSR fallback.
+- [Vue](https://vue.filterenginez.com/): Built with Vue 3 and @filter-enginez/vue-signals. Holds the engine in shallowRef — Vue’s deep proxy would break its signals.
+- [Angular](https://angular.filterenginez.com/): Built with Angular 22 and @filter-enginez/angular-rxjs. Zoneless and standalone; consumes the engine’s Observables natively, so the binding is DI only.
+- [Vanilla](https://vanilla.filterenginez.com/): Built with plain TypeScript and no framework. /books goes through reactive-signals, /books-raw through the bare core — the pair shows what the adapter buys.
+
+## Landing site
+
+- [Filter EngineZ](https://filterenginez.com/): What the engine is, how to install it, and links to everything else.
+- [One filter state in six stacks](https://filterenginez.com/compare): One filter state, opened in every demo app that serves its dataset, through the same `?f` URL parameter.
+- [How the engine works](https://filterenginez.com/how-it-works): How the engine filters without checking every record: eight algorithms, animated, with a live benchmark in the browser.
+
+## Source
+
+- [filter-enginez on GitHub](https://github.com/mlilli/filter-enginez): The engine: its packages, its architecture document and its guides.
+- [filter-enginez-examples on GitHub](https://github.com/mlilli/filter-enginez-examples): These sites: the six demo apps, the documentation site, the landing site and the UI they share.
+- [@filter-enginez on npm](https://www.npmjs.com/org/filter-enginez): Every engine package, published under the @filter-enginez scope.

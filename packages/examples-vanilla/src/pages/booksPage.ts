@@ -140,7 +140,9 @@ function bootingNotice(): HTMLElement {
 	//
 	// The class is the shared boot caption, not a panel SECTION HEADING — `.fe-books-section-label`
 	// is 14px and semibold, which reads as a heading rather than as body copy on a boot screen.
-	return el('p', {
+	//
+	// Inside a `<main>`: until the engine boots, the caption is the page's main content.
+	const caption = el('p', {
 		className: 'fe-boot-caption fe-boot-caption--inline',
 		text: bootCaptionText(
 			bootCaptionParts(null, {
@@ -149,4 +151,6 @@ function bootingNotice(): HTMLElement {
 			}),
 		),
 	});
+
+	return el('main', { children: [caption]});
 }

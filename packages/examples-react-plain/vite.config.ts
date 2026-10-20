@@ -14,12 +14,18 @@
 
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, runnerImport } from 'vite';
 
+import { criticalCssPlugin } from '../../scripts/lib/critical-css.mjs';
 import { fontPreloadsPlugin } from '../../scripts/lib/font-preloads.mjs';
+import { SIDE_EFFECT_FREE_BARRELS } from '../../scripts/lib/tree-shaking.mjs';
 
 export default defineConfig({
 	build: {
+		// The brand package's barrels re-export every brand component; declared free of side effects, they
+		// no longer pull a component only a dataset page draws into the hub's startup chunk
+		// (scripts/lib/tree-shaking.mjs).
+		rolldownOptions: { treeshake: { moduleSideEffects: [...SIDE_EFFECT_FREE_BARRELS]}},
 		sourcemap: true,
 		// ESM target — Vite's default; we're explicit so any TC39-stage features we use stay
 		// gated to runtimes that actually support them.
@@ -93,6 +99,10 @@ export default defineConfig({
 		// Preload the first screen's two brand fonts from the built index.html, so they download beside
 		// the startup scripts instead of after the stylesheet (scripts/lib/font-preloads.mjs).
 		fontPreloadsPlugin(),
+		// Put the first screen's part of the stylesheet into the built index.html, so the first render
+		// waits on no stylesheet, and load the whole sheet with the routes that use the rest
+		// (scripts/lib/critical-css.mjs).
+		criticalCssPlugin({ runnerImport }),
 	],
 	// Workspace deps are linked via pnpm — Vite's deduplication keeps a single React copy.
 	// Bitmap acceleration is provided by `roaring-wasm` (browser + Node + Deno via WASM);

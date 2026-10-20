@@ -50,6 +50,9 @@ const SITE_PACKAGE = 'site';
 /** The Worker entry examples-server provides for the apps whose dev servers proxy `/api`. */
 const API_WORKER_ENTRY = '../examples-server/src/cloudflareWorker.ts';
 
+/** The Worker entry of the single-page apps with no `/api`: it answers `/.well-known/*` alone. */
+const STATIC_WORKER_ENTRY = '../examples-server/src/staticAssetsWorker.ts';
+
 /** The build step every corpus-linked app ends with (see `buildsStripLocalCorpus.test.ts`). */
 const STRIP_COMMAND = 'node ../../scripts/strip-local-corpus.mjs';
 
@@ -286,8 +289,13 @@ describe('deploy targets', () => {
 					expect(target.config.assets?.binding).toBe('ASSETS');
 					expect(workerRunsFirstFor(target.config.assets?.run_worker_first, '/api/query'), 'the Worker must answer /api/*').toBe(true);
 				} else {
-					// No server-backed route, so no Worker script: a request is never a billed invocation.
-					expect(target.config.main).toBeUndefined();
+					// No server-backed route, so the Worker runs for `/.well-known/*` alone
+					// (`wellKnownNotFound.test.ts`), and no page, asset or `/api` request is a billed invocation.
+					expect(target.config.main).toBe(STATIC_WORKER_ENTRY);
+					expect(target.config.assets?.run_worker_first).toEqual(['/.well-known/*']);
+					for (const path of ['/', '/books', '/docs/rules/value', '/assets/index-abc123.js', '/api/query', '/llms.txt']) {
+						expect(workerRunsFirstFor(target.config.assets?.run_worker_first, path), `the Worker must not run first for ${path}`).toBe(false);
+					}
 				}
 			});
 

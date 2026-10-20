@@ -26,6 +26,7 @@ import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
 import { COLOR_ORDER } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /** Rule id + registry key for the single-color ValueRule. */
 const COLOR_VALUE_RULE_ID = 'color-value';
@@ -38,10 +39,13 @@ const COLOR_OPTIONS: readonly SelectOption[] = COLOR_ORDER.map((color) => ({ lab
  */
 export const ColorValueFilterSection = (): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(COLOR_VALUE_RULE_ID) as ValueRule<WineColor> | undefined;
 	const selected: string = rule?.config ?? '';
 
 	const handleChange = useCallback((next: string): void => {
+		leaveExpressionMode();
 		commitFilterMutation({
 			callEngine: () => {
 				if (next === '') {
@@ -52,7 +56,7 @@ export const ColorValueFilterSection = (): React.ReactElement => {
 			},
 			markBusy: markUserAction,
 		});
-	}, [engine]);
+	}, [engine, leaveExpressionMode]);
 
 	return (
 		<section>

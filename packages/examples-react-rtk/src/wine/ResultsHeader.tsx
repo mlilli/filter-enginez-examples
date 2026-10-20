@@ -13,7 +13,10 @@
  *      corpus total, and the `engineBusy` external-store read.
  *   2. The `instanceof`-based rule→summary mapping (`summarizeRule` / `buildRuleSummaries`), which
  *      necessarily imports the concrete `core` rule classes.
- *   3. `resetRule` — the per-chip removal semantics (`removeRule`, never an emptied rule).
+ *   3. The two writes, both through the shared wine commit helpers every vertical calls:
+ *      `removeWineFilterChip` for a chip's × and `clearAllWineFilters` for "Clear all". A single
+ *      facet's removal travels through Redux as a `forwardToEngine('removeRule')` intent, so
+ *      redux-logger and the Redux DevTools see it.
  *
  * The container builds a plain `FilterSummary[]` + two callbacks and hands them to the view. The
  * view knows nothing of `FilterRule`, `RuleId`, or signals — the same boundary the plain app's wine
@@ -36,15 +39,13 @@ import {
 	ValueRule,
 } from '@filter-enginez/core';
 import { commitFilterMutation, formatVintageRange, getIsEngineBusy, markUserAction, subscribeEngineBusy } from '@filter-enginez/examples-shared/wine';
+import { clearAllWineFilters, removeWineFilterChip, SMART_FILTER_SUMMARY } from '@filter-enginez/examples-shared/wine-domain';
 import { useActiveRules, useFilterEngine, useMode } from '@filter-enginez/react-signals';
 import { type FilterSummary, ResultsHeaderView } from '@filter-enginez/react-ui';
 import { forwardToEngine } from '@filter-enginez/redux-bridge';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 import { useWineDispatch, useWineSelector } from '../store.js';
-
-/** Synthetic chip id for the expression-mode "smart filter" chip (not a real rule id). */
-const SMART_FILTER_CHIP_ID = '__smart-filter__';
 
 /**
  * Top-level results header container.
@@ -80,41 +81,43 @@ export const ResultsHeader = (): React.ReactElement => {
 	// here rather than in the presentational layer.
 	const summaries = useMemo<readonly FilterSummary[]>(
 		() => isExpression
-			? [{ isNumeric: false, label: 'Smart filter', ruleId: SMART_FILTER_CHIP_ID, value: 'active' }]
+			? [{ ...SMART_FILTER_SUMMARY, isNumeric: false }]
 			: buildRuleSummaries(activeRules),
 		[isExpression, activeRules],
 	);
 
 	const handleRemoveRule = useCallback((ruleId: string): void => {
 		// No optimistic paint — the chip vanishes when the engine confirms the change. Flip the loader,
-		// then mutate a frame later. The synthetic smart-filter chip exits expression mode.
+		// then mutate a frame later. The synthetic smart-filter chip leaves expression mode and drops
+		// the flat facets with it, as in every other vertical.
+		//
+		// **Forwarding-middleware demonstration.** A single facet's removal is dispatched as a forward
+		// INTENT rather than called on the engine: `createFilterEngineMiddleware` intercepts
+		// `FILTER_ENGINE/forward/removeRule`, calls `engine.removeRule()`, and swallows the action, and
+		// the mirror update still arrives via `engine.subscribe` → `attachEngineToStore`. The engine
+		// records the same `RULE_REMOVED` the plain app's direct call does, but the intent flows through
+		// Redux, so redux-logger / DevTools see it. Both write paths (direct + forwarded) coexisting is
+		// exactly what the bridge contract allows.
 		commitFilterMutation({
 			callEngine: () => {
-				if (ruleId === SMART_FILTER_CHIP_ID) {
-					engine.core.setExpression(null);
-				} else {
-					resetRule(engine.core, ruleId);
-				}
+				removeWineFilterChip(engine, ruleId, (facetRuleId) => {
+					dispatch(forwardToEngine('removeRule', { ruleId: facetRuleId }));
+				});
+			},
+			markBusy: markUserAction,
+		});
+	}, [dispatch, engine]);
+
+	const handleClearAll = useCallback((): void => {
+		// Every flat facet AND expression mode, as one operation — the shared helper the other
+		// verticals' headers call, so the action log records the same entries in every app.
+		commitFilterMutation({
+			callEngine: () => {
+				clearAllWineFilters(engine);
 			},
 			markBusy: markUserAction,
 		});
 	}, [engine]);
-
-	const handleClearAll = useCallback((): void => {
-		// **Forwarding-middleware demonstration.** Rather than calling `engine.core.clearRules()`
-		// directly (the path remove-rule still uses), Clear-all dispatches a forward INTENT as a
-		// Redux action. `createFilterEngineMiddleware` intercepts `FILTER_ENGINE/forward/clearRules`,
-		// calls `engine.clearRules()`, and swallows the action — the mirror update still arrives via
-		// `engine.subscribe` → `attachEngineToStore`. Net behavior is identical (one `RULES_CLEARED`
-		// devtools entry), but the intent flows through Redux, so redux-logger / DevTools see it.
-		// Both write paths (direct + forwarded) coexisting is exactly what the bridge contract allows.
-		commitFilterMutation({
-			callEngine: () => {
-				dispatch(forwardToEngine('clearRules', {}));
-			},
-			markBusy: markUserAction,
-		});
-	}, [dispatch]);
 
 	return (
 		<ResultsHeaderView
@@ -361,27 +364,4 @@ function formatSetValue(set: readonly unknown[]): string {
 	}
 
 	return `${first} (+${set.length - 1} more)`;
-}
-
-/**
- * Remove a rule from the engine entirely. Used by the per-chip remove ×.
- *
- * @remarks
- * **Why removeRule and not addRule(empty config).** A deliberate choice for the
- * devtools log: wine's interactions should organically produce all three rule-mutation
- * action types (`addRule` / `changeRule` / `removeRule`) so the log shows visual variety.
- * Calling `addRule` with an empty config would record as `RULE_CHANGED`, so every clear would
- * look the same as every modify. By calling
- * `engine.removeRule(id)` instead, the chip × records as `RULE_REMOVED` (red in the devtools
- * panel), and the next user interaction with that filter records as `RULE_ADDED` (cyan)
- * because the rule no longer exists. Subsequent modifications then become `RULE_CHANGED`
- * (gray) as before.
- *
- * Origin is no exception. Its rule carries only the selection — the picker's tree comes from the
- * loaded records — so removing it writes the same "nothing selected" every app writes.
- *
- * @internal
- */
-function resetRule(core: { removeRule: (id: RuleId) => void }, ruleId: RuleId): void {
-	core.removeRule(ruleId);
 }

@@ -26,6 +26,7 @@ import { commitFilterMutation } from '../../scheduling/index.js';
 import { useTypeaheadSearch } from '../../search/index.js';
 import { markUserAction } from '../engineBusy.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /**
  * Props for `<FuzzySearchFilterSection />`.
@@ -58,10 +59,13 @@ export interface FuzzySearchFilterSectionProps {
 export const FuzzySearchFilterSection = (props: FuzzySearchFilterSectionProps): React.ReactElement => {
 	const { ariaLabel, field, keys, label, placeholder, ruleId, threshold } = props;
 	const engine = useFilterEngine<Wine>();
+	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
+	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(ruleId) as FuzzySearchRule | undefined;
 	const ruleQuery = rule?.config.query ?? '';
 
 	const commit = useCallback((trimmed: string): void => {
+		leaveExpressionMode();
 		// The debounce owns cadence; here we just flip the loader and call the engine a frame later.
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(ruleId, fuzzy(field, {
@@ -71,7 +75,7 @@ export const FuzzySearchFilterSection = (props: FuzzySearchFilterSectionProps): 
 			})),
 			markBusy: markUserAction,
 		});
-	}, [engine, ruleId, field, threshold, keys]);
+	}, [engine, ruleId, field, threshold, keys, leaveExpressionMode]);
 	const search = useTypeaheadSearch({ commit, ruleQuery });
 
 	return (

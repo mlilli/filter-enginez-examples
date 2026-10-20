@@ -6,8 +6,8 @@
   "name": "filter-enginez-angular",
   "compatibility_date": "2026-10-01",
   // The `/books-server` route calls same-origin `/api/*`, which `ng serve` proxies to examples-server on port
-  // 24618 (proxy.config.json). Deployed, examples-server's own Worker entry answers those requests instead;
-  // everything else is a static asset.
+  // 24618 (proxy.config.json). Deployed, examples-server's own Worker entry answers those requests instead,
+  // and the `/.well-known/*` ones; everything else is a static asset.
   "main": "../examples-server/src/cloudflareWorker.ts",
   "assets": {
     // `@angular/build:application` writes the browser bundle under `<outputPath>/browser` (angular.json).
@@ -18,8 +18,9 @@
     // The Worker answers `/api/*`, except `/api/corpus/*`: each dataset's corpus is a static file there
     // (`<dataset>.json`, written by the deploy job from examples-server's own route), so serving it
     // costs no Worker CPU. The Workers Free plan allows 10 ms per request, less than serializing a
-    // corpus takes.
-    "run_worker_first": ["/api/*", "!/api/corpus/*"]
+    // corpus takes. It also answers `/.well-known/*`, with a 404: the site publishes nothing there, and
+    // the fallback above would answer with index.html and a 200 (examples-server's src/wellKnown.ts).
+    "run_worker_first": ["/api/*", "!/api/corpus/*", "/.well-known/*"]
   },
   "routes": [{ "pattern": "angular.filterenginez.com", "custom_domain": true }],
   // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.

@@ -8,6 +8,7 @@
   "exports": {
     "./app-header": "./src/app-header/index.ts",
     "./app-header-core": "./src/app-header/core.ts",
+    "./app-router": "./src/app-router/index.ts",
     "./books": "./src/books/index.ts",
     "./books-boot-core": "./src/books/bootBooksCore.ts",
     "./books-core": "./src/books/core.ts",
@@ -29,6 +30,7 @@
     "./mocks": "./src/mocks/index.ts",
     "./notfound": "./src/notfound/index.ts",
     "./notfound-core": "./src/notfound/core.ts",
+    "./page-error-core": "./src/page-error/core.ts",
     "./page-meta": "./src/page-meta/index.ts",
     "./page-meta-docs": "./src/page-meta/docsPageMeta.ts",
     "./picker": "./src/picker/index.ts",
@@ -63,14 +65,14 @@
   },
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
-    "@filter-enginez/core": "0.0.2",
-    "@filter-enginez/mock-data": "0.1.0",
-    "@filter-enginez/react-signals": "0.0.2",
+    "@filter-enginez/core": "0.0.3",
+    "@filter-enginez/mock-data": "0.2.1",
+    "@filter-enginez/react-signals": "0.0.3",
     "@filter-enginez/react-ui": "workspace:*",
-    "@filter-enginez/reactive-signals": "0.0.2",
+    "@filter-enginez/reactive-signals": "0.0.3",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.2",
-    "@filter-enginez/worker-bridge": "0.0.2",
+    "@filter-enginez/url-state-router": "0.0.3",
+    "@filter-enginez/worker-bridge": "0.0.3",
     "leaflet": "1.9.4",
     "msw": "^2.14.6"
   },
@@ -80,7 +82,7 @@
     "react-router": "^8.3.0"
   },
   "devDependencies": {
-    "@filter-enginez/eslint": "0.0.2",
+    "@filter-enginez/eslint": "0.0.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/leaflet": "1.9.21",

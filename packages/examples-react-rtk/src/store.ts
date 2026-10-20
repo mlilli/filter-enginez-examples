@@ -55,5 +55,5 @@ export const useWineSelector: TypedUseSelectorHook<WineRootState> = useSelector;
  */
 export type WineDispatch = (action: ForwardAction | UnknownAction) => void;
 
-/** `useDispatch` typed to accept forward intents: `useWineDispatch()(forwardToEngine('clearRules', {}))`. */
+/** `useDispatch` typed to accept forward intents: `useWineDispatch()(forwardToEngine('removeRule', { ruleId }))`. */
 export const useWineDispatch: () => WineDispatch = useDispatch as unknown as () => WineDispatch;

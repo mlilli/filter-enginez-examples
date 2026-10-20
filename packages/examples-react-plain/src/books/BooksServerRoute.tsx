@@ -88,8 +88,9 @@ export const BooksServerRoute = (): React.ReactElement => {
 
 /** Offline screen — a failed boot means the server isn't running; tell the user how to start it. */
 const ServerOffline = ({ error }: { readonly error: Error }): React.ReactElement => {
+	// `<main>`: with the server unreachable, this message is the page's main content.
 	return (
-		<div
+		<main
 			className="min-h-screen flex flex-col items-center justify-center gap-4 p-8 text-center"
 			style={{ background: 'var(--gray-0)', color: 'var(--gray-10)' }}
 		>
@@ -100,6 +101,6 @@ const ServerOffline = ({ error }: { readonly error: Error }): React.ReactElement
 			<p className="text-xs" style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)' }}>
 				Start it with <code>pnpm --filter @filter-enginez/examples-server serve:api</code>, then refresh.
 			</p>
-		</div>
+		</main>
 	);
 };

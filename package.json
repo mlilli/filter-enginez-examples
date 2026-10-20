@@ -75,7 +75,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/config-helpers": "^0.7.0",
-    "@filter-enginez/eslint": "0.0.2",
+    "@filter-enginez/eslint": "0.0.3",
     "@playwright/test": "^1.63.0",
     "@size-limit/preset-small-lib": "^13.1.1",
     "@stylistic/eslint-plugin": "^5.10.0",

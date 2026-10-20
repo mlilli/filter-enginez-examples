@@ -31,7 +31,8 @@
  * Splitting them is how a clear-all comes to drop the facets while leaving a preset driving the
  * results, with every control blank.
  *
- * **`SMART_FILTER_CHIP_ID` is a synthetic chip, not a rule.** Its × exits expression mode, which is the
+ * **`SMART_FILTER_CHIP_ID` is a synthetic chip, not a rule.** Its × (through the shared
+ * `removeWineFilterChip`, which every vertical's header calls) exits expression mode, which is the
  * only way back to the flat facets once a preset is driving the results — and it clears the facets
  * too, deliberately. `core.removeRule` on it is a silent no-op, which is why `fe-results-header` has
  * its two handler inputs.
@@ -79,8 +80,7 @@ import {
 	buildWineFilterSummaries,
 	clearAllWineFilters,
 	createBundleFetcher,
-	removeFacet,
-	SMART_FILTER_CHIP_ID,
+	removeWineFilterChip,
 	wineBusyCore,
 } from '@filter-enginez/examples-shared/wine-domain';
 
@@ -301,16 +301,11 @@ export class WineViewComponent {
 	 * Remove one chip.
 	 *
 	 * @remarks
-	 * The synthetic smart-filter id names no rule, so it cannot go through `removeFacet` — see the
-	 * class remarks.
+	 * The synthetic smart-filter id names no rule, so `removeWineFilterChip` sends it through
+	 * `clearAllWineFilters` rather than `removeFacet` — see the class remarks.
 	 */
 	protected readonly removeChip = (ruleId: string): void => {
-		if (ruleId === SMART_FILTER_CHIP_ID) {
-			clearAllWineFilters(this._engine);
-
-			return;
-		}
-		removeFacet(this._engine, ruleId);
+		removeWineFilterChip(this._engine, ruleId);
 	};
 
 	/** Stable key for the result grid's `track`. */

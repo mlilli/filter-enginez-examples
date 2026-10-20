@@ -104,6 +104,33 @@ export function verticalIndexablePaths(id: VerticalId): readonly string[] {
 	return ['/', ...routes.filter((route) => !isDocsPath(route)), ...(id === LAB_VERTICAL_ID ? [LAB_ROUTE_PATH] : [])];
 }
 
+/** One page of a vertical other than its hub: a dataset route, or the lab. */
+export interface VerticalPage {
+	/** The path, e.g. `/books`. */
+	readonly path: string;
+	/** What the page is called: its landing card's label, or the lab's. */
+	readonly label: string;
+	/** What it is about: its landing card's blurb, or the lab's description. */
+	readonly description: string;
+}
+
+/**
+ * The pages of a vertical other than its hub, each named and described as its own head names and
+ * describes it: every dataset route by its landing card, and the lab where it is served.
+ *
+ * @param id - The vertical.
+ * @returns The pages, in {@link verticalIndexablePaths} order, without the hub.
+ */
+export function verticalPages(id: VerticalId): readonly VerticalPage[] {
+	return verticalIndexablePaths(id)
+		.filter((path) => path !== '/')
+		.map((path) => {
+			const card = DATASET_ROUTES.find((candidate) => candidate.href === path);
+
+			return card === undefined ? { ...LAB_META, path } : { description: card.blurb, label: card.label, path };
+		});
+}
+
 /**
  * A vertical's metadata for a path that is not under `/docs`.
  *
@@ -121,15 +148,17 @@ export function verticalPageMeta(id: VerticalId, pathname: string): PageMeta {
 	const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 	const canonicalUrl = `${descriptor.productionOrigin}${path}`;
 
-	if (!verticalIndexablePaths(id).includes(path)) {
-		return notFoundPageMeta(descriptor.pageTitle);
-	}
 	if (path === '/') {
 		return { canonicalUrl, description: descriptor.pageDescription, title: descriptor.pageTitle };
 	}
 
-	const card = DATASET_ROUTES.find((candidate) => candidate.href === path);
-	const { description, label } = card === undefined ? LAB_META : { description: card.blurb, label: card.label };
+	const page = verticalPages(id).find((candidate) => candidate.path === path);
+
+	if (page === undefined) {
+		return notFoundPageMeta(descriptor.pageTitle);
+	}
+
+	const { description, label } = page;
 
 	return { canonicalUrl, description, title: `${label} — ${descriptor.pageTitle}` };
 }

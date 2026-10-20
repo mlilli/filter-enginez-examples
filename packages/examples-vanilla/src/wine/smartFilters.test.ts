@@ -72,6 +72,8 @@ function fakeHost(): WineEngineHost {
 				calls.push(`addRule:${id}`);
 			},
 			getExpression: () => committed,
+			// No flat rules registered: the strip only reads the map to find rules no facet owns.
+			getRules: () => new Map(),
 			removeRule: (id: string) => {
 				calls.push(`removeRule:${id}`);
 			},

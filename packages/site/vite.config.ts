@@ -42,12 +42,14 @@
  * ### No page loads the engine at startup
  *
  * Only the live benchmark runs the engine, and it imports it on demand (`src/how-it-works/benchmarkEngine.ts`).
- * Two things keep it off every page's first download. The engine's package declares no `sideEffects`,
- * so the bundler would keep every module of it that any page imports anything from: the comparison
- * page's link serializer imports one error class from it, and the how-it-works page imports the
- * benchmark's arithmetic from a subpath that also re-exports the workload. {@link ENGINE_SIDE_EFFECT_FREE}
- * declares both side-effect free, which is true of them (they define functions, classes and constants,
- * and run nothing at import), so an import that uses nothing of the engine loads nothing of it. And
+ * Two things keep it off every page's first download. The bundler drops a module a page uses nothing
+ * from only when the module is declared free of side effects. The engine's packages declare that of
+ * themselves (`"sideEffects": false`), so the comparison page's link serializer, which imports one
+ * error class from the engine, loads that class and nothing more. The how-it-works page imports the
+ * benchmark's arithmetic from examples-shared's how-it-works subpath, whose barrel also re-exports the
+ * workload, and examples-shared declares no `sideEffects`; {@link HOW_IT_WORKS_SIDE_EFFECT_FREE}
+ * declares that subpath side-effect free, which is true of it (its modules define functions, classes
+ * and constants, and run nothing at import), so the arithmetic arrives without the engine. And
  * {@link startupWithoutEngine} checks the result: the build fails when any page's startup graph holds
  * the engine (`src/startupGraph.ts`).
  *
@@ -286,18 +288,16 @@ function sitemap(): Plugin {
 }
 
 /**
- * The modules the bundler may drop when a page uses none of their exports: the engine's own modules,
- * and the how-it-works subpath of examples-shared, whose barrel re-exports the benchmark workload next
- * to the arithmetic the widget imports at startup.
+ * The modules the bundler may drop when a page uses none of their exports: the how-it-works subpath of
+ * examples-shared, whose barrel re-exports the benchmark workload next to the arithmetic the widget
+ * imports at startup.
  *
  * @remarks
- * Rules rather than a function, so the bundler applies them without calling back into JavaScript.
- * Every other module keeps the default: it is assumed to have side effects.
+ * Rules rather than a function, so the bundler applies them without calling back into JavaScript. A
+ * module no rule matches is judged by its package's `sideEffects` field; the engine's packages declare
+ * `false`, so its modules need no rule here.
  */
-const ENGINE_SIDE_EFFECT_FREE = [
-	{ sideEffects: false, test: /[/\\]node_modules[/\\]@filter-enginez[/\\]core[/\\]dist[/\\]/u },
-	{ sideEffects: false, test: /[/\\]examples-shared[/\\]src[/\\]how-it-works[/\\]/u },
-];
+const HOW_IT_WORKS_SIDE_EFFECT_FREE = [{ sideEffects: false, test: /[/\\]examples-shared[/\\]src[/\\]how-it-works[/\\]/u }];
 
 /** The module that finds engine modules on a page's startup graph (`startupGraph.ts`). */
 const STARTUP_GRAPH_MODULE = fileURLToPath(new URL('src/startupGraph.ts', import.meta.url));
@@ -444,7 +444,7 @@ export default defineConfig({
 				index: fileURLToPath(new URL('index.html', import.meta.url)),
 				notFound: fileURLToPath(new URL('404.html', import.meta.url)),
 			},
-			treeshake: { moduleSideEffects: ENGINE_SIDE_EFFECT_FREE },
+			treeshake: { moduleSideEffects: HOW_IT_WORKS_SIDE_EFFECT_FREE },
 		},
 		target: 'es2022',
 	},

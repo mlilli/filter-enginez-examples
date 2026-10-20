@@ -52,8 +52,8 @@ function hubMeta(id: string): { readonly description: string; readonly title: st
 
 /** Each app's HTML shell, and the source that writes each route's head. */
 const APPS = [
-	{ id: 'react-rtk', shell: 'packages/examples-react-rtk/index.html', writer: 'packages/examples-react-rtk/src/App.tsx', writes: /followRouterPageMeta\(router, docsHostedPageMeta\('react-rtk'\)\)/u },
-	{ id: 'react-plain', shell: 'packages/examples-react-plain/index.html', writer: 'packages/examples-react-plain/src/App.tsx', writes: /followRouterPageMeta\(router, docsHostedPageMeta\('react-plain'\)\)/u },
+	{ id: 'react-rtk', shell: 'packages/examples-react-rtk/index.html', writer: 'packages/examples-react-rtk/src/App.tsx', writes: /const PAGE_META = docsHostedPageMeta\('react-rtk'\);[\s\S]*?<AppRouter pageMeta=\{PAGE_META\}/u },
+	{ id: 'react-plain', shell: 'packages/examples-react-plain/index.html', writer: 'packages/examples-react-plain/src/App.tsx', writes: /const PAGE_META = docsHostedPageMeta\('react-plain'\);[\s\S]*?<AppRouter pageMeta=\{PAGE_META\}/u },
 	{ id: 'vue', shell: 'packages/examples-vue/index.html', writer: 'packages/examples-vue/src/router.ts', writes: /router\.afterEach\([\s\S]*?applyPageMeta\(document, verticalPageMeta\('vue', to\.path\)\)/u },
 	{ id: 'angular', shell: 'packages/examples-angular/src/index.html', writer: 'packages/examples-angular/src/app/app.component.ts', writes: /NavigationEnd[\s\S]*?applyPageMeta\(document, verticalPageMeta\('angular',/u },
 	{ id: 'vanilla', shell: 'packages/examples-vanilla/index.html', writer: 'packages/examples-vanilla/src/main.ts', writes: /onNavigate:[\s\S]*?applyPageMeta\(document, verticalPageMeta\('vanilla', pathname\)\)/u },
@@ -96,21 +96,54 @@ describe.each(APPS)('$id', ({ id, shell, writer, writes }) => {
 describe('the documentation site', () => {
 	const html = readRepoFile('packages/examples-docs/index.html');
 	const meta = readRepoFile('packages/examples-shared/src/page-meta/docsPageMeta.ts');
+	const brandName = /export const BRAND_NAME = '([^']*)';/u.exec(readRepoFile('packages/examples-shared/src/page-meta/pageMeta.ts'))?.[1] ?? '';
+	// The catalog's entries, one top-level `id` each, at the array's entry indent.
+	const ruleCount = readRepoFile('packages/examples-shared/src/docs/content/rulesContent.ts').match(/^\t\tid: '[^']+',$/gmu)?.length ?? 0;
+
+	/**
+	 * The home's description as page-meta-docs builds it, from the brand name and the rule catalog's
+	 * length, the two values its template reads.
+	 *
+	 * @returns The description, or `''` when the source no longer builds it from a template.
+	 */
+	function homeDescription(): string {
+		const template = /export const DOCS_HOME_DESCRIPTION\s*=\s*`([^`]*)`;/u.exec(meta)?.[1] ?? '';
+
+		return template.replace('${BRAND_NAME}', brandName).replace('${String(RULE_DOCS.length)}', String(ruleCount));
+	}
+
+	it('reads the brand name and a populated rule catalog, so the checks below are not vacuous', () => {
+		expect(brandName).toBe('Filter EngineZ');
+		expect(ruleCount).toBeGreaterThan(10);
+	});
 
 	it('carries its home’s title and description in its shell, as page-meta-docs spells them', () => {
-		const description = /export const DOCS_HOME_DESCRIPTION\s*=\s*'([^']*)';/u.exec(meta)?.[1] ?? '';
+		const description = homeDescription();
 
 		expect(meta).toContain('export const DOCS_HOME_TITLE = `${BRAND_NAME} — Documentation`;');
 		expect(html).toContain('<title>Filter EngineZ — Documentation</title>');
 		expect(description.length).toBeGreaterThan(60);
+		expect(description, 'the template reads only the brand name and the rule count').not.toContain('${');
 		expect(html).toContain(`content="${description}"`);
 		expect(html).not.toContain('rel="canonical"');
+	});
+
+	it('counts the rules as the catalog does, in the description’s source and everywhere the shell states it', () => {
+		// The count comes from the catalog, never a number typed into the description: a rule added to
+		// the catalog would leave a typed one stale in every documentation page's head and every llms.txt.
+		expect(meta).toContain('the ${String(RULE_DOCS.length)}-rule filter catalog');
+
+		const stated = [...html.matchAll(/\b(\d+)-rule filter catalog/gu)].map(([, count]) => Number(count));
+
+		// The description and the social card's.
+		expect(stated).toHaveLength(2);
+		expect(stated, `the shell must say "${String(ruleCount)}-rule", the catalog's size`).toEqual([ruleCount, ruleCount]);
 	});
 
 	it('writes each route’s head as it navigates, and answers / with a redirect to /docs', () => {
 		const app = readRepoFile('packages/examples-docs/src/App.tsx');
 
-		expect(app).toContain('followRouterPageMeta(router, docsPageMetaFor)');
+		expect(app).toContain('<AppRouter pageMeta={docsPageMetaFor} routes={ROUTES} />');
 		// On demand, as the React apps load it: a static import would pin the catalog into the entry
 		// chunk and leave every dynamic import of it ineffective.
 		expect(app).toContain("(await import('@filter-enginez/examples-shared/page-meta-docs')).docsPageMeta(pathname)");

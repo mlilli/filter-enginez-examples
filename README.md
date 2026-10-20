@@ -165,6 +165,15 @@ fails if one is missing), and adds the bundled fonts' licenses.
 - Every demo app answers `/about` with a permanent redirect to `https://filterenginez.com/how-it-works`, and `/compare`
   with one to `https://filterenginez.com/compare` that keeps the query string, and with it the filter state: the static
   apps from a `_redirects` file in their `public/` directory, SvelteKit from a route.
+- Every host serves a `robots.txt` naming the one sitemap, which the landing site generates for all of them, and an
+  `llms.txt` (an index of its pages for language-model tools, per [llmstxt.org](https://llmstxt.org/)). Each host's
+  `llms.txt` is generated from the same page lists as the sitemap (`packages/site/src/sitemap/llmsTxt.ts`) and committed
+  in its `public/` (`static/` for SvelteKit); `vitest run packages/site/src/sitemap/llmsTxt.test.ts --update` rewrites
+  them after a page list changes.
+- Every host answers `/.well-known/*` with a 404: the sites publish no agent or tool catalog, or anything else, there.
+  The single-page apps send that path to a Worker first, which answers it (`examples-server`'s `src/wellKnown.ts`); the
+  documentation site and the Vue app run a Worker for that path alone. The landing site's assets and SvelteKit's router
+  answer it with their 404 pages.
 
 To try a deployed build locally, build the package and run
 `pnpm exec wrangler dev --config packages/<name>/wrangler.jsonc` from the repository root. For one of the four `/api`

@@ -139,15 +139,18 @@
 </script>
 
 {#if bootError !== null}
-	<div class="fe-wine-error" role="alert">
-		<p class="fe-wine-error__title">The wine engine did not boot</p>
-		<p class="fe-wine-error__detail">{bootError}</p>
-		<p class="fe-wine-error__hint">
-			The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the
-			worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
-			tier on the main thread instead.
-		</p>
-	</div>
+	<!-- `<main>` around the alert rather than on it: a `role` on the element would replace the landmark. -->
+	<main>
+		<div class="fe-wine-error" role="alert">
+			<p class="fe-wine-error__title">The wine engine did not boot</p>
+			<p class="fe-wine-error__detail">{bootError}</p>
+			<p class="fe-wine-error__hint">
+				The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the
+				worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
+				tier on the main thread instead.
+			</p>
+		</div>
+	</main>
 {:else if engine}
 	<WineView {baselines} compareDataset="wine" {corpusTier} {engine} {originSpecs} {originTree} {vocabularies} />
 {:else}

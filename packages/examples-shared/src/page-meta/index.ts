@@ -10,7 +10,6 @@
  */
 
 export { applyPageMeta } from './applyPageMeta.js';
-export { followRouterPageMeta, type PageMetaRouter, type RouterLocationState } from './followRouterPageMeta.js';
 export {
 	BRAND_NAME,
 	DOCS_BASE_PATH,
@@ -20,5 +19,8 @@ export {
 	notFoundPageMeta,
 	type PageMeta,
 	verticalIndexablePaths,
+	type VerticalPage,
 	verticalPageMeta,
+	verticalPages,
 } from './pageMeta.js';
+export { type PageMetaResolver, showPageMeta } from './showPageMeta.js';

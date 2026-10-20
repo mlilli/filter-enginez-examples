@@ -12,31 +12,32 @@
  *     selected preset). The set only GROWS as presets are added, so it can never reach zero results —
  *     no predictive-disable needed here.
  *
- * **Worker-safe state.** The wine engine is often worker-backed, so the reactive expression signal
- * updates a round-trip AFTER a synchronous `setExpression`. The local `selectedIds` is therefore the
- * source of truth for the chips; it is reset ONLY on a genuine `expression → null` transition (an
- * external Clear-all), never during the async settle after our own set — which is why a naïve "reset
- * when not in expression mode" effect wiped the selection.
+ * **The selection is the panel's, through `useSmartFilterSelection()`.** `<WineFilterPanel>` holds it
+ * (see `./smartFilterSelection.ts`), because the facet sections need it too: each one drops the active
+ * preset before it commits. The chips derive from the engine's expression, so a `?f` restore, Back /
+ * Forward, devtools time travel or the header's "Clear all" relights them, and the row's own click
+ * paints at once and survives the worker echo.
  *
- * **Seeded from the engine, once.** That local-first design is right for every transition AFTER mount
- * and wrong for mount itself: a `?f` link calls `loadConfig` before this renders, so starting at an
- * empty selection would show filtered results with no chip lit and no way to tell which preset produced
- * them. The initial state comes from `deriveSelectedPresetIds`, which recovers the ids by matching
- * the committed expression's structure against the preset table. Seeding is deliberately restricted to
- * the initializer — adopting on every change would reintroduce exactly the round-trip race the local
- * state exists to avoid.
+ * **A preset REPLACES the manual filters.** Every write goes through the shared
+ * `commitSmartFilterSelection`, the same helper the SvelteKit, Vue, Angular and vanilla rows call: a
+ * non-empty selection clears every flat facet rule first and then sets the expression, and each write
+ * marks the action busy before it is made. Leaving a manual rule in place would keep it in `?f=` and on
+ * the action log, dormant behind the expression, and bring it back the moment the preset was cleared.
  *
  * @packageDocumentation
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { useExpression, useFilterEngine } from '@filter-enginez/react-signals';
+import { useFilterEngine } from '@filter-enginez/react-signals';
 import { ChipToggleGroup } from '@filter-enginez/react-ui';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { buildSmartFilterExpression, deriveSelectedPresetIds, WINE_SMART_FILTERS } from '../smartFilters.js';
+import { commitSmartFilterSelection, exitExpressionMode } from '../wine-domain/commit.js';
+import { EMPTY_SELECTION } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
+import { useSmartFilterSelection } from './smartFilterSelection.js';
 
 /** The preset ids, in display order — the chip vocabulary. */
 const PRESET_IDS: readonly string[] = WINE_SMART_FILTERS.map((preset) => preset.id);
@@ -44,58 +45,42 @@ const PRESET_IDS: readonly string[] = WINE_SMART_FILTERS.map((preset) => preset.
 /** id → chip label lookup. */
 const PRESET_LABELS: Record<string, string> = Object.fromEntries(WINE_SMART_FILTERS.map((preset) => [preset.id, preset.label]));
 
-/** Stable empty selection so an unset state doesn't churn referential identity. */
-const EMPTY_IDS: readonly string[] = [];
-
 /** Render a preset id as its chip label. */
 function formatPresetLabel(id: string): string {
 	return PRESET_LABELS[id] ?? id;
 }
 
 /**
- * The wine expression-mode preset row.
+ * The wine expression-mode preset row. Renders inside `<WineFilterPanel>`, which provides the
+ * selection.
  */
 export const SmartFilterPresets = (): React.ReactElement => {
 	const engine = useFilterEngine<Wine>();
-	const expression = useExpression();
-	// Read straight off `engine.core` rather than from the `useExpression()` signal above: a `?f`
-	// restore has already called `loadConfig`, so the expression is on the engine now, while the signal
-	// can still be a round-trip behind on the worker tier. Only the two initializers below consume
-	// this — it is a mount-time seed, so a later recompute is deliberately ignored.
-	const seededIds = useMemo(() => deriveSelectedPresetIds(engine.core.getExpression()), [engine]);
-	// More than one preset can only have been committed through "Match any (OR)", so the mode restores
-	// with the selection — otherwise the chips would come back multi-selected in single-select mode,
-	// and the next click would silently drop the others.
-	const [isMulti, setIsMulti] = useState(() => seededIds.length > 1);
-	const [selectedIds, setSelectedIds] = useState<readonly string[]>(() => (seededIds.length > 0 ? seededIds : EMPTY_IDS));
-	const previousExpressionRef = useRef(expression);
+	const { paintSelection, selectedIds } = useSmartFilterSelection();
+	// More than one preset can only have been committed through "Match any (OR)", so the mode follows
+	// a selection of several, whether the panel seeded it or adopted it later. One-way on purpose:
+	// deriving the mode from the count outright would switch OR off the moment a user in OR mode
+	// deselected down to one preset, changing the mode they chose.
+	const [isMulti, setIsMulti] = useState(() => selectedIds.length > 1);
 
-	// Reset the local selection ONLY on a genuine expression → null transition (an external Clear-all).
-	// Our own SET is null → non-null and must never reset here — critical for the worker-backed engine,
-	// where the expression signal updates a round-trip after our synchronous `setSelectedIds`.
-	useEffect(() => {
-		const previous = previousExpressionRef.current;
+	// Adjusted during render rather than in an effect, so the checkbox never paints a frame that
+	// disagrees with the chips.
+	if (!isMulti && selectedIds.length > 1) {
+		setIsMulti(true);
+	}
 
-		previousExpressionRef.current = expression;
-
-		if (previous !== null && expression === null && selectedIds.length > 0) {
-			setSelectedIds(EMPTY_IDS);
-		}
-	}, [expression, selectedIds]);
-
-	// Rebuild + apply the expression from a selection: none → flat-map; one → that preset; many → an
-	// OR of them (a union — the set only grows, never empties).
+	// Paint a selection, then write it: none → flat-map mode; one → that preset; many → an OR of them
+	// (a union — the set only grows, never empties). A non-empty selection replaces the manual
+	// filters; see the module remarks.
 	//
-	// Built by the shared `buildSmartFilterExpression`, which is the write half of the round trip
-	// `deriveSelectedPresetIds` (seeded above) reads back. Every vertical calls it rather than
-	// open-coding the build, so the `or(...)` operands always come out in `WINE_SMART_FILTERS` order,
-	// never in SELECTION order. Either order filters the same, but only a fixed order gives the same
-	// presets picked in any order the same `?f=` string in every vertical — which is what keeps a
-	// shared or `/compare` link round-tripping.
+	// The local selection is read back through `buildSmartFilterExpression` and
+	// `deriveSelectedPresetIds`, the same pair the engine's echo goes through, so it already equals
+	// what the echo will derive: the `or(...)` operands come out in `WINE_SMART_FILTERS` order, never in
+	// SELECTION order, which is also what gives the same `?f=` string in every vertical.
 	const applySelection = useCallback((ids: readonly string[]): void => {
-		engine.core.setExpression(buildSmartFilterExpression(ids));
-		setSelectedIds(ids);
-	}, [engine]);
+		paintSelection(deriveSelectedPresetIds(buildSmartFilterExpression(ids)));
+		commitSmartFilterSelection(engine, ids);
+	}, [engine, paintSelection]);
 
 	const handleToggle = useCallback((id: string): void => {
 		const isSelected = selectedIds.includes(id);
@@ -112,16 +97,15 @@ export const SmartFilterPresets = (): React.ReactElement => {
 	}, [applySelection, isMulti, selectedIds]);
 
 	const clearAll = useCallback((): void => {
-		engine.core.setExpression(null);
-		setSelectedIds(EMPTY_IDS);
-	}, [engine]);
+		applySelection(EMPTY_SELECTION);
+	}, [applySelection]);
 
 	// Switching selection style resets the current selection so the two modes never blur together.
 	const changeMode = useCallback((multi: boolean): void => {
 		setIsMulti(multi);
-		engine.core.setExpression(null);
-		setSelectedIds(EMPTY_IDS);
-	}, [engine]);
+		paintSelection(EMPTY_SELECTION);
+		exitExpressionMode(engine);
+	}, [engine, paintSelection]);
 
 	return (
 		<section style={{ borderBottom: '1px solid var(--gray-3)', paddingBottom: '16px', paddingTop: '16px' }}>

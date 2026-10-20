@@ -8,8 +8,9 @@
  * `subtitle()` boot signal, and a `bootWineApp` that differs only in which `*Url()` builder it calls.
  * Every vertical runs the same cases — boot and corpus tier, boot caption, facet toggle, chip
  * flicker, pill removal, clear all, smart-filter presets, keyboard undo/redo, panel scroll, the
- * shareable-URL round-trip and an axe scan — so the question "which cases does this vertical run"
- * has one answer.
+ * shareable-URL round-trip, an axe scan, an open-ended price through reload and Back / Forward
+ * (`wineOpenRange.ts`), and a preset replacing the manual filters (`winePresetTakeover.ts`) — so the
+ * question "which cases does this vertical run" has one answer.
  *
  * The precedent is `compare.spec.ts`, which asserts the same thing of all six verticals by iterating
  * the registry, so a new vertical joins it without a new spec file.
@@ -59,6 +60,8 @@ import {
 	type SettledCountOptions,
 } from './filterFlow.js';
 import { subtitle, type VerticalId } from './subtitles.js';
+import { describeOpenRangeRoundTrips } from './wineOpenRange.js';
+import { describePresetTakeover } from './winePresetTakeover.js';
 
 /**
  * The wine panel's last control, in every vertical.
@@ -467,5 +470,27 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 
 			expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 		});
+	});
+
+	// An open-ended price through `?f=`: a reload, Back / Forward, and an in-app Back. In its own module
+	// for `max-lines`, and handed what it needs rather than importing it back, which would be a cycle.
+	describeOpenRangeRoundTrips({
+		closePanelIfItOverlaysResults,
+		id,
+		label,
+		openPanel,
+		settled: WINE_SETTLED,
+		urlOf: (path) => (spec.url === undefined ? path : spec.url(path)),
+		waitForBoot: async (page) => waitForWineBoot(page, id),
+	});
+
+	// A preset applied over a manual filter, and a restored preset cleared. Its own module for the same
+	// reasons as the open-range cases.
+	describePresetTakeover({
+		boot: async (page) => bootWineApp(page, spec),
+		label,
+		openPanel,
+		settled: WINE_SETTLED,
+		waitForBoot: async (page) => waitForWineBoot(page, id),
 	});
 }

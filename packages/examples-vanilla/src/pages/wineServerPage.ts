@@ -113,12 +113,13 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
  * already knows.
  *
  * Inline layout rather than a class, matching the boot screen: `ui-styles` has no error-state
- * component, and this app authors no component CSS at all.
+ * component, and this app authors no component CSS at all. A `<main>`, as the boot screen is: with the
+ * API down, this notice is the page's main content.
  *
  * @internal
  */
 function offlineNotice(): HTMLElement {
-	return el('div', {
+	return el('main', {
 		children: [
 			el('h1', {
 				style: { fontSize: 'var(--text-lg)', margin: '0' },
