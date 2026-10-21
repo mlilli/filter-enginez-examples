@@ -131,6 +131,9 @@ describe('WineResultGrid', () => {
 		expect(cardCount(container)).toBe(70);
 	});
 
+	// Reaching the cap renders all RESULT_GRID_WINDOW.cap (1,500) full wine cards in jsdom, about 24
+	// batches. That takes several seconds on a cold or shared runner, past Vitest's 5 s default, so the
+	// case carries the same explicit 30 s allowance as the other render-heavy SvelteKit tests.
 	it('shows the cap notice only once the cap stops the grid', async () => {
 		stubIntersectionObserver();
 		const total = RESULT_GRID_WINDOW.cap + 100;
@@ -150,7 +153,7 @@ describe('WineResultGrid', () => {
 		expect(container.querySelector('.fe-result-grid__cap-notice')?.textContent.replace(/\s+/gu, ' ').trim()).toBe(
 			`Showing ${RESULT_GRID_WINDOW.cap.toLocaleString()} of ${total.toLocaleString()} matches · narrow your filters to surface the rest`,
 		);
-	});
+	}, 30_000);
 
 	it('resets the window when the result set changes', async () => {
 		// The case that renders a page the user never scrolled to. Grow, then narrow to fewer rows than
