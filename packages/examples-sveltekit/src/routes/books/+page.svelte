@@ -6,6 +6,7 @@
 	import { BOOKS_BOOT_IDLE_CAPTION, BOOKS_RECORD_NOUN } from '@filter-enginez/examples-shared/books-domain';
 	import { bootCaptionParts, bootCaptionText } from '@filter-enginez/examples-shared/boot-caption';
 	import BooksView from '$lib/books/BooksView.svelte';
+	import BootFailureScreen from '$lib/shell/BootFailureScreen.svelte';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -19,11 +20,22 @@
 	// reassignment reactive (null → booted engine) without proxying the object itself. See
 	// `BootHarness.test.ts` for the guard.
 	let engine = $state.raw<SignalsEngine<Book> | null>(null);
+	/** Why the engine could not start, or `null` while it boots or once it has. */
+	let bootError = $state.raw<string | null>(null);
 	// Teardown for the engine → URL sync loop (client-only; `null` until wired in `onMount`).
 	let stopUrlSync: (() => void) | null = null;
 
 	onMount(async () => {
-		const booted = (await bootBooksEngine()).engine;
+		let booted: SignalsEngine<Book>;
+
+		try {
+			booted = (await bootBooksEngine()).engine;
+		} catch (error) {
+			// A failed corpus fetch or engine build. Saying so beats a caption that never moves.
+			bootError = error instanceof Error ? error.message : String(error);
+
+			return;
+		}
 
 		// Hydrate filter state from a shared `?f` link BEFORE wiring the write-back — loadConfig fires
 		// its change synchronously, so subscribing after it avoids an immediate redundant URL write.
@@ -55,7 +67,9 @@
 	);
 </script>
 
-{#if engine}
+{#if bootError !== null}
+	<BootFailureScreen dataset="books" message={bootError} />
+{:else if engine}
 	<BooksView {engine} />
 {:else}
 	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->

@@ -12,9 +12,12 @@
  * The expected numbers come from the scale itself (`toFraction`, `fromFraction`, `stepScaledValue`),
  * not from restated arithmetic, so these tests pin that the component ROUTES through the scale; the
  * scale's own math has its suite in `react-ui`.
+ *
+ * The editable bounds are pinned too: they commit on blur or Enter only, once; junk text or an
+ * unchanged value puts the committed value back and writes nothing; and Escape reverts without
+ * committing, including on the blur it causes, which reads the field's stale DOM text.
  */
 
-import type { ComponentProps } from 'svelte';
 
 import {
 	createSliderScale,
@@ -24,6 +27,7 @@ import {
 	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 import { cleanup, fireEvent, render } from '@testing-library/svelte';
+import { type ComponentProps, tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import RangeSlider from './RangeSlider.svelte';
@@ -224,5 +228,127 @@ describe('RangeSlider with a log scale', () => {
 		expect(lower.getAttribute('aria-valuetext')).toBe('$25');
 		expect(upper.getAttribute('aria-valuetext')).toBe('$300');
 		expect(lower.getAttribute('aria-valuenow')).toBe('25');
+	});
+});
+
+describe('RangeSlider track press on a log scale', () => {
+	it('moves the thumb nearer ON SCREEN, which is not the one nearer in value', async () => {
+		// Thumbs at $10 and $1,000. A press just past the midpoint between them ON THE TRACK lands near
+		// $100: ninety dollars from the lower thumb and nine hundred from the upper, so a raw-value
+		// comparison would move the lower thumb, though the upper one is closer under the pointer.
+		const { changes, container } = renderSlider({ scale: PRICE_SCALE, step: 1, valueMax: 1000, valueMin: 10 });
+		const lowerFraction = PRICE_SCALE.toFraction(10);
+		const upperFraction = PRICE_SCALE.toFraction(1000);
+		const pressFraction = (lowerFraction + upperFraction) / 2 + 0.02;
+		const pressed = snapToStep(PRICE_SCALE.fromFraction(pressFraction), 1);
+
+		expect(pressed - 10).toBeLessThan(1000 - pressed);
+
+		await clickTrackAt(sizeTrack(container), pressFraction);
+
+		expect(changes).toEqual([{ max: pressed, min: 10 }]);
+	});
+});
+
+describe('RangeSlider editable bounds', () => {
+	/** A linear 0–100 slider showing `25 — 75`, formatted with a unit so a reset is visible. */
+	const LINEAR = {
+		baseline: { max: 100, min: 0 },
+		format: (value: number) => `${String(value)} u`,
+		parse: (raw: string) => Number.parseFloat(raw),
+		valueMax: 75,
+		valueMin: 25,
+	} satisfies Partial<SliderProps>;
+
+	/**
+	 * The two editable fields, lower first.
+	 *
+	 * @param container - The render container.
+	 * @returns The fields.
+	 */
+	function fields(container: HTMLElement): readonly [HTMLInputElement, HTMLInputElement] {
+		const lower = container.querySelector<HTMLInputElement>('.fe-range-slider__input--min');
+		const upper = container.querySelector<HTMLInputElement>('.fe-range-slider__input--max');
+
+		expect(lower).not.toBeNull();
+		expect(upper).not.toBeNull();
+
+		return [lower as HTMLInputElement, upper as HTMLInputElement];
+	}
+
+	it('commits a typed bound once on Enter, not again on the blur Enter causes', async () => {
+		const { changes, container } = renderSlider(LINEAR);
+		const [lower] = fields(container);
+
+		lower.focus();
+		await fireEvent.input(lower, { target: { value: '40' }});
+		await fireEvent.keyDown(lower, { key: 'Enter' });
+
+		expect(changes).toEqual([{ max: 75, min: 40 }]);
+		expect(document.activeElement).not.toBe(lower);
+	});
+
+	it('swaps a lower bound typed above the upper one', async () => {
+		const { changes, container } = renderSlider(LINEAR);
+		const [lower] = fields(container);
+
+		await fireEvent.input(lower, { target: { value: '90' }});
+		await fireEvent.blur(lower);
+
+		expect(changes).toEqual([{ max: 90, min: 75 }]);
+	});
+
+	it('puts the committed value back and writes nothing for junk text', async () => {
+		const { changes, container } = renderSlider(LINEAR);
+		const [lower] = fields(container);
+
+		await fireEvent.input(lower, { target: { value: 'abc' }});
+		await fireEvent.blur(lower);
+		await tick();
+
+		expect(changes).toEqual([]);
+		expect(lower.value).toBe('25 u');
+	});
+
+	it('puts the formatted value back and writes nothing for the committed value retyped', async () => {
+		const { changes, container } = renderSlider(LINEAR);
+		const [, upper] = fields(container);
+
+		await fireEvent.input(upper, { target: { value: '75' }});
+		await fireEvent.blur(upper);
+		await tick();
+
+		expect(changes).toEqual([]);
+		expect(upper.value).toBe('75 u');
+	});
+
+	it('reverts on Escape and commits nothing, even on the blur Escape causes', async () => {
+		// The blur reads the field's DOM text, which still holds the discarded draft until the reverted
+		// value renders; committing there would write exactly what the user threw away.
+		const { changes, container } = renderSlider(LINEAR);
+		const [lower] = fields(container);
+
+		lower.focus();
+		await fireEvent.input(lower, { target: { value: '40' }});
+		await fireEvent.keyDown(lower, { key: 'Escape' });
+		await tick();
+
+		expect(changes).toEqual([]);
+		expect(lower.value).toBe('25 u');
+		expect(document.activeElement).not.toBe(lower);
+	});
+
+	it('moves a thumb with the arrow keys only, never PageUp or PageDown', async () => {
+		const { changes, container } = renderSlider({ ...LINEAR, step: 5 });
+		const [lowerThumb] = thumbs(container);
+
+		await fireEvent.keyDown(lowerThumb, { key: 'PageUp' });
+		await fireEvent.keyDown(lowerThumb, { key: 'PageDown' });
+
+		expect(changes).toEqual([]);
+
+		await fireEvent.keyDown(lowerThumb, { key: 'ArrowRight', shiftKey: true });
+
+		expect(changes).toEqual([{ max: 75, min: 30 }]);
 	});
 });

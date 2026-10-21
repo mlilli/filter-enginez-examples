@@ -12,12 +12,11 @@
  *
  * ### Styled by `.fe-url-format-toggle`, not by an inline object
  *
- * The twin of the collapse documented on `<CopyLinkButton>`, and found beside it: this component
- * carried the same nine declarations inline that `ui-styles` already published under the class the
- * other four verticals use, down to the `__kicker` span's `var(--gray-8)`. The original debt note
- * named only the copy button; the toggle had it too. It gains the class's `:hover` (border and text lift to
- * `--gray-6` / `--gray-11`), which the inline version never had — Tailwind's `transition-colors`
- * declares how a color change animates, not that one should happen.
+ * The twin of `<CopyLinkButton>`'s rule: its look comes from the shared `ui-styles` class the four
+ * non-React verticals use, down to the `__kicker` span's `var(--gray-8)`, rather than from an inline
+ * copy of the same declarations that could change independently. The class also carries the `:hover`
+ * (border and text lift to `--gray-6` / `--gray-11`), which an inline style cannot express —
+ * Tailwind's `transition-colors` declares how a color change animates, not that one should happen.
  *
  * @packageDocumentation
  */

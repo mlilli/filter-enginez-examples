@@ -27,9 +27,16 @@
  * dormant while a preset drives the results, and the smart-filter block sits OUTSIDE this container so
  * there is always a reachable way back out.
  *
- * Computing keeps the visual dim and `pointer-events: none` from `--busy`. A keystroke landing
- * mid-recompute is harmless: the busy tracker is version-based and resolves out-of-order commits by
- * design, which is exactly why it counts versions instead of holding a boolean.
+ * Computing keeps the visual dim and `pointer-events: none` from `--busy`, plus `aria-busy`, on the
+ * main-thread and worker tiers alike. A keystroke landing mid-recompute is harmless: the busy tracker
+ * is version-based and resolves out-of-order commits by design, which is exactly why it counts
+ * versions instead of holding a boolean.
+ *
+ * ## Option order
+ *
+ * Every chip group and the single-color menu list their values through the shared
+ * `orderedPresentOptions`: the design order (`red, white, rosé…`, `light … full`), keeping only the
+ * values the loaded corpus carries, so the menu and the chips beside it agree, in every app.
  */
 
 import type { InSetRule } from '@filter-enginez/core';
@@ -42,6 +49,7 @@ import {
 	deriveSelectedPresetIds,
 	EMPTY_SELECTION,
 	exitExpressionMode,
+	orderedPresentOptions,
 	type OriginNodeSpec,
 	type PickerTreeNode,
 	SWEETNESS_ORDER,
@@ -120,8 +128,8 @@ watch(committedPresets, (next) => {
 	activePresets.value = next;
 });
 
-/** The color chips the corpus actually contains, in canonical order. */
-const colorOptions = computed(() => COLOR_ORDER.filter((entry) => props.vocabularies.color.includes(entry)));
+/** The colors the corpus actually contains, in canonical order — the chips AND the single-color menu. */
+const colorOptions = computed(() => orderedPresentOptions(COLOR_ORDER, props.vocabularies.color));
 
 /**
  * The committed varietal selection — read here only to decide which varietal chips render.
@@ -144,11 +152,9 @@ const selectedVarietals = computed<readonly string[]>(
  */
 const varietalOptions = computed(() => visibleVarietalChips(props.vocabularies.varietal, selectedVarietals.value));
 
-const bodyOptions = computed(() => BODY_ORDER.filter((entry) => props.vocabularies.body.includes(entry)));
+const bodyOptions = computed(() => orderedPresentOptions(BODY_ORDER, props.vocabularies.body));
 
-const sweetnessOptions = computed(
-	() => SWEETNESS_ORDER.filter((entry) => props.vocabularies.sweetness.includes(entry)),
-);
+const sweetnessOptions = computed(() => orderedPresentOptions(SWEETNESS_ORDER, props.vocabularies.sweetness));
 
 /** Drop any active preset — a facet edit means the user is back in flat-map mode. */
 function leaveExpressionMode(): void {
@@ -188,25 +194,20 @@ function handleSelectedChange(next: readonly string[]): void {
 					'fe-filter-panel__body--busy': isComputing && !isExpressionMode,
 					'fe-filter-panel__body--expression': isExpressionMode,
 				}"
+				:aria-busy="isComputing && !isExpressionMode"
 				:inert="isExpressionMode"
 			>
 				<WineRangeSection
 					:engine="engine"
-					field="priceUsd"
-					label="Price (USD)"
 					:leave-expression-mode="leaveExpressionMode"
 					rule-id="price"
-					slider-label="Filter by price"
 					:step="DRAG_STEPS.price"
 				/>
 
 				<WineRangeSection
 					:engine="engine"
-					field="points"
-					label="Points"
 					:leave-expression-mode="leaveExpressionMode"
 					rule-id="points"
-					slider-label="Filter by points"
 					:step="DRAG_STEPS.points"
 				/>
 
@@ -224,7 +225,7 @@ function handleSelectedChange(next: readonly string[]): void {
 				<SingleColorSection
 					:engine="engine"
 					:leave-expression-mode="leaveExpressionMode"
-					:options="vocabularies.color"
+					:options="colorOptions"
 				/>
 
 				<WineChipSection
@@ -251,11 +252,8 @@ function handleSelectedChange(next: readonly string[]): void {
 
 				<WineRangeSection
 					:engine="engine"
-					field="abv"
-					label="ABV (%)"
 					:leave-expression-mode="leaveExpressionMode"
 					rule-id="abv"
-					slider-label="Filter by ABV"
 					:step="DRAG_STEPS.abv"
 				/>
 

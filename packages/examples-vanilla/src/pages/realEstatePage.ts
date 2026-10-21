@@ -24,6 +24,13 @@
  * counter that never moves, which reads worse than no counter at all. The snapshot getter seeds the
  * initial value for the case where a previous route already warmed the cached boot.
  *
+ * ### A failed boot gets a screen, not a caption that never moves
+ *
+ * A boot that rejects replaces the caption with the shared boot-failure screen over
+ * `BOOT_FAILURE_COPY['real-estate']`, as every app's real-estate page does. The progress listener is
+ * released either way, and the route still returns a teardown, which the router calls on navigation
+ * however the render ended.
+ *
  * @packageDocumentation
  */
 
@@ -34,8 +41,13 @@ import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	bootRealEstateEngine,
+	captureCurrentVersion,
+	getIsEngineBusy,
 	getRealEstateBootProgressSnapshot,
+	markResolvedAtLeast,
+	markUserAction,
 	type RealEstateBootProgress,
+	subscribeEngineBusy,
 	subscribeRealEstateBootProgress,
 } from '@filter-enginez/examples-shared/real-estate-core';
 import {
@@ -47,8 +59,10 @@ import {
 import type { RouteTeardown } from '../router.js';
 
 import { bootCaptionValue } from '../brand/indicators.js';
+import { type BusyCore, resolveAfterPaint } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
 import { createRealEstateView } from '../real-estate/view.js';
+import { bootFailureMessage, createBootFailure } from '../shell/bootFailure.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
@@ -68,9 +82,22 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 
 	notice.setProgress(getRealEstateBootProgressSnapshot());
 
-	// `.finally` rather than a plain line after the await: a failed boot rejects out of this function,
-	// and the listener would otherwise stay in a module-level set for the life of the page.
-	const { engine } = await bootRealEstateEngine().finally(stopProgress);
+	let booted;
+
+	try {
+		// `.finally` rather than a plain line after the await: a failed boot rejects past this line,
+		// and the listener would otherwise stay in a module-level set for the life of the page.
+		booted = await bootRealEstateEngine().finally(stopProgress);
+	} catch (error) {
+		console.error('[real-estate] boot failed:', error);
+		container.replaceChildren(createBootFailure('real-estate', bootFailureMessage(error)));
+
+		return () => {
+			container.replaceChildren();
+		};
+	}
+
+	const { engine } = booted;
 
 	container.replaceChildren();
 
@@ -86,6 +113,15 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 		}
 	}
 
+	// The shared `realEstateBusyCore`, through the forwarders `real-estate-core` exports — the same
+	// instance every other vertical's real-estate route marks and reads.
+	const busy: BusyCore = {
+		captureCurrentVersion,
+		getIsEngineBusy,
+		markResolvedAtLeast,
+		markUserAction,
+		subscribeEngineBusy,
+	};
 	const formatToggle = createUrlFormatToggle();
 	const copyLink = createCopyLinkButton();
 	const compareLink = createCompareLinkButton('real-estate');
@@ -94,8 +130,11 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 	// `FilterEngine` surface this route is typed against, hence the structural cast.
 	const devtools = createDevtoolsSurface({
 		devtools: (engine.core as unknown as { devtools: DevtoolsCursor }).devtools,
+		// Undo, redo and every timeline jump are engine writes like any other.
+		markBusy: busy.markUserAction,
 	});
 	const view = createRealEstateView(engine.core, {
+		busy,
 		footnote: 'filter-enginez · real estate demo · vanilla + reactive-signals (main thread)',
 		headerControls: [...devtools.headerControls, formatToggle.element, copyLink.element, compareLink.element],
 		resultsInsetElement: devtools.panelElement,
@@ -111,6 +150,10 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 	let bundle: FilterBundle | null = null;
 
 	const fetcher = createBundleFetcher(engine, {
+		// Captured when the fetch STARTS, resolved when it settles: every write marked before this
+		// fetch is covered by it. On this main-thread tier the two land in one task, so the resolve
+		// waits one painted frame — see `../busy/engineBusy.ts`.
+		captureVersion: busy.captureCurrentVersion,
 		onBundle: (next) => {
 			bundle = next;
 		},
@@ -120,8 +163,9 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 		// ONE repaint per change, and it happens on the terminal outcome rather than on the bundle, so a
 		// failed round trip still repaints the panel from the new rules with the previous hints. Painting
 		// on `onBundle` alone would leave the controls frozen on the old state after a failure.
-		onSettled: () => {
+		onSettled: (version) => {
 			view.setRules(latestRules, bundle, engine.lastChangeRuleId.value);
+			resolveAfterPaint(busy, version);
 		},
 	});
 

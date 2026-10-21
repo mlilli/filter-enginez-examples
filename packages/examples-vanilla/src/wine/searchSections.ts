@@ -2,78 +2,42 @@
  * `wine/searchSections` — the two `FuzzySearchRule` facets.
  *
  * @remarks
- * ## The text variant of the panel's state pattern
+ * ## The field is bound to the shared typeahead controller
  *
- * Same adopter as every other facet, and here the local value does double duty: it holds
- * **uncommitted keystrokes** as well as absorbing the worker's round-trip lag.
+ * `../controls/typeaheadSearch.ts` binds the field to `createTypeaheadController`, the one every
+ * vertical's search uses: typing re-arms a 250 ms trailing commit, blur / Enter / the clear button
+ * flush at once, and a query equal to the one already committed is never written — so Enter and the
+ * blur after it write once, and an untouched field's blur writes nothing and marks nothing busy. An
+ * external change (Clear all, a pill's ×, Undo, a `?f` link) is adopted into the field; the echo of
+ * the field's own commit is not, so a worker round trip can never yank the text mid-word.
  *
- * **The commit path deliberately does NOT paint.** Every other handler in this panel writes locally
- * first; these let the adopter take the value back instead, so the field ends up showing the
- * **trimmed** query the engine actually holds rather than the raw keystrokes. Typing `" oak "` and
- * blurring should leave `oak` in the box, because that is what is filtering.
+ * ## Copy, Fuse settings and the rule are the shared ones
  *
- * ## The thresholds differ, and so does what an empty query means
+ * `WINE_SEARCHES` carries each facet's label, placeholder, accessible name, field, keys and
+ * threshold, and `wineSearchRule` builds the rule from them. Tasting notes search long free-form
+ * prose at a loose 0.45; a winery name is a short proper noun, where a loose threshold matches most
+ * of the corpus.
  *
- * Tasting notes search long free-form prose at a loose 0.45; a winery name is a short proper noun,
- * where a loose threshold matches most of the corpus and reads as "fuzzy search is broken" rather
- * than as a tuning choice.
- *
- * **An empty query clears the notes rule but still commits a winery one.** Every vertical behaves
- * this way, and the active-filter chips the e2e specs assert depend on it — so it changes in all of
- * them together or in none, or the verticals disagree about what an empty winery search means.
+ * **An empty query removes the rule, for both facets**, as every vertical's wine search does: an
+ * empty fuzzy query is not a filter, and a pill reading `Winery: ""` would claim one.
  *
  * @packageDocumentation
  */
 
-import { fuzzy, type FuzzySearchRule, type RuleId } from '@filter-enginez/core';
-import { clearRule, commitRule } from '@filter-enginez/examples-shared/wine-domain';
+import type { FuzzySearchRule, RuleId } from '@filter-enginez/core';
+
+import {
+	clearRule,
+	commitRule,
+	WINE_SEARCHES,
+	type WineSearchId,
+	wineSearchRule,
+} from '@filter-enginez/examples-shared/wine-domain';
 
 import type { WineSection, WineSectionContext } from './sections.js';
 
-import { createSearchInput } from '../controls/controls.js';
 import { section } from '../controls/sections.js';
-import { createFacetAdopter } from './facetState.js';
-
-/** The two fuzzy facets. */
-export type WineSearchFacetId = 'notes' | 'winery';
-
-/** One fuzzy search facet's fixed properties. */
-interface SearchFacetConfig {
-	/** Accessible name for the field. */
-	readonly ariaLabel: string;
-	/** Whether an empty query clears the rule. See the module docblock — the two differ. */
-	readonly clearsWhenEmpty: boolean;
-	/** The primary field the rule searches. */
-	readonly field: string;
-	/** Extra fields Fuse also indexes, when the facet searches more than one. */
-	readonly keys?: readonly string[];
-	/** Section heading. */
-	readonly label: string;
-	/** Placeholder text. */
-	readonly placeholder: string;
-	/** Fuse threshold — lower is stricter. */
-	readonly threshold: number;
-}
-
-const SEARCH_FACETS: Record<WineSearchFacetId, SearchFacetConfig> = {
-	notes: {
-		ariaLabel: 'Search tasting notes',
-		clearsWhenEmpty: true,
-		field: 'description',
-		keys: ['description', 'tastingNotes'],
-		label: 'Tasting notes search',
-		placeholder: 'cherry, oak, tannin…',
-		threshold: 0.45,
-	},
-	winery: {
-		ariaLabel: 'Search wineries with typo tolerance',
-		clearsWhenEmpty: false,
-		field: 'winery',
-		label: 'Winery (typo-tolerant)',
-		placeholder: 'Vandermark, Caruso, Hartmann...',
-		threshold: 0.35,
-	},
-};
+import { createTypeaheadSearch } from '../controls/typeaheadSearch.js';
 
 /**
  * Build one fuzzy-search section.
@@ -82,54 +46,30 @@ const SEARCH_FACETS: Record<WineSearchFacetId, SearchFacetConfig> = {
  * @param context - The panel's shared write path.
  * @returns The mounted section.
  */
-export function createSearchSection(
-	facetId: WineSearchFacetId,
-	context: WineSectionContext,
-): WineSection {
-	const config = SEARCH_FACETS[facetId];
+export function createSearchSection(facetId: WineSearchId, context: WineSectionContext): WineSection {
+	const spec = WINE_SEARCHES[facetId];
 	const { host, leaveExpressionMode } = context;
-	const query = createFacetAdopter<string>(committedQuery(host.core.getRules(), facetId));
-
-	const input = createSearchInput({
-		ariaLabel: config.ariaLabel,
-		// Typing alone does not filter. The rule commits on blur / Enter / clear, so a fuzzy scan of
-		// 150k records runs once per query rather than once per character.
-		onChange: (next) => {
-			query.paint(next);
-		},
-		onCommit: (next) => {
+	const search = createTypeaheadSearch({
+		ariaLabel: spec.ariaLabel,
+		// Called only on a real change, so the busy mark inside the commit helpers fires only when
+		// something is written.
+		commit: (trimmed) => {
 			leaveExpressionMode();
-
-			const trimmed = next.trim();
-
-			// No local paint here — see the module docblock. The adopter takes the trimmed value back.
-			if (trimmed.length === 0 && config.clearsWhenEmpty) {
+			if (trimmed === '') {
 				clearRule(host, facetId);
 
 				return;
 			}
-			commitRule(
-				host,
-				facetId,
-				fuzzy(config.field, {
-					...(config.keys === undefined ? {} : { keys: [...config.keys]}),
-					query: trimmed,
-					threshold: config.threshold,
-				}),
-			);
+			commitRule(host, facetId, wineSearchRule(facetId, trimmed));
 		},
-		placeholder: config.placeholder,
+		initialQuery: committedQuery(host.core.getRules(), facetId),
+		placeholder: spec.placeholder,
 	});
 
 	return {
-		element: section(config.label, input.element),
+		element: section(spec.label, search.element),
 		update: ({ rules }) => {
-			// Repaint only on adoption. The input guards against clobbering what is being typed, but
-			// calling it on every unrelated settle would still fight a user mid-keystroke on the frame
-			// the engine happens to hold the same string.
-			if (query.adopt(committedQuery(rules, facetId))) {
-				input.update(query.value());
-			}
+			search.adopt(committedQuery(rules, facetId));
 		},
 	};
 }

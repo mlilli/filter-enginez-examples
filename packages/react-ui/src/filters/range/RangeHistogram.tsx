@@ -43,13 +43,15 @@ export interface RangeHistogramProps {
 	readonly displayLower: number;
 	/** The slider's currently-displayed upper value (drag-aware). Drives the "in selection" tier. */
 	readonly displayUpper: number;
-	/** Formatter for the per-bucket hover title (e.g. `(n) => '$' + n.toFixed(0)`). */
-	readonly format: (value: number) => string;
 }
 
 /**
  * Distribution-bar overlay for `<RangeSlider />`. Returns `null` when there are no buckets to
- * render (cleaner for tiny ranges where the overlay would just be noise).
+ * render, so a slider never shows an empty bar strip before its first bundle arrives.
+ *
+ * @remarks
+ * The bars carry no hover title, as in every other app: the overlay is `aria-hidden`, a picture of
+ * where the data sits, and the slider's readouts and the results count say the numbers.
  *
  * @example
  *   <RangeHistogram
@@ -57,11 +59,10 @@ export interface RangeHistogramProps {
  *     available={{ min: 10, max: 80 }}
  *     displayLower={20}
  *     displayUpper={50}
- *     format={(n) => '$' + n.toFixed(0)}
  *   />
  */
 export const RangeHistogram = (props: RangeHistogramProps): React.ReactElement | null => {
-	const { available, displayLower, displayUpper, format, histogram } = props;
+	const { available, displayLower, displayUpper, histogram } = props;
 
 	if (histogram.length === 0) {
 		return null;
@@ -74,7 +75,6 @@ export const RangeHistogram = (props: RangeHistogramProps): React.ReactElement |
 					key={bucket.bucketMin}
 					className={histogramBarClassName(bucket, available, displayLower, displayUpper)}
 					style={{ height: `${histogramBarHeightPercent(bucket)}%` }}
-					title={`${bucket.count.toLocaleString()} items in [${format(bucket.bucketMin)}, ${format(bucket.bucketMax)})`}
 				/>
 			))}
 		</div>

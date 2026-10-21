@@ -9,59 +9,40 @@
  *   - **No `url` builder.** Playwright's single `baseURL` IS this app, so the shared suite navigates
  *     to a bare `/wine`. Every other vertical passes an absolute-URL builder; a `reactRtkBase.ts`
  *     here would export a function returning its argument unchanged.
- *   - **The drawer.** react-ui renders the mobile filter panel as an off-canvas `<dialog>`; the
- *     shared suite uses it as its open-readiness signal and dismisses it before touching the results
- *     column. See `WineVerticalSpec.filterDrawer`.
- *   - **The two suites below**, which are not the wine filter flow.
- *
- * **`closeFilterPanel` is not called after every chip click, and that is deliberate.** The shared
- * suite closes the drawer only where the results column is actually touched. The keyboard case in
- * particular runs with the panel OPEN in all six verticals — the undo/redo hook declines only inside
- * `input` / `textarea` / `[contenteditable]`, and focus is on the chip button just clicked either way,
- * so closing is not load-bearing there, and the four inline-collapse verticals have no close button.
+ *   - **The collapse toggle names its region.** react-ui's `<FilterCollapse>` sets `aria-controls` on
+ *     the "Filters" toggle, pointing at the `.fe-filter-collapse` it shows and hides; the case below
+ *     pins that for the React wine page. The shared suite covers the toggle's labels and
+ *     `aria-expanded` in all six.
+ *   - **The landing + routing suite**, which is not the wine filter flow.
  *
  * @packageDocumentation
  */
 
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-import { isMobileProject } from './filterFlow.js';
+import { FILTER_COLLAPSE, FILTERS_TOGGLE, isMobileProject } from './filterFlow.js';
 import { subtitle } from './subtitles.js';
 import { describeWineVertical } from './wineFlow.js';
 
-/**
- * What "open" means in this vertical: react-ui renders the mobile filter panel as an off-canvas
- * `dialog` named for the dataset, so the drawer itself is the readiness signal — and, once dismissed,
- * the absence signal. (The non-React verticals expand an inline collapse and wait for a chip instead.)
- *
- * The `role` exists only while the drawer is open, which is what makes it safe as a readiness signal
- * against `<FilterDrawer>`'s `keepMounted` children.
- */
-function filterDrawer(page: Page): Locator {
-	return page.getByRole('dialog', { name: 'Wine filters' });
-}
+describeWineVertical({ id: 'react-rtk', label: 'React RTK' });
 
-describeWineVertical({ filterDrawer, id: 'react-rtk', label: 'React RTK' });
+test.describe('React RTK wine app — the collapse toggle', () => {
+	test('mobile: the "Filters" toggle names the region it shows and hides', async ({ page }, testInfo) => {
+		test.skip(!isMobileProject(testInfo), 'The toggle only exists below the two-column breakpoint.');
 
-test.describe('React RTK wine app — the drawer itself', () => {
-	test('mobile: the filter drawer opens from the trigger and closes via its × button', async ({ page }, testInfo) => {
-		test.skip(!isMobileProject(testInfo), 'The off-canvas drawer only exists below the lg breakpoint.');
-
-		// **This case stays out of the shared suite because the drawer is its SUBJECT.** Everywhere
-		// else the drawer is a means of reaching the filters, which is why `openFilterPanel` hides it;
-		// here the assertion IS that the trigger and the × work, so it must not go through the helper
-		// that would use them.
 		await page.goto('/wine');
 		await expect(page.getByText(subtitle('Wine', 'react-rtk', 'worker'))).toBeVisible({ timeout: 60_000 });
 
-		const drawer = filterDrawer(page);
+		const toggle = page.locator(FILTERS_TOGGLE);
+		const regionId = await toggle.getAttribute('aria-controls');
 
-		await expect(drawer).toHaveCount(0);
-		await page.getByRole('button', { name: 'Filters' }).click();
-		await expect(drawer).toBeVisible();
+		expect(regionId, 'the toggle names no region').not.toBeNull();
+		await expect(page.locator(FILTER_COLLAPSE)).toHaveAttribute('id', regionId ?? '');
+		await expect(page.locator(FILTER_COLLAPSE)).toHaveAttribute('hidden');
 
-		await page.getByRole('button', { name: 'Close filters' }).click();
-		await expect(drawer).toHaveCount(0);
+		await toggle.click();
+		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.locator(FILTER_COLLAPSE)).not.toHaveAttribute('hidden');
 	});
 });
 

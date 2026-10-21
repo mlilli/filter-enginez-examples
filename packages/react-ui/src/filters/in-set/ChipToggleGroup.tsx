@@ -42,6 +42,11 @@ export interface ChipToggleGroupProps<V extends string> {
 	readonly showCount?: boolean;
 	/** Optional label formatter (e.g. to shorten or relabel). Defaults to identity. */
 	readonly formatLabel?: (value: V) => string;
+	/**
+	 * Cap the group's height and let it scroll (`fe-chip-toggle--capped`), for a long vocabulary such as
+	 * wine's varietals. Defaults to `false`.
+	 */
+	readonly scrollable?: boolean;
 }
 
 /**
@@ -61,12 +66,13 @@ export const ChipToggleGroup = <V extends string>(props: ChipToggleGroupProps<V>
 		formatLabel = formatValueAsLabel,
 		onToggle,
 		options,
+		scrollable: isScrollable = false,
 		selected,
 		showCount: shouldShowCount = false,
 	} = props;
 
 	return (
-		<div className="fe-chip-toggle">
+		<div className={`fe-chip-toggle${isScrollable ? ' fe-chip-toggle--capped' : ''}`}>
 			{options.map((option) => {
 				const isSelected = selected.includes(option);
 				const exclusionData = exclusion?.get(option);

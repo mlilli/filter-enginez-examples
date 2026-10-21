@@ -1,6 +1,6 @@
 /**
- * `<DatasetRoute />` — the load + boot lifecycle, the three caption states, the failure screen, and the
- * hub's prefetch.
+ * `<DatasetRoute />` — the load + boot lifecycle, the three caption states, the two boot-screen shapes,
+ * the failure screen, and the hub's prefetch.
  *
  * @remarks
  * The route is also walked incidentally by `lab/labRoute.test.tsx` (`<LabRoute />` renders
@@ -30,6 +30,11 @@
 
 import type * as UrlStateRouter from '@filter-enginez/url-state-router';
 
+import {
+	BOOKS_BOOT_IDLE_CAPTION,
+	BOOT_FAILURE_COPY,
+	REAL_ESTATE_BOOT_IDLE_CAPTION,
+} from '@filter-enginez/examples-shared/boot-caption';
 // `act` from Testing Library, never from `react` directly: RTL's wrapper sets
 // `IS_REACT_ACT_ENVIRONMENT` around the call, and React's own `act` without it prints "the current
 // testing environment is not configured to support act(...)" and does not batch — so every
@@ -168,6 +173,12 @@ function makeModule(overrides: Partial<DatasetModule> = {}, datasetId = 'books')
 /**
  * Build a dataset entry whose module loads at once.
  *
+ * @remarks
+ * A synthetic entry in the HERO shape (a `heroLoaderLabel`, the default idle caption), because that
+ * is the shape whose caption narrates every state; the inline shape the real books and real-estate
+ * entries use has its own cases below, and the real registry is checked against the other apps'
+ * boots in `the dataset registry`.
+ *
  * @param overrides - Fields to replace on the base live entry.
  * @param datasetModule - The module its `load` resolves to.
  * @returns A `DatasetEntry` suitable for `<DatasetRoute entry={…} />`.
@@ -177,6 +188,8 @@ function makeEntry(
 	datasetModule: DatasetModule = makeModule({}, overrides.id),
 ): DatasetEntry {
 	return {
+		bootFailure: 'books',
+		heroLoaderLabel: 'Loading Books',
 		id: 'books',
 		label: 'Books',
 		load: async () => {
@@ -319,6 +332,81 @@ describe('DatasetRoute', () => {
 		});
 	});
 
+	describe('the inline boot shape', () => {
+		// Books and real estate boot on the main thread from a static file, and every app shows that boot
+		// as the inline caption alone: no hero loader to flash for a fraction of a second.
+		const inlineEntry = (): DatasetEntry =>
+			makeEntry({ heroLoaderLabel: undefined, idleCaption: REAL_ESTATE_BOOT_IDLE_CAPTION, recordNoun: 'listings' });
+
+		it('renders the idle caption inline, in one main landmark, with no hero loader', () => {
+			render(<DatasetRoute entry={inlineEntry()} />);
+
+			const main = screen.getByRole('main');
+
+			expect(within(main).getByText(REAL_ESTATE_BOOT_IDLE_CAPTION).className).toBe('fe-boot-caption fe-boot-caption--inline');
+			expect(within(main).queryByRole('img')).toBeNull();
+		});
+
+		it('follows the progress store with the live count in its accent span', async () => {
+			await renderBooting(inlineEntry());
+			await emitProgress({ loaded: 4_000, total: 9_000 });
+
+			const caption = screen.getByText(/Loaded/u);
+
+			expect(caption.className).toBe('fe-boot-caption fe-boot-caption--inline');
+			expect(caption.textContent).toBe('Loaded 4,000 of 9,000 listings');
+			expect(caption.querySelector('.fe-boot-caption__value')?.textContent).toBe('4,000');
+		});
+	});
+
+	describe('the dataset registry', () => {
+		// The real entries, checked against the boot every other app shows for the same dataset. Their
+		// code is never loaded: each `load` is replaced by one that never settles.
+		const bootScreenOf = async (id: string): Promise<HTMLElement> => {
+			const { findDataset } = await import('../datasets.js');
+			const entry = findDataset(id);
+
+			expect(entry, `no ${id} entry`).toBeDefined();
+			render(
+				<DatasetRoute entry={{ ...(entry as DatasetEntry), load: async () => new Promise<never>(() => undefined) }} />,
+			);
+
+			return screen.getByRole('main');
+		};
+
+		it('boots wine behind the hero loader labelled "Loading wine reviews"', async () => {
+			const main = await bootScreenOf('wine');
+
+			expect(within(main).getByRole('img', { name: 'Loading wine reviews' })).toBeDefined();
+			expect(within(main).getByText('Spinning up worker thread').className).toBe('fe-boot-caption fe-boot-caption--hero');
+		});
+
+		it.each(['books', 'books-config'])('boots %s behind the inline books caption alone', async (id) => {
+			const main = await bootScreenOf(id);
+
+			expect(within(main).getByText(BOOKS_BOOT_IDLE_CAPTION).className).toBe('fe-boot-caption fe-boot-caption--inline');
+			expect(within(main).queryByRole('img')).toBeNull();
+		});
+
+		it('boots real estate behind the inline real-estate caption alone', async () => {
+			const main = await bootScreenOf('real-estate');
+
+			expect(within(main).getByText(REAL_ESTATE_BOOT_IDLE_CAPTION).className).toBe('fe-boot-caption fe-boot-caption--inline');
+			expect(within(main).queryByRole('img')).toBeNull();
+		});
+
+		it('fails each dataset with its own shared copy', async () => {
+			const { datasets } = await import('../datasets.js');
+
+			expect(Object.fromEntries(datasets.map((entry) => [entry.id, entry.bootFailure]))).toEqual({
+				books: 'books',
+				'books-config': 'books',
+				'real-estate': 'real-estate',
+				wine: 'wine',
+			});
+		});
+	});
+
 	describe('URL state', () => {
 		it('syncs the URL for an entry that opts in', async () => {
 			await renderBooting(makeEntry({ supportsUrlState: true }));
@@ -328,7 +416,9 @@ describe('DatasetRoute', () => {
 			expect(urlSyncRenders).toHaveLength(1);
 			// Bracketed because the recorder is typed as an index signature — `noPropertyAccessFromIndexSignature`
 			// is on, and the point of recording raw props is that the stub asserts nothing about their shape.
-			expect(urlSyncRenders[0]?.['engine']).toBe(engineCore);
+			// The core itself, seen through the guard that keeps the sync from loading its own writes
+			// (`useUrlSyncBindings`): every member reads through to the core.
+			expect(urlSyncRenders[0]?.['engine']).toEqual(engineCore);
 			expect(urlSyncRenders[0]?.['asyncConfig']).toBe(engineAsync);
 			expect(urlSyncRenders[0]?.['serializer']).toBeDefined();
 		});
@@ -373,7 +463,8 @@ describe('DatasetRoute', () => {
 			await flush();
 
 			expect(screen.getAllByRole('main')).toHaveLength(1);
-			expect(within(screen.getByRole('main')).getByText('Engine failed to boot')).toBeDefined();
+			// In an alert INSIDE the landmark: a `role` on `<main>` itself would replace its landmark role.
+			expect(within(within(screen.getByRole('main')).getByRole('alert')).getByText(BOOT_FAILURE_COPY.books.title)).toBeDefined();
 		});
 	});
 
@@ -387,9 +478,30 @@ describe('DatasetRoute', () => {
 			});
 			await flush();
 
-			expect(screen.getByText('Engine failed to boot')).toBeDefined();
+			expect(screen.getByText(BOOT_FAILURE_COPY.books.title)).toBeDefined();
 			expect(screen.getByText('corpus fetch returned 503')).toBeDefined();
-			expect(screen.getByText('Refresh the page to retry.')).toBeDefined();
+			expect(screen.getByText(BOOT_FAILURE_COPY.books.hint)).toBeDefined();
+			// The main-thread-tier sentence is wine's alone.
+			expect(screen.queryByText('VITE_WINE_TIER=default')).toBeNull();
+		});
+
+		it("follows wine's hint with this build's main-thread tier setting", async () => {
+			await renderBooting(makeEntry({ bootFailure: 'wine', id: 'wine' }));
+
+			await act(async () => {
+				bootOf('wine').reject(new Error('worker failed to start'));
+				await Promise.resolve();
+			});
+			await flush();
+
+			const alert = screen.getByRole('alert');
+
+			expect(within(alert).getByText(BOOT_FAILURE_COPY.wine.title)).toBeDefined();
+			expect(within(alert).getByText(BOOT_FAILURE_COPY.wine.hint)).toBeDefined();
+			expect(within(alert).getByText('VITE_WINE_TIER=default').tagName).toBe('CODE');
+			expect(alert.textContent).toContain(
+				'Set VITE_WINE_TIER=default to boot the 10,000-wine default tier on the main thread instead.',
+			);
 		});
 
 		it('coerces a non-Error rejection into one', async () => {
@@ -420,7 +532,7 @@ describe('DatasetRoute', () => {
 			render(<DatasetRoute entry={entry} />);
 			await flush();
 
-			expect(screen.getByText('Engine failed to boot')).toBeDefined();
+			expect(screen.getByText(BOOT_FAILURE_COPY.books.title)).toBeDefined();
 			expect(screen.getByText('Failed to fetch dynamically imported module')).toBeDefined();
 			expect(boots).toEqual([]);
 		});
@@ -511,7 +623,7 @@ describe('DatasetRoute', () => {
 			await flush();
 
 			// A dataset the user has left cannot put the app on an error screen.
-			expect(screen.queryByText('Engine failed to boot')).toBeNull();
+			expect(screen.queryByText(BOOT_FAILURE_COPY.books.title)).toBeNull();
 			expect(screen.getByLabelText('Loading Books')).toBeDefined();
 		});
 	});

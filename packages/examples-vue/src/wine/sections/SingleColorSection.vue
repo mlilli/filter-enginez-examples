@@ -28,6 +28,7 @@ import SelectMenu from '../../controls/SelectMenu.vue';
 const props = defineProps<{
 	engine: SignalsEngine<Wine>;
 	leaveExpressionMode: () => void;
+	/** The colors to offer, in the panel's `orderedPresentOptions(COLOR_ORDER, …)` order. */
 	options: readonly string[];
 }>();
 

@@ -1,9 +1,9 @@
 /**
- * The composed app shell — header, sidebar, results column, footer, and the mobile filter drawer.
+ * The composed app shell — header, sidebar, results column, footer, and the mobile filter collapse.
  *
  * @remarks
  * Everything here is dataset-neutral. Books and real estate need the same header, the same footer,
- * the same brand links (`appHeader.ts`) and the same drawer over a different panel and a different grid; a second copy
+ * the same brand links (`appHeader.ts`) and the same collapse over a different panel and a different grid; a second copy
  * would be the file where one route's "Filters" button quietly stops matching the other's.
  *
  * ### The `fe-books-app__*` prefix is a documented misnomer
@@ -14,7 +14,7 @@
  * exists: books is a flex row (`.fe-books-app__main`), real estate is a two-column grid whose filter
  * column is a sticky card capped at `calc(100vh - 2rem)` (`.fe-sidebar-app__main`).
  *
- * ### The drawer wrapper is toggled by ATTRIBUTE, and that is not a style choice
+ * ### The collapse wrapper is toggled by ATTRIBUTE, and that is not a style choice
  *
  * `.fe-filter-collapse` is authored in `ui-styles` as `:not([hidden])` — deliberately, because an
  * unconditional `display` would beat the `hidden` attribute, which is only a UA rule. So the wrapper
@@ -45,13 +45,13 @@ export type AppShellLayout = 'books' | 'sidebar';
 export interface AppShell {
 	/** The app root element. */
 	readonly element: HTMLElement;
-	/** Re-read the breakpoint and repaint the drawer. Wire this to the breakpoint's `subscribe`. */
+	/** Re-read the breakpoint and repaint the collapse. Wire this to the breakpoint's `subscribe`. */
 	readonly syncPanelVisibility: () => void;
 }
 
 /** Construction options for {@link createAppShell}. */
 export interface AppShellOptions {
-	/** The breakpoint tracker driving the drawer. */
+	/** The breakpoint tracker driving the collapse. */
 	readonly breakpoint: DesktopBreakpoint;
 	/** Footer caption — spells out the wiring, so routes are distinguishable at a glance. */
 	readonly footnote: string;
@@ -108,7 +108,7 @@ function filtersIcon(): SVGElement {
  * Build the app shell around a panel and a results region.
  *
  * @param options - Layout, labelling, and the elements to compose.
- * @returns The mounted shell plus the drawer sync callback.
+ * @returns The mounted shell plus the collapse sync callback.
  */
 export function createAppShell(options: AppShellOptions): AppShell {
 	const {

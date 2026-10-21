@@ -26,7 +26,7 @@
 
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
-import { createFilterEngine, inSet, type InSetRule } from '@filter-enginez/core';
+import { createFilterEngine, inSet, type InSetRule, text, type TextSearchRule } from '@filter-enginez/core';
 import {
 	buildListingLocationTree,
 	buildLocationNodeSpecs,
@@ -34,12 +34,17 @@ import {
 	deriveMetroCenters,
 	deriveRealEstateVocabularies,
 	type NumericBounds,
+	REAL_ESTATE_DESCRIPTION_SEARCH,
+	REAL_ESTATE_LISTED_DATE_LABEL,
+	REAL_ESTATE_LOCATION_TREE,
+	REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
 	REAL_ESTATE_SLIDER_FIELD_IDS,
 	type RealEstateSliderFieldId,
 	SLIDER_CLAMPS,
 	SLIDER_FIELD_GETTERS,
 	SLIDER_STEPS,
 } from '@filter-enginez/examples-shared/real-estate-domain';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 import { createSignalsEngine, type SignalsEngine } from '@filter-enginez/reactive-signals';
 import { type DOMWrapper, flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -286,7 +291,135 @@ describe('<RealEstateView> full-parity interactions', () => {
 
 		expect(scroller.attributes('role')).toBe('group');
 		expect(scroller.attributes('tabindex')).toBe('0');
-		expect(scroller.attributes('aria-label')).toBe('Listing results');
+		expect(scroller.attributes('aria-label')).toBe(RESULT_COPY['real-estate'].scrollerLabel);
+
+		engine.dispose();
+	});
+});
+
+describe('<RealEstateView> Clear all', () => {
+	it('drops every rule with ONE clearRules, including one no facet lists, and one Undo restores them', async () => {
+		const engine = bootEngine();
+
+		engine.core.addRule('property-type', inSet<string>('propertyType', ['condo']));
+		// A rule under an id no control owns, as a hand-edited `?f` link could carry.
+		engine.core.addRule('hand-written', inSet<string>('status', ['pending']));
+
+		const wrapper = await mountView(engine);
+		const clearRules = vi.spyOn(engine.core, 'clearRules');
+		const removeRule = vi.spyOn(engine.core, 'removeRule');
+
+		await wrapper.find('.fe-active-filters__clear').trigger('click');
+		await flushPromises();
+
+		expect(clearRules).toHaveBeenCalledOnce();
+		expect(removeRule).not.toHaveBeenCalled();
+		expect(engine.core.getRules().size).toBe(0);
+		expect(chipByText(wrapper, 'condo').classes()).not.toContain('fe-chip--selected');
+
+		(engine.core as unknown as { devtools: { undo: () => void }}).devtools.undo();
+		await flushPromises();
+
+		expect([...engine.core.getRules().keys()].sort()).toEqual(['hand-written', 'property-type']);
+
+		engine.dispose();
+	});
+});
+
+describe('<RealEstateView> description search', () => {
+	/**
+	 * The description field.
+	 *
+	 * @param wrapper - The mounted view.
+	 * @returns The input.
+	 */
+	function descriptionField(wrapper: VueWrapper): DOMWrapper<HTMLInputElement> {
+		return wrapper.find<HTMLInputElement>(`input[aria-label="${REAL_ESTATE_DESCRIPTION_SEARCH.ariaLabel}"]`);
+	}
+
+	it('reads its copy from REAL_ESTATE_DESCRIPTION_SEARCH and commits on blur', async () => {
+		const engine = bootEngine();
+		const wrapper = await mountView(engine);
+		const field = descriptionField(wrapper);
+
+		expect(field.attributes('placeholder')).toBe(REAL_ESTATE_DESCRIPTION_SEARCH.placeholder);
+		await field.setValue(' park ');
+		await field.trigger('blur');
+
+		expect((engine.core.getRule('text-search') as TextSearchRule | undefined)?.config.query).toBe('park');
+
+		engine.dispose();
+	});
+
+	it('removes the rule when the query empties', async () => {
+		const engine = bootEngine();
+
+		engine.core.addRule('text-search', text('description', { caseSensitive: false, mode: 'substring', query: 'park' }));
+
+		const wrapper = await mountView(engine);
+		const field = descriptionField(wrapper);
+
+		expect(field.element.value).toBe('park');
+		await field.setValue('');
+		await field.trigger('blur');
+
+		expect(engine.core.getRules().has('text-search')).toBe(false);
+
+		engine.dispose();
+	});
+
+	it('writes nothing for a blur on an untouched empty field', async () => {
+		const engine = bootEngine();
+		const wrapper = await mountView(engine);
+		const removeRule = vi.spyOn(engine.core, 'removeRule');
+		const addRule = vi.spyOn(engine.core, 'addRule');
+
+		await descriptionField(wrapper).trigger('blur');
+
+		expect(removeRule).not.toHaveBeenCalled();
+		expect(addRule).not.toHaveBeenCalled();
+
+		engine.dispose();
+	});
+
+	it('empties the field when Clear all removes the rule', async () => {
+		const engine = bootEngine();
+		const wrapper = await mountView(engine);
+		const field = descriptionField(wrapper);
+
+		await field.setValue('park');
+		await field.trigger('blur');
+		await flushPromises();
+		await wrapper.find('.fe-active-filters__clear').trigger('click');
+		await flushPromises();
+
+		expect(field.element.value).toBe('');
+
+		engine.dispose();
+	});
+});
+
+describe('<RealEstateView> shared panel copy', () => {
+	it('names and bounds the location tree, bounds the school list, and names the listed-date group', async () => {
+		const engine = bootEngine();
+		const wrapper = await mountView(engine);
+		const tree = wrapper.find('.fe-tree');
+
+		expect(tree.attributes('aria-label')).toBe(REAL_ESTATE_LOCATION_TREE.groupLabel);
+		expect(tree.attributes('style')).toContain(`--fe-tree-max-height: ${REAL_ESTATE_LOCATION_TREE.maxHeight}`);
+		expect(wrapper.find('.fe-checkbox-list').attributes('style')).toContain(
+			`max-height: ${REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT}`,
+		);
+		expect(wrapper.find(`[role="group"][aria-label="${REAL_ESTATE_LISTED_DATE_LABEL}"]`).exists()).toBe(true);
+
+		engine.dispose();
+	});
+
+	it('puts the listings noun after the count', async () => {
+		const engine = bootEngine();
+		const wrapper = await mountView(engine);
+
+		expect(wrapper.find('.fe-results-header').text()).toContain(RESULT_COPY['real-estate'].noun);
 
 		engine.dispose();
 	});

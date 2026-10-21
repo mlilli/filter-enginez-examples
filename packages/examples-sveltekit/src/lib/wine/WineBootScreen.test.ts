@@ -113,30 +113,14 @@ describe('WineBootScreen', () => {
 		expect(caption(container)).toBe('Connecting to the filter server');
 	});
 
-	it('names the switch when the 10,000-wine tier booted on the main thread', () => {
-		// Unrelated to the caption and unique to this vertical, but it sits in the same component. The
-		// `'default-tier'` source only happens when `VITE_WINE_TIER=default` is set, so the warning
-		// names that variable rather than a missing file.
+	it('shows only the loader and the caption on the 10,000-wine default tier, as every app does', () => {
+		// The tier `VITE_WINE_TIER=default` selects boots with the same screen as the others: no extra
+		// line about the switch, which no other app's boot screen carries.
 		const { container } = render(WineBootScreen, {
 			progress: { isTotalEstimated: false, loaded: 10_000, source: 'default-tier', total: 10_000 },
 		});
-		const warning = container.querySelector('.fe-wine-boot__warn')?.textContent ?? '';
 
-		expect(warning).toContain('10,000-wine default tier');
-		expect(warning).toContain('VITE_WINE_TIER');
-	});
-
-	it('does not warn on the full tier', () => {
-		const { container } = render(WineBootScreen, { progress: progressOf(150_000, 150_000) });
-
-		expect(container.querySelector('.fe-wine-boot__warn')).toBeNull();
-	});
-
-	it('does not warn on the low-memory tier, which the device chose rather than a setting', () => {
-		const { container } = render(WineBootScreen, {
-			progress: { isTotalEstimated: false, loaded: 10_000, source: 'low-memory-tier', total: 10_000 },
-		});
-
-		expect(container.querySelector('.fe-wine-boot__warn')).toBeNull();
+		expect(container.querySelectorAll('main > p')).toHaveLength(1);
+		expect(container.textContent).not.toContain('VITE_WINE_TIER');
 	});
 });

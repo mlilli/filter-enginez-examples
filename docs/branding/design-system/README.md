@@ -146,8 +146,9 @@ hairline `--gray-5` border, accent dot indicator). Hero backdrops use subtle gra
 **Layout rules.**
 
 - Fixed app header (height 56px), fixed sidebar (width 320px), fluid main content.
-- Devtools panel slides over the right edge, 400px wide, doesn't push content.
-- Mobile: sidebar collapses to a drawer below the `lg` breakpoint (1024px).
+- Devtools panel opens inline above the results grid, in the document flow, and pushes the grid down.
+- Mobile: below the `lg` breakpoint (1024px) the sidebar collapses inline behind a "Filters" / "Hide filters" button and
+  pushes the results down when opened.
 - Container max 1440px; the results grid auto-fills columns with a 280px minimum track, so it steps 4 → 3 → 2 → 1 as
   width allows.
 

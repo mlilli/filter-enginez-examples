@@ -34,6 +34,8 @@ import { el } from '@filter-enginez/examples-shared/dom';
 
 import type { Control } from './controls.js';
 
+import { createKeyedParts, type KeyedPart, reconcileChildren } from './keyedChildren.js';
+
 /** One selectable preset. */
 export interface DatePreset<V extends string> {
 	/** Visible text, e.g. `'Last 7 days'`. */
@@ -82,40 +84,46 @@ export function createDatePresetGroup<V extends string>(
 		attrs: { 'aria-label': groupLabel, role: 'group' },
 		className: 'fe-chip-toggle',
 	});
+	/** The "any" pill is keyed as `null`, which no preset value can collide with. */
+	const pills = createKeyedParts<V | null, { readonly element: HTMLButtonElement } & KeyedPart<V | null>>(
+		(value) => ({
+			element: el('button', {
+				attrs: { type: 'button' },
+				on: {
+					click: () => {
+						onSelect(value);
+					},
+				},
+			}),
+			key: value,
+		}),
+	);
 
 	return {
 		element,
-		// A full rebuild rather than a diff, exactly as `createChipToggleGroup` does: the group is a
-		// handful of buttons whose only state is which one is lit, so reconciling would cost more code
-		// than it saves work.
+		// In place, keyed by value, like `createChipToggleGroup`: the pill a keyboard user just pressed
+		// keeps focus through the repaint its own click causes.
 		update: ({ presets, selected }) => {
-			element.replaceChildren(
-				// The "any" chip is FIRST and is not one of the presets — it is the escape from the facet,
-				// not a member of it, and a user scanning left-to-right should meet "off" before the
-				// choices.
-				presetChip(anyLabel, selected === null, () => {
-					onSelect(null);
-				}),
-				...presets.map((preset) =>
-					presetChip(preset.label, selected === preset.value, () => {
-						onSelect(preset.value);
-					}),
-				),
-			);
+			// The "any" chip is FIRST and is not one of the presets — it is the escape from the facet,
+			// not a member of it, and a user scanning left-to-right should meet "off" before the
+			// choices.
+			const labels = new Map<V | null, string>([[null, anyLabel]]);
+
+			for (const preset of presets) {
+				labels.set(preset.value, preset.label);
+			}
+
+			const parts = pills.resolve([...labels.keys()]);
+
+			for (const { element: pill, key } of parts) {
+				const isSelected = key === selected;
+
+				pill.className = isSelected ? 'fe-chip fe-chip--selected' : 'fe-chip';
+				pill.setAttribute('aria-pressed', String(isSelected));
+				// `String()` rather than `?? ''`: every key came out of `labels`, so the lookup always hits.
+				pill.textContent = String(labels.get(key));
+			}
+			reconcileChildren(element, parts.map((part) => part.element));
 		},
 	};
-}
-
-/**
- * One preset pill.
- *
- * @internal
- */
-function presetChip(label: string, isSelected: boolean, onClick: () => void): HTMLElement {
-	return el('button', {
-		attrs: { 'aria-pressed': isSelected, type: 'button' },
-		className: isSelected ? 'fe-chip fe-chip--selected' : 'fe-chip',
-		on: { click: onClick },
-		text: label,
-	});
 }

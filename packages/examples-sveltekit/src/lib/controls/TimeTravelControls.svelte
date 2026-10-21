@@ -95,10 +95,6 @@
 		return devtools.canRedo;
 	});
 
-	// The attach function returns its own teardown, which is exactly what `$effect` wants back — so
-	// the binding is one line and cannot leak a duplicate listener across a remount.
-	$effect(() => attachUndoRedoKeyboard(devtools));
-
 	/** Step one action back, marking busy first so the indicator lights on the click's own frame. */
 	function handleUndo(): void {
 		if (!canUndo) {
@@ -116,6 +112,12 @@
 		markBusy();
 		devtools.redo();
 	}
+
+	// The attach function returns its own teardown, which is exactly what `$effect` wants back — so
+	// the binding is one line and cannot leak a duplicate listener across a remount. The shortcut goes
+	// through the same two handlers as the buttons, so it marks the engine busy first and does nothing
+	// (and marks nothing) at either end of the history.
+	$effect(() => attachUndoRedoKeyboard({ redo: handleRedo, undo: handleUndo }));
 </script>
 
 <button

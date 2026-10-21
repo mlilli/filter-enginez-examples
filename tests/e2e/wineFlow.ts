@@ -8,9 +8,10 @@
  * `subtitle()` boot signal, and a `bootWineApp` that differs only in which `*Url()` builder it calls.
  * Every vertical runs the same cases — boot and corpus tier, boot caption, facet toggle, chip
  * flicker, pill removal, clear all, smart-filter presets, keyboard undo/redo, panel scroll, the
- * shareable-URL round-trip, an axe scan, an open-ended price through reload and Back / Forward
- * (`wineOpenRange.ts`), and a preset replacing the manual filters (`winePresetTakeover.ts`) — so the
- * question "which cases does this vertical run" has one answer.
+ * shareable-URL round-trip, the mobile filter collapse, an axe scan, an open-ended price through
+ * reload and Back / Forward (`wineOpenRange.ts`), a preset replacing the manual filters
+ * (`winePresetTakeover.ts`), and the cross-app parity cases (`wineParity.ts`) — so the question
+ * "which cases does this vertical run" has one answer.
  *
  * The precedent is `compare.spec.ts`, which asserts the same thing of all six verticals by iterating
  * the registry, so a new vertical joins it without a new spec file.
@@ -33,9 +34,9 @@
  *
  *   - **Angular's boot-loader case**, which cannot move here because the state it asserts is *gone*
  *     by the time the shared `beforeEach` returns — it has to navigate itself.
- *   - **RTK's mobile-drawer case and its landing + routing suite.** The drawer case asserts the
- *     drawer as its SUBJECT (that it opens from the trigger and closes via its ×) rather than using
- *     it as a means to reach the filters, and the landing suite is not a wine flow at all.
+ *   - **RTK's landing + routing suite**, which is not a wine flow at all, and its check that the
+ *     React collapse toggle names the region it discloses (`aria-controls`), which only react-ui's
+ *     `<FilterCollapse>` sets.
  *
  * Everything else lives here.
  *
@@ -45,12 +46,13 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Locator, type Page, test, type TestInfo } from '@playwright/test';
 
+import { WINE_SEARCHES } from '../../packages/examples-shared/src/wine/wine-domain/panelCopy.js';
 import { expectBootCaption, installBootCaptionRecorder, readBootCaptions } from './bootCaption.js';
 import {
 	ACTIVE_CHIP,
 	chipLabelWithoutCount,
 	clickFirstFacetChip,
-	closeFilterPanel,
+	expectFilterCollapseKeepsState,
 	expectPanelScrollsToLastControl,
 	FACET_CHIP,
 	isMobileProject,
@@ -61,6 +63,7 @@ import {
 } from './filterFlow.js';
 import { subtitle, type VerticalId } from './subtitles.js';
 import { describeOpenRangeRoundTrips } from './wineOpenRange.js';
+import { describeWineParity, wineNotesField } from './wineParity.js';
 import { describePresetTakeover } from './winePresetTakeover.js';
 
 /**
@@ -74,7 +77,7 @@ import { describePresetTakeover } from './winePresetTakeover.js';
  * Named explicitly rather than found with `:last-child`: "what sits last" is a per-dataset fact, and
  * a helper that guessed could pass against a spacer element.
  */
-const LAST_PANEL_CONTROL = 'input[aria-label="Search wineries with typo tolerance"]';
+const LAST_PANEL_CONTROL = `input[aria-label="${WINE_SEARCHES.winery.ariaLabel}"]`;
 
 /**
  * A slower probe than the shared default, because every wine route's engine lives in a Web Worker.
@@ -113,33 +116,6 @@ export interface WineVerticalSpec {
 	 * already points at.
 	 */
 	readonly url?: (path: string) => string;
-	/**
-	 * How to find this vertical's off-canvas filter drawer, if it has one.
-	 *
-	 * @remarks
-	 * **Present for the two React apps and nothing else**, because the difference it marks is
-	 * structural rather than stylistic. react-ui renders the mobile filter panel as an off-canvas
-	 * `<dialog>` that OVERLAYS the results column and traps focus; the four non-React panels expand an
-	 * inline collapse that pushes the results down. `filterFlow.ts`'s own docblock draws exactly this
-	 * line and argues the readiness locator must stay in the spec file rather than behind a flag —
-	 * a function field is how it stays there.
-	 *
-	 * Two consequences, both load-bearing:
-	 *
-	 *   1. **It is the only honest readiness signal for React.** `<FilterDrawer>` is `keepMounted`, so
-	 *      the facet chips remain in the DOM while the drawer is shut — meaning the shared default,
-	 *      `page.locator(FACET_CHIP).first()`, would resolve BEFORE the drawer opens and every "open
-	 *      the panel" step would silently no-op. `role="dialog"` is applied only while open, so it
-	 *      cannot pass early.
-	 *   2. **Any case that touches the RESULTS column must close it first.** A drawer covering the
-	 *      results makes `.fe-filter-chip__remove` impossible to click. Playwright's `toBeVisible` is not
-	 *      occlusion-aware, so this fails as an actionability timeout rather than as a visibility
-	 *      assertion — the diagnosis is worth having written down before it happens.
-	 *
-	 * Note what this is NOT: a switch for a property every panel shares — `inert` on the locked body is
-	 * asserted of all six (see the preset case). This one is opt-in for a property exactly two have.
-	 */
-	readonly filterDrawer?: (page: Page) => Locator;
 }
 
 /**
@@ -185,34 +161,18 @@ export async function bootWineApp(page: Page, spec: Pick<WineVerticalSpec, 'id' 
  * @param spec - What differs about this vertical.
  */
 export function describeWineVertical(spec: WineVerticalSpec): void {
-	const { filterDrawer, id, label } = spec;
+	const { id, label } = spec;
 
 	/**
-	 * This vertical's proof that the filter controls are open and interactable.
-	 *
-	 * The drawer when there is one — its `role="dialog"` exists only while open, so it cannot pass
-	 * early against react-ui's `keepMounted` children — and otherwise the content the inline collapse
-	 * reveals.
+	 * This vertical's proof that the filter controls are open and interactable: the first facet chip
+	 * turning VISIBLE. Every app keeps its closed panel mounted under `hidden`, so the chip exists the
+	 * whole time and only its visibility says the collapse is open.
 	 */
-	const panelReady = (page: Page): Locator => (filterDrawer === undefined ? page.locator(FACET_CHIP).first() : filterDrawer(page));
+	const panelReady = (page: Page): Locator => page.locator(FACET_CHIP).first();
 
 	/** Reveal the filter controls. A no-op on desktop, where every panel is already in the tree. */
 	const openPanel = async (page: Page, testInfo: TestInfo): Promise<void> => {
 		await openFilterPanel(page, testInfo, panelReady(page));
-	};
-
-	/**
-	 * Dismiss the drawer, for the verticals that have one, so the RESULTS column is reachable again.
-	 *
-	 * Called only by the cases that touch the results column — never by the ones asserting on the
-	 * panel's own controls, which the dismissal would take away. Closing is also NOT needed for the
-	 * keyboard case: the hook declines only inside `input` / `textarea` / `[contenteditable]`, and
-	 * focus is on the chip button just clicked.
-	 */
-	const closePanelIfItOverlaysResults = async (page: Page, testInfo: TestInfo): Promise<void> => {
-		if (filterDrawer !== undefined) {
-			await closeFilterPanel(page, testInfo, filterDrawer(page));
-		}
 	};
 
 	test.describe(`${label} wine app — filter flow`, () => {
@@ -271,9 +231,6 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 
 			await openPanel(page, testInfo);
 			await clickFirstFacetChip(page);
-			// The pill and the count live in the results column, which React's drawer covers at phone
-			// width. A no-op for the four inline-collapse panels.
-			await closePanelIfItOverlaysResults(page, testInfo);
 			await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 
 			expect(await settledCount(page, WINE_SETTLED)).toBeLessThan(before);
@@ -302,11 +259,8 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 
 			await openPanel(page, testInfo);
 			await clickFirstFacetChip(page);
-			// **The dismissal is mandatory here, not defensive.** This case CLICKS a control in the
-			// results column, and react-ui's drawer overlays it. Playwright's `toBeVisible` is not
-			// occlusion-aware, so the failure would surface as an actionability timeout on
-			// `.fe-filter-chip__remove` rather than as anything naming the drawer.
-			await closePanelIfItOverlaysResults(page, testInfo);
+			// The pill's × sits in the results column, below the open collapse at phone width; the
+			// click scrolls it into view, and nothing covers it.
 			await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 			expect(await settledCount(page, WINE_SETTLED)).toBeLessThan(before);
 
@@ -327,7 +281,6 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 
 			await openPanel(page, testInfo);
 			await clickFirstFacetChip(page);
-			await closePanelIfItOverlaysResults(page, testInfo);
 			await expect(page.locator(ACTIVE_CHIP)).not.toHaveCount(0);
 			expect(await settledCount(page, WINE_SETTLED)).toBeLessThan(before);
 
@@ -372,23 +325,16 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 
 			await openPanel(page, testInfo);
 			await clickFirstFacetChip(page);
-			// **The panel is deliberately left OPEN for every vertical**, including the two whose drawer
-			// this suite knows how to close. The close is unnecessary here, and the four inline-collapse
-			// panels have no "Close filters" button at all — calling it would time out four mobile tests
-			// for a reason with nothing to do with undo/redo.
-			//
-			// It is unnecessary because the hook declines only inside `input` / `textarea` /
-			// `[contenteditable]`, and focus is on the chip button that was just clicked — which is
-			// true whether that chip sits in a drawer or an inline collapse. Keeping ONE behavior here
-			// also means the case tests the same thing in all six.
+			// **The panel is left OPEN.** The hook declines only inside `input` / `textarea` /
+			// `[contenteditable]`, and focus is on the chip button that was just clicked, so the
+			// shortcut reaches it in every app at every width.
 			await expect(page.locator(ACTIVE_CHIP)).not.toHaveCount(0);
 
 			const narrowed = await settledCount(page, WINE_SETTLED);
 
 			expect(narrowed).toBeLessThan(before);
 
-			// The global hook fires because focus is on a button — the chip on desktop, or the drawer
-			// trigger after the drawer restores focus on close at phone width. Either way it is not an
+			// The global hook fires because focus is on a button — the chip just clicked — and not on an
 			// input/textarea, which the hook passes through to the browser's native undo.
 			//
 			// **The assertions are on the ENGINE, not on the cursor.** A devtools shim that moved its
@@ -455,6 +401,14 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 			await expect(page.locator('.fe-chip--selected').filter({ hasText: chipLabel }).first()).toBeVisible();
 		});
 
+		test('mobile: the "Filters" toggle shows and hides the panel, which keeps a half-typed search', async ({ page }, testInfo) => {
+			test.skip(!isMobileProject(testInfo), 'The toggle only exists below the two-column breakpoint.');
+
+			// Every app hides the closed panel with `hidden` and keeps it mounted, so the text typed
+			// before a close is still in the field after a reopen.
+			await expectFilterCollapseKeepsState(page, wineNotesField(page), 'cherry');
+		});
+
 		test('the booted page has no serious or critical accessibility violations', async ({ page }, testInfo) => {
 			await openPanel(page, testInfo);
 			// Scan the SETTLED visual state — reduced motion so axe evaluates final colors, not a
@@ -475,7 +429,6 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 	// An open-ended price through `?f=`: a reload, Back / Forward, and an in-app Back. In its own module
 	// for `max-lines`, and handed what it needs rather than importing it back, which would be a cycle.
 	describeOpenRangeRoundTrips({
-		closePanelIfItOverlaysResults,
 		id,
 		label,
 		openPanel,
@@ -488,6 +441,17 @@ export function describeWineVertical(spec: WineVerticalSpec): void {
 	// reasons as the open-range cases.
 	describePresetTakeover({
 		boot: async (page) => bootWineApp(page, spec),
+		label,
+		openPanel,
+		settled: WINE_SETTLED,
+		waitForBoot: async (page) => waitForWineBoot(page, id),
+	});
+
+	// The cases every app must answer identically: the action log, busy marks, search timing, typed
+	// slider bounds, the shared copy and the hub round trip. Its own module for the same reasons.
+	describeWineParity({
+		boot: async (page) => bootWineApp(page, spec),
+		id,
 		label,
 		openPanel,
 		settled: WINE_SETTLED,

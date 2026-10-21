@@ -8,6 +8,10 @@
 	 * empty the result set are subdued (`fe-chip--unavailable`) + `disabled`, telling the user "this
 	 * would give zero matches" before they click. Selected chips always stay clickable so the user can
 	 * deselect to escape. With `showCount`, unselected chips show the projected result count.
+	 *
+	 * The label and its badge sit on one line with nothing between them: Svelte keeps one space where a
+	 * line break separates two nodes, and a chip's text reads `red(86,914)` in every app
+	 * (`tests/tooling/filterPanelMarkupParity.test.ts`).
 	 */
 
 	import type { ExclusionMap } from '@filter-enginez/examples-shared/bundle-readers';
@@ -66,12 +70,7 @@
 					? `${exclusionData.projectedCount.toLocaleString()} would match`
 					: undefined}
 		>
-			{formatLabel(option)}
-			{#if showCount && exclusionData && !isSelected}
-				<span class="fe-chip__count" class:fe-chip__count--unavailable={isUnavailable}>
-					({exclusionData.projectedCount.toLocaleString()})
-				</span>
-			{/if}
+			{formatLabel(option)}{#if showCount && exclusionData && !isSelected}<span class="fe-chip__count" class:fe-chip__count--unavailable={isUnavailable}>({exclusionData.projectedCount.toLocaleString()})</span>{/if}
 		</button>
 	{/each}
 </div>

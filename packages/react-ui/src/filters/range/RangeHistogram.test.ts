@@ -52,7 +52,6 @@ function renderBars(): { bars: HTMLElement[]; container: HTMLElement } {
 			available: { max: 8, min: 2 },
 			displayLower: 3,
 			displayUpper: 6,
-			format: (value: number) => String(value),
 			histogram: HISTOGRAM,
 		}),
 	);
@@ -67,7 +66,6 @@ describe('RangeHistogram', () => {
 				available: { max: 8, min: 2 },
 				displayLower: 3,
 				displayUpper: 6,
-				format: (value: number) => String(value),
 				histogram: [],
 			}),
 		);
@@ -125,9 +123,10 @@ describe('RangeHistogram', () => {
 		expect(bars[5]?.getAttribute('style')).toContain('height: 18%;');
 	});
 
-	it('formats the per-bucket hover title through the supplied formatter', () => {
+	it('gives the bars no hover title, as the other apps do', () => {
 		const { bars } = renderBars();
 
-		expect(bars[2]?.getAttribute('title')).toBe('5 items in [3, 4)');
+		expect(bars.length).toBe(HISTOGRAM.length);
+		expect(bars.filter((bar) => bar.hasAttribute('title'))).toEqual([]);
 	});
 });

@@ -115,7 +115,7 @@
 	 * same query `.fe-icon-button` uses for its 44px touch size. Not `(hover: none) and
 	 * (pointer: coarse)`: requiring `hover: none` as well would drop touch devices that also report a
 	 * hover-capable input, and those zoom just the same. `(max-width: 1023px)` adds the phone and
-	 * tablet widths below the `lg` breakpoint (`DESKTOP_MIN_WIDTH_PX`, the panel's drawer/sidebar
+	 * tablet widths below the `lg` breakpoint (`DESKTOP_MIN_WIDTH_PX`, the panel's collapse/sidebar
 	 * switch), so the rule holds at those sizes even where a browser reports a fine pointer.
 	 *
 	 * ── Why `@layer base` and `!important` ──

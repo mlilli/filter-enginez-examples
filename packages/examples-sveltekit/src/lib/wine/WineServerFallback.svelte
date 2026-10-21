@@ -17,8 +17,10 @@
 
 	import type { AppliedParams } from '$lib/server/wineServerParams.js';
 
-	import { formatVintage } from '@filter-enginez/examples-shared/wine-domain';
+	import { SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
+	import { formatVintage, WINE_SEARCHES } from '@filter-enginez/examples-shared/wine-domain';
 	import AppHeaderBrand from '$lib/shell/AppHeaderBrand.svelte';
+	import { SVELTEKIT_SERVER_START_COMMAND } from '$lib/shell/serverStartCommand.js';
 
 	import type { SsrWineCard } from '../../routes/wine-server/+page.server.js';
 
@@ -63,11 +65,18 @@
 	</header>
 
 	{#if bootError !== null}
-		<p class="fe-server-fallback__error" role="alert">
-			The live engine could not start ({bootError}). The server-rendered filters below still work.
-		</p>
+		<div class="fe-server-fallback__error" role="alert">
+			<p class="fe-server-offline__title">{SERVER_ROUTE_SCREEN_COPY.offlineTitle}</p>
+			<p class="fe-server-offline__detail">{bootError}</p>
+			<p class="fe-server-offline__hint">
+				{SERVER_ROUTE_SCREEN_COPY.offlineHintLead}<code class="fe-server-offline__command">{SVELTEKIT_SERVER_START_COMMAND}</code
+				>{SERVER_ROUTE_SCREEN_COPY.offlineHintTail}
+			</p>
+		</div>
 	{:else if booting}
-		<p class="fe-server-fallback__status" aria-live="polite">Connecting to the live engine…</p>
+		<p class="fe-server-fallback__status" aria-live="polite">
+			{SERVER_ROUTE_SCREEN_COPY.connectingCaption}
+		</p>
 	{/if}
 
 	<form class="fe-server-fallback__form" method="GET" action="/wine-server">
@@ -95,7 +104,7 @@
 			</label>
 
 			<label class="fe-server-fallback__field fe-server-fallback__field--grow">
-				<span class="fe-server-fallback__label">Search tasting notes</span>
+				<span class="fe-server-fallback__label">{WINE_SEARCHES.notes.ariaLabel}</span>
 				<input
 					type="search"
 					name="q"

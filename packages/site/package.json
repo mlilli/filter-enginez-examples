@@ -19,7 +19,7 @@
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
     "@filter-enginez/examples-shared": "workspace:*",
-    "@filter-enginez/mock-data": "0.2.1",
+    "@filter-enginez/mock-data": "0.2.2",
     "@filter-enginez/ui-styles": "workspace:*"
   },
   "devDependencies": {

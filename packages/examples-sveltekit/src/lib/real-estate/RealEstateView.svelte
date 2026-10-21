@@ -43,6 +43,7 @@
 		type RealEstateChipVocabularies,
 		type RealEstateSliderFieldId,
 	} from '@filter-enginez/examples-shared/real-estate-domain';
+	import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
 	import ResultsHeader from '$lib/controls/ResultsHeader.svelte';
@@ -61,7 +62,7 @@
 		markResolvedAtLeast,
 		markUserAction,
 	} from './realEstateBusy.js';
-	import { clearAllFacetRules, removeFacet } from './realEstateCommit.js';
+	import { removeFacet } from './realEstateCommit.js';
 	import RealEstateFilterPanel from './RealEstateFilterPanel.svelte';
 	import RealEstateResultGrid from './RealEstateResultGrid.svelte';
 
@@ -247,16 +248,13 @@
 		<div class="fe-sidebar-app__results">
 			<ResultsHeader
 				{activeFilters}
+				dataset="real-estate"
 				isBusy={isEngineBusy}
-				noun="listings"
 				onClearAll={() => {
-					// A plain engine call, with no second half. The panel derives every control from
-					// `activeRules`, so dropping the rules IS what returns the controls to neutral. This used
-					// to also invoke a `resetPanel` callback the panel registered, plus a per-section reset
-					// registry underneath it — machinery that existed only because the panel held a mirror,
-					// and that could not clear what the mirror never knew about (a `?f`-restored selection,
-					// for one).
-					clearAllFacetRules(engine);
+					// One `clearRules`, after the busy mark: every rule, group and expression, as one Undo
+					// step. The panel derives every control from `activeRules`, so dropping the rules IS
+					// what returns the controls to neutral.
+					clearAllFilters(engine, markUserAction);
 				}}
 				onRemove={(ruleId) => {
 					removeFacet(engine, ruleId);

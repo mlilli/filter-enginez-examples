@@ -1,5 +1,5 @@
 /**
- * Tests for the wine grid's result windowing.
+ * Tests for the wine grid: the shared infinite-scroll window, and the wine copy.
  *
  * @remarks
  * **The window is not an optimization; it is what keeps the tab alive.** The wine corpus is 150,000
@@ -16,14 +16,55 @@
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { cleanup, fireEvent, render } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { RESULT_COPY, RESULT_GRID_WINDOW } from '@filter-enginez/examples-shared/verticals';
+import { cleanup, render } from '@testing-library/svelte';
+import { tick } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import WineResultGrid from './WineResultGrid.svelte';
 
 // Not automatic in this app's vitest setup — without it each render stacks another copy in the same
 // document, and a `getByRole` that should match one control finds every previous test's too.
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	vi.unstubAllGlobals();
+});
+
+/** The callback of the most recently created observer: calling it reports the sentinel in view. */
+let reportSentinel: (() => void) | null = null;
+
+/**
+ * Stand in for `IntersectionObserver`, which jsdom lacks, so a test can scroll the sentinel into
+ * view on demand.
+ */
+function stubIntersectionObserver(): void {
+	reportSentinel = null;
+	vi.stubGlobal('IntersectionObserver', class {
+		/**
+		 * Keep the callback, as the browser does.
+		 *
+		 * @param callback - What the grid runs when the sentinel's visibility changes.
+		 */
+		public constructor(callback: (entries: readonly { readonly isIntersecting: boolean }[]) => void) {
+			reportSentinel = () => {
+				callback([{ isIntersecting: true }]);
+			};
+		}
+
+		/** Nothing to release: the stand-in holds no resources. */
+		public readonly disconnect = (): void => undefined;
+
+		/** The grid observes its sentinel; the stand-in needs nothing from it. */
+		public readonly observe = (): void => undefined;
+	});
+}
+
+/** Scroll the sentinel into view once, then let the grid re-render. */
+async function scrollToEnd(): Promise<void> {
+	expect(reportSentinel).not.toBeNull();
+	reportSentinel?.();
+	await tick();
+}
 
 /**
  * `count` wines, distinguishable by id and name.
@@ -56,73 +97,94 @@ function cardCount(container: HTMLElement): number {
 }
 
 describe('WineResultGrid', () => {
-	it('renders only the first page of a large result set', () => {
+	it('renders only the first batch of a large result set', () => {
 		const { container } = render(WineResultGrid, { props: { results: wines(500) }});
 
-		expect(cardCount(container)).toBe(24);
+		expect(cardCount(container)).toBe(RESULT_GRID_WINDOW.initial);
 	});
 
-	it('renders everything when the results fit in one page', () => {
+	it('renders everything when the results fit in one batch', () => {
 		const { container } = render(WineResultGrid, { props: { results: wines(5) }});
 
 		expect(cardCount(container)).toBe(5);
 	});
 
-	it('grows the window on "show more"', async () => {
-		const { container, getByRole } = render(WineResultGrid, { props: { results: wines(60) }});
+	it('grows by one batch each time the end of the grid scrolls into view, with no button', async () => {
+		stubIntersectionObserver();
+		const { container, queryByRole } = render(WineResultGrid, { props: { results: wines(500) }});
 
-		await fireEvent.click(getByRole('button'));
+		await tick();
+		await scrollToEnd();
 
-		expect(cardCount(container)).toBe(48);
+		expect(cardCount(container)).toBe(RESULT_GRID_WINDOW.initial + RESULT_GRID_WINDOW.batch);
+		expect(queryByRole('button')).toBeNull();
 	});
 
-	it('hides the "show more" control once everything is visible', async () => {
-		const { getByRole, queryByRole } = render(WineResultGrid, { props: { results: wines(30) }});
+	it('stops at the results, never past them', async () => {
+		stubIntersectionObserver();
+		const { container } = render(WineResultGrid, { props: { results: wines(70) }});
 
-		await fireEvent.click(getByRole('button'));
+		await tick();
+		await scrollToEnd();
+		await scrollToEnd();
 
-		expect(queryByRole('button')).toBeNull();
+		expect(cardCount(container)).toBe(70);
+	});
+
+	it('shows the cap notice only once the cap stops the grid', async () => {
+		stubIntersectionObserver();
+		const total = RESULT_GRID_WINDOW.cap + 100;
+		const { container } = render(WineResultGrid, { props: { results: wines(total) }});
+
+		await tick();
+
+		expect(container.querySelector('.fe-result-grid__cap-notice')).toBeNull();
+
+		const scrollsToCap = (RESULT_GRID_WINDOW.cap - RESULT_GRID_WINDOW.initial) / RESULT_GRID_WINDOW.batch;
+
+		for (let scroll = 0; scroll < scrollsToCap; scroll += 1) {
+			await scrollToEnd();
+		}
+
+		expect(cardCount(container)).toBe(RESULT_GRID_WINDOW.cap);
+		expect(container.querySelector('.fe-result-grid__cap-notice')?.textContent.replace(/\s+/gu, ' ').trim()).toBe(
+			`Showing ${RESULT_GRID_WINDOW.cap.toLocaleString()} of ${total.toLocaleString()} matches · narrow your filters to surface the rest`,
+		);
 	});
 
 	it('resets the window when the result set changes', async () => {
-		// The case that renders an empty grid over a non-zero count. Expand, then narrow to fewer rows
-		// than the expanded window: without the reset the slice starts past the end.
-		const { container, getByRole, rerender } = render(WineResultGrid, { props: { results: wines(200) }});
+		// The case that renders a page the user never scrolled to. Grow, then narrow to fewer rows than
+		// the grown window but more than one batch: without the reset the grid would keep them all.
+		stubIntersectionObserver();
+		const { container, rerender } = render(WineResultGrid, { props: { results: wines(200) }});
 
-		await fireEvent.click(getByRole('button'));
+		await tick();
+		await scrollToEnd();
 
-		expect(cardCount(container)).toBe(48);
+		expect(cardCount(container)).toBe(RESULT_GRID_WINDOW.initial + RESULT_GRID_WINDOW.batch);
 
-		// Narrow to 30 — MORE than one page but FEWER than the expanded window. That gap is the only
-		// place the reset is observable: narrowing to 3 would render 3 either way, because slicing 3
-		// items at 48 and at 24 give the same answer, so such a test would pass with the reset deleted.
-		await rerender({ results: wines(30, 'narrowed') });
+		await rerender({ results: wines(100, 'narrowed') });
 
-		expect(cardCount(container)).toBe(24);
+		expect(cardCount(container)).toBe(RESULT_GRID_WINDOW.initial);
 		expect(container.textContent).toContain('narrowed wine 0');
 	});
 
-	it('shows the empty state rather than a bare grid', () => {
-		// Predictive disable should make this unreachable through the UI, so the copy says so — a user
-		// who lands here has found a real gap, and "no results" alone would not tell them that.
-		const { container } = render(WineResultGrid, { props: { results: []}});
+	it('labels the scroller and the list with the wine copy, the list by the FULL match count', () => {
+		const { container } = render(WineResultGrid, { props: { results: wines(500) }});
+		const scroller = container.querySelector('.fe-result-grid__scroller');
+
+		expect(scroller?.getAttribute('aria-label')).toBe(RESULT_COPY.wine.scrollerLabel);
+		expect(scroller?.getAttribute('role')).toBe('group');
+		expect(scroller?.getAttribute('tabindex')).toBe('0');
+		expect(container.querySelector('[role="list"]')?.getAttribute('aria-label')).toBe(RESULT_COPY.wine.listLabel(500));
+	});
+
+	it('shows the wine empty state rather than a bare grid', () => {
+		const { container, getByText } = render(WineResultGrid, { props: { results: []}});
 
 		expect(cardCount(container)).toBe(0);
-		expect(container.textContent).toContain('No wines match these filters');
-	});
-
-	it('hides "show more" when the results exactly fill one page', () => {
-		// The boundary: `>` not `>=`. At exactly one page there is nothing more to show, and an
-		// off-by-one renders a control that expands the window past the end and reveals nothing — a
-		// button that visibly does nothing when clicked.
-		const { queryByRole } = render(WineResultGrid, { props: { results: wines(24) }});
-
-		expect(queryByRole('button')).toBeNull();
-	});
-
-	it('reports how many remain behind the "show more"', () => {
-		const { getByRole } = render(WineResultGrid, { props: { results: wines(100) }});
-
-		expect(getByRole('button').textContent).toContain('76');
+		expect(getByText(RESULT_COPY.wine.emptyTitle)).toBeTruthy();
+		expect(getByText(RESULT_COPY.wine.emptyHint)).toBeTruthy();
+		expect(container.querySelector('.fe-result-grid__scroller')).toBeNull();
 	});
 });

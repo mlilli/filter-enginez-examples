@@ -142,4 +142,15 @@ describe('ChipToggleGroupComponent', () => {
 		expect(buttons()[0]?.textContent).not.toContain('42');
 		expect(buttons()[1]?.textContent).toContain('42');
 	});
+
+	it('renders a chip\'s text as its label then its badge, with no whitespace around or between them', () => {
+		// Read untrimmed, as a browser locator reads it. The e2e cases find a chip by a pattern anchored
+		// at its value (`/^poetry/`), which a leading space from the template's line breaks defeats.
+		host.shouldShowCount.set(true);
+		host.selected.set(['fantasy']);
+		host.exclusion.set(exclusionFor([]));
+		fixture.detectChanges();
+
+		expect(buttons().map((button) => button.textContent)).toEqual(['fantasy', 'mystery(42)', 'poetry(42)']);
+	});
 });

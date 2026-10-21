@@ -16,7 +16,7 @@
 
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
-import { inSet, type InSetRule, range, type RangeRule, text, type TextSearchRule } from '@filter-enginez/core';
+import { type FilterEngine, inSet, type InSetRule, range, type RangeRule, text, type TextSearchRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { CheckboxList, ChipToggleGroup, type NumericBounds, RangeSlider, SearchInput } from '@filter-enginez/react-ui';
 import { useCallback } from 'react';
@@ -28,9 +28,37 @@ import { useTypeaheadSearch } from '../search/useTypeaheadSearch.js';
 import { toggleSetValue } from '../selection/index.js';
 import { markUserAction } from './engineBusy.js';
 import { ContainsAllRule } from './real-estate-domain/ContainsAllRule.js';
+import { REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT } from './real-estate-domain/panelCopy.js';
 
 /** Stable empty selection so an unset InSet/feature rule doesn't churn referential identity. */
 const EMPTY_SELECTION: readonly string[] = [];
+
+/**
+ * Write an `InSetRule` selection, or remove the rule when the selection is empty.
+ *
+ * @remarks
+ * Deselecting the last chip or checkbox REMOVES the rule rather than writing an empty `inSet`, as in
+ * every other app: an empty set matches everything, so the results are the same, but the rule would
+ * still ride in the `?f=` link and log a change where every other clear logs a removal.
+ *
+ * @param core - The engine.
+ * @param ruleId - The rule id.
+ * @param field - The `Listing` field the rule constrains.
+ * @param values - The new selection.
+ */
+function commitInSetSelection(
+	core: Pick<FilterEngine<Listing>, 'addRule' | 'removeRule'>,
+	ruleId: string,
+	field: string,
+	values: readonly string[],
+): void {
+	if (values.length === 0) {
+		core.removeRule(ruleId);
+
+		return;
+	}
+	core.addRule(ruleId, inSet<string>(field, values));
+}
 
 /**
  * Section label — small uppercase mono caption above each control. Mirrors the books/wine
@@ -61,7 +89,7 @@ export interface ChipSectionProps {
 /**
  * An InSet chip-toggle section with predictive disable — a chip whose selection would empty the
  * result set, given every other active filter, renders disabled. Selection commits an `inSet` rule
- * over the current set.
+ * over the current set; deselecting the last chip removes the rule.
  */
 export const ChipSection = (props: ChipSectionProps): React.ReactElement => {
 	const { field, formatLabel, label, options, ruleId } = props;
@@ -75,7 +103,7 @@ export const ChipSection = (props: ChipSectionProps): React.ReactElement => {
 		const next = toggleSetValue(selected, value);
 
 		commitFilterMutation({
-			callEngine: () => engine.core.addRule(ruleId, inSet<string>(field, next)),
+			callEngine: () => commitInSetSelection(engine.core, ruleId, field, next),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(next),
 		});
@@ -134,7 +162,7 @@ export const CheckboxSection = (props: CheckboxSectionProps): React.ReactElement
 		const next = toggleSetValue(selected, value);
 
 		commitFilterMutation({
-			callEngine: () => engine.core.addRule(ruleId, inSet<string>(field, next)),
+			callEngine: () => commitInSetSelection(engine.core, ruleId, field, next),
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(next),
 		});
@@ -150,7 +178,7 @@ export const CheckboxSection = (props: CheckboxSectionProps): React.ReactElement
 				onToggle={handleToggle}
 				exclusion={exclusion}
 				showCount
-				maxHeight="220px"
+				maxHeight={REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT}
 			/>
 		</section>
 	);
@@ -316,7 +344,7 @@ export interface TextSectionProps {
 }
 
 /**
- * A debounced typeahead substring text-search section.
+ * A debounced typeahead substring text-search section. Clearing the field removes the rule.
  */
 export const TextSection = (props: TextSectionProps): React.ReactElement => {
 	const { ariaLabel, field, label, placeholder, ruleId } = props;
@@ -324,9 +352,17 @@ export const TextSection = (props: TextSectionProps): React.ReactElement => {
 	const rule = useRule(ruleId) as TextSearchRule | undefined;
 	const ruleQuery = rule?.config.query ?? '';
 
+	// Called by the typeahead only for a real change, so every call is a write and marks busy. An empty
+	// query removes the rule, as in every other app's real-estate search.
 	const commit = useCallback((trimmed: string): void => {
 		commitFilterMutation({
-			callEngine: () => engine.core.addRule(ruleId, text(field, { caseSensitive: false, mode: 'substring', query: trimmed })),
+			callEngine: () => {
+				if (trimmed === '') {
+					engine.core.removeRule(ruleId);
+				} else {
+					engine.core.addRule(ruleId, text(field, { caseSensitive: false, mode: 'substring', query: trimmed }));
+				}
+			},
 			markBusy: markUserAction,
 		});
 	}, [engine, field, ruleId]);

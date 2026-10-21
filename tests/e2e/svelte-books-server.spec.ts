@@ -17,6 +17,7 @@
 
 import { expect, type Page, test } from '@playwright/test';
 
+import { describeBooksServerParity } from './booksServerParity.js';
 import {
 	ACTIVE_CHIP,
 	openFilterPanel,
@@ -126,4 +127,13 @@ test.describe('SvelteKit /books-server — no-JS progressive enhancement', () =>
 		expect(after).toBeGreaterThan(0);
 		expect(after).toBeLessThan(before);
 	});
+});
+
+describeBooksServerParity({
+	corpusEndpoint: '**/books-server/corpus/books.json',
+	id: 'sveltekit',
+	label: 'SvelteKit',
+	queryEndpoint: '**/books-server/query',
+	// SvelteKit filters in its own server tier, so the server to start is the app's dev server.
+	startCommand: 'pnpm --filter @filter-enginez/examples-sveltekit dev',
 });

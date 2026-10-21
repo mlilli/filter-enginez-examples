@@ -4,11 +4,12 @@
  * @remarks
  * Two behaviors here are worth pinning because both fail as something other than themselves.
  *
- * **An empty `InSetRule` is not a neutral rule.** It still participates in the AND and matches
- * nothing, so "deselect the last chip" would drive the results to zero instead of clearing the facet.
- * The user sees an empty grid with no chips selected and no way to reason about why — every control
- * looks off. `commitSelection` removes the rule instead, and that distinction is the whole reason
- * these helpers exist rather than each section calling `addRule` directly.
+ * **An empty `InSetRule` is not the same as no rule.** It matches every item, so the results look
+ * cleared, but it stays registered: it rides in the `?f=` link, logs as a change rather than a
+ * removal, and leaves the engine holding a rule no chip on screen shows. `commitSelection` removes the
+ * rule instead, so "deselect the last chip" leaves the engine's rules equal to what the panel shows,
+ * and that distinction is the reason these helpers exist rather than each section calling `addRule`
+ * directly.
  *
  * **The busy version must bump BEFORE the engine write.** On the worker tier the write is a round
  * trip; bumping after (or not at all) leaves the "computing" indicator dark for its whole duration,
@@ -50,8 +51,8 @@ describe('commitSelection', () => {
 	});
 
 	it('REMOVES the rule for an empty selection rather than applying an empty one', () => {
-		// The case that matters. An empty InSetRule matches nothing, so committing one would show zero
-		// results with zero chips selected — every control looking neutral over an empty grid.
+		// The case that matters. An empty InSetRule matches every item, but committing one would leave a
+		// rule registered that no chip shows: in the `?f=` link, and in the action log as a change.
 		const engine = makeEngine();
 
 		commitSelection(engine, 'color', ['red'], (values) => inSet<string>('color', values));
@@ -137,8 +138,7 @@ describe('clearAllWineFilters', () => {
 	it('drops the flat facets AND leaves expression mode, in one call', () => {
 		// Both halves, because either alone leaves the panel lying about itself. Facets without the
 		// expression shows blank controls over preset-narrowed results; the expression without the facets
-		// shows a preset chip while a leftover InSet still ANDs itself in. This is the whole reason the
-		// pair is one exported operation rather than two calls the header has to remember to make.
+		// leaves a manual rule to return the moment the preset goes. One `clearRules` does both.
 		const engine = makeEngine();
 
 		commitSelection(engine, 'color', ['red'], (values) => inSet<string>('color', values));
@@ -152,7 +152,7 @@ describe('clearAllWineFilters', () => {
 
 	it('is safe on an already-neutral engine', () => {
 		// The header's "Clear all" is always clickable, so this runs against a panel with nothing set
-		// every time a user pokes it. Removing an absent rule must not throw.
+		// every time a user pokes it. Clearing an empty engine must not throw.
 		const engine = makeEngine();
 
 		expect(() => {
@@ -165,8 +165,7 @@ describe('clearAllWineFilters', () => {
 describe('WINE_FACET_RULE_IDS', () => {
 	it('clears every facet rule the panel can set', () => {
 		// A literal list at the call site drifts the moment a facet is added: the new rule would survive
-		// a preset switch and AND itself with the expression, making the results narrower than the
-		// preset describes with nothing on screen explaining why.
+		// a preset switch, dormant behind the expression and back in force once the preset is cleared.
 		const engine = makeEngine();
 
 		commitSelection(engine, 'color', ['red'], (values) => inSet<string>('color', values));

@@ -3,27 +3,25 @@
 	 * `<WinerySearchSection>` — a typo-tolerant `FuzzySearchRule` over a wine's winery.
 	 *
 	 * @remarks
-	 * Tighter threshold than the tasting-note search (0.35 vs 0.45), matching React. A winery name is
-	 * a short proper noun, and a loose threshold on short strings matches most of the corpus — which
-	 * reads as "fuzzy search is broken" rather than as a tuning choice.
+	 * The copy and the Fuse threshold are `WINE_SEARCHES.winery`, and the rule is
+	 * `wineSearchRule('winery', query)`, both shared with every app's wine panel. The threshold is
+	 * tighter than the tasting-note search's: a winery name is a short proper noun, and a loose
+	 * threshold on short strings matches most of the corpus.
 	 *
-	 * What the input displays is a writable `$derived` off this facet's own rule store — see
-	 * `<WineNotesSection>` for why that is the right shape for a control holding uncommitted
-	 * keystrokes, and why the store has to be per-rule rather than the whole `activeRules` map.
-	 *
-	 * **Unlike the tasting-note search, an empty query still commits a rule here**, and the
-	 * active-filter chips the e2e specs assert reflect that rule.
+	 * The field's timing is `<TypeaheadSearch>`'s, and an empty query REMOVES the rule, exactly as the
+	 * tasting-note search does — see `<WineNotesSection>`.
 	 */
 
+	import type { FuzzySearchRule } from '@filter-enginez/core';
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { fuzzy, type FuzzySearchRule } from '@filter-enginez/core';
+	import { WINE_SEARCHES, wineSearchRule } from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores } from '@filter-enginez/svelte-signals';
-	import SearchInput from '$lib/controls/SearchInput.svelte';
 	import SectionHeader from '$lib/controls/SectionHeader.svelte';
+	import TypeaheadSearch from '$lib/controls/TypeaheadSearch.svelte';
 
-	import { commitRule } from '../wineCommit.js';
+	import { clearRule, commitRule } from '../wineCommit.js';
 
 	const {
 		engine,
@@ -33,26 +31,31 @@
 		leaveExpressionMode: () => void;
 	} = $props();
 
+	/** This field's copy. */
+	const copy = WINE_SEARCHES.winery;
+
 	/** This facet's own rule store. The engine never changes for a mounted section. */
 	// svelte-ignore state_referenced_locally
 	const ruleStore = createEngineStores(engine).rule('winery');
 
-	/** What the input displays — a writable `$derived`; see the docblock. */
-	let query = $derived(($ruleStore as FuzzySearchRule | undefined)?.config.query ?? '');
+	/** The committed query; `''` when this facet carries no rule. */
+	const ruleQuery = $derived(($ruleStore as FuzzySearchRule | undefined)?.config.query ?? '');
 </script>
 
 <section>
-	<SectionHeader label="Winery (typo-tolerant)" />
-	<SearchInput
-		value={query}
-		placeholder="Vandermark, Caruso, Hartmann..."
-		ariaLabel="Search wineries with typo tolerance"
-		onChange={(next) => {
-			query = next;
-		}}
-		onCommit={(next) => {
+	<SectionHeader label={copy.label} />
+	<TypeaheadSearch
+		ariaLabel={copy.ariaLabel}
+		placeholder={copy.placeholder}
+		{ruleQuery}
+		commit={(query: string) => {
 			leaveExpressionMode();
-			commitRule(engine, 'winery', fuzzy('winery', { query: next.trim(), threshold: 0.35 }));
+			if (query === '') {
+				clearRule(engine, 'winery');
+
+				return;
+			}
+			commitRule(engine, 'winery', wineSearchRule('winery', query));
 		}}
 	/>
 </section>

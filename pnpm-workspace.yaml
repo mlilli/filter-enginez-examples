@@ -190,18 +190,18 @@ overrides:
   # tree and resolves its peers here. It also exercises the real publish surface — `dist/`, the `files`
   # allow-list, `publishConfig.exports` — rather than raw source.
   #
-  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.3.tgz'
-  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.0.3.tgz'
+  '@filter-enginez/angular-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-angular-rxjs-0.0.4.tgz'
+  '@filter-enginez/core': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.1.0.tgz'
   '@filter-enginez/eslint': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.3.tgz'
-  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.1.tgz'
-  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.3.tgz'
-  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.3.tgz'
-  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.3.tgz'
-  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.3.tgz'
-  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.3.tgz'
-  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.3.tgz'
-  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.3.tgz'
-  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.3.tgz'
+  '@filter-enginez/mock-data': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.2.tgz'
+  '@filter-enginez/react-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-react-signals-0.0.4.tgz'
+  '@filter-enginez/reactive-rxjs': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-rxjs-0.0.4.tgz'
+  '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.4.tgz'
+  '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.4.tgz'
+  '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.4.tgz'
+  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.4.tgz'
+  '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.4.tgz'
+  '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.4.tgz'
 
 # ─── Accepted / false-positive advisories (kept out of `pnpm audit` noise) ─────────────────────────
 # `auditConfig.ignoreGhsas` (pnpm 11+) suppresses the specific GHSA IDs below from `pnpm audit`. Each is

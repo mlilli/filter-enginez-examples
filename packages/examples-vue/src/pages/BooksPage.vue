@@ -10,6 +10,9 @@
  *
  * The boot caption is styled by `.fe-boot-caption--inline` in `ui-styles`, declared once for every
  * route, so this component authors no CSS at all.
+ *
+ * A boot that rejects (the corpus fetch failing, say) renders the shared `<BootFailureScreen>` with
+ * `BOOT_FAILURE_COPY.books`, rather than leaving the caption up forever over an unhandled rejection.
  */
 import type { Book } from '@filter-enginez/mock-data/books';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
@@ -20,14 +23,25 @@ import { bootCaptionParts, bootCaptionText } from '@filter-enginez/examples-shar
 import { onMounted, onUnmounted, shallowRef } from 'vue';
 
 import BooksView from '../books/BooksView.vue';
+import BootFailureScreen from '../shell/BootFailureScreen.vue';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
 const engine = shallowRef<SignalsEngine<Book> | null>(null);
+/** The boot error's message, or `null` while booting or once booted. */
+const bootError = shallowRef<string | null>(null);
 // Teardown for the engine → URL sync loop (client-only; `null` until wired in `onMounted`).
 let stopUrlSync: (() => void) | null = null;
 
 onMounted(async () => {
-	const booted = (await bootBooksEngine()).engine;
+	let booted: SignalsEngine<Book>;
+
+	try {
+		booted = (await bootBooksEngine()).engine;
+	} catch (error) {
+		bootError.value = error instanceof Error ? error.message : String(error);
+
+		return;
+	}
 
 	// Hydrate filter state from a shared `?f` link BEFORE wiring the write-back — loadConfig fires its
 	// change synchronously, so subscribing after it avoids an immediate redundant URL write.
@@ -60,7 +74,8 @@ const bootCaption = bootCaptionText(
 </script>
 
 <template>
-	<BooksView v-if="engine" :engine="engine" />
+	<BootFailureScreen v-if="bootError !== null" dataset="books" :message="bootError" />
+	<BooksView v-else-if="engine" :engine="engine" />
 	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
 	<main v-else>
 		<p class="fe-boot-caption fe-boot-caption--inline">{{ bootCaption }}</p>

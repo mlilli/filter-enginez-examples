@@ -277,8 +277,10 @@ export function fieldHistogram(
  * chip-group candidate kind, so their disable state is computed directly. Adding the rule ANDs it
  * with the current results, which is empty iff none of the current results already pass it.
  *
- * An already-active toggle's results all pass its own rule, so it is never reported empty — the user
- * can always turn it back off, which is the property that keeps a filter from becoming a trap.
+ * It answers for turning a toggle ON only. For a toggle that is already on, the current results all
+ * pass its rule, so the answer is `true` exactly when the results are already empty (a search that
+ * matches nothing, say), and disabling the box then would trap the user in that state. A control
+ * decides with {@link isToggleDisabled}, which never disables a checked toggle.
  *
  * @param results - The engine's current result set.
  * @param candidateRule - The rule the toggle would add.
@@ -286,4 +288,22 @@ export function fieldHistogram(
  */
 export function toggleWouldBeEmpty<T>(results: readonly T[], candidateRule: FilterRule): boolean {
 	return !results.some((item) => candidateRule.action(item, candidateRule));
+}
+
+/**
+ * Whether a toggle (checkbox) is disabled by predictive disable.
+ *
+ * @remarks
+ * The rule every chip in every app already follows (`wouldBeEmpty && !isSelected`), for a checkbox:
+ * an unchecked box is disabled when checking it would empty the results, and a checked box is never
+ * disabled, so the user can always turn a filter back off, even when something else has emptied the
+ * results.
+ *
+ * @param isChecked - Whether the toggle is on.
+ * @param results - The engine's current result set.
+ * @param candidateRule - The rule the toggle adds when turned on.
+ * @returns `true` when the toggle should be disabled.
+ */
+export function isToggleDisabled<T>(isChecked: boolean, results: readonly T[], candidateRule: FilterRule): boolean {
+	return !isChecked && toggleWouldBeEmpty(results, candidateRule);
 }

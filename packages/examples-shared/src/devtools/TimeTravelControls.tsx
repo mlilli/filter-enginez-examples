@@ -19,9 +19,9 @@
  * @packageDocumentation
  */
 
+import { attachUndoRedoKeyboard } from '@filter-enginez/core/keyboard/browser';
 import { useFilterEngine } from '@filter-enginez/react-signals';
-import { useUndoRedoKeyboard } from '@filter-enginez/react-signals/keyboard';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { HeaderIconButton } from './HeaderIconButton.js';
 
@@ -54,16 +54,6 @@ export const TimeTravelControls = (props: TimeTravelControlsProps): React.ReactE
 	const engine = useFilterEngine();
 	const devtools = engine.core.devtools;
 
-	// Cmd/Ctrl+Z (undo) and Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y (redo), wired HERE rather than per app so
-	// the label these buttons carry is true wherever the cluster renders — wine, books and real estate
-	// alike.
-	//
-	// The binding gates on focus — keystrokes inside <input>/<textarea>/[contenteditable] pass through
-	// so the browser's native undo owns those. Otherwise it routes to `devtools.undo()` / `.redo()`,
-	// which on the worker-backed adapter dispatch through the shim's `bumpAfterTimeTravel` so every
-	// mirror and the panel update in lockstep.
-	useUndoRedoKeyboard(engine);
-
 
 	const handleUndo = useCallback((): void => {
 		if (!devtools.canUndo) {
@@ -80,6 +70,15 @@ export const TimeTravelControls = (props: TimeTravelControlsProps): React.ReactE
 		markBusy();
 		devtools.redo();
 	}, [devtools, markBusy]);
+
+	// Cmd/Ctrl+Z (undo) and Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y (redo), wired HERE rather than per app so
+	// the label these buttons carry is true wherever the cluster renders — wine, books and real estate
+	// alike. The keys run the buttons' own handlers, so a shortcut marks the action busy and does
+	// nothing with nothing to step to, exactly as a click does (and as every other app's shortcut does).
+	//
+	// The binding gates on focus — keystrokes inside <input>/<textarea>/[contenteditable] pass through
+	// so the browser's native undo owns those.
+	useEffect(() => attachUndoRedoKeyboard({ redo: handleRedo, undo: handleUndo }), [handleRedo, handleUndo]);
 
 	return (
 		<>

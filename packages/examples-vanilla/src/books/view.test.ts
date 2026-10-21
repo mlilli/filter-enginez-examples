@@ -17,12 +17,13 @@
 
 import type { Book } from '@filter-enginez/mock-data/books';
 
-import { createFilterEngine, type FilterEngine } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngine, type FuzzySearchRule, type TextSearchRule } from '@filter-enginez/core';
 import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
-import { safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
+import { BOOKS_ISBN_INVALID_MESSAGE, safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createBusyCore } from '../busy/engineBusy.js';
 import { installMatchMedia, type MediaQueryController } from '../test-support/matchMedia.js';
 import { bookCard } from './bookCard.js';
 import { type BooksView, createBooksView } from './view.js';
@@ -71,7 +72,7 @@ const DATA: readonly Book[] = [
  */
 function mountView(): { core: FilterEngine<Book>; repaint: () => void; root: HTMLElement } {
 	const core = createFilterEngine<Book>({ sourceData: DATA });
-	const view = createBooksView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
+	const view = createBooksView(core, { busy: createBusyCore(), footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -192,7 +193,7 @@ describe('framework-less <BooksView> parity', () => {
  */
 function mountOneBook(overrides: { readonly id: string } & Partial<Book>): HTMLElement {
 	const core = createFilterEngine<Book>({ sourceData: [makeBook(overrides)]});
-	const view = createBooksView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
+	const view = createBooksView(core, { busy: createBusyCore(), footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -334,7 +335,7 @@ function mountForTeardown(): {
 } {
 	const media = installMatchMedia(DESKTOP_MEDIA_QUERY, true);
 	const core = createFilterEngine<Book>({ sourceData: MANY });
-	const view = createBooksView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
+	const view = createBooksView(core, { busy: createBusyCore(), footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -404,5 +405,215 @@ describe('route teardown + the breakpoint subscription', () => {
 		// `:not([hidden])` by design, and this is the assertion that would notice a well-meant switch to
 		// `setHidden` (the vanilla `hidden`-versus-class gotcha, from the opposite direction).
 		expect(collapse?.hasAttribute('hidden')).toBe(true);
+	});
+});
+
+describe('bookCard — the shared card text', () => {
+	it('shows the genre as its stored value, the page count thousands-separated, and the two tooltips', () => {
+		const card = bookCard(makeBook({ genre: 'science-fiction', id: 'g', pageCount: 1200 }));
+
+		expect(card.querySelector('.fe-book-card__genre')?.textContent).toBe('science-fiction');
+		expect(card.querySelector('.fe-book-card__pages')?.textContent).toBe('1,200 pp');
+		expect(card.querySelector('.fe-book-card__year')?.getAttribute('title')).toBe('Publication year');
+		expect(card.querySelector('.fe-book-card__rating')?.getAttribute('title')).toBe('Average rating');
+	});
+});
+
+describe('books panel — copy, predictive disable and busy', () => {
+	/**
+	 * Mount the view with an observable busy core over `data`.
+	 *
+	 * @param data - The corpus.
+	 * @returns The engine, the root and the busy core.
+	 */
+	function mountWithBusy(data: readonly Book[] = DATA) {
+		const core = createFilterEngine<Book>({ sourceData: data });
+		const busy = createBusyCore();
+		const view = createBooksView(core, { busy, footnote: 'test', subtitle: appHeaderSubtitle('test') });
+		const root = document.createElement('div');
+
+		root.append(view.element);
+		document.body.append(root);
+
+		const repaint = (): void => {
+			view.setCount(core.getResultCount(), data.length);
+			view.setResults(core.getResults());
+			view.setRules(core.getRules(), safeApplyBundleFromCore(core, view.query), null);
+		};
+
+		core.subscribe(repaint);
+		repaint();
+
+		return { busy, core, root, view };
+	}
+
+	/** A labelled checkbox's input, by its visible label. */
+	function checkbox(root: HTMLElement, label: string): HTMLInputElement {
+		const row = [...root.querySelectorAll('.fe-books-checkbox')].find((node) => node.textContent === label);
+		const input = row?.querySelector('input');
+
+		if (input === null || input === undefined) {
+			throw new Error(`no checkbox labelled "${label}"`);
+		}
+
+		return input;
+	}
+
+	/** A search field by its accessible name. */
+	function search(root: HTMLElement, label: string): HTMLInputElement {
+		const node = root.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
+
+		if (node === null) {
+			throw new Error(`no search field labelled "${label}"`);
+		}
+
+		return node;
+	}
+
+	/**
+	 * Type `text` and press Enter.
+	 *
+	 * @param field - The field.
+	 * @param text - What to type.
+	 */
+	function typeAndEnter(field: HTMLInputElement, text: string): void {
+		field.focus();
+		field.value = text;
+		field.dispatchEvent(new Event('input', { bubbles: true }));
+		field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+	}
+
+	it('labels the sections, toggles and fields with the shared books copy', () => {
+		const { root } = mountWithBusy();
+		const headings = [...root.querySelectorAll('.fe-filter-section-label')].map((node) => node.textContent);
+
+		expect(headings).toEqual([
+			'Genre',
+			'Genre super-groups',
+			'Format',
+			'Language',
+			'Description search',
+			'Author (typo-tolerant)',
+			'ISBN pattern (regex)',
+		]);
+		expect([...root.querySelectorAll('.fe-books-checkbox')].map((node) => node.textContent)).toEqual([
+			'In print only',
+			'Has audiobook',
+			'Rated only',
+			"Editor's picks (top-rated)",
+		]);
+		expect(root.querySelector('[aria-label="Average-rating range lower bound"]')).not.toBeNull();
+		expect(search(root, 'Search authors with typo tolerance').placeholder).toBe('a surname or full name...');
+		expect(search(root, 'Filter by ISBN-13 pattern (regular expression)')).toBeDefined();
+	});
+
+	it('disables a toggle that would empty the results, with the shared title, but never a checked one', () => {
+		const { core, root } = mountWithBusy([
+			makeBook({ hasAudiobook: false, id: 'a', isInPrint: true }),
+			makeBook({ hasAudiobook: false, id: 'b', isInPrint: false }),
+		]);
+		const audiobook = checkbox(root, 'Has audiobook');
+
+		expect(audiobook.disabled).toBe(true);
+		expect(audiobook.closest('label')?.getAttribute('title')).toBe('No matches given your other filters');
+		expect(checkbox(root, 'In print only').disabled).toBe(false);
+
+		checkbox(root, 'In print only').click();
+		expect(core.getRules().has('in-print')).toBe(true);
+		expect(checkbox(root, 'In print only').disabled).toBe(false);
+	});
+
+	it('marks busy for a chip, holds it for a painted frame, then resolves on the engine change', () => {
+		vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout']});
+
+		const { busy, root } = mountWithBusy();
+		const body = root.querySelector('.fe-books-panel__body');
+		const indicator = root.querySelector('.fe-computing-indicator');
+
+		chipByText(root, 'mystery').click();
+
+		expect(busy.getIsEngineBusy()).toBe(true);
+		expect(body?.classList.contains('fe-books-panel__body--busy')).toBe(true);
+		expect(body?.getAttribute('aria-busy')).toBe('true');
+		expect(indicator?.getAttribute('aria-label')).toBe('Engine computing');
+
+		vi.advanceTimersToNextFrame();
+		vi.advanceTimersToNextFrame();
+
+		expect(busy.getIsEngineBusy()).toBe(false);
+		expect(body?.getAttribute('aria-busy')).toBe('false');
+		vi.useRealTimers();
+	});
+
+	it('marks busy for Clear all and resolves it', () => {
+		vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout']});
+
+		const { busy, core, root } = mountWithBusy();
+
+		chipByText(root, 'mystery').click();
+		vi.advanceTimersToNextFrame();
+		vi.advanceTimersToNextFrame();
+		root.querySelector<HTMLElement>('.fe-active-filters__clear')?.click();
+
+		expect(busy.getIsEngineBusy()).toBe(true);
+		expect(core.getRules().size).toBe(0);
+
+		vi.advanceTimersToNextFrame();
+		vi.advanceTimersToNextFrame();
+		expect(busy.getIsEngineBusy()).toBe(false);
+		vi.useRealTimers();
+	});
+
+	it('writes an EMPTY-query rule for description and author, and removes the ISBN rule', () => {
+		const { core, root } = mountWithBusy();
+		const description = search(root, 'Search descriptions');
+		const author = search(root, 'Search authors with typo tolerance');
+		const isbn = search(root, 'Filter by ISBN-13 pattern (regular expression)');
+
+		typeAndEnter(description, 'sea');
+		typeAndEnter(author, 'writer');
+		typeAndEnter(isbn, '^978');
+		expect((core.getRules().get('text-search') as TextSearchRule | undefined)?.config.query).toBe('sea');
+		expect((core.getRules().get('author-search') as FuzzySearchRule | undefined)?.config.query).toBe('writer');
+		expect(core.getRules().has('isbn-pattern')).toBe(true);
+
+		typeAndEnter(description, '');
+		typeAndEnter(author, '');
+		typeAndEnter(isbn, '');
+
+		expect((core.getRules().get('text-search') as TextSearchRule | undefined)?.config.query).toBe('');
+		expect((core.getRules().get('author-search') as FuzzySearchRule | undefined)?.config.query).toBe('');
+		expect(core.getRules().has('isbn-pattern')).toBe(false);
+	});
+
+	it('flags an invalid ISBN pattern in an alert, writes nothing and keeps the typed text', () => {
+		const { busy, core, root } = mountWithBusy();
+		const isbn = search(root, 'Filter by ISBN-13 pattern (regular expression)');
+
+		typeAndEnter(isbn, '[');
+
+		const alert = root.querySelector('[role="alert"].fe-books-regex-error');
+
+		expect(alert?.textContent).toBe(BOOKS_ISBN_INVALID_MESSAGE);
+		expect(core.getRules().has('isbn-pattern')).toBe(false);
+		expect(busy.getIsEngineBusy()).toBe(false);
+
+		// Another facet's repaint does not throw the edit away.
+		chipByText(root, 'mystery').click();
+		expect(isbn.value).toBe('[');
+
+		typeAndEnter(isbn, '^978');
+		expect(root.querySelector('.fe-books-regex-error')).toBeNull();
+	});
+
+	it('keeps focus on a chip through the repaint its own click causes', () => {
+		const { root } = mountWithBusy();
+		const chip = chipByText(root, 'mystery');
+
+		chip.focus();
+		chip.click();
+
+		expect(document.activeElement).toBe(chip);
+		expect(chip.getAttribute('aria-pressed')).toBe('true');
 	});
 });

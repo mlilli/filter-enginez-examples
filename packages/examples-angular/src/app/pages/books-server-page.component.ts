@@ -20,6 +20,20 @@
  * shim throws on that method. The React apps' shared `filterBundle` module applies the identical
  * one-branch rule. See `books-filter-panel.component.ts`'s class remarks.
  *
+ * ### The same header as `/books`
+ *
+ * Undo / redo and the devtools panel are engine features, and they work over HTTP as they do in the
+ * browser: the async core shim records the same action log, and every undo is one more round trip.
+ * So the header carries the same controls in the same order as `/books`, as it does in every app that
+ * serves this route. Every write they make marks the busy tracker first, like every panel write.
+ *
+ * ### Connecting, and offline
+ *
+ * While the resolver fetches the corpus, the root component draws the connecting screen this route
+ * names in its static data (the brand loader over "Filtering on the Node server · fetching corpus +
+ * initial state"; see `app.routes.ts`). When the server cannot be reached, this component renders the
+ * offline screen every app shows: "Can't reach the filter server", the error, and how to start it.
+ *
  * ### Why this component tolerates a null engine
  *
  * A route whose engine lives in another process has a failure mode the in-browser routes don't: the
@@ -38,35 +52,36 @@ import type { Book } from '@filter-enginez/mock-data/books';
 import type { RxJsEngine } from '@filter-enginez/reactive-rxjs';
 
 import { AsyncPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import {
 	injectEngineBusy,
 	provideEngineBusy,
 	provideFilterEngineFactory,
 } from '@filter-enginez/angular-rxjs';
+import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 import { type Observable } from 'rxjs';
 
 import { BOOKS_SERVER_ROUTE_DATA_KEY, type BooksServerRouteData } from '../app.routes.js';
 import { BookCardComponent } from '../books/book-card.component.js';
 import { booksBusyStream } from '../books/books-busy.js';
 import { BooksFilterPanelComponent } from '../books/books-filter-panel.component.js';
+import { DevtoolsPanelComponent } from '../controls/devtools-panel.component.js';
 import { FiltersToggleComponent } from '../controls/filters-toggle.component.js';
 import {
 	ResultCardDirective,
 	ResultGridComponent,
 } from '../controls/result-grid.component.js';
 import { ResultsHeaderComponent } from '../controls/results-header.component.js';
+import { TimeTravelControlsComponent } from '../controls/time-travel-controls.component.js';
 import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
 import { startEngineUrlSync } from '../url/url-state.js';
 import { trackDesktopBreakpoint } from '../viewport/desktop-breakpoint.js';
-
-/** The command that starts the filtering server, quoted verbatim on the offline screen. */
-const SERVE_COMMAND = 'pnpm --filter @filter-enginez/examples-server serve:api';
 
 /**
  * Pull the resolved server-backed bundle off the activated route.
@@ -111,11 +126,12 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 		BooksFilterPanelComponent,
 		CompareLinkButtonComponent,
 		CopyLinkButtonComponent,
+		DevtoolsPanelComponent,
 		FiltersToggleComponent,
 		ResultCardDirective,
 		ResultGridComponent,
 		ResultsHeaderComponent,
-		RouterLink,
+		TimeTravelControlsComponent,
 		UrlFormatToggleComponent,
 	],
 	providers: [
@@ -125,15 +141,13 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 	selector: 'fe-books-server-page',
 	template: `
 		@if (error !== null) {
+			<!-- A main landmark: with the server unreachable, this message is the page's main content. -->
 			<main class="fe-server-offline">
-				<p class="fe-server-offline__title">Can't reach the filter server</p>
+				<p class="fe-server-offline__title">{{ copy.offlineTitle }}</p>
 				<p class="fe-server-offline__detail">{{ error.message }}</p>
 				<p class="fe-server-offline__hint">
-					This route filters on a Node process rather than in your browser. Start it with
-					<code class="fe-server-offline__command">{{ serveCommand }}</code>
-					and reload.
+					{{ copy.offlineHintLead }}<code class="fe-server-offline__command">{{ serveCommand }}</code>{{ copy.offlineHintTail }}
 				</p>
-				<a class="fe-server-offline__back" routerLink="/books">Use the in-browser demo instead →</a>
 			</main>
 		} @else {
 			<div class="fe-books-app">
@@ -141,6 +155,11 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 					<nav fe-app-header-brand page="Books" tier="server"></nav>
 
 					<div class="fe-books-app__url-controls">
+						<!-- The same controls, icons and order as /books. -->
+						<fe-time-travel-controls
+							[isDevtoolsOpen]="isDevtoolsOpen()"
+							(toggled)="isDevtoolsOpen.set(!isDevtoolsOpen())"
+						/>
 						<fe-url-format-toggle />
 						<fe-copy-link-button />
 						<fe-compare-link-button dataset="books" />
@@ -163,18 +182,21 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 					</aside>
 
 					<section class="fe-books-app__results">
-						<fe-results-header noun="books" />
+						<fe-results-header [noun]="resultNoun" />
+
+						@if (isDevtoolsOpen()) {
+							<fe-devtools-panel
+								[isComputing]="(busy.isBusy$ | async) ?? false"
+								(closed)="isDevtoolsOpen.set(false)"
+							/>
+						}
 
 						@if (results$ | async; as results) {
 							<fe-result-grid
 								[results]="results"
 								[card]="bookCard"
 								[itemKey]="bookKey"
-								emptyTitle="No books match the current filters."
-								emptyHint="Try a shorter search term."
-								listLabel="Matching books"
-								scrollRegionLabel="Book results"
-								noun="books"
+								dataset="books"
 							/>
 							<ng-template #bookCard [feResultCardOf]="results" let-book>
 								<fe-book-card [book]="book" />
@@ -194,6 +216,15 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 export class BooksServerPageComponent {
 	private readonly _busy = injectEngineBusy();
 
+	/** The busy stream, for the devtools panel's computing state. */
+	protected readonly busy = this._busy;
+
+	/** Devtools panel visibility. Hidden by default so a first visit gets a clean page. */
+	protected readonly isDevtoolsOpen = signal(false);
+
+	/** The word after the results-header count, the same in every app. */
+	protected readonly resultNoun = RESULT_COPY.books.noun;
+
 	private readonly _routeData = injectBooksServerRouteData();
 
 	/** Boot duration, rounded — here it measures the corpus fetch + initial state pull, not a build. */
@@ -203,7 +234,10 @@ export class BooksServerPageComponent {
 	protected readonly error: Error | null = this._routeData.error;
 
 	/** The command that starts the server, for the offline panel. */
-	protected readonly serveCommand = SERVE_COMMAND;
+	protected readonly serveCommand = EXAMPLES_SERVER_START_COMMAND;
+
+	/** The connecting and offline screens' words, shared by every app's `/books-server`. */
+	protected readonly copy = SERVER_ROUTE_SCREEN_COPY;
 
 	/** The corpus size, for the "filtered from N total" line. Zero on the offline branch. */
 	protected readonly totalCount = this._routeData.bookCount;
@@ -217,7 +251,7 @@ export class BooksServerPageComponent {
 	 */
 	protected readonly results$: Observable<readonly Book[]> | null = null;
 
-	/** Sidebar-or-drawer, and the drawer's open state. */
+	/** Sidebar-or-collapse, and the collapse's open state. */
 	protected readonly breakpoint = trackDesktopBreakpoint();
 
 	/** Stable card key — a bound method, so the grid's input identity is stable across ticks. */

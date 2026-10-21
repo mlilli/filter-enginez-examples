@@ -40,6 +40,7 @@ import {
  * in from `onMounted` and passed down as a component. Until it resolves the panel renders its other
  * thirteen sections, which is a better first paint than blocking all of them on a map.
  */
+import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { provideFilterEngine, useBusy, useEngineRefs } from '@filter-enginez/vue-signals';
 import { type Component, computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
@@ -59,7 +60,7 @@ import {
 	markUserAction,
 	realEstateBusyTracker,
 } from './realEstateBusy.js';
-import { clearAllFacetRules, removeFacet } from './realEstateCommit.js';
+import { removeFacet } from './realEstateCommit.js';
 import RealEstateFilterPanel from './RealEstateFilterPanel.vue';
 import RealEstateResultGrid from './RealEstateResultGrid.vue';
 
@@ -146,16 +147,17 @@ onUnmounted(() => {
 const activeFilters = computed(() => buildRuleSummaries(activeRules.value, { metroCenters: props.metroCenters }));
 
 /**
- * Clear every facet — the header's "Clear all".
+ * Clear every filter — the header's "Clear all".
  *
  * @remarks
- * A plain engine call, with no second half. The panel derives every control from `activeRules`, so
- * dropping the rules IS what returns the controls to neutral. There is no panel-side reset callback or
- * per-section reset registry: those only make sense for a panel that holds a local mirror, and a mirror
- * cannot clear what it never knew about (a `?f`-restored selection, for one).
+ * The shared `clearAllFilters` every dataset's header calls: a busy mark, then ONE `clearRules`, which
+ * drops every rule (including any no facet lists, such as one a hand-edited `?f` link carried) as one
+ * action, so one Undo brings the whole state back. The panel derives every control from
+ * `activeRules`, so dropping the rules IS what returns the controls to neutral; there is no panel-side
+ * reset callback or per-section reset registry.
  */
 function handleClearAll(): void {
-	clearAllFacetRules(props.engine);
+	clearAllFilters(props.engine, markUserAction);
 }
 
 /**
@@ -266,8 +268,8 @@ const isDevtoolsOpen = ref(false);
 			<div class="fe-sidebar-app__results">
 				<ResultsHeader
 					:active-filters="activeFilters"
+					dataset="real-estate"
 					:is-busy="isEngineBusy"
-					noun="listings"
 					:recent-rule-id="lastChange.ruleId"
 					:result-count="results.length"
 					:total-count="sourceData.length"

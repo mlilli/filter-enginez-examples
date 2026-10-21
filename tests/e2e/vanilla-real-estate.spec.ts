@@ -6,9 +6,8 @@
  * `svelte-real-estate.spec.ts`, sharing their boot / settled-count / geo-chip machinery. Two
  * structural notes:
  *
- *   - **No off-canvas drawer.** The mobile filter panel is an inline collapse toggled by a "Filters"
- *     button rather than a `dialog`, so `openFilterPanel` just expands it and there is nothing to
- *     close. Same as SvelteKit's.
+ *   - **The mobile collapse.** The filter panel is an inline collapse toggled by a "Filters" button,
+ *     so `openFilterPanel` just expands it and there is nothing to close, as in every app.
  *   - **Absolute URLs.** Playwright's `baseURL` is the React app; these navigate to the vanilla
  *     origin via `vanillaUrl(...)`.
  *
@@ -44,6 +43,7 @@ import {
 	TOGGLEABLE_CHIP,
 	TREE_ROW,
 } from './filterFlow.js';
+import { describeRealEstateParity } from './realEstateParity.js';
 import { subtitle } from './subtitles.js';
 import { vanillaUrl } from './vanillaBase.js';
 
@@ -275,3 +275,5 @@ test.describe('vanilla real-estate app — filter flow', () => {
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
 });
+
+describeRealEstateParity({ id: 'vanilla', label: 'vanilla' });

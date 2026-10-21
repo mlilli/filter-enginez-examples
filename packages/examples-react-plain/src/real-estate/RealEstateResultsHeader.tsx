@@ -5,9 +5,10 @@
  * @remarks
  * The signals-surface sibling of the RTK `<RealEstateResultsHeader />` — same container/view split and
  * the same rule→chip summarizer, but every datum reads from the signals adapter
- * (`useResultCount`, `useActiveRules`) instead of a Redux mirror, and clear-all calls
- * `engine.core.clearRules()` directly (there's no forwarding middleware). Both apps render from
- * the SAME `buildRuleSummaries` in `@filter-enginez/examples-shared/real-estate-domain`.
+ * (`useResultCount`, `useActiveRules`, and `useLastChange` for the "recently changed" pill) instead
+ * of a Redux mirror, and both writes go straight to the engine (there's no forwarding middleware): a
+ * pill's × is `removeRule`, and "Clear all" is the shared `clearAllFilters`, one engine action. Both
+ * apps render from the SAME `buildRuleSummaries` in `@filter-enginez/examples-shared/real-estate-domain`.
  *
  * @packageDocumentation
  */
@@ -15,7 +16,9 @@
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import { buildRuleSummaries, commitFilterMutation, deriveMetroCenters, type FilterSummary, getIsEngineBusy, markUserAction, subscribeEngineBusy } from '@filter-enginez/examples-shared/real-estate';
-import { useActiveRules, useFilterEngine, useResultCount } from '@filter-enginez/react-signals';
+import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
+import { useActiveRules, useFilterEngine, useLastChange, useResultCount } from '@filter-enginez/react-signals';
 import { ResultsHeaderView } from '@filter-enginez/react-ui';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
@@ -26,6 +29,8 @@ export const RealEstateResultsHeader = (): React.ReactElement => {
 	const engine = useFilterEngine<Listing>();
 	const activeRules = useActiveRules();
 	const resultCount = useResultCount();
+	// The engine's own last-changed rule id; the RTK app reads the same id off its mirror.
+	const { ruleId: recentlyChangedRuleId } = useLastChange();
 	const sourceData = engine.core.getSourceData();
 	const totalCount = sourceData.length;
 	// The metro centroids of the corpus the engine booted from — the same derivation the panel's geo
@@ -49,9 +54,13 @@ export const RealEstateResultsHeader = (): React.ReactElement => {
 	}, [engine]);
 
 	const handleClearAll = useCallback((): void => {
-		// `clearRules()` records a single `RULES_CLEARED` devtools entry instead of N `removeRule`s.
+		// One `RULES_CLEARED`, one Undo. The shared helper marks the real-estate tracker busy again right
+		// before its write; the tracker's version only climbs, so that second mark extends the busy span
+		// the first one opened rather than starting another.
 		commitFilterMutation({
-			callEngine: () => engine.core.clearRules(),
+			callEngine: () => {
+				clearAllFilters(engine, markUserAction);
+			},
 			markBusy: markUserAction,
 		});
 	}, [engine]);
@@ -59,11 +68,13 @@ export const RealEstateResultsHeader = (): React.ReactElement => {
 	return (
 		<ResultsHeaderView
 			summaries={summaries}
+			noun={RESULT_COPY['real-estate'].noun}
 			resultCount={resultCount}
 			totalCount={totalCount}
 			isFetching={isFetching}
 			onRemoveRule={handleRemoveRule}
 			onClearAll={handleClearAll}
+			recentlyChangedRuleId={recentlyChangedRuleId}
 		/>
 	);
 };

@@ -1,6 +1,6 @@
 /**
- * Tests for the bundle-consuming hooks: {@link useChipExclusion}, {@link useFieldBounds},
- * {@link useFieldHistogram} and {@link useToggleWouldBeEmpty}, plus `useFetchFilterBundle`'s async
+ * Tests for the bundle-consuming hooks: {@link useChipExclusion}, {@link useChipProjectedCounts}, {@link useFieldBounds},
+ * {@link useFieldHistogram} and {@link useIsToggleDisabled}, plus `useFetchFilterBundle`'s async
  * branch.
  *
  * @remarks
@@ -28,9 +28,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
 	FilterBundleContext,
 	useChipExclusion,
+	useChipProjectedCounts,
 	useFieldBounds,
 	useFieldHistogram,
-	useToggleWouldBeEmpty,
+	useIsToggleDisabled,
 } from './index.js';
 
 const rows = [
@@ -133,6 +134,30 @@ describe('useChipExclusion', () => {
 
 		rerender();
 
+		expect(result.current).toBe(first);
+	});
+});
+
+describe('useChipProjectedCounts', () => {
+	it('returns an empty map before the first bundle resolves, so no row shows a count yet', () => {
+		const { result } = renderHook(() => useChipProjectedCounts('kind'), { wrapper: withBundle(null) });
+
+		expect(result.current.size).toBe(0);
+	});
+
+	it('returns an empty map with no provider at all', () => {
+		const { result } = renderHook(() => useChipProjectedCounts('kind'));
+
+		expect(result.current.size).toBe(0);
+	});
+
+	it('maps every candidate to its projected count, and stays stable across re-renders', () => {
+		const { rerender, result } = renderHook(() => useChipProjectedCounts('kind'), { wrapper: withBundle(makeBundle()) });
+		const first = result.current;
+
+		expect([...first]).toEqual([['alpha', 2], ['beta', 0]]);
+
+		rerender();
 		expect(result.current).toBe(first);
 	});
 });
@@ -245,16 +270,17 @@ describe('useFieldHistogram', () => {
 	});
 });
 
-describe('useToggleWouldBeEmpty', () => {
+describe('useIsToggleDisabled', () => {
 	/**
 	 * Mount the hook over a real engine.
 	 *
 	 * @param rule - The candidate rule the toggle would add.
+	 * @param isChecked - Whether the toggle is on.
 	 * @returns The render result plus the engine, so a test can mutate it.
 	 */
-	function mountToggle(rule: Parameters<typeof useToggleWouldBeEmpty>[0]) {
+	function mountToggle(rule: Parameters<typeof useIsToggleDisabled>[0], isChecked = false) {
 		const engine = createSignalsEngine(createFilterEngine<Row>({ sourceData: rows }));
-		const view = renderHook(() => useToggleWouldBeEmpty<Row>(rule), {
+		const view = renderHook(() => useIsToggleDisabled<Row>(rule, isChecked), {
 			wrapper: ({ children }) => <FilterEngineProvider engine={engine}>{children}</FilterEngineProvider>,
 		});
 
@@ -298,6 +324,19 @@ describe('useToggleWouldBeEmpty', () => {
 			engine.core.removeRule('kind-filter');
 		});
 
+		expect(view.result.current).toBe(false);
+	});
+
+	it('never disables a CHECKED toggle, even over an empty result set', () => {
+		// The trap this guards: a search that matches nothing empties the results, and a checked box
+		// that disabled itself then could not be unchecked, so the user could not back out.
+		const { engine, view } = mountToggle(inSet<string>('kind', ['alpha']), true);
+
+		act(() => {
+			engine.core.addRule('kind-filter', inSet<string>('kind', ['nonexistent']));
+		});
+
+		expect(engine.core.getResultCount()).toBe(0);
 		expect(view.result.current).toBe(false);
 	});
 });

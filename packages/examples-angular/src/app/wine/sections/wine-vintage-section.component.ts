@@ -39,6 +39,7 @@ import {
 	type NumericBounds,
 	vintageBoundsFromSet,
 	vintageYearsFromRange,
+	WINE_SLIDER_COPY,
 	WINE_SLIDER_TEXT,
 	wineSliderHistogram,
 	wineSliderScale,
@@ -58,12 +59,12 @@ const RULE_ID = 'vintage';
 	template: `
 		<section>
 			<fe-range-slider
-				ariaLabel="Filter by vintage year"
+				[ariaLabel]="copy.sliderLabel"
 				[available]="available()"
 				[baseline]="baseline()"
 				[format]="text.format"
 				[histogram]="histogram()"
-				label="Vintage"
+				[label]="copy.label"
 				[parse]="text.parse"
 				[scale]="scale()"
 				[step]="step()"
@@ -83,6 +84,9 @@ export class WineVintageSectionComponent {
 
 	/** The shared vintage readout and parser: a plain year, or `NV` for the non-vintage year. */
 	protected readonly text = WINE_SLIDER_TEXT.vintage;
+
+	/** The slider's label and its thumbs' accessible-name stem. */
+	protected readonly copy = WINE_SLIDER_COPY.vintage;
 
 	private readonly _bundle = injectWineBundle();
 

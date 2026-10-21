@@ -123,7 +123,13 @@ const isEngineBusy = useBusy(booksBusyTracker);
 					</svg>
 					{{ isFilterOpen ? 'Hide filters' : 'Filters' }}
 				</button>
-				<BooksFilterPanel v-if="showPanel" />
+				<!-- Hidden, NOT unmounted, as on the wine and real-estate routes and in every other app: `v-if`
+				     would drop the panel's local state (a half-typed search, an ISBN error) on each mobile
+				     close. `fe-filter-collapse` gives the wrapper a `display` only via `:not([hidden])`, so
+				     the `hidden` attribute wins, and keeps the flex height chain the panel's scroller needs. -->
+				<div class="fe-filter-collapse" :hidden="!showPanel">
+					<BooksFilterPanel />
+				</div>
 			</aside>
 
 			<section class="fe-books-app__results">

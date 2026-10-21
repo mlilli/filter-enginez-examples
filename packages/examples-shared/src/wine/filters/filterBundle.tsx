@@ -128,9 +128,6 @@ export function useBundleFieldMeta(ruleId: SliderFieldId): FilterBundleFieldMeta
 	return wineFieldMeta(ctx?.bundle ?? null, ruleId);
 }
 
-/** One shared empty bar list, so a slider without a bundle keeps a stable `histogram` prop. */
-const EMPTY_HISTOGRAM: readonly HistogramBucket[] = [];
-
 /**
  * One slider's histogram bars, sliced for its scale.
  *
@@ -139,22 +136,25 @@ const EMPTY_HISTOGRAM: readonly HistogramBucket[] = [];
  * through: a log-scaled field's fine histogram is summed into equal slices of its track here, so the
  * React sliders draw the same bars as the other five apps.
  *
+ * `undefined` rather than `[]` before the first bundle settles, like the books and real-estate
+ * readers: the slider then renders no overlay at all, never an empty bar strip.
+ *
  * @param ruleId - The slider's field id.
  * @param baseline - The slider's baseline bounds.
  * @param selectedMin - The slider's lower handle.
  * @param selectedMax - The slider's upper handle.
- * @returns The bars, or an empty list before the first bundle settles.
+ * @returns The bars, or `undefined` before the first bundle settles.
  */
 export function useBundleSliderHistogram(
 	ruleId: SliderFieldId,
 	baseline: NumericBounds,
 	selectedMin: number,
 	selectedMax: number,
-): readonly HistogramBucket[] {
+): undefined | readonly HistogramBucket[] {
 	const ctx = use(FilterBundleContext);
 
 	return useMemo(
-		() => wineSliderHistogram(ctx?.bundle ?? null, ruleId, baseline, selectedMin, selectedMax) ?? EMPTY_HISTOGRAM,
+		() => wineSliderHistogram(ctx?.bundle ?? null, ruleId, baseline, selectedMin, selectedMax),
 		[ctx, ruleId, baseline, selectedMin, selectedMax],
 	);
 }

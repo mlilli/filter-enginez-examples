@@ -32,6 +32,7 @@ import { FeaturedSection, SuperGroupSection } from './BookCuratedFilterSections.
 import { BooleanSection, ChipSection, ExistsSection, FuzzySection, RangeSection, RegexSection, TextSection } from './BookFilterSections.js';
 import { buildBooksBundleQuery } from './books-domain/bundle.js';
 import { buildEditorsPicksFilter } from './books-domain/curated.js';
+import { BOOKS_CHIP_SECTION_LABELS, BOOKS_SEARCH_COPY, BOOKS_SLIDER_COPY, BOOKS_TOGGLE_LABELS } from './books-domain/panelCopy.js';
 import { useIsEngineBusy } from './engineBusy.js';
 import { BooksBundleContext, useFetchBooksBundle } from './filterBundle.js';
 
@@ -40,8 +41,8 @@ import { BooksBundleContext, useFetchBooksBundle } from './filterBundle.js';
  */
 export interface BooksFilterPanelProps {
 	/**
-	 * Whether to render the panel's own "Filters" title. `true` for the desktop sidebar; the mobile
-	 * drawer passes `false` (the drawer supplies its own titled header).
+	 * Whether to render the panel's own "Filters" title. Defaults to `true`, which every app's sidebar
+	 * uses on every viewport; a host that supplies its own titled header passes `false`.
 	 */
 	readonly isHeaderVisible?: boolean;
 }
@@ -106,22 +107,22 @@ export const BooksFilterPanel = (props: BooksFilterPanelProps = {}): React.React
 				aria-busy={isBusy}
 			>
 				<BooksBundleContext value={bundleValue}>
-					<ChipSection ruleId="genre" field="genre" label="Genre" options={genres} formatLabel={replaceHyphens} />
+					<ChipSection ruleId="genre" field="genre" label={BOOKS_CHIP_SECTION_LABELS.genre} options={genres} formatLabel={replaceHyphens} />
 					<SuperGroupSection />
-					<ChipSection ruleId="format" field="format" label="Format" options={formats} formatLabel={replaceHyphens} />
-					<ChipSection ruleId="language" field="language" label="Language" options={languages} />
-					<RangeSection ruleId="publication-year" field="publicationYear" label="Publication year" ariaLabel="Publication-year range" baseline={yearBaseline} step={1} format={(n) => n.toFixed(0)} parse={(raw) => parseFloat(raw)} />
-					<RangeSection ruleId="rating" field="averageRating" label="Rating" ariaLabel="Average-rating range" baseline={ratingBaseline} step={0.1} format={(n) => `${n.toFixed(1)}★`} parse={(raw) => parseFloat(raw.replace(/[★\s]/g, ''))} />
-					<RangeSection ruleId="page-count" field="pageCount" label="Page count" ariaLabel="Page-count range" baseline={pageBaseline} step={10} format={(n) => `${n.toFixed(0)} pp`} parse={(raw) => parseFloat(raw.replace(/[^0-9.]/g, ''))} />
+					<ChipSection ruleId="format" field="format" label={BOOKS_CHIP_SECTION_LABELS.format} options={formats} formatLabel={replaceHyphens} />
+					<ChipSection ruleId="language" field="language" label={BOOKS_CHIP_SECTION_LABELS.language} options={languages} />
+					<RangeSection ruleId="publication-year" field="publicationYear" label={BOOKS_SLIDER_COPY.publicationYear.label} ariaLabel={BOOKS_SLIDER_COPY.publicationYear.ariaLabel} baseline={yearBaseline} step={1} format={(n) => n.toFixed(0)} parse={(raw) => parseFloat(raw)} />
+					<RangeSection ruleId="rating" field="averageRating" label={BOOKS_SLIDER_COPY.rating.label} ariaLabel={BOOKS_SLIDER_COPY.rating.ariaLabel} baseline={ratingBaseline} step={0.1} format={(n) => `${n.toFixed(1)}★`} parse={(raw) => parseFloat(raw.replace(/[★\s]/g, ''))} />
+					<RangeSection ruleId="page-count" field="pageCount" label={BOOKS_SLIDER_COPY.pageCount.label} ariaLabel={BOOKS_SLIDER_COPY.pageCount.ariaLabel} baseline={pageBaseline} step={10} format={(n) => `${n.toFixed(0)} pp`} parse={(raw) => parseFloat(raw.replace(/[^0-9.]/g, ''))} />
 					<section className="flex flex-col gap-1">
-						<BooleanSection ruleId="in-print" field="isInPrint" label="In print only" />
-						<BooleanSection ruleId="has-audiobook" field="hasAudiobook" label="Has audiobook" />
-						<ExistsSection ruleId="has-rating" field="averageRating" label="Rated only" />
+						<BooleanSection ruleId="in-print" field="isInPrint" label={BOOKS_TOGGLE_LABELS.inPrint} />
+						<BooleanSection ruleId="has-audiobook" field="hasAudiobook" label={BOOKS_TOGGLE_LABELS.audiobook} />
+						<ExistsSection ruleId="has-rating" field="averageRating" label={BOOKS_TOGGLE_LABELS.rated} />
 						<FeaturedSection filter={editorsPicksFilter} />
 					</section>
-					<TextSection ruleId="text-search" field="description" label="Description search" placeholder="dystopia, seafaring, coming of age..." ariaLabel="Search descriptions" />
-					<FuzzySection ruleId="author-search" field="authors" label="Author (typo-tolerant)" placeholder="a surname or full name..." ariaLabel="Search authors with typo tolerance" threshold={0.3} keys={['authors']} />
-					<RegexSection ruleId="isbn-pattern" field="isbn13" label="ISBN pattern (regex)" placeholder="e.g. ^9780" ariaLabel="Filter by ISBN-13 pattern (regular expression)" />
+					<TextSection ruleId="text-search" field="description" {...BOOKS_SEARCH_COPY.description} />
+					<FuzzySection ruleId="author-search" field="authors" {...BOOKS_SEARCH_COPY.author} threshold={0.3} keys={['authors']} />
+					<RegexSection ruleId="isbn-pattern" field="isbn13" {...BOOKS_SEARCH_COPY.isbn} />
 				</BooksBundleContext>
 			</div>
 		</div>
@@ -129,8 +130,8 @@ export const BooksFilterPanel = (props: BooksFilterPanelProps = {}): React.React
 };
 
 /**
- * Panel title — fixed at the aside's top (outside the scroller). Suppressed in the mobile drawer,
- * which supplies its own titled header.
+ * Panel title — fixed at the aside's top (outside the scroller), shown at every width. Suppressed
+ * only when the host passes `isHeaderVisible={false}`.
  *
  * @internal
  */

@@ -35,12 +35,13 @@
  * genuinely does not carry: the rule is *absent* while the filter is off, and re-enabling should
  * restore the user's last pin rather than jumping back to the default.
  *
- * ### The map is hidden while disabled, not destroyed
+ * ### The map exists only while the filter is on
  *
- * Vue unmounts it, which is the cheaper choice in a framework that makes unmounting free. Here the map
- * is created on first enable and merely hidden afterwards, so toggling the filter back on does not
- * refetch tiles or discard the user's zoom. That is the same trade the mobile drawer already forces —
- * see {@link GeoSection.invalidateMapSize}.
+ * As in every other vertical, turning the filter off destroys the map and removes its frame, and
+ * turning it back on builds a fresh one on the last-used center and radius. Zoom and pan therefore
+ * do not survive the toggle — the circle the rule describes is what the new map frames — and a
+ * disabled section holds no Leaflet instance, tiles or listeners. The mobile collapse is a different
+ * case: it hides a LIVE map, which is why {@link GeoSection.invalidateMapSize} exists.
  *
  * ### No predictive disable here, deliberately
  *
@@ -70,15 +71,15 @@ import {
 import { createCheckboxControl } from '../controls/controls.js';
 import { section } from '../controls/sections.js';
 import { createSelectMenu } from '../controls/selectMenu.js';
-import { createRadiusMap } from './radiusMap.js';
+import { createRadiusMap, type RadiusMap } from './radiusMap.js';
 
 /**
  * The panel's single write path, handed down so this section cannot grow a second one.
  *
  * @remarks
- * `null` means REMOVE the facet. An `InSetRule` with an empty set still participates in the AND and
- * matches nothing, so "clear this facet" has to be a removal rather than an empty rule — the panel
- * enforces that in one place and every section, including this one, writes through it.
+ * `null` means REMOVE the facet. "Clear this facet" is a removal rather than an empty rule, so the
+ * engine holds no rule the panel does not show — the panel enforces that in one place and every
+ * section, including this one, writes through it.
  */
 export type FacetCommit = (ruleId: RuleId, rule: FilterRule | null) => void;
 
@@ -92,9 +93,9 @@ export interface GeoSection {
 	 * Re-measure the map after the panel is revealed.
 	 *
 	 * @remarks
-	 * Leaflet reads its container's size ONCE at initialization and caches it. The mobile drawer hides
+	 * Leaflet reads its container's size ONCE at initialization and caches it. The mobile collapse hides
 	 * the panel with the `hidden` attribute rather than destroying it, so a map that initializes while
-	 * the drawer is closed measures 0×0 and, without this, lays out a single tile in the corner
+	 * the collapse is closed measures 0×0 and, without this, lays out a single tile in the corner
 	 * forever. The route wires this to the breakpoint tracker's `subscribe`.
 	 */
 	readonly invalidateMapSize: () => void;
@@ -175,14 +176,12 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 		commit(GEO_RADIUS_RULE_ID, buildListingGeoRadiusRule({ center: nextCenter, radiusKm: nextRadiusKm }));
 	}
 
-	// Created once and kept for the section's life; `onCenterChange` reads the CURRENT radius out of
-	// the closure rather than a copy captured at creation, which is what makes it safe to hand over
-	// exactly once (see radiusMap's docs on callback stability).
-	const map = createRadiusMap({
-		onCenterChange: (next) => {
-			commitGeo(next, radiusKm);
-		},
-	});
+	/**
+	 * The live map, or `null` while the filter is off. Each map's `onCenterChange` reads the CURRENT
+	 * radius out of the closure rather than a copy captured at creation, which is what makes it safe
+	 * to hand over exactly once (see radiusMap's docs on callback stability).
+	 */
+	let map: RadiusMap | null = null;
 
 	const enableToggle = createCheckboxControl({
 		label: 'Filter by distance',
@@ -256,6 +255,18 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 	const statusNote = el('p', { attrs: { 'aria-live': 'polite' }, className: 'fe-geo__status' });
 	const errorNote = el('p', { attrs: { role: 'alert' }, className: 'fe-geo__error' });
 
+	/** The radius label and slider. The map's frame is inserted directly above it while it exists. */
+	const radiusBlock = el('div', {
+		children: [
+			el('label', {
+				attrs: { for: RADIUS_INPUT_ID },
+				children: [el('span', { text: 'Radius' }), radiusValue],
+				className: 'fe-geo__radius-label',
+			}),
+			radiusInput,
+		],
+	});
+
 	/** Everything below the enable checkbox — present in the DOM, hidden while the filter is off. */
 	const body = el('div', {
 		children: [
@@ -271,21 +282,39 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 					}),
 				],
 			}),
-			map.element,
-			el('div', {
-				children: [
-					el('label', {
-						attrs: { for: RADIUS_INPUT_ID },
-						children: [el('span', { text: 'Radius' }), radiusValue],
-						className: 'fe-geo__radius-label',
-					}),
-					radiusInput,
-				],
-			}),
+			radiusBlock,
 			statusNote,
 			errorNote,
 		],
 	});
+
+	/**
+	 * Show the rule's circle: build the map in its slot on the first enable, then point it at the view.
+	 *
+	 * @param nextCenter - The rule's center.
+	 * @param nextRadiusKm - The rule's radius.
+	 */
+	function showMap(nextCenter: MapCoords, nextRadiusKm: number): void {
+		if (map === null) {
+			map = createRadiusMap({
+				onCenterChange: (next) => {
+					commitGeo(next, radiusKm);
+				},
+			});
+			radiusBlock.before(map.element);
+		}
+		// Idempotent: the first call loads Leaflet, every later call only records the view.
+		map.mount(nextCenter, nextRadiusKm);
+		map.setCenter(nextCenter);
+		map.setRadius(nextRadiusKm);
+	}
+
+	/** Destroy the map and take its frame out of the section — the filter is off. */
+	function dropMap(): void {
+		map?.destroy();
+		map?.element.remove();
+		map = null;
+	}
 
 	/**
 	 * Commit the drag, if it moved anything.
@@ -371,7 +400,7 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 
 	return {
 		dispose: () => {
-			map.destroy();
+			dropMap();
 		},
 
 		element: section('Distance', el('div', {
@@ -380,18 +409,17 @@ export function createGeoSection(options: GeoSectionOptions): GeoSection {
 		})),
 
 		invalidateMapSize: () => {
-			map.invalidateSize();
+			map?.invalidateSize();
 		},
 
 		update: (radius) => {
 			isEnabled = radius !== undefined;
-			if (radius !== undefined) {
+			if (radius === undefined) {
+				dropMap();
+			} else {
 				center = radius.center;
 				radiusKm = radius.radiusKm;
-				// Idempotent: the first enable creates the map, every later call only records the view.
-				map.mount(center, radiusKm);
-				map.setCenter(center);
-				map.setRadius(radiusKm);
+				showMap(center, radiusKm);
 			}
 			paint();
 		},

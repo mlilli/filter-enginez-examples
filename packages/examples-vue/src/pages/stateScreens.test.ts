@@ -3,8 +3,8 @@
  * holding what the screen says.
  *
  * @remarks
- * The screens: the books and real-estate boot captions, the wine boot loader, and the wine and
- * real-estate boot failures, plus the not-found page. An accessibility audit often runs while one of
+ * The screens: the books and real-estate boot captions, the wine boot loader, and the three boot
+ * failures (each the shared `BOOT_FAILURE_COPY` in a `role="alert"`), plus the not-found page. An accessibility audit often runs while one of
  * them is up — the 150,000-wine tier takes a while to generate — and a page with no `<main>` fails it
  * however good the booted view is. Each booted view carries its own `<main>` in its markup.
  *
@@ -14,6 +14,7 @@
  * @packageDocumentation
  */
 
+import { BOOT_FAILURE_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
@@ -115,17 +116,40 @@ describe('booting', () => {
 });
 
 describe('a failed boot', () => {
-	it('/wine shows the failure in one main landmark', async () => {
+	it('/wine shows BOOT_FAILURE_COPY.wine and the Vite tier sentence in an alert inside one main landmark', async () => {
 		boots.wine.mockRejectedValue(new Error('the worker died'));
+		const alert = onlyMain(await mountPage(WinePage)).querySelector('[role="alert"]');
 
-		expect(onlyMain(await mountPage(WinePage)).textContent).toContain('the worker died');
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY.wine.title);
+		expect(alert?.textContent).toContain('the worker died');
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY.wine.hint);
+		expect(alert?.textContent).toContain('VITE_WINE_TIER=default');
 	});
 
-	it('/real-estate shows the failure in one main landmark', async () => {
+	it('/real-estate shows BOOT_FAILURE_COPY[\'real-estate\'] in an alert inside one main landmark', async () => {
 		boots.realEstate.mockRejectedValue(new Error('corpus fetch returned 503'));
-		const main = onlyMain(await mountPage(RealEstatePage));
+		const alert = onlyMain(await mountPage(RealEstatePage)).querySelector('[role="alert"]');
 
-		expect(main.querySelector('[role="alert"]')?.textContent).toContain('corpus fetch returned 503');
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY['real-estate'].title);
+		expect(alert?.textContent).toContain('corpus fetch returned 503');
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY['real-estate'].hint);
+	});
+
+	it('/books shows BOOT_FAILURE_COPY.books in an alert inside one main landmark, not a stuck caption', async () => {
+		boots.books.mockRejectedValue(new Error('books corpus 404'));
+		const main = onlyMain(await mountPage(BooksPage));
+		const alert = main.querySelector('[role="alert"]');
+
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY.books.title);
+		expect(alert?.textContent).toContain('books corpus 404');
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY.books.hint);
+		expect(main.querySelector('.fe-boot-caption')).toBeNull();
+	});
+
+	it('/books reports a non-Error rejection by its string form', async () => {
+		boots.books.mockRejectedValue('offline');
+
+		expect(onlyMain(await mountPage(BooksPage)).querySelector('[role="alert"]')?.textContent).toContain('offline');
 	});
 });
 

@@ -12,9 +12,10 @@
  *     `--accent-haze` halo on focus-within), `--radius-md` corners.
  *   - Magnifier icon left; clear-X right (visible only when there's text).
  *
- * **onChange vs onCommit:** mirrors the slider's local-state-during-edit pattern — `onChange`
- * fires per keystroke (so the parent mirrors the text), `onCommit` fires on blur / Enter / clear
- * (so expensive engine-side work runs once, not per keystroke).
+ * **onChange vs onCommit:** `onChange` fires per keystroke (so the parent mirrors the text), and
+ * `onCommit` fires on blur / Enter / clear. What each one does to the engine is the caller's: every
+ * search section binds the two to `useTypeaheadSearch`, which turns keystrokes into a debounced
+ * commit and the other three into an immediate one, never committing an unchanged query.
  */
 
 /**
@@ -26,9 +27,9 @@ export interface SearchInputProps {
 	/** Called on every keystroke so the parent can mirror the typed text in local state. */
 	readonly onChange: (value: string) => void;
 	/**
-	 * Called when the user "commits" the value — on blur, Enter, or clear-X. Use this for
-	 * expensive engine-side work that shouldn't run per keystroke. The clear path fires
-	 * `onChange('')` then `onCommit('')`.
+	 * Called when the user "commits" the value — on blur, Enter, or clear-X — for a commit that should
+	 * land at once rather than after the typing pause. The clear path fires `onChange('')` then
+	 * `onCommit('')`.
 	 */
 	readonly onCommit?: (value: string) => void;
 	/** Placeholder text. */
@@ -61,7 +62,7 @@ export const SearchInput = (props: SearchInputProps): React.ReactElement => {
 				<circle cx="11" cy="11" r="8" />
 				<path d="m21 21-4.3-4.3" />
 			</svg>
-			{/* Input — commits on blur / Enter (not per keystroke). */}
+			{/* Input — `onChange` per keystroke, `onCommit` on blur / Enter. */}
 			<input
 				type="search"
 				className="fe-search-input__field"

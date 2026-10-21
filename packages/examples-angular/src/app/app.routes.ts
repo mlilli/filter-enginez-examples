@@ -33,14 +33,19 @@
  * A resolver holds activation, so a direct visit to `/books` would otherwise show an empty page until
  * the engine had booted. Each booting route names its cold-start caption in its static `data`
  * ({@link ROUTE_BOOT_CAPTION_KEY}), and the root component draws it while the outlet is still empty —
- * see `app.component.ts`.
+ * see `app.component.ts`. `/books-server` also names a hero loader ({@link ROUTE_BOOT_LOADER_KEY}):
+ * its wait is a corpus fetch from the Node server, shown as the brand loader over "Filtering on the
+ * Node server · fetching corpus + initial state", the connecting screen every app shows there.
  *
  * ### Two failure contracts
  *
- * The `/books` and `/real-estate` loads may reject only if the corpus itself is broken, which is a
- * bug. `/books-server` has a routine failure — the Node process isn't running — so its load never
- * rejects: it catches, reports the failure as route data, and lets the page render an offline screen.
- * A rejected resolver aborts the navigation, which would present a dead server as a page that simply
+ * A `/books` or `/real-estate` engine that cannot boot rejects its resolver with a `DatasetBootError`
+ * (`withDatasetBootFailure` wraps the boot, and only the boot), so the root component shows that
+ * dataset's boot-failure screen (`BOOT_FAILURE_COPY`) rather than the page-error screen a chunk that
+ * did not download gets.
+ * `/books-server` has a routine failure — the Node process isn't running — so its load never rejects:
+ * it catches, reports the failure as route data, and lets the page render an offline screen. A
+ * rejected resolver aborts the navigation, which would present a dead server as a page that simply
  * doesn't respond to the click.
  *
  * @packageDocumentation
@@ -56,6 +61,7 @@ import {
 	bootCaptionText,
 	REAL_ESTATE_BOOT_IDLE_CAPTION,
 	REAL_ESTATE_RECORD_NOUN,
+	SERVER_ROUTE_SCREEN_COPY,
 } from '@filter-enginez/examples-shared/boot-caption';
 
 import type { BooksRouteData } from './books/books-route-data.js';
@@ -63,6 +69,7 @@ import type { BooksServerRouteData } from './books/books-server-route-data.js';
 import type { RealEstateRouteData } from './real-estate/real-estate-route-data.js';
 
 import { LandingPageComponent } from './pages/landing-page.component.js';
+import { withDatasetBootFailure } from './shell/dataset-boot-error.js';
 
 export type { BooksRouteData, BooksServerRouteData, RealEstateRouteData };
 
@@ -84,6 +91,23 @@ export const REAL_ESTATE_ROUTE_DATA_KEY = 'realEstate';
  * moment the route is recognized, before a byte of the route's own code has arrived.
  */
 export const ROUTE_BOOT_CAPTION_KEY = 'bootCaption';
+
+/**
+ * The static-`data` key under which a booting route asks for the hero loader above its caption, by
+ * naming the loader's accessible name.
+ *
+ * @remarks
+ * Absent, the root component draws the caption alone, inline (the `/books` and `/real-estate` idle
+ * caption every app shows). Present, it draws the brand loader with the caption beneath it in the hero
+ * style, as every app's `/books-server` connecting screen does.
+ */
+export const ROUTE_BOOT_LOADER_KEY = 'bootLoader';
+
+/** `/books-server`'s connecting caption, worded as every app's connecting screen words it. */
+export const BOOKS_SERVER_CONNECTING_CAPTION = SERVER_ROUTE_SCREEN_COPY.connectingCaption;
+
+/** `/books-server`'s loader accessible name. */
+export const BOOKS_SERVER_LOADER_LABEL = SERVER_ROUTE_SCREEN_COPY.connectingLoaderLabel;
 
 /**
  * The idle caption for a dataset route, worded by the one module every vertical renders.
@@ -133,9 +157,15 @@ const loadRealEstatePage = async (): Promise<Type<unknown>> =>
  * Resolve `/books`: boot the books engine behind the RxJS surface (`books/books-route-data.ts`).
  *
  * @returns The engine + boot metadata, for the route's `data`.
+ * @throws A `DatasetBootError` when the engine cannot boot; the root component shows the books
+ *   boot-failure screen.
  */
 export const booksResolver: ResolveFn<BooksRouteData> = async () =>
-	resolveWithPage(loadBooksPage, async () => (await import('./books/books-route-data.js')).loadBooksRouteData());
+	resolveWithPage(loadBooksPage, async () => {
+		const { loadBooksRouteData } = await import('./books/books-route-data.js');
+
+		return withDatasetBootFailure('books', loadBooksRouteData());
+	});
 
 /**
  * Resolve `/books-server`: the HTTP-backed engine, or the error that stopped it
@@ -154,12 +184,14 @@ export const booksServerResolver: ResolveFn<BooksServerRouteData> = async () =>
  * (`real-estate/real-estate-route-data.ts`).
  *
  * @returns The engine, the derived facets and boot metadata, for the route's `data`.
+ * @throws A `DatasetBootError` when the engine cannot boot.
  */
 export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () =>
-	resolveWithPage(
-		loadRealEstatePage,
-		async () => (await import('./real-estate/real-estate-route-data.js')).loadRealEstateRouteData(),
-	);
+	resolveWithPage(loadRealEstatePage, async () => {
+		const { loadRealEstateRouteData } = await import('./real-estate/real-estate-route-data.js');
+
+		return withDatasetBootFailure('real-estate', loadRealEstateRouteData());
+	});
 
 /**
  * The app routes. The landing hub is eager; every other page, and everything a resolver boots, loads
@@ -183,6 +215,10 @@ export const routes: Routes = [
 		resolve: { [BOOKS_ROUTE_DATA_KEY]: booksResolver },
 	},
 	{
+		data: {
+			[ROUTE_BOOT_CAPTION_KEY]: BOOKS_SERVER_CONNECTING_CAPTION,
+			[ROUTE_BOOT_LOADER_KEY]: BOOKS_SERVER_LOADER_LABEL,
+		},
 		loadComponent: loadBooksServerPage,
 		path: 'books-server',
 		resolve: { [BOOKS_SERVER_ROUTE_DATA_KEY]: booksServerResolver },

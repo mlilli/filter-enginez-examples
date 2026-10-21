@@ -27,7 +27,7 @@
  * chip accumulator skips items whose field value is not a string. So single-value toggles
  * (`BooleanRule` / `ExistsRule` / `BloomMembershipRule`) and array-valued fields (real estate's
  * `features: string[]`, via `ContainsAllRule`) cannot be queried as chip groups. Toggles are served
- * by {@link useToggleWouldBeEmpty}, a one-pass equivalent. Array-valued fields have no predictive
+ * by {@link useIsToggleDisabled}, a one-pass equivalent. Array-valued fields have no predictive
  * disable in any panel; supporting them would need a new candidate kind in `core`.
  *
  * @packageDocumentation
@@ -40,7 +40,7 @@ import { type ExclusionMap, useFilterEngine, useLastChange } from '@filter-engin
 import { createContext, use, useEffect, useEffectEvent, useMemo, useState } from 'react';
 
 import { type BundleFetcher, createBundleFetcher } from './bundleFetcher.js';
-import { chipExclusionMap, fieldBounds, fieldHistogram } from './bundleReaders.js';
+import { chipExclusionMap, chipProjectedCounts, fieldBounds, fieldHistogram, isToggleDisabled } from './bundleReaders.js';
 
 /**
  * Shape provided through {@link FilterBundleContext}. `bundle` is `null` during the first render
@@ -123,6 +123,23 @@ export function useChipExclusion(ruleId: string): ExclusionMap {
 }
 
 /**
+ * Read one chip group's projected result counts, for a tree picker's per-row badges.
+ *
+ * @remarks
+ * The count is how many records selecting the candidate would yield, which only the engine knows: a
+ * tree knows its own shape, not how many records sit under a node.
+ *
+ * @param ruleId - The chip group's rule id, matching the one used in the bundle query.
+ * @returns Candidate → projected count. Empty until the bundle is ready, or when `ruleId` was not
+ *   part of the query.
+ */
+export function useChipProjectedCounts(ruleId: string): ReadonlyMap<string, number> {
+	const ctx = use(FilterBundleContext);
+
+	return useMemo(() => chipProjectedCounts(ctx?.bundle ?? null, ruleId), [ctx, ruleId]);
+}
+
+/**
  * Read one slider field's filtered-except-self bounds — the `RangeSlider` `available` zone that dims
  * the parts of the track no current result occupies.
  *
@@ -162,21 +179,22 @@ export function useFieldHistogram(
 }
 
 /**
- * Whether turning ON a single toggle would empty the result set — `true` when no current result
- * passes the toggle's rule, so the toggle should be disabled.
+ * Whether a single toggle (checkbox) is disabled by predictive disable — the React binding of the
+ * shared {@link isToggleDisabled} every app's checkboxes call.
  *
  * @remarks
  * Single-value toggles aren't expressible as bundle chip candidates, so this does the equivalent
  * one-pass check directly: adding the rule ANDs it with the current results, which is empty iff none
- * of the current results already pass it. An already-active toggle is never reported empty (all its
- * results pass it by construction), so the user can always turn it back off — the same
- * selected-is-never-disabled invariant the bundle guarantees for chips.
+ * of the current results already pass it. A checked toggle is never disabled, so the user can always
+ * turn it back off, even when something else (a search that matches nothing) has emptied the results:
+ * the same selected-is-never-disabled rule every chip follows.
  *
- * @param candidateRule - The rule the toggle would add. Memoize it in the caller so this only
- *   recomputes on an actual engine change rather than every render.
+ * @param candidateRule - The rule the toggle adds when turned on. Memoize it in the caller so this
+ *   only recomputes on an actual engine change rather than every render.
+ * @param isChecked - Whether the toggle is on.
  * @returns Whether the toggle should be disabled.
  */
-export function useToggleWouldBeEmpty<T>(candidateRule: FilterRule): boolean {
+export function useIsToggleDisabled<T>(candidateRule: FilterRule, isChecked: boolean): boolean {
 	const engine = useFilterEngine<T>();
 
 	// Re-render on ANY engine change so the disable state stays fresh even when a *different* facet
@@ -187,7 +205,7 @@ export function useToggleWouldBeEmpty<T>(candidateRule: FilterRule): boolean {
 	const results = engine.core.getResults();
 
 	return useMemo(
-		() => !results.some((item) => candidateRule.action(item, candidateRule)),
-		[results, candidateRule],
+		() => isToggleDisabled(isChecked, results, candidateRule),
+		[isChecked, results, candidateRule],
 	);
 }

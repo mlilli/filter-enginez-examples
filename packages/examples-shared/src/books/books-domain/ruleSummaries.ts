@@ -8,8 +8,8 @@
  * exported from `@filter-enginez/core` — live rule instances don't carry a `type` field (that's a
  * serialization artifact), so `instanceof` is the honest discriminator. Covers every rule kind the
  * books panel can wire: Range / InSet / Boolean / Text / Fuzzy / Exists plus the curated Regex /
- * InSetofSets / Bloom rules. The React results header renders the identical chips from the same
- * `FilterSummary` contract.
+ * InSetofSets / Bloom rules. Every app's books results header renders its chips from this one
+ * summarizer, the React apps included, so a chip reads the same in all six.
  *
  * @packageDocumentation
  */
@@ -127,8 +127,8 @@ function summarizeRule(ruleId: RuleId, rule: FilterRule): FilterSummary | null {
 
 /**
  * Summarizer for the curated demo rules (ISBN regex / genre super-groups / Editor's-picks Bloom).
- * Split out to keep {@link summarizeRule} under the cyclomatic-complexity cap; labels + values mirror
- * the React `BooksResultsHeader` exactly.
+ * Split out to keep {@link summarizeRule} under the cyclomatic-complexity cap; the labels + values are
+ * the ones every app's books header shows.
  *
  * @internal
  */

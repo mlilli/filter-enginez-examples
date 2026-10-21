@@ -24,8 +24,8 @@ import {
 import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
 import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
 import { useLastChange } from '@filter-enginez/react-signals';
-import { FilterDrawer } from '@filter-enginez/react-ui';
-import { useEffect, useState } from 'react';
+import { FilterCollapse } from '@filter-enginez/react-ui';
+import { useEffect } from 'react';
 
 import { BooksResultsHeader } from './BooksResultsHeader.js';
 
@@ -37,9 +37,8 @@ export const BooksConfigApp = (): React.ReactElement => {
 	// resolved, and reading the config from the boot keeps the books dataset out of this module's
 	// static imports, so the dataset chunk loads with `/books-config` rather than at app startup.
 	const booksFilterConfig = getBootedBooksFilterConfig();
-	// Mobile filter-drawer visibility — only meaningful below `lg`, where the sidebar collapses.
-	const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
-	// Two-column breakpoint switch — `true` at ≥1024px (static sidebar), `false` below (drawer).
+	// Two-column breakpoint switch — `true` at ≥1024px (static sidebar), `false` below (the sidebar
+	// card collapses behind its "Filters" button).
 	const isDesktop = useIsDesktop();
 	// Resolve the engine-busy tracker on every settle (books is main-thread + synchronous) — same
 	// rationale as `<BooksApp />`.
@@ -81,31 +80,11 @@ export const BooksConfigApp = (): React.ReactElement => {
 						<ConfigColumnLabel />
 						<ConfigJsonView config={booksFilterConfig} maxHeight="calc(100vh - 8rem)" />
 					</aside>
-					{isDesktop ? (
-						<aside
-							className="w-80 shrink-0 sticky top-4 self-start flex flex-col"
-							style={{
-								background: 'var(--gray-1)',
-								border: '1px solid var(--gray-3)',
-								borderRadius: 'var(--radius-lg)',
-								maxHeight: 'calc(100vh - 2rem)',
-							}}
-						>
-							<ConfigDrivenPanel config={booksFilterConfig} />
-						</aside>
-					) : (
-						<FilterDrawer
-							isOpen={isFilterDrawerOpen}
-							onClose={() => setIsFilterDrawerOpen(false)}
-							title="Filters"
-							ariaLabel="Book filters (config-generated)"
-							keepMounted
-						>
-							<ConfigDrivenPanel config={booksFilterConfig} isHeaderVisible={false} />
-						</FilterDrawer>
-					)}
+					{/* The filter sidebar card — sticky at `lg`+, a "Filters" disclosure below it. */}
+					<FilterCollapse isCollapsible={!isDesktop}>
+						<ConfigDrivenPanel config={booksFilterConfig} />
+					</FilterCollapse>
 					<section className="flex-1 min-w-0 flex flex-col gap-4">
-						{!isDesktop ? <FiltersTrigger onOpen={() => setIsFilterDrawerOpen(true)} /> : null}
 						<BooksResultsHeader />
 						<BooksResultGrid />
 					</section>
@@ -152,38 +131,6 @@ const ConfigColumnLabel = (): React.ReactElement => {
 		>
 			FilterEngineConfig · JSON
 		</h2>
-	);
-};
-
-/**
- * Mobile "Filters" trigger — a 44px-tall button that opens the off-canvas filter drawer. Rendered
- * only below `lg` (where the static sidebar is hidden).
- *
- * @internal
- */
-const FiltersTrigger = (props: { readonly onOpen: () => void }): React.ReactElement => {
-	return (
-		<button
-			type="button"
-			onClick={props.onOpen}
-			className="inline-flex items-center justify-center gap-2 self-start text-sm font-medium uppercase transition-colors"
-			style={{
-				background: 'var(--gray-1)',
-				border: '1px solid var(--gray-4)',
-				borderRadius: 'var(--radius-md)',
-				color: 'var(--gray-10)',
-				cursor: 'pointer',
-				fontFamily: 'var(--font-display)',
-				letterSpacing: '0.08em',
-				minHeight: '44px',
-				padding: '0 16px',
-			}}
-		>
-			<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-				<path d="M3 5h18M6 12h12M10 19h4" />
-			</svg>
-			Filters
-		</button>
 	);
 };
 

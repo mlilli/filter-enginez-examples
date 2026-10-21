@@ -51,11 +51,16 @@ export interface ResultsHeaderViewProps {
 	 */
 	readonly mirrorActiveCount?: number;
 	/**
-	 * Optional: the rule id most recently mutated (e.g. the redux-bridge slice's
-	 * `lastChangeRuleId`). When it matches a chip's `ruleId`, that chip gets a brief
-	 * "recently changed" emphasis. Omitted by the plain app.
+	 * Optional: the rule id most recently mutated — the redux-bridge slice's `lastChangeRuleId` in the
+	 * RTK app, `useLastChange().ruleId` in the plain app. When it matches a chip's `ruleId`, that chip
+	 * gets a brief "recently changed" emphasis.
 	 */
 	readonly recentlyChangedRuleId?: string | null;
+	/**
+	 * The word after the count: `RESULT_COPY[dataset].noun` (`bottles`, `results`, `listings`), which
+	 * every app's header shows. Defaults to `results`.
+	 */
+	readonly noun?: string;
 }
 
 /**
@@ -65,6 +70,7 @@ export const ResultsHeaderView = (props: ResultsHeaderViewProps): React.ReactEle
 	const {
 		isFetching,
 		mirrorActiveCount,
+		noun = 'results',
 		onClearAll,
 		onRemoveRule,
 		recentlyChangedRuleId = null,
@@ -83,6 +89,7 @@ export const ResultsHeaderView = (props: ResultsHeaderViewProps): React.ReactEle
 				mirrorActiveCount={mirrorActiveCount}
 			/>
 			<ResultCountRow
+				noun={noun}
 				resultCount={resultCount}
 				totalCount={totalCount}
 				isFetching={isFetching}
@@ -193,10 +200,12 @@ const FilterChip = ({
  */
 const ResultCountRow = ({
 	isFetching,
+	noun,
 	resultCount,
 	totalCount,
 }: {
 	readonly isFetching: boolean;
+	readonly noun: string;
 	readonly resultCount: number;
 	readonly totalCount: number;
 }): React.ReactElement => {
@@ -213,7 +222,7 @@ const ResultCountRow = ({
 			<span className={`fe-result-count__number${isComputing ? ' fe-result-count__number--computing' : ''}`}>
 				{displayedCount.toLocaleString()}
 			</span>
-			<span className="fe-result-count__label">results</span>
+			<span className="fe-result-count__label">{noun}</span>
 			{delta !== 0 && (
 				<span className={`fe-result-count__delta ${delta < 0 ? 'fe-result-count__delta--down' : 'fe-result-count__delta--up'}`}>
 					{delta > 0 ? '+' : ''}{delta.toLocaleString()}
@@ -319,8 +328,8 @@ const ComputingIndicator = ({ isComputing }: { readonly isComputing: boolean }):
 		>
 			<span aria-hidden="true" className="fe-computing-indicator__icon">
 				{isComputing
-					? <NeuralCluster size={40} theme="phosphor" ariaLabel="" />
-					: <SynapticOrbit size={40} theme="acid" ariaLabel="" />}
+					? <NeuralCluster size={30} theme="phosphor" ariaLabel="" />
+					: <SynapticOrbit size={30} theme="acid" ariaLabel="" />}
 			</span>
 			<span className={`fe-computing-indicator__label${isComputing ? ' fe-computing-indicator__label--computing' : ''}`}>
 				engine{' '}

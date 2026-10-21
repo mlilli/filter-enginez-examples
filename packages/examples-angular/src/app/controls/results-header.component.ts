@@ -38,15 +38,18 @@
  *
  * ### The two writes are overridable, and wine is why
  *
- * `removeRule` and `clearAll` write the engine directly, which is right for books and real estate:
- * every rule they hold is a plain flat-map rule, so dropping one IS `core.removeRule(id)`.
+ * `removeRule` writes the engine directly, which is right for books and real estate: every rule they
+ * hold is a plain flat-map rule, so dropping one IS `core.removeRule(id)`. `clearAll` goes through the
+ * shared `clearAllFilters` (`@filter-enginez/examples-shared/selection`), the "Clear all" every app
+ * and dataset calls: the busy mark, then ONE `core.clearRules()`, so the devtools log records one
+ * `RULES_CLEARED`, one Undo restores everything, and every surface re-reads on a single `reset`.
  *
- * Wine is not like that. Its "Clear all" must leave **expression mode** as well as drop the thirteen
- * facets — `clearAllWineFilters` is two operations deliberately fused, because splitting them at a
- * call site is exactly how a clear-all comes to blank every control while a preset keeps driving the
- * results. And in expression mode the chip list is ONE synthetic chip whose id, `SMART_FILTER_CHIP_ID`,
- * names no rule at all: `core.removeRule('__smart-filter__')` is a **silent no-op**, so its × would
- * simply not work, with nothing anywhere to report it.
+ * Wine is not like that. Its "Clear all" is `clearAllWineFilters`: the same single `clearRules()`,
+ * which leaves **expression mode** along with the flat facets, but marked busy on the wine tracker.
+ * And in expression mode the chip list is ONE synthetic chip whose id, `SMART_FILTER_CHIP_ID`, names
+ * no rule at all: `core.removeRule('__smart-filter__')` is a **silent no-op**, so its × would simply
+ * not work, with nothing anywhere to report it. `removeWineFilterChip` turns that × into the same
+ * clear.
  *
  * Hence {@link removeRuleHandler} and {@link clearAllHandler} — optional, and when absent the engine
  * write stands unchanged. They are function INPUTS rather than outputs on purpose: an Angular output
@@ -73,6 +76,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { injectEngineBusy, injectFilterEngine } from '@filter-enginez/angular-rxjs';
 import { prefersReducedMotion } from '@filter-enginez/brand/motion';
 import { buildRuleSummaries, type FilterSummary } from '@filter-enginez/examples-shared/books-domain';
+import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
 
 import { ComputingIndicatorComponent } from './computing-indicator.component.js';
 
@@ -193,8 +197,8 @@ export class ResultsHeaderComponent {
 	 * What the count is counting — the word beside the number.
 	 *
 	 * @remarks
-	 * Plural and lowercase (`books`, `listings`, `bottles`). Every page passes its own; the default is
-	 * the generic `results`.
+	 * Plural and lowercase. Every page passes its dataset's `RESULT_COPY[dataset].noun` (`results` for
+	 * books, `listings`, `bottles`), so the word matches every other app; the default is `results`.
 	 */
 	public readonly noun = input<string>('results');
 
@@ -349,7 +353,13 @@ export class ResultsHeaderComponent {
 		this._engine.core.removeRule(ruleId);
 	}
 
-	/** Drop every rule. Same override and ordering rationale as {@link removeRule}. */
+	/**
+	 * Drop every rule, group and the expression, as one engine action.
+	 *
+	 * @remarks
+	 * The default path is the shared `clearAllFilters`: the busy mark first, then one `clearRules()`.
+	 * A supplied {@link clearAllHandler} takes the whole path, as for {@link removeRule}.
+	 */
 	protected clearAll(): void {
 		const handler = this.clearAllHandler();
 
@@ -358,7 +368,8 @@ export class ResultsHeaderComponent {
 
 			return;
 		}
-		this._busy.markUserAction();
-		this._engine.core.clearRules();
+		clearAllFilters(this._engine, () => {
+			this._busy.markUserAction();
+		});
 	}
 }

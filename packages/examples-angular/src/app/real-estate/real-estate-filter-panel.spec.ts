@@ -8,10 +8,10 @@
  * slip (right rule, wrong field; right field, wrong rule id) fails loudly.
  *
  * Four things are pinned deliberately. **The control → rule table** — fourteen sections, eight rule
- * types, the panel's actual contract with the engine. **Deselecting the last value REMOVES the rule**,
- * the most valuable group in the file: an `InSetRule` with an empty set still participates in the AND
- * and matches nothing, so a panel that wrote one would filter to zero the moment a user deselected their
- * last chip, while every control on screen looked cleared. **Selection is derived, not mirrored** —
+ * types, the panel's actual contract with the engine. **Deselecting the last value REMOVES the rule**:
+ * an `InSetRule` with an empty set matches every item, but a panel that wrote one would leave a rule
+ * registered that no control shows, carried in the `?f=` link and logged as a change rather than a
+ * removal, the same as in every other app. **Selection is derived, not mirrored** —
  * `engine.core.clearRules()` is performed behind the panel's back and the controls must come back
  * empty anyway. **The listed-date presets go through `coerceDatePreset`**, because the engine accepts
  * presets this panel does not render and a rule can arrive from a `?f` link rather than from a click.
@@ -271,10 +271,7 @@ describe('RealEstateFilterPanelComponent', () => {
 		fixture.detectChanges();
 	};
 
-	// Type into the description field and blur it, which is how the panel commits text. The
-	// `detectChanges()` between the two events is REQUIRED: `<fe-search-input>` emits `commit` with its
-	// own `value()` input signal, which only receives the panel's mirror after change detection runs —
-	// without the flush, the blur commits the PREVIOUS text.
+	// Type into the description field and blur it; the blur flushes the debounce, committing at once.
 	const commitSearch = (value: string): void => {
 		const field = searchField();
 
@@ -451,9 +448,9 @@ describe('RealEstateFilterPanelComponent', () => {
 		});
 	});
 
-	// The single most valuable group in this file. An InSetRule with an empty set still ANDs and matches
-	// nothing, so a panel that wrote one would filter to zero the moment the user deselected their last
-	// chip — with every control on screen looking cleared.
+	// The single most valuable group in this file. An InSetRule with an empty set matches every item, so
+	// a panel that wrote one would look cleared the moment the user deselected their last chip while a
+	// rule stayed registered behind it — in the `?f=` link and in the action log as a change.
 	describe('clearing a facet REMOVES its rule rather than writing an empty one', () => {
 		it('chips: deselecting the last chip of a group drops that group rule', () => {
 			// `ContainsAllRule` with an empty `required` IS neutral, so must-have features could get
@@ -499,6 +496,13 @@ describe('RealEstateFilterPanelComponent', () => {
 			commitSearch('   ');
 
 			expect(ruleFor('text-search')).toBeUndefined();
+		});
+
+		it('description: a blur that changes nothing writes nothing and marks nothing busy', () => {
+			searchField().dispatchEvent(new Event('blur'));
+
+			expect(ruleFor('text-search')).toBeUndefined();
+			expect(busy.getIsBusy()).toBe(false);
 		});
 	});
 
@@ -553,9 +557,8 @@ describe('RealEstateFilterPanelComponent', () => {
 			expect(treeRows()[0]?.getAttribute('aria-checked')).toBe('false');
 			expect(searchField().value).toBe('');
 
-			// The description input is the one place a local copy exists; the same effect that empties
-			// it re-seeds it from a rule written from outside, which is what lets a `?f` restore
-			// populate the field.
+			// The description field adopts a rule written from outside, which is what lets a `?f`
+			// restore populate it.
 			engine.core.addRule(
 				'text-search',
 				text('description', { caseSensitive: false, mode: 'substring', query: 'bungalow' }),

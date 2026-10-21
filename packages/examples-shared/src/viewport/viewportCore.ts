@@ -15,7 +15,7 @@
  */
 
 /**
- * The `lg` breakpoint, in px — where a filter panel stops being a drawer and becomes a sidebar.
+ * The `lg` breakpoint, in px — where a filter panel stops collapsing behind a button and becomes a sidebar.
  *
  * @remarks
  * Load-bearing in both directions. Above it, `ui-styles`' `.fe-sidebar-app__main` /

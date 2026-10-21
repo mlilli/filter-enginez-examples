@@ -67,13 +67,23 @@ export interface HierarchicalPickerProps {
 	 * RECORDS a node covers — the tree knows only its own shape.
 	 */
 	readonly nodeCounts?: ReadonlyMap<string, number>;
+	/**
+	 * The tree's accessible name, which makes it a named `role="group"`, as every app's tree is
+	 * (`WINE_ORIGIN_TREE.groupLabel`, `REAL_ESTATE_LOCATION_TREE.groupLabel`).
+	 */
+	readonly groupLabel?: string;
+	/**
+	 * The height the tree scrolls within (any CSS length), set as `--fe-tree-max-height`. Omit it for
+	 * the `ui-styles` default.
+	 */
+	readonly maxHeight?: string;
 }
 
 /**
  * The recursive tree picker.
  */
 export const HierarchicalPicker = (props: HierarchicalPickerProps): React.ReactElement => {
-	const { disabledNodes, nodeCounts, onChange, selected, tree } = props;
+	const { disabledNodes, groupLabel, maxHeight, nodeCounts, onChange, selected, tree } = props;
 	const selectedSet = useMemo(() => new Set(selected), [selected]);
 	const effectiveDisabled = disabledNodes ?? EMPTY_DISABLED;
 
@@ -83,8 +93,12 @@ export const HierarchicalPicker = (props: HierarchicalPickerProps): React.ReactE
 	// rather than a per-row subtree walk, which would be quadratic on a deep corpus.
 	const index = useMemo(() => indexTree(tree), [tree]);
 
+	// `--fe-tree-max-height` rather than an inline `max-height`: the property is what `ui-styles` reads,
+	// so the other `.fe-tree` rules keep working off one value.
+	const style = maxHeight === undefined ? undefined : ({ '--fe-tree-max-height': maxHeight } as React.CSSProperties);
+
 	return (
-		<div className="fe-tree">
+		<div className="fe-tree" role="group" aria-label={groupLabel} style={style}>
 			{topLevel.map((node) => (
 				<NodeRow
 					key={node.id}

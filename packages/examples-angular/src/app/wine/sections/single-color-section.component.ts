@@ -48,7 +48,7 @@ export class SingleColorSectionComponent {
 	/** Drops any active preset — a facet edit means the user is back in flat-map mode. */
 	public readonly leaveExpressionMode = input.required<() => void>();
 
-	/** The corpus color vocabulary, un-truncated. */
+	/** The colors the corpus carries, in the hand-set order (`orderedPresentOptions(COLOR_ORDER, …)`). */
 	public readonly options = input.required<readonly string[]>();
 
 	private readonly _engine = injectFilterEngine<Wine>();

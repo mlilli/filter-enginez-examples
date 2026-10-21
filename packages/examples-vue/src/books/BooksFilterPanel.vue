@@ -13,6 +13,13 @@
  * print / Has audiobook (`BooleanRule` checkboxes), Rated only (`ExistsRule`), Editor's picks
  * (`BloomMembershipRule`), Description (`TextSearchRule`), Authors (`FuzzySearchRule`), and an ISBN
  * pattern (`RegexRule`) — the same nine rule types the React/Svelte panels demo.
+ *
+ * Every heading, label, slider name, placeholder and the ISBN error come from the shared `BOOKS_*`
+ * copy in `books-domain`, so the panel reads the same in all six apps. The checkboxes disable through
+ * the shared `isToggleDisabled`, which never disables a checked box. The three searches bind
+ * `useTypeaheadSearch` (debounced while typing, at once on blur / Enter / clear, never an unchanged
+ * query): an empty description or author query writes a rule with an empty query, the books
+ * convention in every app, and an empty ISBN pattern removes its rule.
  */
 import type { Book, BookGenre } from '@filter-enginez/mock-data/books';
 
@@ -38,6 +45,11 @@ import {
 	type TextSearchRule,
 } from '@filter-enginez/core';
 import {
+	BOOKS_CHIP_SECTION_LABELS,
+	BOOKS_ISBN_INVALID_MESSAGE,
+	BOOKS_SEARCH_COPY,
+	BOOKS_SLIDER_COPY,
+	BOOKS_TOGGLE_LABELS,
 	buildBooksBundleQuery,
 	buildEditorsPicksFilter,
 	chipExclusionMap,
@@ -46,22 +58,23 @@ import {
 	deriveSelectedGroupKeys,
 	fieldBounds,
 	fieldHistogram,
+	isToggleDisabled,
 	nextSuperGroupSets,
 	type NumericBounds,
 	regexInputValue,
 	safeApplyBundle,
 	SUPER_GROUP_KEYS,
-	toggleWouldBeEmpty,
 	uniqueSorted,
 } from '@filter-enginez/examples-shared/books-domain';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
 import { useBusy, useEngineRefs, useFilterEngine } from '@filter-enginez/vue-signals';
-import { computed, type Ref, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 import CheckboxControl from '../controls/CheckboxControl.vue';
 import ChipToggleGroup from '../controls/ChipToggleGroup.vue';
 import RangeSlider from '../controls/RangeSlider.vue';
 import SearchInput from '../controls/SearchInput.vue';
+import { useTypeaheadSearch } from '../search/useTypeaheadSearch.js';
 import { booksBusyTracker, markUserAction } from './booksBusy.js';
 
 withDefaults(
@@ -77,22 +90,6 @@ withDefaults(
 const engine = useFilterEngine<Book>();
 const { activeRules, lastChange, results } = useEngineRefs(engine);
 const isEngineBusy = useBusy(booksBusyTracker);
-
-/**
- * A ref that mirrors a committed engine value but can be reassigned locally while the user types — the
- * Vue equivalent of Svelte's writable `$derived`. It snaps back to the committed value whenever that
- * changes from outside (clear-all, remove pill), so in-progress input is preserved but external resets
- * propagate.
- */
-function mirrorRef<T>(source: () => T): Ref<T> {
-	const state = ref(source()) as Ref<T>;
-
-	watch(source, (value) => {
-		state.value = value;
-	});
-
-	return state;
-}
 
 // The corpus is resident + immutable post-boot, so vocab + baselines + the bundle query are computed
 // once (the Vue analogue of the React panel's `useMemo(…, [sourceData])`).
@@ -174,20 +171,9 @@ const editorsPicksChecked = computed(
 	() => (activeRules.value.get('editors-picks') as BloomMembershipRule | undefined) !== undefined,
 );
 
-// ISBN pattern (RegexRule): a mirror ref off the committed pattern source (re-syncs on external
-// clear), plus a local invalid flag so a half-typed pattern flags without wiping the rule.
-const isbnText = mirrorRef(() =>
-	regexInputValue((activeRules.value.get('isbn-pattern') as RegexRule | undefined)?.config.pattern.source),
-);
+// ISBN pattern (RegexRule): a local invalid flag, so a half-typed pattern flags without wiping the
+// rule. The field's text is the ISBN search below.
 const isbnInvalid = ref(false);
-
-// ─── Search local mirror state (mirror refs off the committed rule query) ──
-const descriptionText = mirrorRef(
-	() => (activeRules.value.get('text-search') as TextSearchRule | undefined)?.config.query ?? '',
-);
-const authorText = mirrorRef(
-	() => (activeRules.value.get('author-search') as FuzzySearchRule | undefined)?.config.query ?? '',
-);
 
 /** Toggle a chip value in an `InSetRule`, committing the new set (empty = permissive no-op). */
 function toggleChip(ruleId: string, field: string, current: readonly string[], value: string): void {
@@ -219,20 +205,38 @@ function commitExists(ruleId: string, field: string, checked: boolean): void {
 	}
 }
 
-/** Commit a substring text search over `description`. */
-function commitDescription(value: string): void {
-	markUserAction();
-	engine.core.addRule(
-		'text-search',
-		text('description', { caseSensitive: false, mode: 'substring', query: value.trim() }),
-	);
-}
+/**
+ * The description search: a substring `TextSearchRule` over `description`.
+ *
+ * @remarks
+ * An empty query still writes the rule, with an empty query, as every app's books panel does.
+ */
+const descriptionSearch = useTypeaheadSearch({
+	commit: (trimmedQuery) => {
+		markUserAction();
+		engine.core.addRule(
+			'text-search',
+			text('description', { caseSensitive: false, mode: 'substring', query: trimmedQuery }),
+		);
+	},
+	committedQuery: () => (activeRules.value.get('text-search') as TextSearchRule | undefined)?.config.query ?? '',
+});
+const { query: descriptionText } = descriptionSearch;
 
-/** Commit a typo-tolerant fuzzy search over the array-valued `authors` field. */
-function commitAuthor(value: string): void {
-	markUserAction();
-	engine.core.addRule('author-search', fuzzy('authors', { keys: ['authors'], query: value.trim(), threshold: 0.3 }));
-}
+/**
+ * The author search: a typo-tolerant `FuzzySearchRule` over the array-valued `authors` field.
+ *
+ * @remarks
+ * An empty query still writes the rule, as the description search does.
+ */
+const authorSearch = useTypeaheadSearch({
+	commit: (trimmedQuery) => {
+		markUserAction();
+		engine.core.addRule('author-search', fuzzy('authors', { keys: ['authors'], query: trimmedQuery, threshold: 0.3 }));
+	},
+	committedQuery: () => (activeRules.value.get('author-search') as FuzzySearchRule | undefined)?.config.query ?? '',
+});
+const { query: authorText } = authorSearch;
 
 /** Toggle a genre super-group — commits the new array-of-genre-sets over `genre`. */
 function toggleSuperGroup(key: string): void {
@@ -254,21 +258,30 @@ function commitEditorsPicks(checked: boolean): void {
 }
 
 /**
- * Commit an ISBN-13 regex pattern. Empty removes the rule; a valid pattern commits it; an invalid
- * pattern flags the box (via `isbnInvalid`) and leaves the last good rule in place — a half-typed `[`
- * never throws or wipes the current filter.
+ * Commit an ISBN-13 regex pattern.
+ *
+ * @remarks
+ * Empty removes the rule; a valid pattern commits it; an invalid pattern raises
+ * `BOOKS_ISBN_INVALID_MESSAGE` and leaves the last good rule in place, so a half-typed `[` never
+ * throws or wipes the current filter, and writes nothing (so it marks nothing busy).
+ *
+ * The removal is skipped when no rule is installed: clearing a field that only ever held an invalid
+ * pattern has nothing to remove, and a removal the engine ignores would mark the engine busy with no
+ * change to settle it.
+ *
+ * @param trimmedQuery - The trimmed pattern.
  */
-function commitIsbn(value: string): void {
-	const trimmed = value.trim();
-
-	if (trimmed === '') {
+function commitIsbn(trimmedQuery: string): void {
+	if (trimmedQuery === '') {
 		isbnInvalid.value = false;
-		markUserAction();
-		engine.core.removeRule('isbn-pattern');
+		if (activeRules.value.has('isbn-pattern')) {
+			markUserAction();
+			engine.core.removeRule('isbn-pattern');
+		}
 
 		return;
 	}
-	const compiled = compilePattern(trimmed);
+	const compiled = compilePattern(trimmedQuery);
 
 	if (compiled === null) {
 		isbnInvalid.value = true;
@@ -279,6 +292,14 @@ function commitIsbn(value: string): void {
 	markUserAction();
 	engine.core.addRule('isbn-pattern', regex('isbn13', { pattern: compiled }));
 }
+
+/** The ISBN pattern search; its rule query is the committed pattern's source. */
+const isbnSearch = useTypeaheadSearch({
+	commit: commitIsbn,
+	committedQuery: () =>
+		regexInputValue((activeRules.value.get('isbn-pattern') as RegexRule | undefined)?.config.pattern.source),
+});
+const { query: isbnText } = isbnSearch;
 
 /** Render a kebab-cased vocabulary value as spaced words (`graphic-novel` → `graphic novel`). */
 function replaceHyphens(value: string): string {
@@ -331,7 +352,7 @@ const pageHistogram = computed(() =>
 			:aria-busy="isEngineBusy"
 		>
 			<section>
-				<h3 class="fe-books-section-label">Genre</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_CHIP_SECTION_LABELS.genre }}</h3>
 				<ChipToggleGroup
 					:options="genres"
 					:selected="selectedGenres"
@@ -342,7 +363,7 @@ const pageHistogram = computed(() =>
 			</section>
 
 			<section>
-				<h3 class="fe-books-section-label">Genre super-groups</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_CHIP_SECTION_LABELS.genreGroups }}</h3>
 				<ChipToggleGroup
 					:options="SUPER_GROUP_KEYS"
 					:selected="selectedGroupKeys"
@@ -352,7 +373,7 @@ const pageHistogram = computed(() =>
 			</section>
 
 			<section>
-				<h3 class="fe-books-section-label">Format</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_CHIP_SECTION_LABELS.format }}</h3>
 				<ChipToggleGroup
 					:options="formats"
 					:selected="selectedFormats"
@@ -363,7 +384,7 @@ const pageHistogram = computed(() =>
 			</section>
 
 			<section>
-				<h3 class="fe-books-section-label">Language</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_CHIP_SECTION_LABELS.language }}</h3>
 				<ChipToggleGroup
 					:options="languages"
 					:selected="selectedLanguages"
@@ -373,8 +394,8 @@ const pageHistogram = computed(() =>
 			</section>
 
 			<RangeSlider
-				label="Publication year"
-				slider-label="Publication-year range"
+				:label="BOOKS_SLIDER_COPY.publicationYear.label"
+				:slider-label="BOOKS_SLIDER_COPY.publicationYear.ariaLabel"
 				:baseline="yearBaseline"
 				:available="yearAvailable"
 				:histogram="yearHistogram"
@@ -387,8 +408,8 @@ const pageHistogram = computed(() =>
 			/>
 
 			<RangeSlider
-				label="Rating"
-				slider-label="Average-rating range"
+				:label="BOOKS_SLIDER_COPY.rating.label"
+				:slider-label="BOOKS_SLIDER_COPY.rating.ariaLabel"
 				:baseline="ratingBaseline"
 				:available="ratingAvailable"
 				:histogram="ratingHistogram"
@@ -401,8 +422,8 @@ const pageHistogram = computed(() =>
 			/>
 
 			<RangeSlider
-				label="Page count"
-				slider-label="Page-count range"
+				:label="BOOKS_SLIDER_COPY.pageCount.label"
+				:slider-label="BOOKS_SLIDER_COPY.pageCount.ariaLabel"
 				:baseline="pageBaseline"
 				:available="pageAvailable"
 				:histogram="pageHistogram"
@@ -416,63 +437,63 @@ const pageHistogram = computed(() =>
 
 			<section class="fe-books-toggles">
 				<CheckboxControl
-					label="In print only"
+					:label="BOOKS_TOGGLE_LABELS.inPrint"
 					:is-checked="inPrintChecked"
-					:is-disabled="toggleWouldBeEmpty(results, inPrintCandidate)"
+					:is-disabled="isToggleDisabled(inPrintChecked, results, inPrintCandidate)"
 					@toggle="(checked) => commitBoolean('in-print', 'isInPrint', checked)"
 				/>
 				<CheckboxControl
-					label="Has audiobook"
+					:label="BOOKS_TOGGLE_LABELS.audiobook"
 					:is-checked="audiobookChecked"
-					:is-disabled="toggleWouldBeEmpty(results, audiobookCandidate)"
+					:is-disabled="isToggleDisabled(audiobookChecked, results, audiobookCandidate)"
 					@toggle="(checked) => commitBoolean('has-audiobook', 'hasAudiobook', checked)"
 				/>
 				<CheckboxControl
-					label="Rated only"
+					:label="BOOKS_TOGGLE_LABELS.rated"
 					:is-checked="ratedChecked"
-					:is-disabled="toggleWouldBeEmpty(results, ratedCandidate)"
+					:is-disabled="isToggleDisabled(ratedChecked, results, ratedCandidate)"
 					@toggle="(checked) => commitExists('has-rating', 'averageRating', checked)"
 				/>
 				<CheckboxControl
-					label="Editor's picks (top-rated)"
+					:label="BOOKS_TOGGLE_LABELS.editorsPicks"
 					:is-checked="editorsPicksChecked"
-					:is-disabled="toggleWouldBeEmpty(results, editorsPicksCandidate)"
+					:is-disabled="isToggleDisabled(editorsPicksChecked, results, editorsPicksCandidate)"
 					@toggle="commitEditorsPicks"
 				/>
 			</section>
 
 			<section>
-				<h3 class="fe-books-section-label">Description search</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_SEARCH_COPY.description.label }}</h3>
 				<SearchInput
 					:value="descriptionText"
-					placeholder="dystopia, seafaring, coming of age..."
-					input-label="Search descriptions"
-					@change="(value) => (descriptionText = value)"
-					@commit="commitDescription"
+					:placeholder="BOOKS_SEARCH_COPY.description.placeholder"
+					:input-label="BOOKS_SEARCH_COPY.description.ariaLabel"
+					@change="descriptionSearch.input"
+					@commit="descriptionSearch.flush"
 				/>
 			</section>
 
 			<section>
-				<h3 class="fe-books-section-label">Author (typo-tolerant)</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_SEARCH_COPY.author.label }}</h3>
 				<SearchInput
 					:value="authorText"
-					placeholder="a surname or full name..."
-					input-label="Search authors with typo tolerance"
-					@change="(value) => (authorText = value)"
-					@commit="commitAuthor"
+					:placeholder="BOOKS_SEARCH_COPY.author.placeholder"
+					:input-label="BOOKS_SEARCH_COPY.author.ariaLabel"
+					@change="authorSearch.input"
+					@commit="authorSearch.flush"
 				/>
 			</section>
 
 			<section>
-				<h3 class="fe-books-section-label">ISBN pattern (regex)</h3>
+				<h3 class="fe-books-section-label">{{ BOOKS_SEARCH_COPY.isbn.label }}</h3>
 				<SearchInput
 					:value="isbnText"
-					placeholder="e.g. ^9780"
-					input-label="Filter by ISBN-13 pattern (regular expression)"
-					@change="(value) => (isbnText = value)"
-					@commit="commitIsbn"
+					:placeholder="BOOKS_SEARCH_COPY.isbn.placeholder"
+					:input-label="BOOKS_SEARCH_COPY.isbn.ariaLabel"
+					@change="isbnSearch.input"
+					@commit="isbnSearch.flush"
 				/>
-				<p v-if="isbnInvalid" class="fe-books-regex-error" role="alert">Invalid regular expression</p>
+				<p v-if="isbnInvalid" class="fe-books-regex-error" role="alert">{{ BOOKS_ISBN_INVALID_MESSAGE }}</p>
 			</section>
 		</div>
 	</div>

@@ -30,19 +30,27 @@
 	 *
 	 * An absent rule renders as the full baseline track, which is exactly what no constraint means.
 	 * A sentinel like `min === 0` would collide with a genuine selection whose lower bound is zero;
-	 * `null` cannot. An infinite `max` — which only reaches this route through a `?f` link from
-	 * React's open-ended price slider — reads back as the baseline maximum rather than as an infinite
-	 * handle position.
+	 * `null` cannot. The rule itself is `wineRangeRule`'s, shared with every app: the price slider is
+	 * open-ended, so its top thumb at the top of the track commits `max: Infinity` ("$60 and up"), and
+	 * an infinite `max` reads back as the track top rather than as an infinite handle position.
+	 *
+	 * ### Copy
+	 *
+	 * The label and the thumbs' accessible-name stem are `WINE_SLIDER_COPY[ruleId]`, so the thumbs are
+	 * named `Filter by price lower bound` and so on, as in every app.
 	 */
 
+	import type { RangeRule } from '@filter-enginez/core';
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { range, type RangeRule } from '@filter-enginez/core';
 	import {
 		FALLBACK_BOUNDS,
 		fieldBounds,
+		WINE_SLIDER_COPY,
 		WINE_SLIDER_TEXT,
+		wineRangeRule,
+		type WineRangeSliderId,
 		wineSliderHistogram,
 		wineSliderScale,
 	} from '@filter-enginez/examples-shared/wine-domain';
@@ -54,19 +62,17 @@
 
 	const {
 		engine,
-		field,
-		label,
 		leaveExpressionMode,
 		ruleId,
 		step,
 	}: {
 		engine: SignalsEngine<Wine>;
-		/** The `Wine` property the `RangeRule` constrains — `priceUsd` for the `price` rule. */
-		field: string;
-		label: string;
 		leaveExpressionMode: () => void;
-		/** Rule id — also the key into the shared baselines and the bundle's field metadata. */
-		ruleId: 'abv' | 'points' | 'price';
+		/**
+		 * Rule id — also the key into the shared copy, the baselines, the bundle's field metadata and
+		 * `WINE_RANGE_FIELDS`, which names the `Wine` field the rule constrains.
+		 */
+		ruleId: WineRangeSliderId;
 		/** Drag granularity. NOT `SLIDER_STEPS` — see the panel's `DRAG_STEPS`. */
 		step: number;
 	} = $props();
@@ -138,15 +144,19 @@
 	 * the table every app's wine panel shares — so a field showing `$1,250` also accepts `$1,250`.
 	 */
 	const sliderText = $derived(WINE_SLIDER_TEXT[ruleId]);
+
+	/** The label and the thumbs' accessible-name stem. */
+	const copy = $derived(WINE_SLIDER_COPY[ruleId]);
 </script>
 
 <section>
 	<RangeSlider
+		ariaLabel={copy.sliderLabel}
 		{available}
 		{baseline}
 		format={sliderText.format}
 		{histogram}
-		{label}
+		label={copy.label}
 		parse={sliderText.parse}
 		{scale}
 		{step}
@@ -157,7 +167,7 @@
 			// Write the handle position locally first: on the worker tier the engine's own value lags a
 			// full round trip, so waiting for the recompute would snap the handle backwards mid-drag.
 			value = next;
-			commitRule(engine, ruleId, range(field, next));
+			commitRule(engine, ruleId, wineRangeRule(ruleId, next, baseline));
 		}}
 	/>
 </section>

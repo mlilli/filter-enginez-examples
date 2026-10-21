@@ -19,6 +19,7 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import { createSignalsEngine, type SignalsEngine } from '@filter-enginez/reactive-signals';
 
+import { reviveSignalsEngine } from '../data/reviveSignalsEngine.js';
 import { bootRealEstateCore, type RealEstateBootMeta } from './bootRealEstateCore.js';
 
 /** Boot result — the signals-wrapped engine plus boot metadata. */
@@ -34,14 +35,26 @@ let cachedBoot: Promise<RealEstateEngineBundle> | null = null;
 
 /**
  * Boot the real-estate engine on the main thread, wrapped in the signals surface. Idempotent —
- * repeated calls return the cached bundle.
+ * repeated calls return the cached bundle, with a fresh facade over the same core when a route that
+ * left disposed the cached one (see `reviveSignalsEngine`).
  *
  * @returns The booted {@link RealEstateEngineBundle}.
  */
 export async function bootRealEstateEngine(): Promise<RealEstateEngineBundle> {
 	cachedBoot ??= bootInternal();
 
-	return cachedBoot;
+	const bundle = await cachedBoot;
+	const engine = reviveSignalsEngine(bundle.engine);
+
+	if (engine === bundle.engine) {
+		return bundle;
+	}
+	// A route that left disposed the cached facade; hand the next visit a live one over the same core.
+	const revived = { ...bundle, engine };
+
+	cachedBoot = Promise.resolve(revived);
+
+	return revived;
 }
 
 /**

@@ -8,6 +8,12 @@
  * pixel-identical and none re-implements the row. Extracted to its own file to keep
  * `BookFilterSections.tsx` under the file-size cap.
  *
+ * The box is controlled, so React puts the DOM back to `isChecked` the moment a click's change
+ * handler returns. Each section therefore passes its PAINTED state, not the engine's: it sets that
+ * state in the click (`useSeedAndAdopt` plus `paintOptimisticUi`), and the rule lands two frames and
+ * an engine round trip later. Passed the engine's state, the box would show clear until the rule
+ * arrived and a click would read as ignored, where every app's box ticks at once.
+ *
  * @packageDocumentation
  */
 

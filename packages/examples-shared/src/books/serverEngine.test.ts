@@ -218,11 +218,13 @@ describe('mutation events + lifecycle', () => {
 		expect(await engine.getActiveRuleIds()).toEqual([]);
 	});
 
-	it('escalates a heterogeneous coalesced burst to reset (a clear-all refreshes the rules mirror)', async () => {
-		// The /wine-server "clear all" fires `removeRule` for a facet and THEN `setExpression(null)`,
-		// synchronously. On this debounced tier the two collapse into ONE delivered event; keeping only
-		// the trailing `expression` would refresh expression + results but NOT the rules, so the header's
-		// active-filter chips would survive the clear. Different refresher groups → escalate to `reset`.
+	it('escalates a heterogeneous coalesced burst to reset (so the rules mirror refreshes)', async () => {
+		// Picking a smart-filter preset on /wine-server fires `removeRule` for the facets and THEN
+		// `setExpression`, synchronously; this drives the same rule-then-expression shape. On this
+		// debounced tier the two collapse into ONE delivered event; keeping only the trailing
+		// `expression` would refresh expression + results but NOT the rules, so the header's
+		// active-filter chips for the removed facets would survive. Different refresher groups →
+		// escalate to `reset`.
 		const engine = createHttpFilterEngine({ dataset: 'books', debounceMs: 10 });
 
 		await engine.addRule('genre', inSet('genre', ['fantasy']).serialize() as unknown as FilterRule);
@@ -399,6 +401,62 @@ describe('expression mode (smart filters)', () => {
 
 		await engine.clearRules();
 		expect(await engine.getExpression()).toBeNull();
+	});
+
+	/**
+	 * The config a server-backed page's `?f=` holds for an expression with a flat rule beside it: the
+	 * expression's two leaves are inline (never registered), and `format` is registered.
+	 *
+	 * @param isMarked - Whether the inline entries carry `inline: true`; a link written by engine 0.0.3
+	 *   names them only by their reserved `__inline_<n>` ids.
+	 * @returns The config document.
+	 */
+	function configWithInlineLeaves(isMarked: boolean): Parameters<ReturnType<typeof createHttpFilterEngine>['loadConfig']>[0] {
+		const mark = isMarked ? { inline: true } : {};
+
+		return {
+			expression: {
+				children: [{ ruleId: '__inline_0', type: 'rule' }, { ruleId: '__inline_1', type: 'rule' }],
+				op: 'or',
+				type: 'composite',
+			},
+			rules: [
+				{ id: 'format', rule: inSet('format', ['hardcover']).serialize() },
+				{ id: '__inline_0', ...mark, rule: inSet('genre', ['fantasy']).serialize() },
+				{ id: '__inline_1', ...mark, rule: inSet('genre', ['mystery']).serialize() },
+			],
+			version: 1,
+		};
+	}
+
+	it.each([
+		['marked inline', true],
+		['written by engine 0.0.3, unmarked', false],
+	])('loadConfig registers the flat rule beside an expression and none of its leaves (%s)', async (_label, isMarked) => {
+		// The failure this guards: an expression's leaves registered as flat rules start filtering the
+		// moment the expression is cleared. "Fantasy OR mystery" as two ANDed flat rules matches nothing.
+		const engine = createHttpFilterEngine({ dataset: 'books', debounceMs: 0 });
+
+		await engine.loadConfig(configWithInlineLeaves(isMarked));
+		expect([...(await engine.getRules()).keys()]).toEqual(['format']);
+		expect(await engine.getExpression()).not.toBeNull();
+
+		await engine.setExpression(null);
+		expect([...(await engine.getRules()).keys()]).toEqual(['format']);
+		await engine.getResultIndices();
+		expect(postedBodies.at(-1)?.config.rules.map((rule) => rule.id)).toEqual(['format']);
+	});
+
+	it('posts a loaded expression with its leaves once, beside the flat rule', async () => {
+		const engine = createHttpFilterEngine({ dataset: 'books', debounceMs: 0 });
+
+		await engine.loadConfig(configWithInlineLeaves(false));
+		await engine.getResultIndices();
+
+		const posted = postedBodies.at(-1)?.config;
+
+		expect(posted?.rules.map((rule) => rule.id)).toEqual(['format', '__inline_0', '__inline_1']);
+		expect(posted?.expression?.type).toBe('composite');
 	});
 });
 

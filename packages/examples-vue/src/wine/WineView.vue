@@ -249,8 +249,8 @@ function handleRemove(ruleId: string): void {
 			<div class="fe-sidebar-app__results">
 				<ResultsHeader
 					:active-filters="activeFilters"
+					dataset="wine"
 					:is-busy="isEngineBusy"
-					noun="bottles"
 					:recent-rule-id="lastChange.ruleId"
 					:result-count="results.length"
 					:total-count="sourceData.length"

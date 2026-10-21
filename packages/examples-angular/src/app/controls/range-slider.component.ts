@@ -42,6 +42,14 @@
  * (`stepScaledValue`, never less than one `step`) instead of one `step`. Each thumb's `aria-valuetext`
  * is the formatted value, so a screen reader hears `$1,250` or `NV`, not the raw number.
  *
+ * ### Typed bounds and track presses, decided once for every app
+ *
+ * A typed bound commits on blur or Enter through `parse` and the shared `resolveTypedBound` (snapped,
+ * clamped into the available zone); junk, or the bound already committed, puts the committed value
+ * back and writes nothing; an inverted pair swaps; Escape reverts and commits nothing. A track press
+ * moves the thumb nearer ON SCREEN (`nearestThumb`). Arrows step, Home / End jump; PageUp / PageDown
+ * and Shift+Arrow do nothing special, as in every other app.
+ *
  * The bounds contract is imported from `examples-shared/bounds` rather than `/books-domain`: this is a
  * dataset-neutral control and it renders real estate too, so taking its types from a dataset address
  * would teach the next reader it belongs to books.
@@ -67,9 +75,11 @@ import {
 	histogramBarHeightPercent,
 	type HistogramBucket,
 	linearSliderScale,
+	nearestThumb,
 	type NumericBounds,
+	resolveTypedBound,
 	type SliderScale,
-	snapToStep,
+	snapClampToBounds,
 	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 
@@ -162,7 +172,7 @@ type ActiveHandle = 'lower' | 'upper' | null;
 					(input)="lowerText.set($any($event.target).value)"
 					(blur)="commitText('lower', lowerText())"
 					(keydown.enter)="lowerField.blur()"
-					(keydown.escape)="revertText(); lowerField.blur()"
+					(keydown.escape)="revertAndLeave(lowerField)"
 				/>
 				<input
 					#upperField
@@ -174,7 +184,7 @@ type ActiveHandle = 'lower' | 'upper' | null;
 					(input)="upperText.set($any($event.target).value)"
 					(blur)="commitText('upper', upperText())"
 					(keydown.enter)="upperField.blur()"
-					(keydown.escape)="revertText(); upperField.blur()"
+					(keydown.escape)="revertAndLeave(upperField)"
 				/>
 			</div>
 		</div>
@@ -237,6 +247,9 @@ export class RangeSliderComponent {
 
 	/** Which thumb the active gesture drives, if any. */
 	private _activeHandle: ActiveHandle = null;
+
+	/** Set while Escape blurs a field, so that one blur commits nothing. See {@link revertAndLeave}. */
+	private _isReverting = false;
 
 	/** In-flight `[lower, upper]` during a drag; `null` when showing committed values. */
 	private readonly _dragValue = signal<null | readonly [number, number]>(null);
@@ -401,10 +414,21 @@ export class RangeSliderComponent {
 		}
 	}
 
-	/** Restore both text fields to the committed values (Escape). */
-	protected revertText(): void {
-		this.lowerText.set(this.formatValue(this.safeLower()));
-		this.upperText.set(this.formatValue(this.safeUpper()));
+	/**
+	 * Escape: put both committed values back and leave the field, committing nothing. The blur this
+	 * dispatches runs synchronously inside the call, under {@link _isReverting}, so it is skipped.
+	 *
+	 * @param field - The bound input Escape was pressed in.
+	 */
+	protected revertAndLeave(field: HTMLInputElement): void {
+		this._revertText();
+		this._isReverting = true;
+
+		try {
+			field.blur();
+		} finally {
+			this._isReverting = false;
+		}
 	}
 
 	/** Begin a pointer drag on one thumb. */
@@ -414,30 +438,6 @@ export class RangeSliderComponent {
 		this._dragValue.set([this.displayLower(), this.displayUpper()]);
 		window.addEventListener('pointermove', this._handlePointerMove);
 		window.addEventListener('pointerup', this._handlePointerUp);
-	}
-
-	/**
-	 * Which thumb a click at `value` should move.
-	 *
-	 * @remarks
-	 * Nearest wins, with the two outside cases resolved first so a click beyond either end always
-	 * extends rather than inverts the selection. Without that, a click left of both thumbs when they
-	 * sit together would be equidistant, and the tie could pick `upper` — dragging the top of the range
-	 * down past the bottom, which `_commit` then silently re-orders into something the user did not ask
-	 * for.
-	 *
-	 * @param value - The value under the pointer.
-	 * @returns The handle to move.
-	 */
-	private _pickHandle(value: number): 'lower' | 'upper' {
-		if (value <= this.displayLower()) {
-			return 'lower';
-		}
-		if (value >= this.displayUpper()) {
-			return 'upper';
-		}
-
-		return value - this.displayLower() <= this.displayUpper() - value ? 'lower' : 'upper';
 	}
 
 	/**
@@ -460,25 +460,39 @@ export class RangeSliderComponent {
 	 * @param event - The pointer event on the track.
 	 */
 	protected trackPointerDown(event: PointerEvent): void {
-		this.startDrag(this._pickHandle(this._valueFromPointer(event.clientX)), event);
+		const value = this._valueFromPointer(event.clientX);
+
+		const scale = this.trackScale();
+
+		this.startDrag(nearestThumb(value, this.displayLower(), this.displayUpper(), (at) => scale.toFraction(at)), event);
 		this._handlePointerMove(event);
 	}
 
 	/**
-	 * Commit a text field's contents.
+	 * Commit a text field (blur, or Enter through its blur). Junk, or the bound already committed, puts
+	 * the committed value back and writes nothing; the blur after Escape is skipped outright.
 	 *
 	 * @param which - Which bound was edited.
 	 * @param raw - The raw field text.
 	 */
 	protected commitText(which: 'lower' | 'upper', raw: string): void {
-		const parsed = (this.parse() ?? Number.parseFloat)(raw);
-		const fallback = which === 'lower' ? this.safeLower() : this.safeUpper();
-		const clamped = Number.isFinite(parsed) ? this._snapClamp(parsed) : fallback;
+		if (this._isReverting) {
+			return;
+		}
+
+		const committed = which === 'lower' ? this.safeLower() : this.safeUpper();
+		const resolved = resolveTypedBound((this.parse() ?? Number.parseFloat)(raw), this.step(), this.effectiveAvailable());
+
+		if (resolved === null || resolved === committed) {
+			this._revertText();
+
+			return;
+		}
 
 		if (which === 'lower') {
-			this._commit(clamped, this.safeUpper());
+			this._commit(resolved, this.safeUpper());
 		} else {
-			this._commit(this.safeLower(), clamped);
+			this._commit(this.safeLower(), resolved);
 		}
 	}
 
@@ -535,10 +549,13 @@ export class RangeSliderComponent {
 
 	/** Snap to {@link step} (`snapToStep` also trims float noise: `13.3`, not `13.299…`), then clamp. */
 	private _snapClamp(value: number): number {
-		return Math.max(
-			this.effectiveAvailable().min,
-			Math.min(snapToStep(value, this.step()), this.effectiveAvailable().max),
-		);
+		return snapClampToBounds(value, this.step(), this.effectiveAvailable());
+	}
+
+	/** Put both committed values back in the text fields. */
+	private _revertText(): void {
+		this.lowerText.set(this.formatValue(this.safeLower()));
+		this.upperText.set(this.formatValue(this.safeUpper()));
 	}
 
 	/** Translate a viewport x-coordinate, through the {@link trackScale}, into a snapped, clamped value. */

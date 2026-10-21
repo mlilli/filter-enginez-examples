@@ -11,10 +11,11 @@
 	 * booted + held in `$state.raw` by the route (`/books/+page.svelte`) and handed here as a prop.
 	 *
 	 * @remarks
-	 * Deviations from React (all deliberate): the count renders directly
-	 * rather than through the 600ms rAF tick; the mobile drawer is an inline collapse rather than an
-	 * off-canvas `FilterDrawer`; the header's logomark is the static `/mark.svg` rather than React's
-	 * animated `<Mark>`; and the search inputs commit on blur / Enter rather than debounced-per-keystroke.
+	 * Deviations from React (all deliberate): the header's logomark is the static `/mark.svg` rather
+	 * than React's animated `<Mark>`.
+	 *
+	 * The footer names where filtering runs: the main-thread engine on `/books`, the server engine over
+	 * HTTP on `/books-server`, the same two labels the React apps' footers carry.
 	 */
 
 	import type { EngineTier } from '@filter-enginez/examples-shared/verticals';
@@ -90,6 +91,9 @@
 	});
 
 	const showPanel = $derived(isDesktop || isFilterOpen);
+
+	/** Where filtering runs, for the footer. */
+	const engineLabel = $derived(tier === 'server' ? 'server engine over HTTP' : 'main-thread engine');
 </script>
 
 <div class="fe-books-app">
@@ -137,8 +141,8 @@
 			{/if}
 			<!-- Hidden, NOT unmounted. `{#if}` here would destroy every control's local state on each
 			     mobile close — and, on the real-estate route, tear down and re-init the Leaflet map,
-			     refetching tiles and resetting the user's zoom. React's `FilterDrawer keepMounted`
-			     made the same call. `hidden` keeps the subtree alive and out of the a11y tree, and
+			     refetching tiles and resetting the user's zoom. Every app makes the same call (React's
+			     `FilterCollapse` included). `hidden` keeps the subtree alive and out of the a11y tree, and
 			     `fe-filter-collapse` restores the flex height chain the wrapper otherwise severs — see
 			     that rule in ui-styles for why it is scoped `:not([hidden])`. -->
 			<div class="fe-filter-collapse" hidden={!showPanel}>
@@ -163,7 +167,7 @@
 	</main>
 
 	<footer class="fe-books-app__footer">
-		<span>filter-enginez · books demo · svelte + main-thread engine</span>
+		<span>filter-enginez · books demo · svelte + {engineLabel}</span>
 		<span>
 			engine mode <code>{$mode}</code> · data via
 			<code>@filter-enginez/mock-data</code>

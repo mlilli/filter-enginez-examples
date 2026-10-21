@@ -34,6 +34,7 @@ import { markUserAction } from '../engineBusy.js';
 import { deriveOriginSelection, type OriginNodeSpec } from '../wine-domain/bundle.js';
 import { ORIGIN_RULE_ID } from '../wine-domain/originLinks.js';
 import { writeOriginSelection } from '../wine-domain/originRule.js';
+import { WINE_ORIGIN_TREE } from '../wine-domain/panelCopy.js';
 import { useBundleOriginCounts, useBundleOriginDisabledSet } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
@@ -94,6 +95,10 @@ export const OriginFilterSection = ({ specs, tree }: OriginFilterSectionProps): 
 				onChange={handleChange}
 				disabledNodes={disabledNodes}
 				nodeCounts={nodeCounts}
+				// A named group at the shared height, as in every other app. The height is passed rather
+				// than left to the stylesheet, whose default is the taller real-estate sidebar's.
+				groupLabel={WINE_ORIGIN_TREE.groupLabel}
+				maxHeight={WINE_ORIGIN_TREE.maxHeight}
 			/>
 		</section>
 	);

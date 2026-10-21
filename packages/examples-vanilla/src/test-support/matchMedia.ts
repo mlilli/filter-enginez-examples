@@ -7,7 +7,7 @@
  * jsdom does not implement `matchMedia`, so `trackDesktopBreakpoint` takes its "hostile environment,
  * treat it as desktop" fallback in every test in this package that does not install a stub. That
  * makes the fallback the default path and leaves the three states that actually decide anything —
- * mobile, mobile-with-drawer-open, and a breakpoint CROSS — unreachable. A stub is not a convenience
+ * mobile, mobile-with-collapse-open, and a breakpoint CROSS — unreachable. A stub is not a convenience
  * here; it is the only way to reach the code that makes decisions.
  *
  * ### 🔴 It answers ONE query, and the query is the caller's to name

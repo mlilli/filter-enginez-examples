@@ -27,13 +27,14 @@ import { useSeedAndAdopt } from '../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../scheduling/index.js';
 import { useTypeaheadSearch } from '../search/useTypeaheadSearch.js';
 import { toggleSetValue } from '../selection/index.js';
+import { BOOKS_ISBN_INVALID_MESSAGE } from './books-domain/panelCopy.js';
 import { CheckboxControl } from './CheckboxControl.js';
 import { markUserAction } from './engineBusy.js';
 import {
 	useBooksChipExclusion,
 	useBooksFieldBounds,
 	useBooksFieldHistogram,
-	useToggleWouldBeEmpty,
+	useIsToggleDisabled,
 } from './filterBundle.js';
 
 /** Stable empty selection so an unset InSet rule doesn't churn referential identity. */
@@ -291,11 +292,12 @@ export const BooleanSection = (props: BooleanSectionProps): React.ReactElement =
 	const { field, label, ruleId } = props;
 	const engine = useFilterEngine<Book>();
 	const rule = useRule(ruleId) as BooleanRule | undefined;
-	const isChecked = rule?.config === true;
+	// Painted at once and re-adopted when the rule changes from outside: see `CheckboxControl`.
+	const [isChecked, setIsChecked] = useSeedAndAdopt(rule?.config === true);
 	// Predictive-disable: turning this on filters the current results to `field === true`; disable
-	// when none of them qualify (so it can't zero the set).
+	// when none of them qualify (so it can't zero the set). Never while checked.
 	const candidateRule = useMemo(() => bool(field, true), [field]);
-	const isDisabled = useToggleWouldBeEmpty(candidateRule);
+	const isDisabled = useIsToggleDisabled(candidateRule, isChecked);
 
 	const handleToggle = useCallback((event: React.ChangeEvent<HTMLInputElement>): void => {
 		// Capture the checked state now — `commitFilterMutation` defers `callEngine` to a later frame,
@@ -305,8 +307,9 @@ export const BooleanSection = (props: BooleanSectionProps): React.ReactElement =
 		commitFilterMutation({
 			callEngine: () => engine.core.addRule(ruleId, bool(field, isRequiredTrue ? true : undefined)),
 			markBusy: markUserAction,
+			paintOptimisticUi: () => setIsChecked(isRequiredTrue),
 		});
-	}, [engine, field, ruleId]);
+	}, [engine, field, ruleId, setIsChecked]);
 
 	return <CheckboxControl isChecked={isChecked} isDisabled={isDisabled} label={label} onToggle={handleToggle} />;
 };
@@ -333,11 +336,12 @@ export const ExistsSection = (props: ExistsSectionProps): React.ReactElement => 
 	const { field, label, ruleId } = props;
 	const engine = useFilterEngine<Book>();
 	const rule = useRule(ruleId) as ExistsRule | undefined;
-	const isChecked = rule !== undefined;
+	// Painted at once and re-adopted when the rule changes from outside: see `CheckboxControl`.
+	const [isChecked, setIsChecked] = useSeedAndAdopt(rule !== undefined);
 	// Predictive-disable: turning this on requires the field be present; disable when no current
-	// result has it (so it can't zero the set).
+	// result has it (so it can't zero the set). Never while checked.
 	const candidateRule = useMemo(() => exists(field), [field]);
-	const isDisabled = useToggleWouldBeEmpty(candidateRule);
+	const isDisabled = useIsToggleDisabled(candidateRule, isChecked);
 
 	const handleToggle = useCallback((event: React.ChangeEvent<HTMLInputElement>): void => {
 		// Capture the checked state now — `commitFilterMutation` defers `callEngine` to a later frame,
@@ -353,8 +357,9 @@ export const ExistsSection = (props: ExistsSectionProps): React.ReactElement => 
 				}
 			},
 			markBusy: markUserAction,
+			paintOptimisticUi: () => setIsChecked(shouldRequirePresence),
 		});
-	}, [engine, field, ruleId]);
+	}, [engine, field, ruleId, setIsChecked]);
 
 	return <CheckboxControl isChecked={isChecked} isDisabled={isDisabled} label={label} onToggle={handleToggle} />;
 };
@@ -425,7 +430,7 @@ export const RegexSection = (props: RegexSectionProps): React.ReactElement => {
 			<SearchInput value={search.value} onChange={search.onChange} onCommit={search.onCommit} placeholder={placeholder} ariaLabel={ariaLabel} />
 			{isPatternInvalid ? (
 				<p role="alert" className="fe-books-regex-error">
-					Invalid regular expression
+					{BOOKS_ISBN_INVALID_MESSAGE}
 				</p>
 			) : null}
 		</section>

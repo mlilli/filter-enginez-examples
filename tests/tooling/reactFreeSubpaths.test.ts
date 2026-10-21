@@ -83,6 +83,8 @@ const REACT_FREE_SUBPATHS = [
 	'./real-estate-core',
 	'./real-estate-domain',
 	'./real-estate-map',
+	// When a search field commits: every app's search fields bind it, four of them with no React.
+	'./search-core',
 	'./selection',
 	'./verticals',
 	'./viewport-core',

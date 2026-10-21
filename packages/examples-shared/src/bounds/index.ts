@@ -45,9 +45,12 @@ export {
 	histogramBarTier,
 	type HistogramBucket,
 	linearSliderScale,
+	nearestThumb,
 	type NumericBounds,
+	resolveTypedBound,
 	sliderBucketCount,
 	type SliderScale,
+	snapClampToBounds,
 	snapToStep,
 	stepScaledValue,
 } from '@filter-enginez/react-ui/bounds';

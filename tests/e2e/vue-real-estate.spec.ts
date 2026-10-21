@@ -7,11 +7,10 @@
  * `vanilla-real-estate.spec.ts`, sharing their boot / settled-count / geo-chip machinery through
  * `filterFlow.ts`. Two structural notes:
  *
- *   - **No off-canvas drawer.** The mobile filter panel is an inline `.fe-filter-collapse` toggled by a
- *     "Filters" button, not react-ui's named `dialog`, so `openFilterPanel` merely expands it and there
- *     is nothing to close. On this route the collapse is hidden with the `hidden` attribute rather than
- *     `v-if` (unlike Vue's own `/books`), so the controls stay in the DOM while closed — which is why
- *     every readiness wait below is a VISIBILITY wait, never a count.
+ *   - **The mobile collapse.** The filter panel is an inline `.fe-filter-collapse` toggled by a
+ *     "Filters" button, so `openFilterPanel` merely expands it and there is nothing to close. The
+ *     collapse is hidden with the `hidden` attribute, as in every app, so the controls stay in the DOM
+ *     while closed — which is why every readiness wait below is a VISIBILITY wait, never a count.
  *   - **Absolute URLs.** Playwright's `baseURL` is the React app; these navigate to the Vue origin via
  *     `vueUrl(...)`.
  *
@@ -50,6 +49,7 @@ import {
 	TOGGLEABLE_CHIP,
 	TREE_ROW,
 } from './filterFlow.js';
+import { describeRealEstateParity } from './realEstateParity.js';
 import { subtitle } from './subtitles.js';
 import { vueUrl } from './vueBase.js';
 
@@ -66,7 +66,7 @@ const REMOVE_PILL = '.fe-filter-chip__remove';
  *
  * The signal is the header subtitle plus the result count — both in the results column, both OUTSIDE
  * the filter panel. Waiting on anything in the panel would conflate "the route has not booted" with
- * "the drawer is closed", and only one of those is a failure.
+ * "the collapse is shut", and only one of those is a failure.
  *
  * Generous timeout: this route builds the location hierarchy, the metro centroids and six slider
  * baselines from the booted corpus, behind the "Booting the real-estate engine…" placeholder, before it
@@ -268,7 +268,7 @@ test.describe('Vue real-estate app — filter flow', () => {
 		await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 		expect(await settledCount(page)).toBe(narrowed);
 
-		// Reopen the drawer — a reload closes it at phone width — because the panel's controls must
+		// Reopen the collapse — a reload shuts it at phone width — because the panel's controls must
 		// reflect the restored state too. Hydration writes rules onto the engine, and this panel seeds
 		// its local state FROM those rules on mount, so an unselected chip here would mean the seeding
 		// ran before hydration rather than after it.
@@ -306,3 +306,5 @@ test.describe('Vue real-estate app — filter flow', () => {
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
 });
+
+describeRealEstateParity({ id: 'vue', label: 'Vue' });

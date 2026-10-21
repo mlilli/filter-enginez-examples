@@ -19,21 +19,25 @@
  *   3. **Selected range** — the user's current handle positions. Cyan-filled segment between
  *      the two handles, always within the available zone.
  *
- * ### Editable text inputs above the slider
+ * ### Editable text inputs below the track
  *
- * The min/max readouts below the slider are EDITABLE controlled text inputs. User flow:
+ * The min/max readouts below the slider are EDITABLE controlled text inputs, committed the way every
+ * app's slider commits a typed bound:
  *
- *   - Type a value, press Enter (or blur the input) → commit.
- *   - On commit: parse as number, clamp to `baseline` bounds, then push to `onChange`.
- *   - Out-of-baseline values (e.g., $100,000 when baseline max is $25,000) revert to the
- *     baseline edge — the input visually resets to the clamped value on blur.
- *   - Max < min after edit → swap so the ordering stays coherent.
+ *   - Typing changes only the field. Enter or blur commits; nothing commits per keystroke.
+ *   - The text goes through `parse`, then the shared `resolveTypedBound`: snapped to `step` and
+ *     clamped into the available zone, exactly where a drag to the same spot would land.
+ *   - Text that is not a number, or a value equal to the committed bound, puts the committed value
+ *     back in the field and writes nothing.
+ *   - A lower bound typed above the upper one (or the reverse) swaps, so min ≤ max always holds.
+ *   - Escape puts the committed value back and commits nothing, including on the blur it causes.
+ *   - Focusing a field leaves its text unselected, as in every other app.
  *
- * **Why clamp to baseline, not available.** Available shrinks as the user narrows other
- * filters; clamping to it would prevent the user from typing a value that lies in the
- * dimmed zone (perfectly legal — the engine just returns nothing for it, which is its own
- * useful affordance, not a bug). Baseline is the "what does the data even contain" floor
- * + ceiling.
+ * ### Keyboard
+ *
+ * Arrow keys step one step (`stepScaledValue`) and Home / End jump to the available bounds. PageUp /
+ * PageDown are swallowed and Shift+Arrow steps like a plain arrow: Radix would otherwise move ten
+ * steps for either, which no other app's slider does.
  *
  * **Anatomy** (top to bottom):
  *
@@ -49,14 +53,18 @@
  */
 
 import { Slider } from 'radix-ui';
-import { type Dispatch, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 
+import type { NumericBounds } from './bounds.js';
 import type { HistogramBucket } from './histogram.js';
 
-import { clampToBounds, type NumericBounds } from './bounds.js';
 import { RangeHistogram } from './RangeHistogram.js';
 import { type SliderScale, stepScaledValue } from './scale.js';
+import { useEditableBounds } from './useEditableBounds.js';
 import { arrowKeyDirection, useScaledSliderControl } from './useScaledSliderControl.js';
+
+/** The two keys Radix maps to a ten-step jump, which this slider swallows. */
+const PAGE_KEYS: ReadonlySet<string> = new Set(['PageDown', 'PageUp']);
 
 /**
  * Default readout formatter: the number's plain string form.
@@ -77,36 +85,6 @@ const formatAsPlainNumber = (value: number): string => value.toString();
  * @internal
  */
 const parseAsFloat = (raw: string): number => parseFloat(raw);
-
-/**
- * Local text for one editable bound: seeded from the committed value, re-synced whenever that value
- * or the formatter changes from outside, and free to hold a draft in between.
- *
- * @remarks
- * The re-sync happens during render, against the value and formatter it last synced from, rather than
- * in an effect — so the input never paints the stale text first. `Object.is` is the comparison an
- * effect's dependency array would make, so a `NaN` bound reads as unchanged rather than re-syncing on
- * every render.
- *
- * @param committed - The bound's committed (prop-derived) value.
- * @param format - The readout formatter; a new identity re-renders the text through it.
- * @returns The input's text, and its setter for keystrokes and commits.
- * @internal
- */
-function useCommittedText(
-	committed: number,
-	format: (value: number) => string,
-): [string, Dispatch<SetStateAction<string>>] {
-	const [text, setText] = useState(() => format(committed));
-	const [syncedFrom, setSyncedFrom] = useState({ committed, format });
-
-	if (!Object.is(syncedFrom.committed, committed) || syncedFrom.format !== format) {
-		setSyncedFrom({ committed, format });
-		setText(format(committed));
-	}
-
-	return [text, setText];
-}
 
 /**
  * Props for `<RangeSlider />`.
@@ -246,16 +224,6 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 		lastSentRef.current = null;
 	}, [safeLower, safeUpper]);
 
-	// ─── Editable text-input local state ───────────────────────────────────
-	// Inputs are controlled-while-focused (the local string state) and reconciled-on-blur
-	// against the committed numeric values. This "controlled-but-deferred" pattern avoids losing
-	// user keystrokes when the parent re-renders on every engine event during a slider drag. Each
-	// input re-syncs when ITS committed value changes from outside (e.g., the user dragged the slider
-	// handle, or the parent reset the rule), so a remote change to one bound never discards a draft
-	// typed into the other.
-	const [lowerText, setLowerText] = useCommittedText(safeLower, format);
-	const [upperText, setUpperText] = useCommittedText(safeUpper, format);
-
 	// **The single commit path** for every channel (slider drag-end, keyboard step, text input).
 	// Clamps to the available zone, no-ops when unchanged, and de-dupes via `lastSentRef`.
 	//
@@ -291,31 +259,19 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 		[effectiveAvailable, onChange, safeLower, safeUpper],
 	);
 
-	const commitLower = useCallback((raw: string): void => {
-		const parsed = parse(raw);
-		// Clamp to AVAILABLE (not baseline) so users can't type a value outside the currently-
-		// reachable range — entering $5,000 when no wines exist above $80 (given current filters)
-		// shouldn't push the slider into a dead zone.
-		const clamped = Number.isFinite(parsed) ? clampToBounds(parsed, effectiveAvailable) : safeLower;
-		// If the user typed a min above the current max, swap so ordering stays coherent — matches
-		// dragging the lower handle past the upper handle.
-		const nextMin = Math.min(clamped, safeUpper);
-		const nextMax = Math.max(clamped, safeUpper);
-
-		// Reflect the clamped value back in the input immediately, then commit through the shared path.
-		setLowerText(format(nextMin));
-		commitValues(nextMin, nextMax);
-	}, [commitValues, effectiveAvailable, format, parse, safeLower, safeUpper, setLowerText]);
-
-	const commitUpper = useCallback((raw: string): void => {
-		const parsed = parse(raw);
-		const clamped = Number.isFinite(parsed) ? clampToBounds(parsed, effectiveAvailable) : safeUpper;
-		const nextMin = Math.min(safeLower, clamped);
-		const nextMax = Math.max(safeLower, clamped);
-
-		setUpperText(format(nextMax));
-		commitValues(nextMin, nextMax);
-	}, [commitValues, effectiveAvailable, format, parse, safeLower, safeUpper, setUpperText]);
+	// ─── Editable bound fields ─────────────────────────────────────────────
+	// Controlled-but-deferred: each field holds a draft while focused and commits on Enter or blur
+	// through `commitValues`, so a parent re-rendering on every engine event mid-drag never loses a
+	// keystroke. The rules a typed bound follows are in `useEditableBounds`.
+	const fields = useEditableBounds({
+		available: effectiveAvailable,
+		commit: commitValues,
+		format,
+		lower: safeLower,
+		parse,
+		step,
+		upper: safeUpper,
+	});
 
 	const handleValueChange = useCallback(
 		(next: number[]): void => {
@@ -355,11 +311,19 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 	);
 
 	// Arrow keys on a position-based track step ~1% of it, not one Radix position (`stepScaledValue`).
+	// PageUp / PageDown and Shift+Arrow are Radix's ten-step jumps; `preventDefault` here runs before
+	// Radix's own handler, which skips a prevented event. The page keys then do nothing, and a
+	// Shift+Arrow takes the same single step as a plain arrow, as in every other app.
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent<HTMLSpanElement>): void => {
+			if (PAGE_KEYS.has(event.key)) {
+				event.preventDefault();
+
+				return;
+			}
 			const direction = arrowKeyDirection(event.key);
 
-			if (!isPositionBased || direction === undefined) {
+			if (direction === undefined || (!isPositionBased && !event.shiftKey)) {
 				return;
 			}
 			event.preventDefault();
@@ -452,7 +416,6 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 					available={effectiveAvailable}
 					displayLower={displayLower}
 					displayUpper={displayUpper}
-					format={format}
 				/>
 			)}
 
@@ -472,7 +435,9 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 				onPointerUp={handleDragEndCommit}
 				onLostPointerCapture={handleDragEndCommit}
 				aria-label={ariaLabel ?? label}
-				minStepsBetweenThumbs={1}
+				// Zero: the thumbs may meet, so a range of exactly one value (min = max) is reachable by
+				// drag and keyboard, as in every other app.
+				minStepsBetweenThumbs={0}
 			>
 				{/* Track: the three-tier gradient is dynamic (computed from the available-zone
 				    percentages each render), so it stays inline; static track geometry is in the
@@ -501,41 +466,14 @@ export const RangeSlider = (props: RangeSliderProps): React.ReactElement => {
 					type="text"
 					inputMode="decimal"
 					className="fe-range-slider__input fe-range-slider__input--min"
-					value={lowerText}
-					onChange={(event) => setLowerText(event.target.value)}
-					onBlur={(event) => commitLower(event.target.value)}
-					onKeyDown={(event) => {
-						if (event.key === 'Enter') {
-							event.preventDefault();
-							commitLower(event.currentTarget.value);
-							event.currentTarget.blur();
-						} else if (event.key === 'Escape') {
-							// Revert to the committed value without firing onChange.
-							setLowerText(format(safeLower));
-							event.currentTarget.blur();
-						}
-					}}
-					onFocus={(event) => event.currentTarget.select()}
+					{...fields.lower}
 					aria-label={`${label} lower bound (editable)`}
 				/>
 				<input
 					type="text"
 					inputMode="decimal"
 					className="fe-range-slider__input fe-range-slider__input--max"
-					value={upperText}
-					onChange={(event) => setUpperText(event.target.value)}
-					onBlur={(event) => commitUpper(event.target.value)}
-					onKeyDown={(event) => {
-						if (event.key === 'Enter') {
-							event.preventDefault();
-							commitUpper(event.currentTarget.value);
-							event.currentTarget.blur();
-						} else if (event.key === 'Escape') {
-							setUpperText(format(safeUpper));
-							event.currentTarget.blur();
-						}
-					}}
-					onFocus={(event) => event.currentTarget.select()}
+					{...fields.upper}
 					aria-label={`${label} upper bound (editable)`}
 				/>
 			</div>

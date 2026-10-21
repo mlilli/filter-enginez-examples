@@ -3,19 +3,18 @@
  *
  * @remarks
  * Everything the `/books` route needs beyond its hub card: the main-thread boot over the streamed
- * default tier, the Redux mirror it wires, its progress store and `<BooksApp>`. This module is the root
+ * default tier, the Redux mirror it wires, and `<BooksApp>`. This module is the root
  * of the route's chunk; see `datasets.tsx` for why the registry may only reach it through `import()`.
+ *
+ * No progress hooks, deliberately: every app's books boot screen is the inline idle caption alone
+ * (`BOOKS_BOOT_IDLE_CAPTION`, set on the registry entry), so there is no live count to follow.
  *
  * @packageDocumentation
  */
 
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import {
-	bootBooksEngine,
-	getBooksBootProgressSnapshot,
-	subscribeBooksBootProgress,
-} from '@filter-enginez/examples-shared/books';
+import { bootBooksEngine } from '@filter-enginez/examples-shared/books';
 
 import type { BootedDataset, DatasetModule } from '../datasets.js';
 
@@ -31,6 +30,4 @@ export const booksDataset: DatasetModule = {
 		return { detach, engine: bundle.engine as unknown as SignalsEngine<unknown>, store };
 	},
 	Component: BooksApp,
-	getProgressSnapshot: getBooksBootProgressSnapshot,
-	subscribeProgress: subscribeBooksBootProgress,
 };

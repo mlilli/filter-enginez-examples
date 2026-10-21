@@ -1,11 +1,20 @@
 /**
- * `<fe-result-grid>` — incremental "load more" card grid over the current result set, for any dataset.
+ * `<fe-result-grid>` — incremental infinite-scroll card grid over the current result set, for any dataset.
  *
  * @remarks
  * Render `results.slice(0, renderLimit)`, expand the limit when an `IntersectionObserver` reports the
- * bottom sentinel entering the scroller, cap at {@link HARD_CAP_RENDER}, and reset to the first page
+ * bottom sentinel entering the scroller, cap at `RESULT_GRID_WINDOW.cap`, and reset to the first page
  * whenever the result set's identity changes. The Angular port of Vue's `<ResultGrid>` and, before
  * it, `examples-shared`'s `BooksResultGrid`.
+ *
+ * ### The words and the window are shared
+ *
+ * The empty state, the list's and the scroller's accessible names and the cap notice come from
+ * `RESULT_COPY[dataset]` and `resultCapNotice`, and the paging window from `RESULT_GRID_WINDOW` /
+ * `nextRenderLimit` / `isRenderCapped` (`@filter-enginez/examples-shared/verticals`), so each
+ * dataset's results column reads and grows the same in all six apps. A page names its dataset and
+ * nothing else; the list label carries the live count (`1,204 matching wines`), and the cap notice
+ * appears only when the cap, not the result count, is what stopped the grid.
  *
  * ### Why one shared component
  *
@@ -44,13 +53,15 @@ import {
 	type TemplateRef,
 	viewChild,
 } from '@angular/core';
+import {
+	isRenderCapped,
+	nextRenderLimit,
+	RESULT_COPY,
+	RESULT_GRID_WINDOW,
+	resultCapNotice,
+	type ResultDataset,
+} from '@filter-enginez/examples-shared/verticals';
 
-/** First page of cards shown before the user scrolls. */
-const INITIAL_BATCH = 60;
-/** Page size for each subsequent "load more" trigger. */
-const BATCH_INCREMENT = 60;
-/** Hard cap on cards ever rendered at once — bounds worst-case DOM cost. */
-const HARD_CAP_RENDER = 1500;
 /** How far below the fold the sentinel starts expanding the page. */
 const SENTINEL_ROOT_MARGIN = '200px';
 
@@ -105,8 +116,8 @@ export class ResultCardDirective<T> {
 	template: `
 		@if (results().length === 0) {
 			<div class="fe-result-grid__empty">
-				<p class="fe-result-grid__empty-title">{{ emptyTitle() }}</p>
-				<p class="fe-result-grid__empty-hint">{{ emptyHint() }}</p>
+				<p class="fe-result-grid__empty-title">{{ copy().emptyTitle }}</p>
+				<p class="fe-result-grid__empty-hint">{{ copy().emptyHint }}</p>
 			</div>
 		} @else {
 			<!--
@@ -126,7 +137,7 @@ export class ResultCardDirective<T> {
 				#scroller
 				class="fe-result-grid__scroller"
 				role="group"
-				[attr.aria-label]="scrollRegionLabel()"
+				[attr.aria-label]="copy().scrollerLabel"
 				tabindex="0"
 			>
 				<div role="list" [attr.aria-label]="listLabel()" class="fe-result-grid">
@@ -138,13 +149,13 @@ export class ResultCardDirective<T> {
 					}
 				</div>
 				<div #sentinel aria-hidden="true" style="height: 1px"></div>
-				@if (isCappedShort()) {
+				@if (capNotice(); as notice) {
 					<p class="fe-result-grid__cap-notice">
 						Showing
-						<span class="fe-result-grid__cap-shown">{{ renderedCount().toLocaleString() }}</span>
+						<span class="fe-result-grid__cap-shown">{{ notice.rendered }}</span>
 						of
-						<span class="fe-result-grid__cap-total">{{ results().length.toLocaleString() }}</span>
-						{{ noun() }} · narrow your filters to surface the rest
+						<span class="fe-result-grid__cap-total">{{ notice.total }}</span>
+						{{ notice.suffix }}
 					</p>
 				}
 			</div>
@@ -155,42 +166,36 @@ export class ResultGridComponent<T> {
 	/** The card template, one instance per visible record. See {@link ResultCardDirective}. */
 	public readonly card = input.required<TemplateRef<ResultCardContext<T>>>();
 
-	/** Hint shown beneath the empty-state title, naming a filter worth widening. */
-	public readonly emptyHint = input.required<string>();
-
-	/** Empty-state headline, e.g. `'No books match the current filters.'` */
-	public readonly emptyTitle = input.required<string>();
+	/**
+	 * The dataset whose results these are; it picks the `RESULT_COPY` entry.
+	 *
+	 * @remarks
+	 * Required, not optional, because the scroll region's accessible name comes from it, and the
+	 * scroll region is a WCAG 2.1.1 obligation rather than a nicety.
+	 */
+	public readonly dataset = input.required<ResultDataset>();
 
 	/** Stable key for a result, so Angular can reuse card DOM across renders. */
 	public readonly itemKey = input.required<(item: T) => string>();
 
-	/** Accessible name for the grid's `role="list"`, e.g. `'Matching books'`. */
-	public readonly listLabel = input.required<string>();
-
-	/** Plural record noun for the cap notice — `matches` reads well for every dataset. */
-	public readonly noun = input<string>('matches');
-
 	/** The current filtered result set, in full. This component does its own paging. */
 	public readonly results = input.required<readonly T[]>();
 
-	/**
-	 * Accessible name for the SCROLLER, e.g. `'Book results'`.
-	 *
-	 * @remarks
-	 * Required, not optional, because the scroll region is a WCAG 2.1.1 obligation rather than a
-	 * nicety, and an optional label is one a call site can silently omit.
-	 */
-	public readonly scrollRegionLabel = input.required<string>();
-
 	/** How many cards the user has paged into view. */
-	private readonly _renderLimit = signal(INITIAL_BATCH);
+	private readonly _renderLimit = signal<number>(RESULT_GRID_WINDOW.initial);
 
 	private readonly _scroller = viewChild<ElementRef<HTMLDivElement>>('scroller');
 	private readonly _sentinel = viewChild<ElementRef<HTMLDivElement>>('sentinel');
 
-	/** Cards actually in the DOM — the render limit, bounded by the result set and the hard cap. */
+	/** The dataset's empty state and accessible names. */
+	protected readonly copy = computed(() => RESULT_COPY[this.dataset()]);
+
+	/** The list's accessible name, carrying the live count: `1,204 matching wines`. */
+	protected readonly listLabel = computed<string>(() => this.copy().listLabel(this.results().length));
+
+	/** Cards actually in the DOM — the render limit, bounded by the result set and the cap. */
 	protected readonly renderedCount = computed<number>(() =>
-		Math.min(this._renderLimit(), this.results().length, HARD_CAP_RENDER),
+		Math.min(this._renderLimit(), this.results().length, RESULT_GRID_WINDOW.cap),
 	);
 
 	/** The slice rendered this pass. */
@@ -198,10 +203,12 @@ export class ResultGridComponent<T> {
 		this.results().slice(0, this.renderedCount()),
 	);
 
-	/** True when the hard cap — not the result set — is what is limiting the grid. */
-	protected readonly isCappedShort = computed<boolean>(
-		() => this.renderedCount() >= HARD_CAP_RENDER && this.results().length > HARD_CAP_RENDER,
-	);
+	/** The cap notice's parts, or `null` unless the cap — not the result set — is limiting the grid. */
+	protected readonly capNotice = computed(() => {
+		const total = this.results().length;
+
+		return isRenderCapped(this.renderedCount(), total) ? resultCapNotice(this.renderedCount(), total) : null;
+	});
 
 	public constructor() {
 		// Reset to the first page whenever the result set's IDENTITY changes. A filter commit hands back
@@ -210,7 +217,7 @@ export class ResultGridComponent<T> {
 		// write to `_renderLimit` is not read here, so there is no self-trigger.
 		effect(() => {
 			this.results();
-			this._renderLimit.set(INITIAL_BATCH);
+			this._renderLimit.set(RESULT_GRID_WINDOW.initial);
 
 			const scroller = this._scroller();
 
@@ -246,9 +253,7 @@ export class ResultGridComponent<T> {
 					if (entry === undefined || !entry.isIntersecting) {
 						return;
 					}
-					this._renderLimit.update((limit) =>
-						Math.min(limit + BATCH_INCREMENT, total, HARD_CAP_RENDER),
-					);
+					this._renderLimit.update((limit) => nextRenderLimit(limit, total));
 				},
 				{ root: scroller.nativeElement, rootMargin: SENTINEL_ROOT_MARGIN, threshold: 0 },
 			);

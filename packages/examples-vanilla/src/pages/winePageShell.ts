@@ -29,6 +29,15 @@
  * holding local state — see `../wine/facetState.ts`, and `../real-estate/panel.ts` for the
  * main-thread contrast. It is true of BOTH tiers, which is part of why they share this file.
  *
+ * ## Busy is marked by every write and resolved on the bundle's settle
+ *
+ * The shared wine commit helpers, the pills, the presets and the devtools controls all mark
+ * `wineBusyCore` before they write, so the header's computing indicator and the panel body's
+ * `--busy` light in the click's own frame. The bundle fetcher captures the tracker's version when a
+ * fetch STARTS and resolves to it when that fetch settles (after one painted frame — see
+ * `../busy/engineBusy.ts`), so on the 150k worker tier the state holds for the whole round trip, and
+ * a click landing mid-trip keeps it lit until its own fetch lands.
+ *
  * ## The panel repaints on the BUNDLE's settle, not on `activeRules`
  *
  * Same shape as `/real-estate`: the rule change requests a bundle, and the repaint happens once, on
@@ -45,10 +54,11 @@ import type { CompareDataset } from '@filter-enginez/examples-shared/compare-cor
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { createBundleFetcher } from '@filter-enginez/examples-shared/wine-domain';
+import { createBundleFetcher, wineBusyCore } from '@filter-enginez/examples-shared/wine-domain';
 
 import type { RouteTeardown } from '../router.js';
 
+import { resolveAfterPaint } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
@@ -113,8 +123,11 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 	const compareLink = createCompareLinkButton(compareDataset);
 	const devtools = createDevtoolsSurface({
 		devtools: (engine.core as unknown as { devtools: DevtoolsCursor }).devtools,
+		// Undo, redo and every timeline jump are engine writes like any other.
+		markBusy: wineBusyCore.markUserAction,
 	});
 	const view = createWineView(engine.core, {
+		busy: wineBusyCore,
 		footnote,
 		headerControls: [...devtools.headerControls, formatToggle.element, copyLink.element, compareLink.element],
 		resultsInsetElement: devtools.panelElement,
@@ -130,6 +143,7 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 	let bundle: FilterBundle | null = null;
 
 	const fetcher = createBundleFetcher(engine, {
+		captureVersion: wineBusyCore.captureCurrentVersion,
 		onBundle: (next) => {
 			bundle = next;
 		},
@@ -139,11 +153,12 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 		// ONE repaint per change, on the terminal outcome rather than on the bundle, so a failed round
 		// trip still repaints the panel from the new rules with the previous hints. Painting on
 		// `onBundle` alone would leave the controls frozen on the old state after a failure.
-		onSettled: () => {
+		onSettled: (version) => {
 			const expression = engine.core.getExpression();
 
 			view.setRules(latestRules, engine.lastChangeRuleId.value, expression !== null);
-			view.setPanelState({ bundle, expression, isComputing: false, rules: latestRules });
+			view.setPanelState({ bundle, expression, rules: latestRules });
+			resolveAfterPaint(wineBusyCore, version);
 		},
 	});
 

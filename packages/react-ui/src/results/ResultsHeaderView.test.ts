@@ -137,6 +137,28 @@ describe('ResultsHeaderView', () => {
 		expect(container.querySelector('.fe-result-count__status .fe-result-count__total')).toBeNull();
 	});
 
+	it('names the count with the default noun, or the one the dataset passes', () => {
+		const { container: plain } = renderHeader();
+
+		expect(plain.querySelector('.fe-result-count__label')?.textContent).toBe('results');
+
+		cleanup();
+		const { container: wine } = renderHeader({ noun: 'bottles' });
+
+		expect(wine.querySelector('.fe-result-count__label')?.textContent).toBe('bottles');
+	});
+
+	it('draws the computing indicator icon at 30px, as the other apps do', () => {
+		const { container: idle } = renderHeader({ isFetching: false });
+
+		expect(idle.querySelector('.fe-computing-indicator__icon svg')?.getAttribute('width')).toBe('30');
+
+		cleanup();
+		const { container: busy } = renderHeader({ isFetching: true });
+
+		expect(busy.querySelector('.fe-computing-indicator__icon svg')?.getAttribute('width')).toBe('30');
+	});
+
 	it('drives the computing indicator from isFetching (idle vs computing)', () => {
 		const { container: idle } = renderHeader({ isFetching: false, resultCount: 100, totalCount: 100 });
 

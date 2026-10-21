@@ -11,13 +11,17 @@
  * tier without per-dataset plumbing.
  *
  * **2. Clearing a facet REMOVES its rule.** It never writes an empty one. An `InSetRule` with an
- * empty set still participates in the AND and matches nothing, so "deselect everything" would filter
- * the results to zero rather than clearing the facet — the single most likely thing to get wrong here,
- * and invisible in code review because the call looks reasonable.
+ * empty set matches every item, so the results would look the same, but the rule would stay
+ * registered with no control showing it: in the `?f=` link, and in the devtools log as a change rather
+ * than a removal. The call looks reasonable in code review, which is why it is decided here once.
  *
- * The same trap has a second form specific to this dataset: {@link ContainsAllRule} with an empty
- * `required` array IS neutral (everything contains all of nothing), so the must-have-features section
- * could get away with writing one. It still clears instead, so every facet behaves identically.
+ * The same holds for `ContainsAllRule`: with an empty `required` array it is neutral too
+ * (everything contains all of nothing), and the must-have-features section still clears instead, so
+ * every facet behaves identically.
+ *
+ * "Clear all" is not here: the results header calls the shared `clearAllFilters(engine,
+ * markUserAction)` from `@filter-enginez/examples-shared/selection`, one `clearRules` for every rule,
+ * group and expression, as in every dataset and every app.
  *
  * @packageDocumentation
  */
@@ -27,34 +31,6 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { markUserAction } from './realEstateBusy.js';
-
-/**
- * Every facet rule id the panel can write.
- *
- * @remarks
- * Named in ONE place so "clear all" and the results header's per-chip reset cannot drift from the
- * panel. A literal list at either call site would silently go stale the next time a facet is added —
- * the new facet would survive a clear-all, quietly ANDing itself into every subsequent result, with no
- * control on screen to explain why the counts look wrong.
- *
- * Ordered to match the panel's render order, so a reader can check the two against each other.
- */
-export const REAL_ESTATE_FACET_RULE_IDS: readonly RuleId[] = [
-	'location',
-	'geo-proximity',
-	'school-district',
-	'property-type',
-	'status',
-	'price',
-	'square-feet',
-	'bedrooms',
-	'bathrooms',
-	'year-built',
-	'lot-size',
-	'must-have-features',
-	'listed-date',
-	'text-search',
-];
 
 /**
  * Add or replace a rule.
@@ -104,22 +80,6 @@ export function commitSelection<V extends string>(
 		return;
 	}
 	commitRule(engine, ruleId, build(values));
-}
-
-/**
- * Drop every facet rule in one pass — what "clear all" calls.
- *
- * @remarks
- * One `markUserAction` for the whole sweep rather than one per rule: it is a single user gesture, and
- * bumping per rule would make the busy predicate count a burst of fourteen actions against one settle.
- *
- * @param engine - The real-estate engine.
- */
-export function clearAllFacetRules(engine: SignalsEngine<Listing>): void {
-	markUserAction();
-	for (const ruleId of REAL_ESTATE_FACET_RULE_IDS) {
-		engine.core.removeRule(ruleId);
-	}
 }
 
 /**

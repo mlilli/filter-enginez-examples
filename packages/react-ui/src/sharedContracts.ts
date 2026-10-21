@@ -56,3 +56,4 @@ export {
 	snapToStep,
 	stepScaledValue,
 } from './filters/range/scale.js';
+export { nearestThumb, resolveTypedBound, snapClampToBounds } from './filters/range/thumbs.js';

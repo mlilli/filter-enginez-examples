@@ -36,7 +36,6 @@ import {
 	numCompare,
 	type NumericComparisonOp,
 	type NumericComparisonRule,
-	range,
 	type RangeRule,
 	type RuleId,
 } from '@filter-enginez/core';
@@ -51,12 +50,15 @@ import {
 	type SliderFieldId,
 	vintageBoundsFromSet,
 	vintageYearsFromRange,
+	WINE_SLIDER_COPY,
 	WINE_SLIDER_TEXT,
+	wineRangeRule,
+	type WineRangeSliderId,
 	wineSliderHistogram,
 	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
 
-import type { WineSection, WineSectionContext } from './sections.js';
+import type { WineFacetState, WineSection, WineSectionContext } from './sections.js';
 
 import { createNumberField } from '../controls/numberField.js';
 import { createRangeSlider } from '../controls/rangeSlider.js';
@@ -92,70 +94,68 @@ const OPERATORS: readonly { readonly label: string; readonly value: string }[] =
 	{ label: '≠', value: '!=' },
 ];
 
-/** One `RangeRule` slider's fixed properties. */
-interface RangeFacetConfig {
-	/** The `Wine` property the rule constrains — `priceUsd` for the `price` rule. */
-	readonly field: string;
-	/** The slider's own header label. */
-	readonly label: string;
-	/** Rule id — also the key into the baselines and the bundle's field metadata. */
-	readonly ruleId: SliderFieldId;
-	/** Accessible name for the slider group. */
-	readonly sliderLabel: string;
-}
-
-/** Price, points and ABV — identical but for these four values. */
-const RANGE_FACETS: Record<'abv' | 'points' | 'price', RangeFacetConfig> = {
-	abv: {
-		field: 'abv',
-		label: 'ABV (%)',
-		ruleId: 'abv',
-		sliderLabel: 'Filter by ABV',
-	},
-	points: { field: 'points', label: 'Points', ruleId: 'points', sliderLabel: 'Filter by points' },
-	price: {
-		field: 'priceUsd',
-		label: 'Price (USD)',
-		ruleId: 'price',
-		sliderLabel: 'Filter by price',
-	},
-};
+/** What a section paints from before the first settle: no bundle, the rules it was seeded from. */
+const NO_STATE: WineFacetState = { bundle: null, rules: new Map() };
 
 /**
- * Build one `RangeRule` slider section.
+ * Build one `RangeRule` slider section — price, points or ABV.
  *
- * @param facetId - Which of the three.
+ * @remarks
+ * The label and the thumbs' accessible-name stem come from `WINE_SLIDER_COPY`, the field and the
+ * rule from `wineRangeRule`: the price top thumb dragged to the top of the track commits an
+ * open-ended `max: Infinity`, so the most expensive bottles are never cut off by a rounded
+ * baseline, exactly as every other vertical commits it.
+ *
+ * @param facetId - Which of the three — also the rule id.
  * @param context - The panel's shared write path and derived facets.
  * @returns The mounted section.
  */
-export function createRangeSection(
-	facetId: 'abv' | 'points' | 'price',
-	context: WineSectionContext,
-): WineSection {
-	const config = RANGE_FACETS[facetId];
+export function createRangeSection(facetId: WineRangeSliderId, context: WineSectionContext): WineSection {
+	const copy = WINE_SLIDER_COPY[facetId];
 	const { facets, host, leaveExpressionMode } = context;
-	const baseline = facets.baselines[config.ruleId];
+	const baseline = facets.baselines[facetId];
 	// Built once: the baseline is fixed for the life of the panel, and the scale must be built over the
 	// same baseline the slider is handed, or thumbs and bars would place a value differently.
-	const scale = wineSliderScale(config.ruleId, baseline);
-	const span = createFacetAdopter<NumericBounds | null>(
-		committedSpan(host.core.getRules(), config.ruleId),
-		sameSpan,
-	);
+	const scale = wineSliderScale(facetId, baseline);
+	const span = createFacetAdopter<NumericBounds | null>(committedSpan(host.core.getRules(), facetId), sameSpan);
+	let latest = NO_STATE;
 
 	const slider = createRangeSlider({
-		ariaLabel: config.sliderLabel,
+		ariaLabel: copy.sliderLabel,
 		// The readout and typed-text rules every app's wine panel shares, so `$1,250` reads back.
-		format: WINE_SLIDER_TEXT[config.ruleId].format,
-		label: config.label,
+		format: WINE_SLIDER_TEXT[facetId].format,
+		label: copy.label,
 		onChange: (next) => {
 			leaveExpressionMode();
 			span.paint(next);
-			commitRule(host, config.ruleId, range(config.field, next));
+			render();
+			commitRule(host, facetId, wineRangeRule(facetId, next, baseline));
 		},
-		parse: WINE_SLIDER_TEXT[config.ruleId].parse,
-		step: DRAG_STEPS[config.ruleId],
+		parse: WINE_SLIDER_TEXT[facetId].parse,
+		step: DRAG_STEPS[facetId],
 	});
+
+	/** Repaint the slider from the local span and the last bundle. */
+	function render(): void {
+		const current = span.value();
+		const valueMin = current?.min ?? baseline.min;
+		// An infinite maximum is the open-ended price top — `wineRangeRule` commits it, and a `?f`
+		// link from any vertical carries it. It reads back as the track's top edge.
+		const valueMax = current !== null && Number.isFinite(current.max) ? current.max : baseline.max;
+
+		slider.update({
+			// Falling back to the baseline covers three cases a slider cannot tell apart: no bundle
+			// yet, the field was not queried, and no result occupies the field at all. In all three
+			// the whole track reads as available — the honest "we don't know yet". Dimming it would
+			// claim there is nothing there.
+			available: fieldBounds(latest.bundle, facetId) ?? baseline,
+			baseline,
+			histogram: wineSliderHistogram(latest.bundle, facetId, baseline, valueMin, valueMax),
+			scale,
+			valueMax,
+			valueMin,
+		});
+	}
 
 	// A bare `<section>` rather than the `section()` helper: the slider already draws its own label in
 	// its header row, and a second `<h3>` above it would render the name twice. The wrapper exists so
@@ -164,28 +164,10 @@ export function createRangeSection(
 
 	return {
 		element,
-		update: ({ bundle, rules }) => {
-			span.adopt(committedSpan(rules, config.ruleId));
-
-			const current = span.value();
-			const valueMin = current?.min ?? baseline.min;
-			// An infinite maximum only reaches this route through a `?f` link from React's open-ended
-			// price slider. It reads back as the baseline edge rather than as an infinite handle.
-			const valueMax
-				= current !== null && Number.isFinite(current.max) ? current.max : baseline.max;
-
-			slider.update({
-				// Falling back to the baseline covers three cases a slider cannot tell apart: no bundle
-				// yet, the field was not queried, and no result occupies the field at all. In all three
-				// the whole track reads as available — the honest "we don't know yet". Dimming it would
-				// claim there is nothing there.
-				available: fieldBounds(bundle, config.ruleId) ?? baseline,
-				baseline,
-				histogram: wineSliderHistogram(bundle, config.ruleId, baseline, valueMin, valueMax),
-				scale,
-				valueMax,
-				valueMin,
-			});
+		update: (state) => {
+			latest = state;
+			span.adopt(committedSpan(state.rules, facetId));
+			render();
 		},
 	};
 }
@@ -221,42 +203,48 @@ export function createVintageSection(context: WineSectionContext): WineSection {
 		return rule === undefined ? null : vintageBoundsFromSet(rule.config.set, baseline);
 	};
 	const span = createFacetAdopter<NumericBounds | null>(read(host.core.getRules()), sameSpan);
+	let latest = NO_STATE;
 
 	const slider = createRangeSlider({
-		ariaLabel: 'Filter by vintage year',
+		ariaLabel: WINE_SLIDER_COPY.vintage.sliderLabel,
 		// A year without a thousands separator — `2015`, never `2,015` — and `NV` for a non-vintage wine.
 		format: formatVintage,
-		label: 'Vintage',
+		label: WINE_SLIDER_COPY.vintage.label,
 		onChange: (next) => {
 			leaveExpressionMode();
 			span.paint(next);
+			render();
 			commitRule(host, 'vintage', inSet<number>('vintage', vintageYearsFromRange(next, baseline)));
 		},
 		parse: parseVintage,
 		step: DRAG_STEPS.vintage,
 	});
 
+	/** Repaint the slider from the local span and the last bundle. */
+	function render(): void {
+		const current = span.value();
+		const valueMin = current?.min ?? baseline.min;
+		const valueMax = current?.max ?? baseline.max;
+
+		slider.update({
+			available: fieldBounds(latest.bundle, 'vintage') ?? baseline,
+			baseline,
+			// Sliced for the log track, so the dense recent years get the width they need.
+			histogram: wineSliderHistogram(latest.bundle, 'vintage', baseline, valueMin, valueMax),
+			scale,
+			valueMax,
+			valueMin,
+		});
+	}
+
 	const element = el('section', { children: [slider.element]});
 
 	return {
 		element,
-		update: ({ bundle, rules }) => {
-			span.adopt(read(rules));
-
-			const current = span.value();
-			const valueMin = current?.min ?? baseline.min;
-			const valueMax
-				= current !== null && Number.isFinite(current.max) ? current.max : baseline.max;
-
-			slider.update({
-				available: fieldBounds(bundle, 'vintage') ?? baseline,
-				baseline,
-				// Sliced for the log track, so the dense recent years get the width they need.
-				histogram: wineSliderHistogram(bundle, 'vintage', baseline, valueMin, valueMax),
-				scale,
-				valueMax,
-				valueMin,
-			});
+		update: (state) => {
+			latest = state;
+			span.adopt(read(state.rules));
+			render();
 		},
 	};
 }

@@ -12,7 +12,7 @@
  * belongs to `react-ui`'s own suite.
  */
 
-import { createFilterEngine, inSet, range } from '@filter-enginez/core';
+import { createFilterEngine, inSet, numCompare, range } from '@filter-enginez/core';
 import { type Wine, wines } from '@filter-enginez/mock-data/wine';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { createSignalsEngine } from '@filter-enginez/reactive-signals';
@@ -20,6 +20,9 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { deriveSelectedPresetIds } from './smartFilters.js';
+import { deriveWineFacets, rankWineVarietals } from './wine-domain/facets.js';
+import { BODY_ORDER, COLOR_ORDER, VARIETAL_CHIP_LIMIT, visibleVarietalChips } from './wine-domain/filterConfig.js';
+import { WINE_ORIGIN_TREE, WINE_SEARCHES, WINE_SLIDER_COPY, wineSearchRule } from './wine-domain/panelCopy.js';
 import { WineFilterPanel } from './WineFilterPanel.js';
 
 beforeAll(() => {
@@ -102,8 +105,8 @@ describe('<WineFilterPanel />', () => {
 	});
 
 	it('renders its own header by default and suppresses it on request', () => {
-		// `isHeaderVisible={false}` is what the mobile drawer passes, because `<FilterDrawer />`
-		// supplies its own titled header and two would stack.
+		// `isHeaderVisible={false}` is for a host that supplies its own titled header, where two would
+		// stack. Every app's sidebar keeps the default.
 		renderPanel();
 		expect(screen.queryByText('Filters')).not.toBeNull();
 
@@ -216,5 +219,181 @@ describe('<WineFilterPanel /> — a smart-filter preset replaces the manual filt
 			expect(core.getRule('color')).toBeDefined();
 		});
 		expect(setExpression).not.toHaveBeenCalled();
+	});
+});
+
+describe('<WineFilterPanel /> — the behavior every app shares', () => {
+	it('removes the rule when the last chip is deselected, rather than writing an empty set', async () => {
+		const core = renderPanel((seeded) => {
+			seeded.addRule('color', inSet<string>('color', ['red']));
+		});
+		const removeRule = vi.spyOn(core, 'removeRule');
+
+		fireEvent.click(facetChip('red'));
+
+		// Painted at once, ahead of the engine.
+		expect(facetChip('red').getAttribute('aria-pressed')).toBe('false');
+		await waitFor(() => {
+			expect(core.getRule('color')).toBeUndefined();
+		});
+		expect(removeRule).toHaveBeenCalledWith('color');
+	});
+
+	it('labels chips with the raw values, in the design order, keeping only values the corpus carries', () => {
+		renderPanel();
+
+		const bodies = new Set(CORPUS.map((wine) => wine.body));
+		const bodyChips = [...(screen.getByText('Body', { selector: 'h3' }).closest('section')?.querySelectorAll('.fe-chip') ?? [])]
+			.map((chip) => chip.textContent);
+
+		expect(bodyChips).toEqual(BODY_ORDER.filter((value) => bodies.has(value)));
+		expect(bodyChips.some((label) => label.includes(' '))).toBe(false);
+	});
+
+	it('renders varietals as a scrollable chip group headed by the full varietal count, without counts', () => {
+		renderPanel();
+
+		const ranked = rankWineVarietals(CORPUS);
+		const section = screen.getByText(`Varietal (${ranked.length})`, { selector: 'h3' }).closest('section') as HTMLElement;
+		const group = section.querySelector('.fe-chip-toggle') as HTMLElement;
+
+		expect(group.className).toContain('fe-chip-toggle--capped');
+		expect(section.querySelector('input[type="checkbox"]')).toBeNull();
+		expect(section.querySelector('.fe-chip__count')).toBeNull();
+		expect([...group.querySelectorAll('.fe-chip')].map((chip) => chip.textContent)).toEqual(visibleVarietalChips(ranked, []));
+	});
+
+	it('keeps a selected varietal beyond the shortlist on screen, and removes the rule when it is cleared', async () => {
+		const ranked = rankWineVarietals(CORPUS);
+		const rare = ranked.at(-1) as string;
+
+		expect(ranked.indexOf(rare)).toBeGreaterThanOrEqual(VARIETAL_CHIP_LIMIT);
+
+		const core = renderPanel((seeded) => {
+			seeded.addRule('varietal', inSet<string>('varietal', [rare]));
+		});
+
+		fireEvent.click(facetChip(rare));
+
+		await waitFor(() => {
+			expect(core.getRule('varietal')).toBeUndefined();
+		});
+	});
+
+	it('names the slider thumbs from the shared copy', () => {
+		renderPanel();
+
+		for (const copy of Object.values(WINE_SLIDER_COPY)) {
+			expect(screen.getByRole('slider', { name: `${copy.sliderLabel} lower bound` })).toBeDefined();
+			expect(screen.getByRole('slider', { name: `${copy.sliderLabel} upper bound` })).toBeDefined();
+		}
+	});
+
+	it('commits an open price maximum when the top thumb reaches the top of the track', async () => {
+		const core = renderPanel();
+		const field = screen.getByLabelText<HTMLInputElement>(`${WINE_SLIDER_COPY.price.label} lower bound (editable)`);
+		const priceBaseline = deriveWineFacets(CORPUS).baselines.price;
+
+		fireEvent.change(field, { target: { value: String(priceBaseline.min + 5) }});
+		fireEvent.keyDown(field, { key: 'Enter' });
+
+		await waitFor(() => {
+			expect((core.getRule('price') as { config: { max: number; min: number }} | undefined)?.config).toEqual({
+				max: Number.POSITIVE_INFINITY,
+				min: priceBaseline.min + 5,
+			});
+		});
+	});
+
+	it('makes the origin tree a named group at the shared height', () => {
+		renderPanel();
+
+		const tree = screen.getByRole('group', { name: WINE_ORIGIN_TREE.groupLabel });
+
+		expect(tree.style.getPropertyValue('--fe-tree-max-height')).toBe(WINE_ORIGIN_TREE.maxHeight);
+	});
+
+	it('paints a picked operator at once, then commits the comparison', async () => {
+		const core = renderPanel();
+		const operator = screen.getByLabelText<HTMLSelectElement>('Points comparison operator');
+
+		fireEvent.change(operator, { target: { value: '>=' }});
+
+		// Before the engine has been called: the pick is already on screen.
+		expect(operator.value).toBe('>=');
+		expect(core.getRule('points-compare')).toBeUndefined();
+		await waitFor(() => {
+			expect(core.getRule('points-compare')).toBeDefined();
+		});
+		expect(operator.value).toBe('>=');
+	});
+
+	it('commits the comparison threshold on change, not per keystroke', async () => {
+		const core = renderPanel((seeded) => {
+			seeded.addRule('points-compare', numCompare('points', { op: '>=', value: 90 }));
+		});
+		const threshold = screen.getByLabelText<HTMLInputElement>('Points comparison threshold');
+		const addRule = vi.spyOn(core, 'addRule');
+
+		fireEvent.input(threshold, { target: { value: '9' }});
+		fireEvent.input(threshold, { target: { value: '95' }});
+		await new Promise((resolve) => {
+			setTimeout(resolve, 50);
+		});
+		expect(addRule).not.toHaveBeenCalled();
+
+		fireEvent.blur(threshold);
+		await waitFor(() => {
+			expect((core.getRule('points-compare') as { config: { value: number }} | undefined)?.config.value).toBe(95);
+		});
+		expect(addRule).toHaveBeenCalledTimes(1);
+	});
+
+	it('offers the corpus colors in the single-color menu and paints a pick at once', async () => {
+		const core = renderPanel();
+		const menu = screen.getByLabelText<HTMLSelectElement>('Filter by exact wine color');
+		const colors = new Set(CORPUS.map((wine) => wine.color));
+
+		expect([...menu.options].slice(1).map((option) => option.value)).toEqual(COLOR_ORDER.filter((color) => colors.has(color)));
+
+		fireEvent.change(menu, { target: { value: 'white' }});
+
+		expect(menu.value).toBe('white');
+		await waitFor(() => {
+			expect(core.getRule('color-value')).toBeDefined();
+		});
+	});
+
+	it('words the searches from the shared copy and removes the rule when a search is cleared', async () => {
+		const core = renderPanel((seeded) => {
+			seeded.addRule('notes', wineSearchRule('notes', 'oak'));
+		});
+		const notes = screen.getByLabelText<HTMLInputElement>(WINE_SEARCHES.notes.ariaLabel);
+
+		expect(notes.placeholder).toBe(WINE_SEARCHES.notes.placeholder);
+		expect(screen.getByLabelText(WINE_SEARCHES.winery.ariaLabel)).toBeDefined();
+		expect(notes.value).toBe('oak');
+
+		fireEvent.change(notes, { target: { value: '' }});
+		fireEvent.blur(notes);
+
+		await waitFor(() => {
+			expect(core.getRule('notes')).toBeUndefined();
+		});
+	});
+
+	it('writes the shared fuzzy rule for a non-empty search', async () => {
+		const core = renderPanel();
+		const winery = screen.getByLabelText<HTMLInputElement>(WINE_SEARCHES.winery.ariaLabel);
+
+		fireEvent.change(winery, { target: { value: 'caruso' }});
+		fireEvent.keyDown(winery, { key: 'Enter' });
+
+		await waitFor(() => {
+			expect((core.getRule('winery') as { config: { query: string; threshold: number }} | undefined)?.config).toMatchObject({
+				query: 'caruso',
+				threshold: WINE_SEARCHES.winery.threshold,
+			});
+		});
 	});
 });

@@ -60,6 +60,8 @@ import {
 
 import type { Control } from './controls.js';
 
+import { createKeyedParts, type KeyedPart, reconcileChildren, setOptionalAttribute } from './keyedChildren.js';
+
 /** Indent applied per level of depth, in `rem`. Matches the other four verticals exactly. */
 const INDENT_REM_PER_LEVEL = 0.875;
 
@@ -162,8 +164,26 @@ export function createHierarchicalPicker(
 	 */
 	let rows: readonly IndexedNode[] = [];
 
-	/** The last committed state, so a purely local expansion toggle can repaint without one. */
-	let latest: HierarchicalPickerState | null = null;
+	/** The root's id — the one ancestor every visible row's path starts from. */
+	let rootId = '';
+
+	/**
+	 * The last state painted, so a purely local expansion toggle can repaint without one. Seeded empty:
+	 * no row exists to click before the first `update`, so nothing reads this before it is replaced.
+	 */
+	let latest: Omit<HierarchicalPickerState, 'tree'> = { counts: new Map(), disabled: new Set(), selected: []};
+
+	/**
+	 * One row per index entry, built the first time its node is visible and reused on every repaint
+	 * while it stays visible.
+	 *
+	 * @remarks
+	 * Reused rather than rebuilt so focus survives: the disclosure a keyboard user just pressed, and
+	 * the row they just checked, are the same elements after the repaint — whether that repaint came
+	 * from their own click, from expanding a sibling branch, or from the engine's answer. See
+	 * `keyedChildren.ts`.
+	 */
+	const rowParts = createKeyedParts<IndexedNode, TreeRowPart>((entry) => buildRow(entry));
 
 	/** Rebuild the row list when — and only when — the tree identity changes. */
 	function reindex(tree: PickerTreeNode): void {
@@ -171,7 +191,11 @@ export function createHierarchicalPicker(
 			return;
 		}
 		indexedTree = tree;
+		rootId = tree.id;
 		rows = [...indexTree(tree).values()].filter((entry) => entry.node.id !== tree.id);
+		// Keyed by the index entry, so a new tree must start a new cache: the old entries name nodes
+		// that may no longer exist.
+		rowParts.reset();
 	}
 
 	/**
@@ -188,20 +212,13 @@ export function createHierarchicalPicker(
 	 * than a hidden limit.
 	 */
 	function paint(): void {
-		/* v8 ignore next 3 -- defensive: unreachable in both directions. `update` assigns `latest`
-		   before it calls this, and the only other caller is `toggleExpanded`, which fires from a row
-		   that this function is what renders — so with no state there is no row to click. */
-		if (latest === null) {
-			return;
-		}
-		const state = latest;
-		const selectedSet = new Set(state.selected);
+		const selectedSet = new Set(latest.selected);
+		const parts = rowParts.resolve(rows.filter((entry) => isRowVisible(entry.ancestorPath, expanded, rootId)));
 
-		element.replaceChildren(
-			...rows
-				.filter((entry) => isRowVisible(entry.ancestorPath, expanded, state.tree.id))
-				.map((entry) => renderRow(entry, state, selectedSet)),
-		);
+		for (const part of parts) {
+			paintRow(part, selectedSet);
+		}
+		reconcileChildren(element, parts.map((part) => part.element));
 	}
 
 	/** Toggle one parent's disclosure, then repaint — this control owns its own expansion. */
@@ -213,81 +230,93 @@ export function createHierarchicalPicker(
 	}
 
 	/**
-	 * The disclosure control for a parent row.
+	 * Build one row's elements: the optional disclosure plus the tri-state selection control.
 	 *
 	 * @remarks
-	 * A sibling of the selection button, never a child of it: nesting a button inside a button is
-	 * invalid HTML and would fire both handlers on one click. The row `<div>` is what holds the two
-	 * together.
+	 * The disclosure is a sibling of the selection button, never a child of it: nesting a button
+	 * inside a button is invalid HTML and would fire both handlers on one click. The row `<div>` is
+	 * what holds the two together.
+	 *
+	 * The click handlers look the node up at click time, and read the selection from the latest
+	 * state rather than from the one the row was built under — a row outlives many updates.
 	 */
-	function disclosureButton(entry: IndexedNode, isOpen: boolean): HTMLElement {
-		return el('button', {
-			attrs: {
-				'aria-expanded': isOpen,
-				'aria-label': `${isOpen ? 'Collapse' : 'Expand'} ${entry.node.label}`,
-				type: 'button',
-			},
-			children: [plusMinusIcon(isOpen)],
-			className: 'fe-tree__chevron fe-tree__toggle',
+	function buildRow(entry: IndexedNode): TreeRowPart {
+		const { node } = entry;
+		const pmIcon = plusMinusIcon();
+		const disclosure = hasChildren(node)
+			? el('button', {
+				attrs: { type: 'button' },
+				children: [pmIcon],
+				className: 'fe-tree__chevron fe-tree__toggle',
+				on: {
+					click: () => {
+						toggleExpanded(node.id);
+					},
+				},
+			})
+			: null;
+		const mark = el('span', { attrs: { 'aria-hidden': 'true' }, className: 'fe-tree__mark' });
+		const label = el('span', { text: node.label });
+		const control = el('button', {
+			attrs: { role: 'checkbox', type: 'button' },
+			// Present but empty when unchecked. A permanently-visible empty BOX would read as a
+			// control switched off; an empty mark slot just holds the label's alignment.
+			children: [mark, label],
 			on: {
 				click: () => {
-					toggleExpanded(entry.node.id);
+					onChange(toggleNodeSelection(node, entry.ancestorPath, latest.selected));
 				},
 			},
 		});
+
+		return {
+			control,
+			count: el('span', { className: 'fe-tree__count' }),
+			disclosure,
+			element: el('div', {
+				children: [disclosure, control],
+				// Inline because this rendering is FLAT — there is no DOM nesting for a constant step to
+				// accumulate through, which is how React gets the same result from `.fe-tree__children`.
+				style: { paddingLeft: `${(entry.ancestorPath.length - 1) * INDENT_REM_PER_LEVEL}rem` },
+			}),
+			key: entry,
+			label,
+			mark,
+			pmIcon,
+		};
 	}
 
-	/** One row: the optional disclosure plus the tri-state selection control. */
-	function renderRow(
-		entry: IndexedNode,
-		state: HierarchicalPickerState,
-		selectedSet: ReadonlySet<string>,
-	): HTMLElement {
-		const nodeState = resolveNodeState(entry.node, entry.ancestorPath, selectedSet);
+	/** Re-apply one row's tri-state, disable, count and disclosure state in place. */
+	function paintRow(part: TreeRowPart, selectedSet: ReadonlySet<string>): void {
+		const { ancestorPath, node } = part.key;
+		const nodeState = resolveNodeState(node, ancestorPath, selectedSet);
 		// A checked row stays clickable so it can be deselected; only a row that is NOT already
 		// contributing gets disabled. Without that escape hatch a user who filtered themselves into a
 		// corner would have no way back out.
-		const isDisabled = nodeState !== 'checked' && state.disabled.has(entry.node.id);
-		const hasChildNodes = hasChildren(entry.node);
-		const count = state.counts.get(entry.node.id);
+		const isDisabled = nodeState !== 'checked' && latest.disabled.has(node.id);
+		const count = latest.counts.get(node.id);
 
-		return el('div', {
-			children: [
-				hasChildNodes && disclosureButton(entry, expanded.has(entry.node.id)),
-				el('button', {
-					attrs: {
-						'aria-checked': ariaCheckedFor(nodeState),
-						disabled: isDisabled ? 'true' : null,
-						role: 'checkbox',
-						title: isDisabled
-							? `No matches for ${entry.node.label} given your other filters`
-							: null,
-						type: 'button',
-					},
-					children: [
-						// Present but empty when unchecked. A permanently-visible empty BOX would read as a
-						// control switched off; an empty mark slot just holds the label's alignment.
-						el('span', {
-							attrs: { 'aria-hidden': 'true' },
-							className: 'fe-tree__mark',
-							text: markGlyph(nodeState),
-						}),
-						el('span', { className: labelClass(nodeState, isDisabled), text: entry.node.label }),
-						count !== undefined && el('span', { className: 'fe-tree__count', text: String(count) }),
-					],
-					className: controlClass(nodeState),
-					on: {
-						click: () => {
-							onChange(toggleNodeSelection(entry.node, entry.ancestorPath, state.selected));
-						},
-					},
-				}),
-			],
-			className: rowClass(hasChildNodes, isDisabled),
-			// Inline because this rendering is FLAT — there is no DOM nesting for a constant step to
-			// accumulate through, which is how React gets the same result from `.fe-tree__children`.
-			style: { paddingLeft: `${(entry.ancestorPath.length - 1) * INDENT_REM_PER_LEVEL}rem` },
-		});
+		part.element.className = rowClass(part.disclosure !== null, isDisabled);
+		if (part.disclosure !== null) {
+			const isOpen = expanded.has(node.id);
+
+			part.disclosure.setAttribute('aria-expanded', String(isOpen));
+			part.disclosure.setAttribute('aria-label', `${isOpen ? 'Collapse' : 'Expand'} ${node.label}`);
+			part.pmIcon.className = isOpen ? 'fe-tree__pm fe-tree__pm--open' : 'fe-tree__pm';
+		}
+		part.control.className = controlClass(nodeState);
+		part.control.setAttribute('aria-checked', ariaCheckedFor(nodeState));
+		part.control.disabled = isDisabled;
+		setOptionalAttribute(part.control, 'title', isDisabled ? `No matches for ${node.label} given your other filters` : null);
+		part.mark.textContent = markGlyph(nodeState);
+		part.label.className = labelClass(nodeState, isDisabled);
+		// Moved in and out of the control rather than the control rebuilt, which would drop its focus.
+		if (count === undefined) {
+			part.count.remove();
+		} else {
+			part.count.textContent = String(count);
+			part.control.append(part.count);
+		}
 	}
 
 	return {
@@ -300,24 +329,42 @@ export function createHierarchicalPicker(
 	};
 }
 
+/** One tree row and the nodes its repaint rewrites. */
+interface TreeRowPart extends KeyedPart<IndexedNode> {
+	/** The tri-state selection button. */
+	readonly control: HTMLButtonElement;
+	/** The projected-count badge, moved in and out of the control. */
+	readonly count: HTMLElement;
+	/** The disclosure button, or `null` for a leaf. */
+	readonly disclosure: HTMLButtonElement | null;
+	/** The row container. */
+	readonly element: HTMLElement;
+	/** The label text span. */
+	readonly label: HTMLElement;
+	/** The check / dash slot. */
+	readonly mark: HTMLElement;
+	/** The plus-minus icon inside the disclosure. */
+	readonly pmIcon: HTMLElement;
+}
+
 /**
  * A plus that BECOMES a minus: two bars, and the vertical one rotates onto the horizontal.
  *
  * @remarks
  * Swapping "+" and "−" glyphs would jump; rotating a bar is a continuous change, so the icon reads as
  * one thing changing state rather than two icons trading places. Purely decorative — `aria-expanded`
- * and the button's `aria-label` carry the meaning.
+ * and the button's `aria-label` carry the meaning. Built closed; the row's repaint sets `--open`.
  *
  * @internal
  */
-function plusMinusIcon(isOpen: boolean): HTMLElement {
+function plusMinusIcon(): HTMLElement {
 	return el('span', {
 		attrs: { 'aria-hidden': 'true' },
 		children: [
 			el('span', { className: 'fe-tree__pm-bar' }),
 			el('span', { className: 'fe-tree__pm-bar fe-tree__pm-bar--pivot' }),
 		],
-		className: isOpen ? 'fe-tree__pm fe-tree__pm--open' : 'fe-tree__pm',
+		className: 'fe-tree__pm',
 	});
 }
 

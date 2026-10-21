@@ -25,6 +25,10 @@
  * a books route fetches. A static import would put the 10,000-book generator in the app's startup
  * bundle and run it on every page.
  *
+ * If that chunk does not arrive, or the engine cannot be built over it, the boot caption is replaced
+ * by the shared boot-failure screen over `BOOT_FAILURE_COPY.books`, the same screen `/books` shows,
+ * and the route still returns a teardown for the router to call on navigation.
+ *
  * @packageDocumentation
  */
 
@@ -37,7 +41,9 @@ import { el } from '@filter-enginez/examples-shared/dom';
 import type { RouteTeardown } from '../router.js';
 
 import { createBooksView } from '../books/view.js';
+import { booksBusyCore } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
+import { bootFailureMessage, createBootFailure } from '../shell/bootFailure.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
@@ -50,14 +56,27 @@ import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 export async function renderBooksRawPage(container: HTMLElement): Promise<RouteTeardown> {
 	container.append(bootingNotice());
 
-	// Same acceleration the shared boot installs, so the two routes are a fair comparison. The dataset
-	// chunk downloads meanwhile; neither depends on the other.
-	const [{ books: defaultBooks }] = await Promise.all([
-		import('@filter-enginez/mock-data/books'),
-		initializeBitmapAcceleration(),
-	]);
+	let built;
 
-	const core = buildBooksEngine(defaultBooks);
+	try {
+		// Same acceleration the shared boot installs, so the two routes are a fair comparison. The dataset
+		// chunk downloads meanwhile; neither depends on the other.
+		const [{ books: defaultBooks }] = await Promise.all([
+			import('@filter-enginez/mock-data/books'),
+			initializeBitmapAcceleration(),
+		]);
+
+		built = buildBooksEngine(defaultBooks);
+	} catch (error) {
+		console.error('[books-raw] boot failed:', error);
+		container.replaceChildren(createBootFailure('books', bootFailureMessage(error)));
+
+		return () => {
+			container.replaceChildren();
+		};
+	}
+
+	const core = built;
 
 	container.replaceChildren();
 
@@ -81,6 +100,9 @@ export async function renderBooksRawPage(container: HTMLElement): Promise<RouteT
 	// `FilterEngine` surface this route is typed against, hence the structural cast.
 	const devtools = createDevtoolsSurface({
 		devtools: (core as unknown as { devtools: DevtoolsCursor }).devtools,
+		// Undo, redo and every timeline jump are engine writes like any other: the books busy tracker
+		// is marked first, and the view resolves it on the change they cause.
+		markBusy: booksBusyCore.markUserAction,
 	});
 	const view = createBooksView(core, {
 		footnote: 'filter-enginez · books demo · vanilla + bare core (coarse subscribe, no adapter)',

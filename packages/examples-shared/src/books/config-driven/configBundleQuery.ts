@@ -10,7 +10,7 @@
  * hand-authored books panel uses, only here the query is a function of the config, not hand-written.
  *
  * Rule types without a bundle candidate kind (Boolean / Exists / Regex / …) are simply omitted; their
- * toggles predictive-disable independently via `useToggleWouldBeEmpty`.
+ * toggles predictive-disable independently via `useIsToggleDisabled`.
  *
  * @packageDocumentation
  */

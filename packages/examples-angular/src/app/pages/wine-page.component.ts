@@ -20,10 +20,11 @@
  *
  * The worker generates the 150,000 synthetic wines itself (or streams the local real corpus when one
  * is linked), so there is no data file to be missing: a failed boot almost always means the worker
- * could not start. The screen says so, and names the switch that boots the 10,000-wine default tier
- * on the main thread instead — `WINE_DATASET_SIZE` in `wineBoot.ts`, the Angular equivalent of the
- * Vite apps' `VITE_WINE_TIER=default`. An indefinite loader would read as a hang and send someone
- * looking in the wrong place.
+ * could not start. The shared `<fe-boot-failure>` says so in `BOOT_FAILURE_COPY.wine`'s words, the
+ * same in every app, and this page follows its hint with the switch that boots the 10,000-wine
+ * default tier on the main thread instead — `WINE_DATASET_SIZE` in `wineBoot.ts`, the Angular
+ * equivalent of the Vite apps' `VITE_WINE_TIER=default`. An indefinite loader would read as a hang and
+ * send someone looking in the wrong place.
  *
  * @packageDocumentation
  */
@@ -32,40 +33,19 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject } from
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 
 import { BrainSynapseComponent } from '../brand/brain-synapse.component.js';
+import { BootFailureComponent } from '../shell/boot-failure.component.js';
 import { WineBootStore } from '../wine/wine-boot-store.js';
 import { WineViewComponent } from '../wine/wine-view.component.js';
 
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [BrainSynapseComponent, WineViewComponent],
+	imports: [BootFailureComponent, BrainSynapseComponent, WineViewComponent],
 	providers: [WineBootStore],
 	selector: 'fe-wine-page',
-	// Component-local, matching Vue's and SvelteKit's boot-error and boot-stage rules; `ui-styles` has
-	// no boot-stage component.
+	// Component-local, matching Vue's and SvelteKit's boot-stage rules; `ui-styles` has no boot-stage
+	// component. The failure screen's rules live with `<fe-boot-failure>`.
 	styles: [
 		`
-			.fe-boot-error {
-				margin: 3rem auto;
-				max-width: 34rem;
-				padding: 1.5rem;
-				border: 1px solid var(--gray-4);
-				border-radius: var(--radius-lg);
-				background: var(--gray-1);
-			}
-
-			.fe-boot-error__title {
-				margin: 0 0 0.5rem;
-				color: var(--danger);
-				font-weight: 600;
-			}
-
-			.fe-boot-error__detail {
-				margin: 0;
-				color: var(--gray-9);
-				font-family: var(--font-mono);
-				font-size: 0.8125rem;
-			}
-
 			.fe-wine-booting {
 				display: flex;
 				flex-direction: column;
@@ -93,16 +73,10 @@ import { WineViewComponent } from '../wine/wine-view.component.js';
 			<fe-wine-view />
 		} @else if (store.error(); as message) {
 			<!-- Each state below is a main landmark: until the engine boots, it is the page's main content. -->
-			<main class="fe-boot-error">
-				<p class="fe-boot-error__title">The wine engine could not start.</p>
-				<p class="fe-boot-error__detail">{{ message }}</p>
-				<p class="fe-boot-error__detail">
-					The 150,000 wines are generated inside a Web Worker, so a failure here almost always means
-					the worker could not start. To boot the 10,000-wine default tier on the main thread instead,
-					set <code>WINE_DATASET_SIZE</code> to <code>10_000</code> in
-					<code>src/app/wine/wineBoot.ts</code>.
-				</p>
-			</main>
+			<fe-boot-failure dataset="wine" [message]="message">
+				To boot the 10,000-wine default tier on the main thread instead, set
+				<code>WINE_DATASET_SIZE</code> to <code>10_000</code> in <code>src/app/wine/wineBoot.ts</code>.
+			</fe-boot-failure>
 		} @else {
 			<main class="fe-wine-booting">
 				<fe-brain-synapse loaderLabel="Loading wine reviews" [width]="520" />

@@ -22,9 +22,9 @@
  * ### The claim worth pinning, and it is not a percentage
  *
  * `commitFacet` exists so that fourteen call sites do not each decide what "nothing selected" means.
- * An `InSetRule` with an empty set still participates in the AND and matches nothing, so clearing a
- * facet has to be a rule REMOVAL — write the empty rule instead and the results go to zero while the
- * UI shows no active filter. The module's own docblock says the call "looks perfectly reasonable in
+ * Clearing a facet is a rule REMOVAL. An `InSetRule` with an empty set matches every item, but writing
+ * one would leave a rule registered that the UI does not show, carried in the `?f=` link and logged as
+ * a change. The module's own docblock says the call "looks perfectly reasonable in
  * review", which is exactly why the two clearing cases below assert `has(ruleId) === false` rather
  * than inspecting a rule that should not exist at all.
  *
@@ -38,13 +38,15 @@ import {
 	type DateRangeRule,
 	type FilterEngine,
 	type InSetRule,
+	text,
 	type TextSearchRule,
 } from '@filter-enginez/core';
 import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
 import { bootRealEstateCore } from '@filter-enginez/examples-shared/real-estate-boot-core';
 import { buildRealEstateEngine } from '@filter-enginez/examples-shared/real-estate-core';
 import { DATE_PRESET_OPTIONS } from '@filter-enginez/examples-shared/real-estate-domain';
-import { afterEach, describe, expect, it } from 'vitest';
+import { TYPEAHEAD_DEBOUNCE_MS } from '@filter-enginez/examples-shared/search-core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createRealEstatePanel } from './panel.js';
 
@@ -111,9 +113,12 @@ const DATA: readonly Listing[] = [
  */
 function mountPanel(core: FilterEngine<Listing> = createFilterEngine<Listing>({ sourceData: DATA })): {
 	core: FilterEngine<Listing>;
+	markBusy: ReturnType<typeof vi.fn>;
+	panel: ReturnType<typeof createRealEstatePanel>;
 	root: HTMLElement;
 } {
-	const panel = createRealEstatePanel(core, { metroCenters: []});
+	const markBusy = vi.fn();
+	const panel = createRealEstatePanel(core, { markBusy, metroCenters: []});
 	const root = document.createElement('div');
 
 	root.append(panel.element);
@@ -128,7 +133,7 @@ function mountPanel(core: FilterEngine<Listing> = createFilterEngine<Listing>({ 
 	});
 	repaint();
 
-	return { core, root };
+	return { core, markBusy, panel, root };
 }
 
 /**
@@ -163,7 +168,7 @@ function buttonsIn(root: HTMLElement, label: string): HTMLButtonElement[] {
 }
 
 /**
- * The button in a named section whose text is exactly `text`.
+ * The button in a named section whose text is exactly `chipLabel`.
  *
  * @remarks
  * Exact rather than a prefix: with a bundle present a chip also renders a projected-count span, and a
@@ -171,17 +176,37 @@ function buttonsIn(root: HTMLElement, label: string): HTMLButtonElement[] {
  *
  * @param root - The mounted root.
  * @param label - The section heading.
- * @param text - The chip's visible label.
+ * @param chipLabel - The chip's visible label.
  * @returns The button.
  */
-function chipNamed(root: HTMLElement, label: string, text: string): HTMLButtonElement {
-	const chip = buttonsIn(root, label).find((node) => node.textContent === text);
+function chipNamed(root: HTMLElement, label: string, chipLabel: string): HTMLButtonElement {
+	const chip = buttonsIn(root, label).find((node) => node.textContent === chipLabel);
 
 	if (chip === undefined) {
-		throw new Error(`expected a "${text}" chip in the "${label}" section`);
+		throw new Error(`expected a "${chipLabel}" chip in the "${label}" section`);
 	}
 
 	return chip;
+}
+
+/**
+ * A school-district checkbox, by its label.
+ *
+ * @param root - The mounted root.
+ * @param label - The district.
+ * @returns The box.
+ */
+function districtBox(root: HTMLElement, label: string): HTMLInputElement {
+	const row = [...sectionNamed(root, 'School district').querySelectorAll('.fe-checkbox-list__row')].find(
+		(node) => node.querySelector('.fe-checkbox-list__label')?.textContent === label,
+	);
+	const box = row?.querySelector('input');
+
+	if (box === null || box === undefined) {
+		throw new Error(`expected a "${label}" school-district box`);
+	}
+
+	return box;
 }
 
 /** The description-search field (throws if absent, so callers avoid `!`). */
@@ -216,7 +241,7 @@ describe('chip facets', () => {
 	it('commits a school-district selection as an InSetRule', () => {
 		const { core, root } = mountPanel();
 
-		chipNamed(root, 'School district', 'Denver Public Schools').click();
+		districtBox(root, 'Denver Public Schools').click();
 
 		const rule = core.getRules().get('school-district') as InSetRule<string> | undefined;
 
@@ -228,15 +253,39 @@ describe('chip facets', () => {
 	});
 
 	it('clears the school-district facet when its last chip is toggled back off', () => {
-		// `has(...) === false`, not an empty rule — see the file docblock. An `InSetRule` with an empty
-		// set participates in the AND and matches nothing, so the "obvious" alternative filters the
-		// results to zero while the UI shows no active filter.
+		// `has(...) === false`, not an empty rule — see the file docblock. The "obvious" alternative, an
+		// empty `InSetRule`, matches every item but stays registered with no chip showing it.
 		const { core, root } = mountPanel();
 
-		chipNamed(root, 'School district', 'Denver Public Schools').click();
-		chipNamed(root, 'School district', 'Denver Public Schools').click();
+		districtBox(root, 'Denver Public Schools').click();
+		districtBox(root, 'Denver Public Schools').click();
 
 		expect(core.getRules().has('school-district')).toBe(false);
+	});
+
+	it('renders school districts as the shared height-capped checkbox list, with counts from the bundle', () => {
+		const { core, panel, root } = mountPanel();
+		const list = sectionNamed(root, 'School district').querySelector<HTMLElement>('.fe-checkbox-list');
+
+		expect(list?.style.maxHeight).toBe('220px');
+		expect(sectionNamed(root, 'School district').querySelector('.fe-chip')).toBeNull();
+
+		panel.update({ bundle: core.applyFiltersAndQuery(panel.query), rules: core.getRules() });
+
+		const counts = [...(list?.querySelectorAll('.fe-checkbox-list__count') ?? [])].map((node) => node.textContent);
+
+		expect(counts.length).toBeGreaterThan(0);
+	});
+
+	it('keeps focus on a district box through the repaint its own click causes', () => {
+		const { root } = mountPanel();
+		const box = districtBox(root, 'Denver Public Schools');
+
+		box.focus();
+		box.click();
+
+		expect(document.activeElement).toBe(box);
+		expect(box.checked).toBe(true);
 	});
 
 	it('commits a status selection as an InSetRule', () => {
@@ -302,17 +351,11 @@ describe('the description search', () => {
 		});
 	});
 
-	it('does not filter while the query is still being typed', () => {
-		// 🔴 A case a throw-mutant probe cannot find, and why is worth more than the line.
-		// `onChange: () => undefined` is a no-op arrow, so reading the source it looks like nothing to
-		// test, and no mutant targets it. Only the coverage measurement sees it: one uncovered
-		// function, one uncovered line.
-		//
-		// It is not nothing. The source's own comment says why the handler is inert: the rule commits
-		// on blur / Enter, so a substring scan over the corpus runs once per query rather than once per
-		// keystroke. An `onChange` that committed would be a plausible "make it feel live" edit that
-		// nothing else here would notice. **A handler that deliberately does nothing is exactly the one
-		// whose nothing needs pinning.**
+	it('does not filter while the query is still being typed, and commits once typing pauses', () => {
+		// The shared typeahead controller: a keystroke re-arms a 250 ms trailing commit, so a substring
+		// scan over the corpus runs once per pause rather than once per keystroke.
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout']});
+
 		const { core, root } = mountPanel();
 		const field = searchFieldIn(root);
 
@@ -320,6 +363,25 @@ describe('the description search', () => {
 		field.dispatchEvent(new Event('input', { bubbles: true }));
 
 		expect(core.getRules().has('text-search')).toBe(false);
+
+		vi.advanceTimersByTime(TYPEAHEAD_DEBOUNCE_MS);
+		expect(core.getRules().has('text-search')).toBe(true);
+		vi.useRealTimers();
+	});
+
+	it('uses the shared description copy, and marks busy only when something is written', () => {
+		const { markBusy, root } = mountPanel();
+		const field = searchFieldIn(root);
+
+		expect(field.getAttribute('aria-label')).toBe('Search listing descriptions');
+		expect(field.placeholder).toBe('waterfront, remodeled, cul-de-sac…');
+
+		field.focus();
+		field.blur();
+		expect(markBusy).not.toHaveBeenCalled();
+
+		commitQuery(field, 'remodeled');
+		expect(markBusy).toHaveBeenCalledOnce();
 	});
 
 	it('clears the facet when the query is emptied', () => {
@@ -335,6 +397,33 @@ describe('the description search', () => {
 		commitQuery(field, '   ');
 
 		expect(core.getRules().has('text-search')).toBe(false);
+	});
+
+	it('opens on a description query a shared link already committed, and treats it as unchanged', () => {
+		// The shared-link shape: the route loads `?f=` into the engine and only then builds the panel.
+		// Read BEFORE the first `update`, so the field's text can only have come from the constructor's
+		// seed — and a blur writes nothing, because the seeded query is already the committed one.
+		const core = createFilterEngine<Listing>({ sourceData: DATA });
+
+		core.addRule('text-search', text('description', { caseSensitive: false, mode: 'substring', query: 'remodeled' }));
+
+		const markBusy = vi.fn();
+		const panel = createRealEstatePanel(core, { markBusy, metroCenters: []});
+		const root = document.createElement('div');
+
+		root.append(panel.element);
+		document.body.append(root);
+
+		const field = searchFieldIn(root);
+
+		expect(field.value).toBe('remodeled');
+
+		field.focus();
+		field.blur();
+
+		expect(markBusy).not.toHaveBeenCalled();
+		expect((core.getRules().get('text-search') as TextSearchRule | undefined)?.config.query).toBe('remodeled');
+		panel.dispose();
 	});
 });
 
@@ -387,5 +476,45 @@ describe('the location tree over the booted corpus', () => {
 		reloaded.loadConfig(serializer.decode(serializer.encode(exported)));
 
 		expect(reloaded.getResultCount()).toBe(expectedCount);
+	});
+});
+
+describe('busy marking', () => {
+	it('marks busy BEFORE each write, and never for clearing a facet that holds no rule', () => {
+		const { core, markBusy, root } = mountPanel();
+		const sizes: number[] = [];
+
+		markBusy.mockImplementation(() => {
+			sizes.push(core.getRules().size);
+		});
+		chipNamed(root, 'Status', 'pending').click();
+		expect(sizes).toEqual([0]);
+
+		// "Any time" with no date rule committed: nothing to write, nothing to mark.
+		chipNamed(root, 'Listed within', 'Any time').click();
+		expect(sizes).toEqual([0]);
+	});
+
+	it('dims the body and sets aria-busy while busy', () => {
+		const { panel, root } = mountPanel();
+		const body = root.querySelector('.fe-filter-panel__body');
+
+		expect(body?.getAttribute('aria-busy')).toBe('false');
+
+		panel.setBusy(true);
+		expect(body?.classList.contains('fe-filter-panel__body--busy')).toBe(true);
+		expect(body?.getAttribute('aria-busy')).toBe('true');
+
+		panel.setBusy(false);
+		expect(body?.classList.contains('fe-filter-panel__body--busy')).toBe(false);
+	});
+
+	it('names the location tree and the listed-date group with the shared labels', () => {
+		const { root } = mountPanel();
+		const tree = root.querySelector<HTMLElement>('.fe-tree');
+
+		expect(tree?.getAttribute('aria-label')).toBe('Location');
+		expect(tree?.style.getPropertyValue('--fe-tree-max-height')).toBe('14rem');
+		expect(root.querySelector('[role="group"][aria-label="Listed within"]')).not.toBeNull();
 	});
 });

@@ -46,6 +46,7 @@
 		EMPTY_SELECTION,
 		type OriginNodeSpec,
 		type PickerTreeNode,
+		WINE_ORIGIN_TREE,
 	} from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores } from '@filter-enginez/svelte-signals';
 	import HierarchicalPicker from '$lib/controls/HierarchicalPicker.svelte';
@@ -103,7 +104,8 @@
 			{disabled}
 			{selected}
 			{tree}
-			ariaLabel="Origin"
+			ariaLabel={WINE_ORIGIN_TREE.groupLabel}
+			maxHeight={WINE_ORIGIN_TREE.maxHeight}
 			onChange={(next) => {
 				// The picker hands back the WHOLE next selection rather than one toggled value: a single
 				// click can select a subtree, or de-cascade an ancestor into its siblings, so "which id

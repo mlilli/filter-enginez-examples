@@ -9,34 +9,29 @@
  * second `webServer` (see `playwright.config.ts`). If that server isn't up, the route shows its
  * offline screen and the boot wait below fails fast — that's the intended signal.
  *
- * The count-ticking / drawer machinery is the shared `./filterFlow.ts`, whose docblocks carry the
- * `settledCount` + mobile-drawer rationale; only the probe tempo is tuned here (see `SETTLED` below).
- * The boot wait is more generous too, because boot pays a corpus fetch + an initial `POST /api/query`
- * round-trip before the first paint.
+ * The count-ticking machinery is the shared `./filterFlow.ts`, whose docblocks carry the
+ * `settledCount` rationale; only the probe tempo is tuned here (see `SETTLED` below). The boot wait is
+ * more generous too, because boot pays a corpus fetch + an initial `POST /api/query` round-trip before
+ * the first paint. The cases the four server-backed apps share — the connecting and offline screens,
+ * the optimistic chip, the header controls — are registered from `./booksServerParity.ts` at the
+ * bottom.
  */
 
 import { AxeBuilder } from '@axe-core/playwright';
-import { expect, type Locator, type Page, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
+import { EXAMPLES_SERVER_START_COMMAND } from '../../packages/examples-shared/src/boot-caption/index.js';
+import { describeBooksServerParity } from './booksServerParity.js';
 import {
 	ACTIVE_CHIP,
 	clickFirstFacetChip,
-	closeFilterPanel,
+	FACET_CHIP,
 	openFilterPanel,
 	RESULT_COUNT,
 	settledCount,
 	type SettledCountOptions,
 } from './filterFlow.js';
 import { subtitle } from './subtitles.js';
-
-/**
- * What "open" means in this vertical: react-ui renders the mobile filter panel as an off-canvas
- * `dialog` named for the dataset, so the drawer itself is the readiness signal — and, once dismissed,
- * the absence signal. (The non-React verticals expand an inline collapse and wait for a chip instead.)
- */
-function filterDrawer(page: Page): Locator {
-	return page.getByRole('dialog', { name: 'Book filters' });
-}
 
 /**
  * A slower probe than the shared default, because every commit on this route is an HTTP request.
@@ -69,9 +64,8 @@ test.describe('React RTK books app — server-backed filter flow', () => {
 	test('toggling an InSet filter narrows the results (server-computed) and shows an active chip', async ({ page }, testInfo) => {
 		const before = await settledCount(page, SETTLED);
 
-		await openFilterPanel(page, testInfo, filterDrawer(page));
+		await openFilterPanel(page, testInfo, page.locator(FACET_CHIP).first());
 		await clickFirstFacetChip(page);
-		await closeFilterPanel(page, testInfo, filterDrawer(page));
 		await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 
 		// The narrowed count came back from the Node server via POST /api/query.
@@ -81,21 +75,20 @@ test.describe('React RTK books app — server-backed filter flow', () => {
 	test('clear all resets every active filter back to the full set', async ({ page }, testInfo) => {
 		const before = await settledCount(page, SETTLED);
 
-		await openFilterPanel(page, testInfo, filterDrawer(page));
+		await openFilterPanel(page, testInfo, page.locator(FACET_CHIP).first());
 		await clickFirstFacetChip(page);
-		await closeFilterPanel(page, testInfo, filterDrawer(page));
 		await expect(page.locator(ACTIVE_CHIP)).not.toHaveCount(0);
 		expect(await settledCount(page, SETTLED)).toBeLessThan(before);
 
-		await page.getByRole('button', { name: 'Clear all' }).click();
+		await page.getByRole('button', { exact: true, name: 'Clear all' }).click();
 		await expect(page.locator(ACTIVE_CHIP)).toHaveCount(0);
 		expect(await settledCount(page, SETTLED)).toBe(before);
 	});
 
 	test('the booted server-backed page has no serious or critical accessibility violations', async ({ page }, testInfo) => {
-		// Include the filter controls in the scan: on mobile they live in the drawer, so open it (the
-		// helper is a no-op on desktop, where the sidebar is already in the tree).
-		await openFilterPanel(page, testInfo, filterDrawer(page));
+		// Include the filter controls in the scan: on mobile they sit behind the "Filters" toggle, so
+		// open it (the helper is a no-op on desktop, where the sidebar is already in the tree).
+		await openFilterPanel(page, testInfo, page.locator(FACET_CHIP).first());
 		// Scan the SETTLED visual state — reduced motion so axe evaluates final colors, not a transient
 		// card fade-in frame (opacity < 1 blends muted text toward the bg → false contrast fail).
 		await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -108,4 +101,12 @@ test.describe('React RTK books app — server-backed filter flow', () => {
 
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
+});
+
+describeBooksServerParity({
+	corpusEndpoint: '**/api/corpus/books.json',
+	id: 'react-rtk',
+	label: 'React RTK',
+	queryEndpoint: '**/api/query',
+	startCommand: EXAMPLES_SERVER_START_COMMAND,
 });

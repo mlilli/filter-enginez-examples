@@ -42,8 +42,9 @@
 import type { FilterSummary } from '@filter-enginez/examples-shared/books-domain';
 
 import { REDUCED_MOTION_QUERY } from '@filter-enginez/brand/motion';
-import { createFilterEngine, type FilterRule, type RuleId } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngine, type FilterRule, inSet, type RuleId } from '@filter-enginez/core';
 import { el } from '@filter-enginez/examples-shared/dom';
+import { RESULT_COPY, RESULT_GRID_WINDOW, type ResultCopy } from '@filter-enginez/examples-shared/verticals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { installMatchMedia } from '../test-support/matchMedia.js';
@@ -63,7 +64,7 @@ const FEW: readonly Row[] = ['a', 'b', 'c', 'd'].map((id) => ({ id, title: `Row 
  * `books/view.test.ts` records for its own corpus.
  *
  * @remarks
- * `BATCH_SIZE` is 60, so 60 render at rest, a first scroll reaches 120 and a second 130. The case
+ * `RESULT_GRID_WINDOW.batch` is 60, so 60 render at rest, a first scroll reaches 120 and a second 130. The case
  * that needs it asserts that a THIRD scroll adds nothing, and at any corpus under 121 that
  * assertion would hold whether the grid had exhausted itself or the listener had never fired.
  */
@@ -88,6 +89,10 @@ function makeSummary(ruleId: RuleId, overrides: Partial<FilterSummary> = {}): Fi
 
 /** A mounted results region plus the handles the cases drive it with. */
 interface MountedResults {
+	/** The engine the default pill × and "Clear all" write through. */
+	readonly core: FilterEngine<Row>;
+	/** The busy mark the default pill × and "Clear all" call first. */
+	readonly markBusy: ReturnType<typeof vi.fn>;
 	/** The mounted region's root. */
 	readonly root: HTMLElement;
 	/**
@@ -108,21 +113,28 @@ interface MountedResults {
 function mountResults(rows: readonly Row[] = FEW): MountedResults {
 	const core = createFilterEngine<Row>({ sourceData: rows });
 	const summaries: FilterSummary[] = [];
+	const markBusy = vi.fn();
 	const view = createResultsView<Row>(core, {
-		emptyHint: 'Try widening a filter.',
-		emptyTitle: 'No rows match these filters',
-		listLabel: 'Matching rows',
-		noun: 'rows',
+		copy: ROW_COPY,
+		markBusy,
 		renderCard: (row) => el('article', { className: 'fe-test-card', text: row.title }),
-		scrollRegionLabel: 'Matching rows, scrollable',
 		summarize: () => summaries,
 	});
 	const root = el('div', { children: [view.headerElement, view.gridElement]});
 
 	document.body.append(root);
 
-	return { root, summaries, view };
+	return { core, markBusy, root, summaries, view };
 }
+
+/** A dataset-shaped copy object for the neutral rows this suite renders. */
+const ROW_COPY: ResultCopy = {
+	emptyHint: 'Try widening a filter.',
+	emptyTitle: 'No rows match these filters',
+	listLabel: (count) => `${count.toLocaleString()} matching rows`,
+	noun: 'rows',
+	scrollerLabel: 'Row results',
+};
 
 /**
  * Query one element, throwing rather than returning `null` so callers avoid a non-null assertion.
@@ -366,5 +378,145 @@ describe('the batching grid', () => {
 
 		scroller.dispatchEvent(new Event('scroll'));
 		expect(cardCount()).toBe(130);
+	});
+
+	it('does not grow on a scroll that is still far from the bottom, even with rows left to give', () => {
+		// The other half of the near-bottom test, which jsdom's 0×0 boxes never take on their own: a
+		// scroller whose content runs well past the viewport. Rows are waiting, so only the geometry
+		// keeps the batch back — growing here would render the whole corpus on the first nudge.
+		const { root, view } = mountResults(MANY);
+		const scroller = requireElement(root, '.fe-result-grid__scroller');
+
+		view.setResults(MANY);
+		Object.defineProperty(scroller, 'scrollHeight', { configurable: true, value: 10_000 });
+		scroller.dispatchEvent(new Event('scroll'));
+
+		expect(root.querySelectorAll('.fe-test-card')).toHaveLength(60);
+	});
+});
+
+describe('the computing indicator — busy OR rolling', () => {
+	it('lights for the busy tracker alone, with no count change at all', () => {
+		const { root, view } = mountResults();
+		const indicator = requireElement(root, '.fe-computing-indicator');
+
+		view.setBusy(true);
+		expect(indicator.getAttribute('aria-label')).toBe('Engine computing');
+		expect(isCountComputing(root)).toBe(true);
+
+		view.setBusy(false);
+		expect(indicator.getAttribute('aria-label')).toBe('Engine idle');
+		expect(isCountComputing(root)).toBe(false);
+	});
+
+	it('stays lit while the roll runs on after the engine settled, and goes out when both are done', () => {
+		useAnimationTimers();
+
+		const { root, view } = mountResults();
+		const indicator = requireElement(root, '.fe-computing-indicator');
+
+		view.setCount(10, 10);
+		view.setBusy(true);
+		view.setCount(4, 10);
+		view.setBusy(false);
+		expect(indicator.getAttribute('aria-label')).toBe('Engine computing');
+
+		vi.advanceTimersByTime(PAST_ROLL_DURATION_MS);
+		expect(indicator.getAttribute('aria-label')).toBe('Engine idle');
+	});
+
+	it('stays lit while the engine is still busy after the roll has landed', () => {
+		useAnimationTimers();
+
+		const { root, view } = mountResults();
+		const indicator = requireElement(root, '.fe-computing-indicator');
+
+		view.setCount(10, 10);
+		view.setBusy(true);
+		view.setCount(4, 10);
+		vi.advanceTimersByTime(PAST_ROLL_DURATION_MS);
+
+		expect(indicator.getAttribute('aria-label')).toBe('Engine computing');
+	});
+});
+
+describe('the default pill x and Clear all', () => {
+	it('mark busy BEFORE the write, then remove one rule / clear every rule', () => {
+		const { core, markBusy, root, summaries, view } = mountResults();
+		const order: string[] = [];
+
+		markBusy.mockImplementation(() => {
+			order.push(`busy:${String(core.getRules().size)}`);
+		});
+		core.addRule('a', inSet<string>('id', ['a']));
+		core.addRule('b', inSet<string>('id', ['b']));
+		summaries.push(makeSummary('a'), makeSummary('b'));
+		view.setRules(noRules(), null);
+
+		requireElement(root, '[aria-label="Remove Label a filter"]').click();
+		expect(order).toEqual(['busy:2']);
+		expect([...core.getRules().keys()]).toEqual(['b']);
+
+		requireElement(root, '.fe-active-filters__clear').click();
+		expect(order).toEqual(['busy:2', 'busy:1']);
+		expect(core.getRules().size).toBe(0);
+	});
+});
+
+describe('the shared results copy', () => {
+	it('names the list with its count, and the scroller and the noun from the copy', () => {
+		const { root, view } = mountResults();
+		const list = requireElement(root, '[role="list"]');
+
+		expect(list.getAttribute('aria-label')).toBe('0 matching rows');
+
+		view.setResults(MANY);
+		expect(list.getAttribute('aria-label')).toBe('130 matching rows');
+		expect(requireElement(root, '.fe-result-grid__scroller').getAttribute('aria-label')).toBe('Row results');
+		expect(requireElement(root, '.fe-result-count__label').textContent).toBe('rows');
+	});
+
+	it('renders the empty state from the copy', () => {
+		const { root, view } = mountResults();
+
+		view.setResults([]);
+
+		expect(requireElement(root, '.fe-result-grid__empty-title').textContent).toBe('No rows match these filters');
+		expect(requireElement(root, '.fe-result-grid__empty-hint').textContent).toBe('Try widening a filter.');
+	});
+
+	it('is the wording every vertical shares', () => {
+		expect(RESULT_COPY.wine.listLabel(1204)).toBe('1,204 matching wines');
+		expect(RESULT_GRID_WINDOW).toEqual({ batch: 60, cap: 1500, initial: 60 });
+	});
+});
+
+describe('the cap notice', () => {
+	it('never shows below the cap — not even while more rows are waiting for a scroll', () => {
+		const { root, view } = mountResults(MANY);
+		const notice = requireElement(root, '.fe-result-grid__cap-notice');
+
+		view.setResults(MANY);
+
+		expect(notice.style.display).toBe('none');
+	});
+
+	it('shows "Showing N of M matches" once the grid has grown to the hard cap', () => {
+		const rows: Row[] = Array.from({ length: RESULT_GRID_WINDOW.cap + 5 }, (_, index) => ({
+			id: `c${String(index)}`,
+			title: `Row ${String(index)}`,
+		}));
+		const { root, view } = mountResults(rows);
+		const scroller = requireElement(root, '.fe-result-grid__scroller');
+		const notice = requireElement(root, '.fe-result-grid__cap-notice');
+
+		view.setResults(rows);
+		for (let batch = 0; batch < RESULT_GRID_WINDOW.cap / RESULT_GRID_WINDOW.batch; batch += 1) {
+			scroller.dispatchEvent(new Event('scroll'));
+		}
+
+		expect(root.querySelectorAll('.fe-test-card')).toHaveLength(RESULT_GRID_WINDOW.cap);
+		expect(notice.style.display).toBe('');
+		expect(notice.textContent).toBe('Showing 1,500 of 1,505 matches · narrow your filters to surface the rest');
 	});
 });

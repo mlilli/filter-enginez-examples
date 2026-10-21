@@ -55,7 +55,7 @@ describe('SearchInput', () => {
 		expect(document.activeElement).not.toBe(input);
 	});
 
-	it('blurs on Escape (the blur handler re-commits the already-current value — a harmless no-op for a controlled field)', () => {
+	it('blurs on Escape, and the resulting blur commits the current value', () => {
 		const onCommit = vi.fn();
 
 		render(createElement(SearchInput, { ariaLabel: 'Search', onChange: vi.fn(), onCommit, value: 'gamay' }));
@@ -64,8 +64,10 @@ describe('SearchInput', () => {
 		input.focus();
 		fireEvent.keyDown(input, { key: 'Escape' });
 
-		// Escape's only job is to drop focus; because the field is fully controlled there is no
-		// local edit to revert, and the resulting blur commits the unchanged value.
+		// Escape's only job is to drop focus. The field is controlled, so `value` is the text the parent
+		// mirrors from each keystroke, and the resulting blur commits it — the typed text, which the
+		// parent's typeahead flushes (writing nothing when it equals the last commit), as every app's
+		// search field does on Escape.
 		expect(document.activeElement).not.toBe(input);
 		expect(onCommit).toHaveBeenCalledWith('gamay');
 	});

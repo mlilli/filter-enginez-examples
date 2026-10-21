@@ -6,9 +6,9 @@
  * boot / settled-count / geo-chip machinery, with two structural differences it inherits from
  * `svelte-books.spec.ts`:
  *
- *   - **No off-canvas drawer.** The mobile filter panel is an inline collapse toggled by a "Filters"
- *     button rather than a `dialog`, so `openFilterPanel` just expands it and there is nothing to
- *     close. That is also why the results column stays interactable on mobile.
+ *   - **The mobile collapse.** The filter panel is an inline collapse toggled by a "Filters" button,
+ *     so `openFilterPanel` just expands it and there is nothing to close. That is also why the results
+ *     column stays interactable on mobile.
  *   - **Absolute URLs.** Playwright's `baseURL` is the React app; these navigate to the SvelteKit
  *     origin via `svelteUrl(...)`.
  *
@@ -50,6 +50,7 @@ import {
 	TOGGLEABLE_CHIP,
 	TREE_ROW,
 } from './filterFlow.js';
+import { describeRealEstateParity } from './realEstateParity.js';
 import { subtitle } from './subtitles.js';
 import { svelteUrl } from './svelteBase.js';
 
@@ -196,3 +197,5 @@ test.describe('SvelteKit real-estate app — filter flow', () => {
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
 });
+
+describeRealEstateParity({ id: 'sveltekit', label: 'SvelteKit' });

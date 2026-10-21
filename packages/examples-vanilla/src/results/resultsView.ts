@@ -16,12 +16,20 @@
  * `renderCard: (item: T) => HTMLElement` callback, which is what React needs a component for, Vue a
  * scoped slot, and Angular a `TemplateRef` plus a context-guard directive.
  *
- * ### The count ticks, and that is the whole busy story here
+ * ### Two inputs light the computing indicator
  *
- * The count eases toward its new value over 600ms (rAF + cubic ease-out) — parity with `react-ui`'s
- * `useTickingNumber`. On a synchronous main-thread engine a recompute resolves in the same tick, so
- * without the roll there would be nothing to see, and the roll is what drives the computing
- * indicator. This app has no engine busy tracker; the animation IS the indicator's input.
+ * The dataset's engine-busy tracker (`../busy/engineBusy.ts`), pushed in through
+ * {@link ResultsView.setBusy}: it turns on in the frame a write is marked and off once the engine has
+ * settled on it, which on the 150k worker tier is hundreds of milliseconds. And the count roll: the
+ * number eases toward its new value over 600ms (rAF + cubic ease-out), parity with `react-ui`'s
+ * `useTickingNumber`. The indicator — and the number's phosphor `--computing` state — show while
+ * EITHER is true, exactly as every other vertical's header ORs its busy store with its roll.
+ *
+ * ### The copy is the shared copy
+ *
+ * The count noun, the empty state, the list's and the scroller's accessible names, the render window
+ * and the cap notice all come from `@filter-enginez/examples-shared/verticals` (`RESULT_COPY`,
+ * `RESULT_GRID_WINDOW`), so the six apps cannot word the same results column six ways.
  *
  * @packageDocumentation
  */
@@ -31,14 +39,16 @@ import type { FilterSummary } from '@filter-enginez/examples-shared/books-domain
 
 import { prefersReducedMotion } from '@filter-enginez/brand/motion';
 import { el, setHidden, svg } from '@filter-enginez/examples-shared/dom';
+import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
+import {
+	isRenderCapped,
+	nextRenderLimit,
+	RESULT_GRID_WINDOW,
+	resultCapNotice,
+	type ResultCopy,
+} from '@filter-enginez/examples-shared/verticals';
 
 import { createComputingIndicator } from '../brand/indicators.js';
-
-/** How many cards render initially, and per "load more" batch. */
-const BATCH_SIZE = 60;
-
-/** Hard cap on rendered cards — past this the grid stops growing and says so. */
-const HARD_CAP = 1500;
 
 /** How near the bottom the scroller must be before the next batch renders, in px. */
 const LOAD_MORE_THRESHOLD_PX = 240;
@@ -72,35 +82,41 @@ export interface ResultsView<T> {
 	 * most-recently-changed rule so its pill gets the phosphor "just changed" border.
 	 */
 	readonly setRules: (rules: ReadonlyMap<RuleId, FilterRule>, recentRuleId: RuleId | null) => void;
+	/** Whether the dataset's engine-busy tracker says a write is still settling. */
+	readonly setBusy: (isBusy: boolean) => void;
 	/** Detach the rAF animation + scroll listener. */
 	readonly dispose: () => void;
 }
 
 /** Construction options for {@link createResultsView}. */
 export interface ResultsViewOptions<T> {
-	/** Hint under the empty-state title, naming a filter worth widening. */
-	readonly emptyHint: string;
-	/** Empty-state headline, e.g. `'No books match these filters'`. */
-	readonly emptyTitle: string;
-	/** Accessible name for the grid's `role="list"`, e.g. `'Matching books'`. */
-	readonly listLabel: string;
-	/** Plural record noun beside the count and in the cap notice, e.g. `'listings'`. */
-	readonly noun: string;
+	/**
+	 * The dataset's results copy — `RESULT_COPY[dataset]`: the noun beside the count, the empty
+	 * state, the list's accessible name (with its count) and the scroller's (a WCAG 2.1.1
+	 * obligation, see below).
+	 */
+	readonly copy: ResultCopy;
+	/**
+	 * Mark the dataset's engine-busy tracker. The default pill × and "Clear all" call it BEFORE they
+	 * write, so the indicator lights in the click's own frame.
+	 */
+	readonly markBusy: () => void;
 	/** Build one card. The returned element is given `role="listitem"` by this module. */
 	readonly renderCard: (item: T) => HTMLElement;
-	/** Accessible name for the SCROLLER — a WCAG 2.1.1 obligation, see below. */
-	readonly scrollRegionLabel: string;
 	/** How to summarize the active rules into pills. See {@link RuleSummarizer}. */
 	readonly summarize: RuleSummarizer;
 	/**
-	 * What a pill's × does. Defaults to removing the pill's rule.
+	 * What a pill's × does. Defaults to a busy mark, then removing the pill's rule.
 	 *
 	 * @remarks
 	 * A dataset passes its own when a pill can stand for something other than one rule: wine's
 	 * synthetic smart-filter pill names no rule, so `core.removeRule` on it would do nothing.
 	 */
 	readonly removePill?: (ruleId: RuleId) => void;
-	/** What "Clear all" does. Defaults to `core.clearRules()`. */
+	/**
+	 * What "Clear all" does. Defaults to the shared `clearAllFilters(engine, markBusy)`: the busy mark,
+	 * then ONE `core.clearRules()` — every rule, group and the expression, one Undo step.
+	 */
 	readonly clearAll?: () => void;
 }
 
@@ -116,17 +132,17 @@ export function createResultsView<T>(
 	core: FilterEngine<T>,
 	options: ResultsViewOptions<T>,
 ): ResultsView<T> {
-	const { emptyHint, emptyTitle, listLabel, noun, renderCard, scrollRegionLabel, summarize } =
-		options;
+	const { copy, markBusy, renderCard, summarize } = options;
 	const removePill =
 		options.removePill ??
 		((ruleId: RuleId): void => {
+			markBusy();
 			core.removeRule(ruleId);
 		});
 	const clearAll =
 		options.clearAll ??
 		((): void => {
-			core.clearRules();
+			clearAllFilters({ core }, markBusy);
 		});
 
 	const computing = createComputingIndicator();
@@ -151,7 +167,7 @@ export function createResultsView<T>(
 			el('div', {
 				children: [
 					countNode,
-					el('span', { className: 'fe-result-count__label', text: noun }),
+					el('span', { className: 'fe-result-count__label', text: copy.noun }),
 					deltaNode,
 					totalNode,
 					el('span', { children: [computing.element], className: 'fe-result-count__status' }),
@@ -168,13 +184,13 @@ export function createResultsView<T>(
 	// `<article>`s, which are not implicitly list items, so without both halves the list announces as
 	// empty.
 	grid.setAttribute('role', 'list');
-	grid.setAttribute('aria-label', listLabel);
+	grid.setAttribute('aria-label', copy.listLabel(0));
 
 	const capNotice = el('p', { className: 'fe-result-grid__cap-notice' });
 	const emptyState = el('div', {
 		children: [
-			el('p', { className: 'fe-result-grid__empty-title', text: emptyTitle }),
-			el('p', { className: 'fe-result-grid__empty-hint', text: emptyHint }),
+			el('p', { className: 'fe-result-grid__empty-title', text: copy.emptyTitle }),
+			el('p', { className: 'fe-result-grid__empty-hint', text: copy.emptyHint }),
 		],
 		className: 'fe-result-grid__empty',
 	});
@@ -188,8 +204,20 @@ export function createResultsView<T>(
 	});
 
 	gridElement.setAttribute('role', 'group');
-	gridElement.setAttribute('aria-label', scrollRegionLabel);
+	gridElement.setAttribute('aria-label', copy.scrollerLabel);
 	gridElement.tabIndex = 0;
+
+	// ── The computing state: busy OR rolling ──
+	let isBusy = false;
+	let isTicking = false;
+
+	/** Repaint the indicator and the number's phosphor state from the two inputs. */
+	function paintComputing(): void {
+		const isComputing = isBusy || isTicking;
+
+		countNode.classList.toggle('fe-result-count__number--computing', isComputing);
+		computing.setComputing(isComputing);
+	}
 
 	// ── Ticking count (port of react-ui's `useTickingNumber`) ──
 	// `shown` mirrors the displayed value non-reactively; it is the animation's start point.
@@ -228,8 +256,8 @@ export function createResultsView<T>(
 
 			return;
 		}
-		countNode.classList.add('fe-result-count__number--computing');
-		computing.setComputing(true);
+		isTicking = true;
+		paintComputing();
 
 		const step = (): void => {
 			const progress = Math.min(1, (clock() - start) / ROLL_DURATION_MS);
@@ -244,8 +272,8 @@ export function createResultsView<T>(
 				frame = 0;
 				shown = target;
 				countNode.textContent = target.toLocaleString();
-				countNode.classList.remove('fe-result-count__number--computing');
-				computing.setComputing(false);
+				isTicking = false;
+				paintComputing();
 			}
 		};
 
@@ -254,14 +282,14 @@ export function createResultsView<T>(
 
 	// ── Incremental grid rendering (batching + hard cap), mirroring the other verticals ──
 	let rendered: readonly T[] = [];
-	let visible = BATCH_SIZE;
+	let visible: number = RESULT_GRID_WINDOW.initial;
 
 	/** Paint the current slice + the empty / cap affordances. */
 	function paintGrid(): void {
-		const capped = Math.min(visible, HARD_CAP, rendered.length);
+		const renderedCount = Math.min(visible, rendered.length);
 
 		grid.replaceChildren(
-			...rendered.slice(0, capped).map((item) => {
+			...rendered.slice(0, renderedCount).map((item) => {
 				const card = renderCard(item);
 
 				// Set here rather than in each dataset's renderer, so a new card cannot forget it and
@@ -274,16 +302,18 @@ export function createResultsView<T>(
 		setHidden(emptyState, rendered.length > 0);
 		setHidden(grid, rendered.length === 0);
 
-		if (capped < rendered.length) {
+		// Only at the hard cap, and only when more matched than it lets through: below the cap the
+		// next scroll renders more, so "showing N of M" would describe a pause rather than a limit.
+		if (isRenderCapped(renderedCount, rendered.length)) {
+			const notice = resultCapNotice(renderedCount, rendered.length);
+
 			setHidden(capNotice, false);
 			capNotice.replaceChildren(
-				el('span', { className: 'fe-result-grid__cap-shown', text: capped.toLocaleString() }),
+				'Showing ',
+				el('span', { className: 'fe-result-grid__cap-shown', text: notice.rendered }),
 				' of ',
-				el('span', {
-					className: 'fe-result-grid__cap-total',
-					text: rendered.length.toLocaleString(),
-				}),
-				` ${noun} rendered — scroll for more`,
+				el('span', { className: 'fe-result-grid__cap-total', text: notice.total }),
+				` ${notice.suffix}`,
 			);
 		} else {
 			setHidden(capNotice, true);
@@ -295,9 +325,10 @@ export function createResultsView<T>(
 		const isNearBottom =
 			gridElement.scrollTop + gridElement.clientHeight >=
 			gridElement.scrollHeight - LOAD_MORE_THRESHOLD_PX;
+		const next = nextRenderLimit(visible, rendered.length);
 
-		if (isNearBottom && visible < Math.min(rendered.length, HARD_CAP)) {
-			visible += BATCH_SIZE;
+		if (isNearBottom && next > visible) {
+			visible = next;
 			paintGrid();
 		}
 	}
@@ -314,6 +345,10 @@ export function createResultsView<T>(
 		},
 		gridElement,
 		headerElement,
+		setBusy: (nextIsBusy) => {
+			isBusy = nextIsBusy;
+			paintComputing();
+		},
 		setCount: (count, total) => {
 			tickTo(count);
 			const delta = count - total;
@@ -328,7 +363,8 @@ export function createResultsView<T>(
 		},
 		setResults: (results) => {
 			rendered = results;
-			visible = BATCH_SIZE;
+			visible = RESULT_GRID_WINDOW.initial;
+			grid.setAttribute('aria-label', copy.listLabel(results.length));
 			gridElement.scrollTop = 0;
 			paintGrid();
 		},

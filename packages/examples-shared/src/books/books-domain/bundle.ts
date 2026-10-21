@@ -11,7 +11,7 @@
  *
  * Single-value toggles (`BooleanRule` / `ExistsRule`) have no bundle candidate kind, so their disable
  * state is computed separately by {@link toggleWouldBeEmpty} — the equivalent one-pass
- * `results.some(rule.action)` check the React `useToggleWouldBeEmpty` hook performs.
+ * `results.some(rule.action)` check the React `useIsToggleDisabled` hook performs.
  *
  * @packageDocumentation
  */
@@ -34,8 +34,17 @@ export {
 	type ExclusionMap,
 	fieldBounds,
 	fieldHistogram,
+	isToggleDisabled,
 	toggleWouldBeEmpty,
 } from '../../filter-bundle/bundleReaders.js';
+// The fetch loop for an engine that answers a round trip later (the `/books-server` HTTP engine): the
+// same dataset-neutral fetcher the wine routes use, reachable from the books import path.
+export {
+	type BundleFetcher,
+	type BundleFetchHandlers,
+	type BundleQueryable,
+	createBundleFetcher,
+} from '../../filter-bundle/bundleFetcher.js';
 
 /**
  * The three books slider tracks' full-corpus extents.

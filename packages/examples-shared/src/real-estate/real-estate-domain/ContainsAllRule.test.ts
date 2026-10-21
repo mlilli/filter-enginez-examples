@@ -15,7 +15,8 @@
  * user-hostile direction: it offers results that do not meet the stated requirement.
  */
 
-import { ruleRegistry } from '@filter-enginez/core';
+import { createFilterEngine, inSet, ruleRegistry } from '@filter-enginez/core';
+import { listings } from '@filter-enginez/mock-data/real-estate';
 import { describe, expect, it } from 'vitest';
 
 import { ContainsAllRule } from './ContainsAllRule.js';
@@ -138,5 +139,24 @@ describe('registration idempotence', () => {
 		// dev server rather than hot-reloading.
 		await expect(import('./ContainsAllRule.js')).resolves.toBeDefined();
 		expect(ruleRegistry.has('ContainsAllRule')).toBe(true);
+	});
+});
+
+describe('the built-in equivalent', () => {
+	it.each([
+		['one feature', ['pool']],
+		['two features', ['garage', 'pool']],
+		['no feature', []],
+	])('matches the same listings as InSetRule with arrayMatch "all" (%s)', (_label, required) => {
+		// The docblock's claim, over the real corpus: `features` is always an array, so the one input
+		// the two rules treat differently (a non-array field) never occurs.
+		const custom = createFilterEngine({ sourceData: listings });
+		const builtIn = createFilterEngine({ sourceData: listings });
+
+		custom.addRule('must-have-features', new ContainsAllRule('features', { required }));
+		builtIn.addRule('must-have-features', inSet<string>('features', { arrayMatch: 'all', set: required }));
+
+		expect(custom.getResultCount()).toBeGreaterThan(0);
+		expect([...builtIn.getResultIndices()]).toEqual([...custom.getResultIndices()]);
 	});
 });

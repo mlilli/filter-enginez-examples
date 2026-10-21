@@ -45,6 +45,7 @@
  */
 
 import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
+import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { el } from '@filter-enginez/examples-shared/dom';
 import { bootWineServerEngine, SERVER_WINE_TIER_LABEL } from '@filter-enginez/examples-shared/wine-server-core';
 
@@ -71,9 +72,9 @@ const API_BASE_URL = '/api';
  * @returns A teardown dropping every subscription and disposing the engine.
  */
 export async function renderWineServerPage(container: HTMLElement): Promise<RouteTeardown> {
-	const bootScreen = createWineBootScreen('Loading wine reviews from the server');
+	const bootScreen = createWineBootScreen(SERVER_ROUTE_SCREEN_COPY.connectingLoaderLabel);
 
-	bootScreen.setCaption('Fetching corpus from the filter API');
+	bootScreen.setCaption(SERVER_ROUTE_SCREEN_COPY.connectingCaption);
 	container.append(bootScreen.element);
 
 	let engine;
@@ -82,7 +83,7 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
 		engine = await bootWineServerEngine({ baseUrl: API_BASE_URL });
 	} catch (error) {
 		console.error('[wine-server] boot failed:', error);
-		container.replaceChildren(offlineNotice());
+		container.replaceChildren(offlineNotice(error instanceof Error ? error.message : String(error)));
 
 		// A teardown is still owed: the router calls it on navigation regardless of how the render
 		// ended, and returning nothing here would make leaving this route throw.
@@ -107,55 +108,38 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
  * The state this route shows when the filter API is not running.
  *
  * @remarks
- * **Names the command**, because the fix is one process away and the failure is the DEFAULT local
- * state — `pnpm dev` starts the six verticals and not `serve:api`. An error screen that says only
- * "something went wrong" would send a reader to the network tab to rediscover a fact this page
- * already knows.
+ * The words every app's server-backed route shows (`SERVER_ROUTE_SCREEN_COPY`): the headline, the
+ * error's own message, and the command that starts the server, because the fix is one process away
+ * and the failure is the DEFAULT local state — `pnpm dev` starts the six verticals and not
+ * `serve:api`. Inside an element with `role="alert"`, within a `<main>`: with the API down, this is
+ * the page's main content.
  *
- * Inline layout rather than a class, matching the boot screen: `ui-styles` has no error-state
- * component, and this app authors no component CSS at all. A `<main>`, as the boot screen is: with the
- * API down, this notice is the page's main content.
+ * Built over the shared `.fe-server-offline*` classes, the same block the other apps' offline
+ * screens render.
  *
+ * @param message - The boot error's message.
+ * @returns The screen's root.
  * @internal
  */
-function offlineNotice(): HTMLElement {
+function offlineNotice(message: string): HTMLElement {
 	return el('main', {
 		children: [
-			el('h1', {
-				style: { fontSize: 'var(--text-lg)', margin: '0' },
-				text: 'The filter API is not running',
-			}),
-			el('p', {
-				style: { color: 'var(--gray-8)', margin: '0', maxWidth: '46ch', textAlign: 'center' },
-				text: 'This route does no filtering in the browser — it round-trips every change to a Node process running the isomorphic engine. Start it, then reload:',
-			}),
-			el('code', {
-				style: {
-					background: 'var(--gray-1)',
-					border: '1px solid var(--gray-3)',
-					borderRadius: 'var(--radius-sm)',
-					color: 'var(--accent)',
-					fontFamily: 'var(--font-mono)',
-					fontSize: '0.8rem',
-					padding: '10px 14px',
-				},
-				text: 'pnpm --filter @filter-enginez/examples-server serve:api',
-			}),
-			el('a', {
-				attrs: { href: '/wine' },
-				style: { color: 'var(--accent)', fontSize: '0.85rem' },
-				text: 'Or try the worker-backed /wine route, which needs no server →',
+			el('div', {
+				attrs: { role: 'alert' },
+				children: [
+					el('p', { className: 'fe-server-offline__title', text: SERVER_ROUTE_SCREEN_COPY.offlineTitle }),
+					el('p', { className: 'fe-server-offline__detail', text: message }),
+					el('p', {
+						children: [
+							SERVER_ROUTE_SCREEN_COPY.offlineHintLead,
+							el('code', { className: 'fe-server-offline__command', text: EXAMPLES_SERVER_START_COMMAND }),
+							SERVER_ROUTE_SCREEN_COPY.offlineHintTail,
+						],
+						className: 'fe-server-offline__hint',
+					}),
+				],
+				className: 'fe-server-offline',
 			}),
 		],
-		style: {
-			alignItems: 'center',
-			display: 'flex',
-			flexDirection: 'column',
-			gap: '1rem',
-			justifyContent: 'center',
-			minHeight: '60vh',
-			padding: '24px',
-			textAlign: 'center',
-		},
 	});
 }

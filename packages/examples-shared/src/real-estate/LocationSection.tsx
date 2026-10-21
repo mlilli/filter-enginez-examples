@@ -15,7 +15,8 @@
  * ### Predictive disable, and the two id spaces it straddles
  *
  * Nodes whose selection would empty the results render hard-disabled, via the bundle's
- * `inSetOfSets` candidates, which are the same specs the rule is built from.
+ * `inSetOfSets` candidates, which are the same specs the rule is built from. The same candidates give
+ * each row its count (`chipProjectedCounts`): how many listings selecting it would yield.
  *
  * The picker addresses nodes by PREFIXED id (`neighborhood:CO/Greater Denver/Capitol Hill`) while the
  * rule and the bundle match the BARE `locationId` path; `buildLocationNodeSpecs` does the one
@@ -34,12 +35,13 @@ import { useCallback, useMemo } from 'react';
 import type { LocationNodeSpec } from './real-estate-domain/extractors.js';
 import type { PickerTreeNode } from './real-estate-domain/pickerTree.js';
 
-import { useChipExclusion } from '../filter-bundle/index.js';
+import { useChipExclusion, useChipProjectedCounts } from '../filter-bundle/index.js';
 import { useSeedAndAdopt } from '../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../scheduling/index.js';
 import { markUserAction } from './engineBusy.js';
 import { LOCATION_RULE_ID } from './real-estate-domain/locationLinks.js';
 import { deriveLocationSelection, writeLocationSelection } from './real-estate-domain/locationRule.js';
+import { REAL_ESTATE_LOCATION_TREE } from './real-estate-domain/panelCopy.js';
 import { SectionHeader } from './RealEstateFilterSections.js';
 
 /** Stable empty selection so an unset location rule doesn't churn referential identity. */
@@ -99,6 +101,10 @@ export const LocationSection = ({ locationNodeSpecs, locationTree }: LocationSec
 		return out;
 	}, [exclusion, selected]);
 
+	// How many listings each node covers, from the same bundle, like the wine origin tree's and every
+	// other app's location tree. Only the engine knows it; the tree knows only its own shape.
+	const nodeCounts = useChipProjectedCounts(LOCATION_RULE_ID);
+
 	return (
 		<section>
 			<SectionHeader label="Location" />
@@ -107,6 +113,10 @@ export const LocationSection = ({ locationNodeSpecs, locationTree }: LocationSec
 				selected={selected}
 				onChange={handleChange}
 				disabledNodes={disabledNodes}
+				nodeCounts={nodeCounts}
+				// A named group at the shared height, as in every other app.
+				groupLabel={REAL_ESTATE_LOCATION_TREE.groupLabel}
+				maxHeight={REAL_ESTATE_LOCATION_TREE.maxHeight}
 			/>
 		</section>
 	);

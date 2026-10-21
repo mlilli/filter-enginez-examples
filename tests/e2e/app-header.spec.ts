@@ -226,8 +226,8 @@ test.describe('text entry on a phone', () => {
 		await expect(page.getByText(subtitle('Books', 'react-rtk'))).toBeVisible({
 			timeout: BOOKS_ARRIVAL['react-rtk'].bootTimeoutMs,
 		});
-		// The field itself is the readiness signal: it is inside the drawer, so it is visible exactly when
-		// the drawer is open, and it is the element measured.
+		// The field itself is the readiness signal: it is inside the collapse, so it is visible exactly
+		// when the collapse is open, and it is the element measured.
 		const searchField = page.getByLabel('Search descriptions');
 
 		await openFilterPanel(page, testInfo, searchField);

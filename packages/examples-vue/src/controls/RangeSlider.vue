@@ -9,8 +9,11 @@
  *      it, and track segments outside it are dimmed ("no records exist here given your other filters").
  *   3. **Selected range** — the user's current handle positions, a cyan-filled segment.
  *
- * Below the track sit editable min/max text inputs: type a value + Enter (or blur) to commit; the value
- * clamps to the available zone and swaps if max < min.
+ * Below the track sit editable min/max text inputs: type a value + Enter (or blur) to commit. The
+ * shared `resolveTypedBound` snaps it to the step and clamps it into the available zone, and the pair
+ * is re-ordered if max < min. Text that is not a number, or a value equal to the committed bound,
+ * writes nothing and puts the committed value back in the field. Escape reverts the field and commits
+ * nothing, including through the blur it causes.
  *
  * ### The distribution overlay
  *
@@ -41,7 +44,9 @@
  *
  * The arrow keys step through `stepScaledValue`. On a linear track that is exactly one `step`; on a log
  * track it is about one percent of the track, never less than one `step`, because a one-dollar step is
- * right at $8 and takes thousands of presses to cross the tail.
+ * right at $8 and takes thousands of presses to cross the tail. Home and End jump to the available
+ * bounds. Nothing else moves a thumb: no PageUp / PageDown and no Shift acceleration, the same keys in
+ * every app.
  *
  * With no `scale` the slider uses `linearSliderScale(baseline)`, which is the plain proportional
  * mapping — the books and real-estate sliders pass none and behave exactly as a linear slider always
@@ -52,9 +57,11 @@ import {
 	histogramBarHeightPercent,
 	type HistogramBucket,
 	linearSliderScale,
+	nearestThumb,
 	type NumericBounds,
+	resolveTypedBound,
 	type SliderScale,
-	snapToStep,
+	snapClampToBounds,
 	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 import { computed, onUnmounted, ref, watch } from 'vue';
@@ -178,16 +185,15 @@ function pct(value: number): number {
  * Snap a raw value to the step grid, then clamp into the available zone.
  *
  * @remarks
- * `snapToStep` rather than a bare `Math.round(value / step) * step`: the bare form leaves float noise
- * on a fractional step (`132 * 0.1` is `13.200000000000001`), which then reaches the committed rule.
+ * The shared `snapClampToBounds`, which snaps through `snapToStep` rather than a bare
+ * `Math.round(value / step) * step`: the bare form leaves float noise on a fractional step
+ * (`132 * 0.1` is `13.200000000000001`), which would then reach the committed rule.
  *
  * @param value - The raw value.
  * @returns The value on the step grid, inside the available zone.
  */
 function snapClamp(value: number): number {
-	const snapped = snapToStep(value, props.step);
-
-	return Math.max(effectiveAvailable.value.min, Math.min(snapped, effectiveAvailable.value.max));
+	return snapClampToBounds(value, props.step, effectiveAvailable.value);
 }
 
 const availableMinPct = computed(() => pct(effectiveAvailable.value.min));
@@ -273,37 +279,6 @@ function startDrag(handle: 'lower' | 'upper', event: PointerEvent): void {
 }
 
 /**
- * Which thumb a click at `value` should move.
- *
- * @remarks
- * Nearest wins, with the two outside cases resolved first so a click beyond either end always extends
- * rather than inverts the selection. Without that, a click left of both thumbs when they sit together
- * would be equidistant, and the tie could pick `upper` — dragging the top of the range down past the
- * bottom, which `commit` then silently re-orders into something the user did not ask for.
- *
- * "Nearest" means nearest ON SCREEN. Under a log scale, value distance and track distance disagree —
- * $20 to $60 is a long stretch of track and $600 to $640 a short one — so a non-linear track compares
- * track fractions. A linear track keeps comparing values, which picks the same thumb without the
- * float rounding a fraction subtraction would add to an exact tie.
- *
- * @param value - The value under the pointer.
- * @returns The handle to move.
- */
-function pickHandle(value: number): 'lower' | 'upper' {
-	if (value <= displayLower.value) {
-		return 'lower';
-	}
-	if (value >= displayUpper.value) {
-		return 'upper';
-	}
-	const position = trackScale.value.kind === 'linear' ? (v: number): number => v : trackScale.value.toFraction;
-
-	return position(value) - position(displayLower.value) <= position(displayUpper.value) - position(value)
-		? 'lower'
-		: 'upper';
-}
-
-/**
  * Jump the nearest thumb to a click on the track — and keep dragging from there.
  *
  * @remarks
@@ -322,7 +297,12 @@ function pickHandle(value: number): 'lower' | 'upper' {
  * @param event - The pointer event on the track.
  */
 function handleTrackPointerDown(event: PointerEvent): void {
-	startDrag(pickHandle(valueFromPointer(event.clientX)), event);
+	// The shared `nearestThumb`: the thumb nearer the click ON SCREEN (track fractions, so a log track
+	// moves the thumb the pointer is visibly closer to), a click outside both moving the end it is
+	// beyond, and a tie moving the lower thumb.
+	const value = valueFromPointer(event.clientX);
+
+	startDrag(nearestThumb(value, displayLower.value, displayUpper.value, trackScale.value.toFraction), event);
 	handlePointerMove(event);
 }
 
@@ -378,30 +358,87 @@ function handleKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
 	}
 }
 
-/** Commit an edited text field, clamping to the available zone + swapping to keep ordering coherent. */
-function commitText(which: 'lower' | 'upper', raw: string): void {
-	const parsed = props.parse(raw);
-	const other = which === 'lower' ? safeUpper.value : safeLower.value;
-	const clamped = Number.isFinite(parsed) ? snapClamp(parsed) : which === 'lower' ? safeLower.value : safeUpper.value;
-
-	commit(which === 'lower' ? clamped : other, which === 'lower' ? other : clamped);
+/**
+ * Put a field back to its committed bound, formatted.
+ *
+ * @param which - The field.
+ */
+function resetText(which: 'lower' | 'upper'): void {
+	if (which === 'lower') {
+		lowerText.value = props.format(safeLower.value);
+	} else {
+		upperText.value = props.format(safeUpper.value);
+	}
 }
 
+/**
+ * Commit an edited text field through the shared `resolveTypedBound`.
+ *
+ * @remarks
+ * Text that is not a number, or a value that snaps to the bound already committed, writes nothing and
+ * puts the committed value back in the field: leaving `abc` or `40.2` in a field that filters on `40`
+ * would show a bound that is not the one filtering. Anything else commits, the pair re-ordered so
+ * min ≤ max, and the field takes the committed value when the engine answers.
+ *
+ * @param which - The field that was edited.
+ * @param raw - The field's text.
+ */
+function commitText(which: 'lower' | 'upper', raw: string): void {
+	const committedBound = which === 'lower' ? safeLower.value : safeUpper.value;
+	const resolved = resolveTypedBound(props.parse(raw), props.step, effectiveAvailable.value);
+
+	if (resolved === null || resolved === committedBound) {
+		resetText(which);
+
+		return;
+	}
+	const other = which === 'lower' ? safeUpper.value : safeLower.value;
+
+	commit(which === 'lower' ? resolved : other, which === 'lower' ? other : resolved);
+}
+
+/**
+ * Set while a keydown blurs a field itself, so the blur it causes commits nothing.
+ *
+ * @remarks
+ * Enter has already committed the text, and Escape must commit nothing; without this the blur that
+ * follows either would run `commitText` a second time. `blur()` dispatches synchronously, so the flag
+ * is only ever up for the length of that call.
+ */
+let isBlurFromKeydown = false;
+
+/**
+ * Commit a field on blur, unless a keydown is the reason it lost focus.
+ *
+ * @param which - The field.
+ */
+function handleInputBlur(which: 'lower' | 'upper'): void {
+	if (isBlurFromKeydown) {
+		return;
+	}
+	commitText(which, which === 'lower' ? lowerText.value : upperText.value);
+}
+
+/**
+ * Enter commits the field and Escape reverts it; both then leave the field.
+ *
+ * @param which - The field.
+ * @param event - The keydown.
+ */
 function handleInputKeydown(which: 'lower' | 'upper', event: KeyboardEvent): void {
 	const target = event.currentTarget as HTMLInputElement;
 
 	if (event.key === 'Enter') {
 		event.preventDefault();
 		commitText(which, target.value);
-		target.blur();
 	} else if (event.key === 'Escape') {
-		if (which === 'lower') {
-			lowerText.value = props.format(safeLower.value);
-		} else {
-			upperText.value = props.format(safeUpper.value);
-		}
-		target.blur();
+		resetText(which);
+	} else {
+		return;
 	}
+	isBlurFromKeydown = true;
+	target.blur();
+	isBlurFromKeydown = false;
 }
 </script>
 
@@ -471,7 +508,7 @@ function handleInputKeydown(which: 'lower' | 'upper', event: KeyboardEvent): voi
 				inputmode="decimal"
 				class="fe-range-slider__input fe-range-slider__input--min"
 				:aria-label="`${label} lower bound (editable)`"
-				@blur="commitText('lower', lowerText)"
+				@blur="handleInputBlur('lower')"
 				@keydown="handleInputKeydown('lower', $event)"
 			/>
 			<input
@@ -480,7 +517,7 @@ function handleInputKeydown(which: 'lower' | 'upper', event: KeyboardEvent): voi
 				inputmode="decimal"
 				class="fe-range-slider__input fe-range-slider__input--max"
 				:aria-label="`${label} upper bound (editable)`"
-				@blur="commitText('upper', upperText)"
+				@blur="handleInputBlur('upper')"
 				@keydown="handleInputKeydown('upper', $event)"
 			/>
 		</div>

@@ -22,13 +22,18 @@
  * **The ISBN escape hatch.** A half-typed character class must not disturb the engine at all — a
  * mid-keystroke result flicker is worse than a stale result.
  *
- * The fixture is ten hand-written books rather than the real corpus so every assertion is exact and
- * the predictive-disable projection stays legible.
+ * **The books search convention and the checkbox disable rule.** An emptied description or author
+ * field writes an EMPTY-query rule (the ISBN pattern is removed), a blur that changes nothing writes
+ * and marks nothing, and `isToggleDisabled` disables an unchecked box that would empty the results
+ * but never a checked one.
+ *
+ * The fixture is ten hand-written books (`books-panel-fixture.ts`) rather than the real corpus so every
+ * assertion is exact and the predictive-disable projection stays legible.
  *
  * @packageDocumentation
  */
 
-import type { Book, BookFormat, BookGenre } from '@filter-enginez/mock-data/books';
+import type { Book, BookGenre } from '@filter-enginez/mock-data/books';
 
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideEngineBusy, provideFilterEngine } from '@filter-enginez/angular-rxjs';
@@ -37,6 +42,7 @@ import {
 	BooleanRule,
 	ExistsRule,
 	FuzzySearchRule,
+	inSet,
 	InSetofSetsRule,
 	InSetRule,
 	RangeRule,
@@ -54,6 +60,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { BooksFilterPanelComponent } from './books-filter-panel.component.js';
+import { FIXTURE_BOOKS } from './books-panel-fixture.js';
 
 /** Index of each chip group in template order. */
 const CHIP_GROUP = { format: 2, genre: 0, language: 3, superGroup: 1 } as const;
@@ -66,90 +73,6 @@ const SEARCH = { author: 1, description: 0, isbn: 2 } as const;
 
 /** Index of each slider bound input in template order (two per slider). */
 const SLIDER = { pageMin: 4, ratingMin: 2, yearMin: 0 } as const;
-
-/**
- * Build one fixture book, defaulting every field the panel doesn't read.
- *
- * @param overrides - The fields this test actually cares about.
- * @returns A structurally complete `Book`.
- */
-function makeBook(overrides: Partial<Book> & Pick<Book, 'id'>): Book {
-	return {
-		authors: ['Ursula Vernon'],
-		averageRating: 4,
-		coverImage: 'cover.jpg',
-		description: 'a quiet book about nothing much',
-		format: 'paperback',
-		genre: 'fantasy',
-		hasAudiobook: false,
-		isbn13: '9780000000000',
-		isInPrint: true,
-		language: 'en',
-		lastUpdated: '2026-01-01T00:00:00.000Z',
-		openLibraryId: `OL${overrides.id}`,
-		pageCount: 300,
-		popularityScore: 10,
-		publicationYear: 2000,
-		publisher: 'Fixture Press',
-		subjects: [],
-		subtitle: '',
-		tier: 'default',
-		title: `Title ${overrides.id}`,
-		...overrides,
-	};
-}
-
-/** `[genre, format, language, publicationYear, averageRating, pageCount, isInPrint, hasAudiobook]`. */
-type FixtureRow = readonly [BookGenre, BookFormat, string, number, number | null, number, boolean, boolean];
-
-/**
- * Ten books with hand-chosen facets, one row each.
- *
- * Genres resolve to `fantasy | mystery | science`, formats to `ebook | hardcover | paperback`,
- * languages to `en | fr`. Ratings span 2.9–4.9 with two nulls (so `ExistsRule` has something to do)
- * and four at or above 4.5 (so the Editor's-picks Bloom set is non-empty). Years span 1990–2020 and
- * page counts 100–900, which makes the three slider baselines exactly predictable. Each row's index
- * becomes the fifth ISBN digit, so `^97801` matches exactly one book.
- */
-const FIXTURE_ROWS: readonly FixtureRow[] = [
-	['fantasy', 'hardcover', 'en', 1990, 4.8, 100, true, true],
-	['fantasy', 'paperback', 'en', 2000, 3.5, 200, true, false],
-	['mystery', 'ebook', 'en', 2005, null, 300, false, true],
-	['mystery', 'hardcover', 'fr', 2010, 4.9, 400, true, true],
-	['science', 'paperback', 'fr', 2015, 4, 500, true, false],
-	['science', 'ebook', 'en', 2020, 3.2, 600, false, true],
-	['fantasy', 'ebook', 'fr', 1995, 4.6, 700, true, true],
-	['mystery', 'paperback', 'en', 2018, 2.9, 800, true, false],
-	['science', 'hardcover', 'en', 2012, null, 900, false, true],
-	['fantasy', 'hardcover', 'fr', 2008, 4.7, 250, true, true],
-];
-
-/** The two rows that carry distinguishable free text, keyed by row index. */
-const FIXTURE_TEXT: Readonly<Record<number, Partial<Book>>> = {
-	0: { description: 'a dystopian tale of a drowned city' },
-	1: { authors: ['Margaret Atwood']},
-};
-
-/** The corpus the panel boots over. */
-const FIXTURE_BOOKS: readonly Book[] = FIXTURE_ROWS.map(
-	(
-		[genre, format, language, publicationYear, averageRating, pageCount, isInPrint, hasAudiobook],
-		index,
-	) =>
-		makeBook({
-			averageRating,
-			format,
-			genre,
-			hasAudiobook,
-			id: `b${index}`,
-			isbn13: `9780${index}00000000`,
-			isInPrint,
-			language,
-			pageCount,
-			publicationYear,
-			...FIXTURE_TEXT[index],
-		}),
-);
 
 describe('BooksFilterPanelComponent', () => {
 	let busy: EngineBusyStream;
@@ -201,13 +124,8 @@ describe('BooksFilterPanelComponent', () => {
 	};
 
 	/**
-	 * Type into a free-text field and blur it, which is how the panel commits text.
-	 *
-	 * @remarks
-	 * The `detectChanges()` between the two events is REQUIRED, not tidiness. `<fe-search-input>`
-	 * emits `commit` with its own `value()` input signal, which only receives the panel's mirror after
-	 * change detection runs — without the flush the blur commits the PREVIOUS text and the test passes
-	 * for the wrong reason.
+	 * Type into a free-text field and blur it: the blur flushes the field's pending debounce, which is
+	 * how a search commits at once.
 	 *
 	 * @param index - Which field.
 	 * @param value - The text to type.
@@ -476,16 +394,37 @@ describe('BooksFilterPanelComponent', () => {
 			expect(checkboxes()[CHECKBOX.rated]?.checked).toBe(false);
 		});
 
-		it('removes the text rules rather than committing an empty query', () => {
-			// Whitespace-only counts as empty — a rule matching `''` would be a silent no-op that still
-			// shows up as an active filter pill.
+		it('writes the description and author rules with an EMPTY query when their fields empty', () => {
+			// The books convention, the same in all six apps. Whitespace-only counts as empty; the
+			// empty-query rules are permissive, so the whole corpus comes back.
 			commitSearch(SEARCH.description, 'dystopian');
 			commitSearch(SEARCH.author, 'Atwood');
 			commitSearch(SEARCH.description, '   ');
 			commitSearch(SEARCH.author, '');
 
-			expect(ruleFor('text-search')).toBeUndefined();
-			expect(ruleFor('author-search')).toBeUndefined();
+			expect(ruleFor('text-search')).toBeInstanceOf(TextSearchRule);
+			expect((ruleFor('text-search') as TextSearchRule).config.query).toBe('');
+			expect(ruleFor('author-search')).toBeInstanceOf(FuzzySearchRule);
+			expect((ruleFor('author-search') as FuzzySearchRule).config.query).toBe('');
+			expect(engine.core.getResultCount()).toBe(FIXTURE_BOOKS.length);
+		});
+
+		it('writes nothing, and marks nothing busy, for a blur that changes nothing', () => {
+			// A busy mark with no write behind it is never settled: the computing indicator would stay lit
+			// and the panel stay dimmed and click-blocked.
+			for (const field of searchFields()) {
+				field.dispatchEvent(new Event('blur'));
+			}
+			fixture.detectChanges();
+
+			expect(engine.core.getRules().size).toBe(0);
+			expect(busy.getIsBusy()).toBe(false);
+
+			commitSearch(SEARCH.description, 'dystopian');
+			busy.markResolvedAtLeast(busy.captureCurrentVersion());
+			commitSearch(SEARCH.description, 'dystopian ');
+
+			expect(busy.getIsBusy()).toBe(false);
 		});
 	});
 
@@ -517,8 +456,7 @@ describe('BooksFilterPanelComponent', () => {
 			);
 			fixture.detectChanges();
 
-			// The text mirrors are the one place a local copy exists; an effect re-seeds them from the
-			// committed rule, which is what lets a URL restore populate the inputs.
+			// The search field adopts the committed query, which is what lets a URL restore populate it.
 			expect(searchFields()[SEARCH.description]?.value).toBe('drowned');
 		});
 
@@ -578,6 +516,35 @@ describe('BooksFilterPanelComponent', () => {
 		});
 	});
 
+	describe('checkbox predictive disable (isToggleDisabled)', () => {
+		it('disables an unchecked box whose rule would empty the results, with the shared title', () => {
+			// `mystery` × `paperback` leaves one book, which has no audiobook but is in print.
+			engine.core.addRule('genre', inSet<string>('genre', ['mystery']));
+			engine.core.addRule('format', inSet<string>('format', ['paperback']));
+			fixture.detectChanges();
+
+			const audiobook = checkboxes()[CHECKBOX.audiobook];
+
+			expect(audiobook?.disabled).toBe(true);
+			expect(audiobook?.closest('label')?.getAttribute('title')).toBe('No matches given your other filters');
+			expect(checkboxes()[CHECKBOX.inPrint]?.disabled).toBe(false);
+		});
+
+		it('never disables a checked box, even when the results are empty', () => {
+			clickCheckbox(CHECKBOX.audiobook);
+			engine.core.addRule('genre', inSet<string>('genre', ['mystery']));
+			engine.core.addRule('format', inSet<string>('format', ['paperback']));
+			fixture.detectChanges();
+
+			expect(engine.core.getResultCount()).toBe(0);
+			expect(checkboxes()[CHECKBOX.audiobook]?.checked).toBe(true);
+			// The user can always turn a filter back off.
+			expect(checkboxes()[CHECKBOX.audiobook]?.disabled).toBe(false);
+			// An unchecked box over an empty result set has nothing to offer.
+			expect(checkboxes()[CHECKBOX.inPrint]?.disabled).toBe(true);
+		});
+	});
+
 	describe('predictive disable', () => {
 		it('dims a super-group whose genres are absent from the corpus', () => {
 			// "Fiction & drama" covers children / fiction / romance / young-adult, none of which the
@@ -603,7 +570,7 @@ describe('BooksFilterPanelComponent', () => {
 		});
 	});
 
-	it('shows its heading by default and hides it on request (the mobile drawer supplies its own)', () => {
+	it('shows its heading by default and hides it on request (for a host with its own title)', () => {
 		expect(fixture.nativeElement.querySelector('.fe-books-panel__title')?.textContent).toBe(
 			'Filters',
 		);

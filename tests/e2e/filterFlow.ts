@@ -6,8 +6,11 @@
  * journey over the same `ui-styles` `fe-*` classes: boot a corpus, reveal the filter panel, toggle a
  * control, read the result count once it stops moving. That flow is uniform enough that every spec
  * shares this handful of helpers, and one copy means one place for the reasoning to live — so **every
- * docblock below names the trap it guards rather than describing the obvious.** (`closeFilterPanel`
- * is the one helper only some callers need — see its docblock.)
+ * docblock below names the trap it guards rather than describing the obvious.**
+ *
+ * At phone width every app shows its panel the same way: an inline collapse, hidden with the `hidden`
+ * attribute behind a "Filters" toggle, that pushes the results down rather than covering them. So a
+ * spec opens the panel when it needs a control and never has to dismiss it to reach the results.
  *
  * ### What deliberately does NOT live here
  *
@@ -19,9 +22,9 @@
  *
  * 1. **A boot signal must live OUTSIDE the filter panel.** Wait on the results header, a subtitle, a
  *    card — anything in the results column. Waiting on something inside the panel conflates "the route
- *    has not booted" with "the drawer is closed", and only one of those is a failure. A spec that asserts
- *    the panel visible straight after navigation passes on desktop, where the panel is always open, and
- *    fails at phone width, where it sits behind the drawer.
+ *    has not booted" with "the collapse is shut", and only one of those is a failure. A spec that
+ *    asserts the panel visible straight after navigation passes on desktop, where the panel is always
+ *    open, and fails at phone width, where it sits behind the "Filters" toggle.
  * 2. **A "reload" must not re-navigate.** Split "wait for the boot" from "go to the route". A
  *    `bootXApp()` that opens with `page.goto('/x')` throws away the `?f` query string a URL-round-trip
  *    test exists to restore from — the test then re-measures a neutral engine and passes or fails for
@@ -41,6 +44,8 @@
  */
 
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
+
+import { literalPattern } from './parityProbes.js';
 
 /**
  * Re-exported so every spec keeps ONE import seam (`./filterFlow.js`). The implementation lives in
@@ -63,21 +68,21 @@ export const TOGGLEABLE_CHIP = '.fe-chip:not(.fe-chip--selected):not([disabled])
  * The same chip, scoped to the panel's BODY.
  *
  * @remarks
- * For the two wine routes, and the reason is not cosmetic. The wine panels render the smart-filter
+ * For the wine routes, and the reason is not cosmetic. The wine panels render the smart-filter
  * presets ABOVE `.fe-filter-panel__body` — a `topSlot` in React's `<FilterSectionGuard>`, a sibling
- * block in SvelteKit's — and those presets are `.fe-chip`s too. So an unscoped `.first()` lands on
+ * block in the other five — and those presets are `.fe-chip`s too. So an unscoped `.first()` lands on
  * **"Bold reds"**, not on a facet: a spec named "toggling an InSet filter" would in fact be exercising
  * EXPRESSION mode.
  *
- * That is not merely a misleading title. It would leave a flat `InSetRule` chip on either wine route
+ * That is not merely a misleading title. It would leave a flat `InSetRule` chip on the wine route
  * uncovered, and it would make an expression-only regression fail specs whose names mention no such
  * thing — a failure pointing three layers away from its cause.
  *
- * Every other vertical's panel has no `topSlot`, so `TOGGLEABLE_CHIP` is already a facet chip there
- * and is deliberately left alone; scoping it globally would assume a `__body` element in six panels
- * this file cannot see.
+ * Both body classes are listed: `fe-filter-panel__body` (wine, real estate and the React books panel)
+ * and `fe-books-panel__body` (the other five books panels), so the same helper reaches a facet chip in
+ * every panel of every app.
  */
-export const FACET_CHIP = `.fe-filter-panel__body ${TOGGLEABLE_CHIP}`;
+export const FACET_CHIP = `.fe-filter-panel__body ${TOGGLEABLE_CHIP}, .fe-books-panel__body ${TOGGLEABLE_CHIP}`;
 
 /**
  * A panel body that is currently refusing pointer events.
@@ -86,20 +91,20 @@ export const FACET_CHIP = `.fe-filter-panel__body ${TOGGLEABLE_CHIP}`;
  * `--busy` (recomputing) and `--expression` (a smart-filter preset is driving the results) both set
  * `opacity` AND `pointer-events: none` in `ui-styles`. The dim is the visible half; the blocked
  * pointer events are the load-bearing half, and they exist so a burst of clicks cannot outrun the
- * engine.
+ * engine. The books panels outside React carry the same mark as `fe-books-panel__body--busy`.
  */
-export const INERT_PANEL_BODY = '.fe-filter-panel__body--busy, .fe-filter-panel__body--expression';
+export const INERT_PANEL_BODY = '.fe-filter-panel__body--busy, .fe-filter-panel__body--expression, .fe-books-panel__body--busy';
 
 /**
  * Click the first facet chip, once the panel body will actually accept the click.
  *
  * @remarks
  * **Why this is not just `page.locator(FACET_CHIP).first().click()`.** While the engine is
- * recomputing, `.fe-filter-panel__body--busy` sets `pointer-events: none` on the whole body — so every
+ * recomputing, the body's `--busy` modifier sets `pointer-events: none` on the whole body — so every
  * chip inside it stops being a hit-test target, the hit falls through to whatever DOES accept pointer
- * events, and the click is refused. The reported interceptor alternates between the presets
- * `<section>` and `<div class="fe-filter-drawer__header">` purely because those are what sit at that
- * viewport point at different scroll offsets; neither is overlapping anything.
+ * events, and the click is refused. The reported interceptor is whatever happens to sit at that
+ * viewport point at that scroll offset (the presets `<section>`, the panel header); neither is
+ * overlapping anything.
  *
  * **A preset click never has to wait; a facet click does.** The smart-filter presets are rendered
  * OUTSIDE the dimmed body specifically so they stay interactive while it locks — `<FilterSectionGuard>`
@@ -114,19 +119,19 @@ export const INERT_PANEL_BODY = '.fe-filter-panel__body--busy, .fe-filter-panel_
  * stuck in — strictly more diagnostic than `<section> intercepts pointer events` naming an element
  * that is not the problem.
  *
- * ### Every React drawer spec calls this
+ * ### Every shared flow calls this
  *
- * A raw `TOGGLEABLE_CHIP.first().click()` passes only when something before it happens to wait — a
- * test that opens with `const before = await settledCount(page)` inherits that wait for free, and one
- * with no `before` to capture clicks straight into a `--busy` body. Calling this everywhere removes the
- * dependence on that accident, and `tests/tooling/e2eDrawerChipClicks.test.ts` keeps raw clicks out.
+ * A raw `FACET_CHIP.first().click()` passes only when something before it happens to wait — a test
+ * that opens with `const before = await settledCount(page)` inherits that wait for free, and one with
+ * no `before` to capture clicks straight into a `--busy` body. Calling this everywhere removes the
+ * dependence on that accident, and `tests/tooling/e2eDrawerChipClicks.test.ts` keeps raw clicks out of
+ * the flow modules and the specs that import this helper.
  *
  * ### The forced click, and exactly what it does and does not skip
  *
- * The drawer body is a flex column with `overflow: hidden` in `ui-styles`, so the panel's own
- * `.fe-filter-panel__scroller` is the only scroll container — its comment carries the derivation. Two
- * nested `overflow-y: auto` containers would make Playwright re-run `scrollIntoViewIfNeeded` on every
- * retry without converging, the click point landing outside the visible box each time.
+ * The panel's own `.fe-filter-panel__scroller` is its only scroll container. Two nested
+ * `overflow-y: auto` containers would make Playwright re-run `scrollIntoViewIfNeeded` on every retry
+ * without converging, the click point landing outside the visible box each time.
  *
  * **The click is still forced.** Removing `{ force: true }` would restore Playwright's hit-test, the
  * one check this helper skips.
@@ -138,23 +143,25 @@ export const INERT_PANEL_BODY = '.fe-filter-panel__body--busy, .fe-filter-panel_
  *
  * **What that could hide:** a real overlay genuinely covering the chip for a user. That is the one
  * failure this cannot see, and it is covered deliberately by a manual smoke test — tap a color chip
- * in the drawer by hand and confirm it applies on the first tap. Automate what is automatable; put
- * the rest in front of a person rather than pretending it is covered.
+ * in the phone-width panel by hand and confirm it applies on the first tap. Automate what is
+ * automatable; put the rest in front of a person rather than pretending it is covered.
  *
  * @param page - The page under test.
+ * @param chips - Where to look; defaults to every facet chip in the panel body. Pass a narrower
+ *   locator (a section's toggleable chips) to click the first chip of one facet.
  * @returns The chip that was clicked, so a caller can read its label back.
  */
-export async function clickFirstFacetChip(page: Page): Promise<Locator> {
+export async function clickFirstFacetChip(page: Page, chips: Locator = page.locator(FACET_CHIP)): Promise<Locator> {
 	await expect(
 		page.locator(INERT_PANEL_BODY),
 		'the filter panel body is dimmed and refusing pointer events (--busy / --expression); a facet chip cannot be clicked until that clears',
 	).toHaveCount(0, { timeout: 30_000 });
 
-	const chip = page.locator(FACET_CHIP).first();
+	const chip = chips.first();
 
 	await expect(chip, 'no enabled, unselected facet chip in the panel body').toBeVisible();
 	await expect(chip, 'the facet chip is present but disabled').toBeEnabled();
-	// With one scroller in the drawer this converges everywhere. It costs nothing, and because the
+	// With one scroller in the panel this converges everywhere. It costs nothing, and because the
 	// click below is forced, a non-converging scroll would otherwise go unnoticed.
 	await chip.scrollIntoViewIfNeeded();
 	await chip.click({ force: true });
@@ -194,16 +201,6 @@ export function rangeSliderByLabel(page: Page, label: string): Locator {
 	return page
 		.locator('.fe-range-slider')
 		.filter({ has: page.locator('.fe-range-slider__label', { hasText: new RegExp(`^${literalPattern(label)}$`, 'u') }) });
-}
-
-/**
- * A string with every regular-expression metacharacter escaped, so it matches only itself.
- *
- * @param text - The literal text, e.g. a control's visible label.
- * @returns The pattern source that matches exactly `text`.
- */
-function literalPattern(text: string): string {
-	return text.replaceAll(/[$()*+.?[\\\]^{|}]/gu, String.raw`\$&`);
 }
 
 /**
@@ -299,21 +296,21 @@ export function isMobileProject(testInfo: TestInfo): boolean {
 }
 
 /**
- * Reveal the filter controls: clicks the "Filters" trigger on mobile, and does nothing on desktop,
+ * Reveal the filter controls: clicks the "Filters" toggle on mobile, and does nothing on desktop,
  * where the sidebar is always in the tree.
  *
  * @remarks
- * **`whenReady` is a required argument on purpose.** What "open" means is the one real difference
- * between the specs, and it is not a flag: the React apps render react-ui's off-canvas drawer,
- * so they wait for `page.getByRole('dialog', { name: 'Book filters' })` (or `'Wine filters'`, or
- * `'Listing filters'`); the non-React apps expand an inline collapse, which has no dialog role and no
- * accessible name, so they wait for the content it reveals — `page.locator(TOGGLEABLE_CHIP).first()`,
- * or Angular's `page.locator('.fe-books-panel')`. Hiding that behind a boolean or a config object would
- * mean a spec could no longer state its own contract, and the drawer-vs-collapse distinction is exactly
- * the thing a reader of one of these specs needs to know.
+ * **`whenReady` is a required argument on purpose.** Every app hides its closed panel with the
+ * `hidden` attribute and keeps it mounted, so the controls are in the DOM the whole time and only
+ * VISIBILITY says the collapse is open. A spec passes the control it is about to use — a facet chip
+ * (`page.locator(FACET_CHIP).first()`), a search field, Angular's `.fe-books-panel` — so the wait
+ * states that spec's own contract rather than a generic "something opened".
+ *
+ * The toggle is matched exactly: a wine panel's "Clear smart filters" also contains the word.
  *
  * Note what this is NOT for: it must never be a spec's boot signal (trap 1 in the module header). Boot
- * first, on something in the results column, and only then open the panel.
+ * first, on something in the results column, and only then open the panel. A reload or a navigation
+ * shuts the collapse again, so a case reopens it after either.
  *
  * @param page - The page under test.
  * @param testInfo - The per-test info; a desktop project makes this a no-op.
@@ -323,32 +320,8 @@ export async function openFilterPanel(page: Page, testInfo: TestInfo, whenReady:
 	if (!isMobileProject(testInfo)) {
 		return;
 	}
-	await page.getByRole('button', { name: 'Filters' }).click();
+	await page.getByRole('button', { exact: true, name: 'Filters' }).click();
 	await expect(whenReady).toBeVisible();
-}
-
-/**
- * Dismiss the filter drawer so the results column is interactable again. Mobile-only; a no-op on
- * desktop.
- *
- * @remarks
- * The mirror of {@link openFilterPanel}, and it takes its locator explicitly for the same reason: only
- * the five React specs have anything to close. react-ui's off-canvas drawer overlays the results column
- * and traps focus, so a chip click has to be followed by a dismissal before the results header — and its
- * "Clear all" — can be reached. The nine non-React specs never call this: their panel is an inline
- * collapse that pushes the results down rather than covering them, so there is nothing to dismiss and
- * the flow reads correctly without it.
- *
- * @param page - The page under test.
- * @param testInfo - The per-test info; a desktop project makes this a no-op.
- * @param whenClosed - The locator that must fall to zero matches once the panel is gone.
- */
-export async function closeFilterPanel(page: Page, testInfo: TestInfo, whenClosed: Locator): Promise<void> {
-	if (!isMobileProject(testInfo)) {
-		return;
-	}
-	await page.getByRole('button', { name: 'Close filters' }).click();
-	await expect(whenClosed).toHaveCount(0);
 }
 
 /**
@@ -382,3 +355,40 @@ export async function chipLabelWithoutCount(chip: Locator): Promise<string> {
  * — see that module for why the last assertion polls.
  */
 export { expectPanelScrollsToLastControl } from './panelGeometry.js';
+
+/**
+ * Re-exported so every spec keeps ONE import seam (`./filterFlow.js`). The implementation lives in
+ * `./parityProbes.ts`, which holds the probes the cross-app parity cases share — see that module for
+ * why the busy marks are recorded rather than polled.
+ */
+export {
+	ACTION_LOG_LABELS,
+	actionLogLabels,
+	actionLogRowsAddedBy,
+	appUrl,
+	type BusyRecord,
+	COMPUTING_INDICATOR,
+	expectEmptyResults,
+	expectFilterCollapseKeepsState,
+	expectResultsColumnCopy,
+	FILTER_COLLAPSE,
+	FILTERS_TOGGLE,
+	hubCardLink,
+	hubLink,
+	installBusyRecorder,
+	literalPattern,
+	openActionLog,
+	PANEL_BODY,
+	panelSection,
+	pillByLabel,
+	readBusyRecord,
+	readSharedConfig,
+	revisitThroughHub,
+	SHARED_CONTROL_NAMES,
+	type SharedConfig,
+	type SharedRuleEntry,
+	sharedRuleIds,
+	type UndoBusyMarks,
+	undoByKeyboardAndButton,
+	urlWithSharedConfig,
+} from './parityProbes.js';

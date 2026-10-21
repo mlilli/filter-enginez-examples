@@ -3,7 +3,7 @@
  *
  * @remarks
  * The mirror of `books/view.ts`, and short for the same reason: the chrome (header, footer, brand
- * link, mobile drawer) lives in `../shell/appShell.ts` and the batching card grid in
+ * link, mobile collapse) lives in `../shell/appShell.ts` and the batching card grid in
  * `../results/resultsView.ts`, so what is left here is only what is real-estate-SPECIFIC — the panel,
  * the card, the summarizer and the wording.
  *
@@ -12,9 +12,9 @@
  *   1. **`layout: 'sidebar'`.** Real estate's filter column is a sticky card in a two-column grid
  *      (`.fe-sidebar-app__main`), not books' flex row. The shell already took the parameter.
  *   2. **The breakpoint subscription also pokes the map.** Books' only reaction to a breakpoint change
- *      is repainting the drawer. Here the drawer hides the panel with the `hidden` attribute rather
+ *      is repainting the collapse. Here the collapse hides the panel with the `hidden` attribute rather
  *      than destroying it, and Leaflet measures its container ONCE — so a map that initialized inside
- *      a closed drawer needs to be told the panel is visible now. See `geoSection`'s
+ *      a closed collapse needs to be told the panel is visible now. See `geoSection`'s
  *      `invalidateMapSize`.
  *
  * `deriveMetroCenters` runs HERE, once, and its result goes to both the panel (whose geo section
@@ -39,7 +39,9 @@ import {
 	buildRuleSummaries,
 	deriveMetroCenters,
 } from '@filter-enginez/examples-shared/real-estate-domain';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 
+import { bindBusyState, type BusyCore } from '../busy/engineBusy.js';
 import { createResultsView } from '../results/resultsView.js';
 import { createAppShell } from '../shell/appShell.js';
 import { trackDesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
@@ -71,6 +73,12 @@ export interface RealEstateView {
 
 /** Construction options for the view. */
 export interface RealEstateViewOptions {
+	/**
+	 * The real-estate busy tracker — the shared `realEstateBusyCore`, whose forwarders
+	 * `@filter-enginez/examples-shared/real-estate-core` exports. Every panel write, pill × and
+	 * "Clear all" marks it first; the view paints it onto the header and the panel body.
+	 */
+	readonly busy: BusyCore;
 	/** Footer caption — spells out the wiring, so routes are distinguishable at a glance. */
 	readonly footnote: string;
 	/** Extra nodes for the header's right-hand control cluster (URL-format toggle, copy link). */
@@ -92,18 +100,17 @@ export function createRealEstateView(
 	core: FilterEngine<Listing>,
 	options: RealEstateViewOptions,
 ): RealEstateView {
-	const { footnote, headerControls = [], resultsInsetElement, subtitle } = options;
+	const { busy, footnote, headerControls = [], resultsInsetElement, subtitle } = options;
 
 	const metroCenters = deriveMetroCenters(core.getSourceData());
-	const panel = createRealEstatePanel(core, { metroCenters });
+	const panel = createRealEstatePanel(core, { markBusy: busy.markUserAction, metroCenters });
 	const breakpoint = trackDesktopBreakpoint();
+	// "Clear all" and a pill's × take the results view's defaults: the busy mark, then the shared
+	// `clearAllFilters` / one `removeRule`.
 	const results = createResultsView<Listing>(core, {
-		emptyHint: 'Try widening the radius — or relax a price or bedroom bound.',
-		emptyTitle: 'No listings match these filters',
-		listLabel: 'Matching listings',
-		noun: 'listings',
+		copy: RESULT_COPY['real-estate'],
+		markBusy: busy.markUserAction,
 		renderCard: listingCard,
-		scrollRegionLabel: 'Listing results',
 		// `metroCenters` is what lets the Distance chip read "≤ 15 mi of Greater Denver" rather than
 		// "≤ 15 mi" — a radius without its center states half a filter, and the center is the half the
 		// user actually chose.
@@ -129,8 +136,14 @@ export function createRealEstateView(
 		panel.invalidateMapSize();
 	});
 
+	const stopBusy = bindBusyState(busy, (isBusy) => {
+		results.setBusy(isBusy);
+		panel.setBusy(isBusy);
+	});
+
 	return {
 		dispose: () => {
+			stopBusy();
 			stopBreakpoint();
 			breakpoint.dispose();
 			results.dispose();

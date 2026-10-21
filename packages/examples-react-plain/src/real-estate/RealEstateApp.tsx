@@ -1,6 +1,6 @@
 /**
  * `<RealEstateApp />` — the real-estate page shell (plain / signals-only). Mobile-first: a single
- * stacked column on small viewports (filters behind an off-canvas drawer), promoting to a two-column
+ * stacked column on small viewports (filters behind a "Filters" disclosure), promoting to a two-column
  * layout (static filter sidebar + result grid) at the `lg` breakpoint and up.
  *
  * @remarks
@@ -18,7 +18,7 @@ import { captureCurrentVersion, markResolvedAtLeast, markUserAction, RealEstateF
 import { CompareLinkButton, CopyLinkButton, UrlFormatToggle } from '@filter-enginez/examples-shared/url';
 import { useIsDesktop } from '@filter-enginez/examples-shared/viewport';
 import { useLastChange } from '@filter-enginez/react-signals';
-import { FilterDrawer } from '@filter-enginez/react-ui';
+import { FilterCollapse } from '@filter-enginez/react-ui';
 import { useEffect, useState } from 'react';
 
 import { RealEstateResultsHeader } from './RealEstateResultsHeader.js';
@@ -27,7 +27,6 @@ import { RealEstateResultsHeader } from './RealEstateResultsHeader.js';
  * The real-estate page shell.
  */
 export const RealEstateApp = (): React.ReactElement => {
-	const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 	const isDesktop = useIsDesktop();
 	// Devtools panel visibility — toggled by the `>_` icon in the header. Default hidden: it is a
 	// developer surface, and an open timeline is the first thing to push the results below the fold.
@@ -49,31 +48,11 @@ export const RealEstateApp = (): React.ReactElement => {
 				onToggleDevtools={() => setIsDevtoolsVisible((visible) => !visible)}
 			/>
 			<main className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 px-4 py-3 lg:px-6 lg:py-4 max-w-[1600px] w-full mx-auto">
-				{isDesktop ? (
-					<aside
-						className="w-80 shrink-0 sticky top-4 self-start flex flex-col"
-						style={{
-							background: 'var(--gray-1)',
-							border: '1px solid var(--gray-3)',
-							borderRadius: 'var(--radius-lg)',
-							maxHeight: 'calc(100vh - 2rem)',
-						}}
-					>
-						<RealEstateFilterPanel />
-					</aside>
-				) : (
-					<FilterDrawer
-						isOpen={isFilterDrawerOpen}
-						onClose={() => setIsFilterDrawerOpen(false)}
-						title="Filters"
-						ariaLabel="Listing filters"
-						keepMounted
-					>
-						<RealEstateFilterPanel isHeaderVisible={false} />
-					</FilterDrawer>
-				)}
+				{/* The filter sidebar card — sticky at `lg`+, a "Filters" disclosure below it. */}
+				<FilterCollapse isCollapsible={!isDesktop}>
+					<RealEstateFilterPanel />
+				</FilterCollapse>
 				<section className="flex-1 min-w-0 flex flex-col gap-4">
-					{!isDesktop ? <FiltersTrigger onOpen={() => setIsFilterDrawerOpen(true)} /> : null}
 					<RealEstateResultsHeader />
 					{/* The action log + time-travel timeline. An inline card in the document flow (no
 					    overlay, no slide) so it pushes the grid down rather than covering it — you are
@@ -89,38 +68,6 @@ export const RealEstateApp = (): React.ReactElement => {
 			</main>
 			<Footer />
 		</div>
-	);
-};
-
-/**
- * Mobile "Filters" trigger — a 44px-tall button that opens the off-canvas filter drawer. Rendered
- * only below `lg` (where the static sidebar is hidden).
- *
- * @internal
- */
-const FiltersTrigger = (props: { readonly onOpen: () => void }): React.ReactElement => {
-	return (
-		<button
-			type="button"
-			onClick={props.onOpen}
-			className="inline-flex items-center justify-center gap-2 self-start text-sm font-medium uppercase transition-colors"
-			style={{
-				background: 'var(--gray-1)',
-				border: '1px solid var(--gray-4)',
-				borderRadius: 'var(--radius-md)',
-				color: 'var(--gray-10)',
-				cursor: 'pointer',
-				fontFamily: 'var(--font-display)',
-				letterSpacing: '0.08em',
-				minHeight: '44px',
-				padding: '0 16px',
-			}}
-		>
-			<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-				<path d="M3 5h18M6 12h12M10 19h4" />
-			</svg>
-			Filters
-		</button>
 	);
 };
 
@@ -143,8 +90,8 @@ const Header = (props: {
 			style={{ background: 'var(--gray-0)', borderBottom: '1px solid var(--gray-3)' }}
 		>
 			<AppHeaderBrand page="Real estate" verticalId="react-plain" />
-			{/* The full header cluster, in the same order as every other route: URL format, copy link,
-			    then time travel. `?f=` sync runs in `DatasetRoute`; these controls are
+			{/* The full header cluster, in the same order as every other route: time travel, URL format,
+			    copy link, then compare. `?f=` sync runs in `DatasetRoute`; these controls are
 			    what let the user SEE and copy the link it maintains. */}
 			<div className="flex flex-wrap items-center justify-end gap-2">
 				<TimeTravelControls

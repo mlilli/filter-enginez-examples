@@ -52,9 +52,7 @@ export interface DatePreset<V extends string> {
 				[class.fe-chip--selected]="selected() === null"
 				[attr.aria-pressed]="selected() === null"
 				(click)="presetSelected.emit(null)"
-			>
-				{{ anyLabel() }}
-			</button>
+			>{{ anyLabel() }}</button>
 			@for (preset of presets(); track preset.value) {
 				<button
 					type="button"
@@ -62,9 +60,7 @@ export interface DatePreset<V extends string> {
 					[class.fe-chip--selected]="selected() === preset.value"
 					[attr.aria-pressed]="selected() === preset.value"
 					(click)="presetSelected.emit(preset.value)"
-				>
-					{{ preset.label }}
-				</button>
+				>{{ preset.label }}</button>
 			}
 		</div>
 	`,

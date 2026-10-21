@@ -47,6 +47,7 @@ import {
 	EMPTY_SELECTION,
 	type OriginNodeSpec,
 	type PickerTreeNode,
+	WINE_ORIGIN_TREE,
 } from '@filter-enginez/examples-shared/wine-domain';
 
 import { HierarchicalPickerComponent } from '../../controls/hierarchical-picker.component.js';
@@ -63,12 +64,13 @@ const RULE_ID = 'origin';
 	selector: 'fe-wine-origin-section',
 	template: `
 		<section>
-			<fe-section-header label="Origin" />
+			<fe-section-header [label]="treeCopy.groupLabel" />
 			@if (tree(); as originTree) {
 				<fe-hierarchical-picker
 					[counts]="counts()"
 					[disabled]="disabled()"
-					groupLabel="Origin"
+					[groupLabel]="treeCopy.groupLabel"
+					[maxHeight]="treeCopy.maxHeight"
 					[selected]="selected()"
 					[tree]="originTree"
 					(selectionChange)="handleChange($event)"
@@ -86,6 +88,9 @@ export class WineOriginSectionComponent {
 
 	/** The tree itself, for the picker's cascade semantics. `null` until the corpus lands. */
 	public readonly tree = input.required<PickerTreeNode | null>();
+
+	/** The tree's `role="group"` name (also the heading) and the height it scrolls within. */
+	protected readonly treeCopy = WINE_ORIGIN_TREE;
 
 	private readonly _bundle = injectWineBundle();
 

@@ -21,11 +21,11 @@ import type { Book } from '@filter-enginez/mock-data/books';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootBooksServerEngine } from '@filter-enginez/examples-shared/books-server-core';
-import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
-import { useUrlFormat } from '@filter-enginez/examples-shared/url';
+import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
+import { useUrlSyncBindings } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { BooksApp } from './BooksApp.js';
 import { ServerConnecting } from './ServerConnecting.js';
@@ -67,10 +67,6 @@ export const BooksServerRoute = (): React.ReactElement => {
 		};
 	}, []);
 
-	// Shareable-URL serializer for the app-wide format toggle — same wiring as `<DatasetRoute>`.
-	const urlFormat = useUrlFormat();
-	const urlSerializer = useMemo(() => createLinkSerializer(urlFormat), [urlFormat]);
-
 	if (error !== null) {
 		return <ServerOffline error={error} />;
 	}
@@ -78,9 +74,25 @@ export const BooksServerRoute = (): React.ReactElement => {
 		return <ServerConnecting />;
 	}
 
+	return <ServerBooksView engine={engine} />;
+};
+
+/**
+ * The booted page: `<BooksApp />` inside the engine provider, with URL sync.
+ *
+ * @remarks
+ * Its own component so the URL bindings are built only once an engine exists. They are the same as
+ * `<DatasetView>`'s (`useUrlSyncBindings`).
+ *
+ * @param props - The booted server engine.
+ * @returns The provider tree.
+ */
+const ServerBooksView = ({ engine }: { readonly engine: SignalsEngine<Book> }): React.ReactElement => {
+	const urlSync = useUrlSyncBindings(engine.core);
+
 	return (
 		<FilterEngineProvider engine={engine}>
-			<FilterEngineUrlSync engine={engine.core} asyncConfig={engine.asyncEngine} serializer={urlSerializer} />
+			<FilterEngineUrlSync engine={urlSync.engine} asyncConfig={engine.asyncEngine} serializer={urlSync.serializer} />
 			<BooksApp engineLabel="server engine over HTTP" tier="server" />
 		</FilterEngineProvider>
 	);
@@ -95,11 +107,13 @@ const ServerOffline = ({ error }: { readonly error: Error }): React.ReactElement
 			style={{ background: 'var(--gray-0)', color: 'var(--gray-10)' }}
 		>
 			<p className="text-lg font-semibold" style={{ color: 'var(--danger)', fontFamily: 'var(--font-display)' }}>
-				Can&apos;t reach the filter server
+				{SERVER_ROUTE_SCREEN_COPY.offlineTitle}
 			</p>
 			<p style={{ color: 'var(--gray-9)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>{error.message}</p>
 			<p className="text-xs" style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)' }}>
-				Start it with <code>pnpm --filter @filter-enginez/examples-server serve:api</code>, then refresh.
+				{SERVER_ROUTE_SCREEN_COPY.offlineHintLead}
+				<code>{EXAMPLES_SERVER_START_COMMAND}</code>
+				{SERVER_ROUTE_SCREEN_COPY.offlineHintTail}
 			</p>
 		</main>
 	);

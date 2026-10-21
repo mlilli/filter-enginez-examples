@@ -5,8 +5,8 @@
  * Shared by SvelteKit, Vue, Angular and vanilla, and by the two React apps' preset row and results
  * headers, so no vertical keeps its own hand-typed copy.
  * `WINE_FACET_RULE_IDS` in particular is the kind of list whose drift is silent: a list that has
- * drifted produces a preset switch that leaves one facet ANDed against the expression, narrowing the
- * results with no control on screen explaining why.
+ * drifted produces a preset switch that leaves one facet's rule behind the expression, in the `?f=`
+ * link the whole time and filtering again the moment the preset is cleared.
  *
  * Every section commits through here rather than calling `engine.core` directly, for two reasons that
  * only bite on the worker tier.
@@ -24,9 +24,11 @@
  * chips off and snap sliders backwards for the length of that trip. Centralizing the write makes the
  * ordering enforceable by convention rather than remembered thirteen times.
  *
- * Removing a rule is a separate call rather than `addRule` with an empty value: an `InSetRule` with an
- * empty set still participates in the AND and matches nothing, so "deselect everything" would filter
- * the results to zero instead of clearing the facet.
+ * Clearing a facet removes its rule rather than writing `addRule` with an empty value. An `InSetRule`
+ * with an empty set matches every item, so the results would be the same, but the empty rule would
+ * still be registered: it would ride in the `?f=` link, log a `RULE_CHANGED` where every other clear
+ * logs a `RULE_REMOVED`, and leave the engine holding a rule no control on screen shows. Removing it
+ * keeps the engine's rules equal to what the panel displays.
  *
  * ## Why the parameter is `{ core }` and not `SignalsEngine`
  *
@@ -40,6 +42,7 @@
 import type { CompositeRule, FilterEngine, FilterRule, RuleId } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
+import { clearAllFilters } from '../../selection/index.js';
 import { markUserAction } from '../engineBusyCore.js';
 import { buildSmartFilterExpression } from '../smartFilters.js';
 import { SMART_FILTER_CHIP_ID } from './ruleSummaries.js';
@@ -62,8 +65,8 @@ export interface WineEngineHost {
  *
  * @remarks
  * A literal list at the call site would silently drift the next time a facet is added — the new facet
- * would survive a preset switch, ANDing itself with the expression, and the results would be narrower
- * than the preset describes with no control on screen explaining why.
+ * would survive a preset switch, dormant behind the expression and back in force the moment the preset
+ * is cleared, so the panel the user returns to would be narrower than the one they left.
  */
 export const WINE_FACET_RULE_IDS: readonly RuleId[] = [
 	'abv',
@@ -111,8 +114,8 @@ export function clearRule(engine: WineEngineHost, ruleId: RuleId): void {
  * Apply a rule when the selection is non-empty, otherwise clear it.
  *
  * @remarks
- * The pattern nearly every chip section needs, and the one most likely to be got wrong: an empty
- * `InSetRule` is not a neutral rule, it is a rule that matches nothing.
+ * The pattern nearly every chip section needs: deselecting the last value removes the rule, so the
+ * engine, the `?f=` link and the devtools log all read "no filter here" (see the note at the top).
  *
  * @param engine - The wine engine facade.
  * @param ruleId - The rule's stable id.
@@ -150,40 +153,16 @@ export function commitExpression(engine: WineEngineHost, expression: CompositeRu
 }
 
 /**
- * Remove every registered rule that no facet section owns.
+ * Remove every facet's flat rule — the pre-step to entering expression mode.
  *
  * @remarks
- * **Restoring an expression registers its leaves as flat rules.** `exportConfig` writes each leaf of a
- * preset's tree into the config's `rules` under a minted id (`__inline_0`, `__inline_1`, …) so the
- * expression can reference it, and `loadConfig` adds every entry of `rules` back, so a `?f` link,
- * Back / Forward or a `/compare` link holding a preset leaves those leaves on the engine as flat
- * rules. They are dormant while the expression is set and START FILTERING the moment it is cleared:
- * leaving the "Pinot" preset that way would AND its two alternatives together and match nothing, with
- * no chip and no control on screen to explain it, because no section owns those ids.
+ * A preset REPLACES the manual filters, so its facets' rules go before the expression is set; see
+ * {@link commitSmartFilterSelection}. One `markUserAction` for the whole sweep: it is one gesture.
  *
- * Read from the engine's rule map rather than from a list, because the minted ids are the engine's,
- * not the panel's. On the worker tier that map is the mirror, which a restore has long since reached
- * by the time a user acts on it.
- *
- * @param engine - The wine engine facade.
- */
-function clearUnownedRules(engine: WineEngineHost): void {
-	const facetRuleIds = new Set<RuleId>(WINE_FACET_RULE_IDS);
-
-	for (const ruleId of [...engine.core.getRules().keys()]) {
-		if (!facetRuleIds.has(ruleId)) {
-			engine.core.removeRule(ruleId);
-		}
-	}
-}
-
-/**
- * Remove every flat rule — each facet's, and any rule no facet owns — the pre-step to entering
- * expression mode.
- *
- * @remarks
- * The rules no facet owns are a restored expression's leaves; see {@link exitExpressionMode} for why
- * they cannot be left behind.
+ * Only the facets' own ids are removed. A restored expression's leaves are not flat rules at all:
+ * `loadConfig` revives an expression's inline rules for the expression only and registers none of
+ * them, so a `?f=` link, Back / Forward or a `/compare` link holding a preset leaves exactly the rules
+ * the exporting engine had registered.
  *
  * @param engine - The wine engine facade.
  */
@@ -192,7 +171,6 @@ export function clearAllFacetRules(engine: WineEngineHost): void {
 	for (const ruleId of WINE_FACET_RULE_IDS) {
 		engine.core.removeRule(ruleId);
 	}
-	clearUnownedRules(engine);
 }
 
 /**
@@ -200,22 +178,17 @@ export function clearAllFacetRules(engine: WineEngineHost): void {
  *
  * @remarks
  * What every way out of a preset that is not "Clear all" calls: deselecting the last preset, "Clear
- * smart filters", switching "Match any (OR)", and a facet edit while a preset is lit. Two writes, in
- * this order:
+ * smart filters", switching "Match any (OR)", and a facet edit while a preset is lit. One write,
+ * marked busy first like every write here.
  *
- *   1. **Drop every rule no facet owns.** Restoring an expression registers its leaves as flat rules
- *      under minted ids; left in place, they would start filtering the moment the expression goes,
- *      with nothing on screen explaining it.
- *   2. **Clear the expression**, marking the action busy first like every write here.
- *
- * A facet's own rule stays: a link can carry one beside an expression, and the panel shows it paused
- * ("Manual filters are paused") until the preset is cleared.
+ * Clearing the expression leaves nothing behind that starts filtering: the engine never registered the
+ * expression's leaves, even when the preset arrived through a `?f=` link. A facet's own rule stays: a
+ * link can carry one beside an expression, and the panel shows it paused ("Manual filters are paused")
+ * until the preset is cleared.
  *
  * @param engine - The wine engine facade.
  */
 export function exitExpressionMode(engine: WineEngineHost): void {
-	markUserAction();
-	clearUnownedRules(engine);
 	commitExpression(engine, null);
 }
 
@@ -223,23 +196,22 @@ export function exitExpressionMode(engine: WineEngineHost): void {
  * Return the whole panel to neutral — every flat rule AND expression mode.
  *
  * @remarks
- * What the results header's "Clear all" calls. There is no local state left to clear: each section
- * adopts its own rule's removal, so writing the engine IS clearing the panel.
+ * What the results header's "Clear all" and the smart-filter chip's × call. There is no local state
+ * left to clear: each section adopts its own rule's removal, so writing the engine IS clearing the
+ * panel.
  *
- * The two writes are one operation on purpose. Splitting them at the call site is how a clear-all
- * comes to drop the facets while leaving a preset driving the results, with every control blank.
- *
- * **The debounced server tier coalesces this burst**, and that is safe: thirteen `removeRule`s plus a
- * `setExpression` are heterogeneous, which `serverEngine` escalates to a `reset` event — the one event
- * that refreshes the rule signal as well as the expression. A homogeneous burst would coalesce to
- * `expression` alone and never reach the facets. SvelteKit's `WineView.clearAll.test.ts` is the
- * regression guard.
+ * It is the shared `clearAllFilters` every dataset's header calls: one `clearRules`, which drops every
+ * rule (including any no facet lists), every group and the expression as one action, so one Undo
+ * restores the whole state. The engine emits a single `reset`, the event every reactive surface treats
+ * as a full re-read, so the debounced server tier refreshes the pills and the controls as well as the
+ * expression.
  *
  * @param engine - The wine engine facade.
+ * @param clearRules - The seam for a facade that routes the clear somewhere first, such as the Redux
+ *   app forwarding it as a middleware intent; the engine's own `clearRules` by default.
  */
-export function clearAllWineFilters(engine: WineEngineHost): void {
-	clearAllFacetRules(engine);
-	commitExpression(engine, null);
+export function clearAllWineFilters(engine: WineEngineHost, clearRules?: () => void): void {
+	clearAllFilters(engine, markUserAction, clearRules);
 }
 
 /**
@@ -311,6 +283,8 @@ export function commitSmartFilterSelection(engine: WineEngineHost, presetIds: re
  * @param engine - The wine engine facade.
  * @param chipId - The chip's rule id, or `SMART_FILTER_CHIP_ID`.
  * @param removeRule - Removes one facet rule; {@link removeFacet} by default.
+ * @param clearRules - Passed to {@link clearAllWineFilters} for the smart-filter chip; the engine's
+ *   own `clearRules` by default.
  */
 export function removeWineFilterChip(
 	engine: WineEngineHost,
@@ -318,9 +292,10 @@ export function removeWineFilterChip(
 	removeRule: (ruleId: RuleId) => void = (ruleId) => {
 		removeFacet(engine, ruleId);
 	},
+	clearRules?: () => void,
 ): void {
 	if (chipId === SMART_FILTER_CHIP_ID) {
-		clearAllWineFilters(engine);
+		clearAllWineFilters(engine, clearRules);
 
 		return;
 	}

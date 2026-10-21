@@ -393,7 +393,8 @@
 	overflow-y: auto;
 }
 /* Mobile-first tap target: a comfortable ≥44px hit height (WCAG 2.5.5) for the filter toggles in
- * the drawer; the compact padding-only pill returns at `lg` for the dense desktop sidebar. */
+ * the mobile filter collapse; the compact padding-only pill returns at `lg` for the dense desktop
+ * sidebar. */
 .fe-chip {
 	display: inline-flex;
 	align-items: center;
@@ -1616,142 +1617,6 @@
  * against the definition, so the gap is invisible from inside any one vertical. */
 .fe-boot-caption__value {
 	color: var(--accent);
-}
-
-/* fe-filter-drawer — mobile off-canvas filter panel (react-ui <FilterDrawer />). Mobile-first: this
- * block IS the small-viewport treatment; the apps render the drawer only below the two-column
- * breakpoint and swap to a static sidebar at `lg:` and up, so there are no min-width overrides here.
- * The panel slides in from the inline-start edge; the scrim fades. Both honor reduced-motion. */
-.fe-filter-drawer {
-	position: fixed;
-	inset: 0;
-	z-index: 50;
-	display: flex;
-}
-
-/* `keepMounted` closed state — hide the host (and drop it from layout + the a11y tree) while
- * keeping its children mounted. Double-class for specificity over the `display: flex` above. */
-.fe-filter-drawer.fe-filter-drawer--closed {
-	display: none;
-}
-
-.fe-filter-drawer__scrim {
-	position: absolute;
-	inset: 0;
-	padding: 0;
-	border: none;
-	background: rgba(0, 0, 0, 0.55);
-	cursor: pointer;
-	animation: fe-filter-drawer-fade 160ms ease-out;
-}
-
-.fe-filter-drawer__panel {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	width: min(88vw, 360px);
-	max-width: 100%;
-	height: 100%;
-	background: var(--gray-1);
-	border-right: 1px solid var(--gray-3);
-	box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-	outline: none;
-	animation: fe-filter-drawer-slide 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.fe-filter-drawer__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 14px 16px;
-	border-bottom: 1px solid var(--gray-3);
-}
-
-.fe-filter-drawer__title {
-	font-family: var(--font-display);
-	font-size: 14px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--gray-11);
-}
-
-/* 44px min touch target (WCAG 2.5.5). */
-.fe-filter-drawer__close {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 44px;
-	height: 44px;
-	border: 1px solid var(--gray-4);
-	border-radius: var(--radius-md);
-	background: var(--gray-2);
-	color: var(--gray-8);
-	cursor: pointer;
-}
-
-.fe-filter-drawer__close:hover {
-	border-color: var(--gray-5);
-	color: var(--gray-10);
-}
-
-/* ── One scroller, not two ──
- *
- * This body is NOT a scroller. Every panel it holds brings its own `.fe-filter-panel__scroller` —
- * `overflow-y: auto`, and `flex: 1 1 0%` — and that `flex` is inert against a non-flex parent. If this
- * box were a plain `overflow-y: auto` block, the drawer would nest two scroll containers, the inner
- * one would size to its content, and the OUTER box would do all the scrolling.
- *
- * Wine is the clearest case. `WineFilterPanel` has no `.fe-filter-panel` root at all — its
- * `FilterSectionGuard` puts `__scroller` directly in here — so nothing sits between that
- * `flex: 1 1 0%` and this block. Books, books-config and real-estate wrap their scroller in
- * `.fe-filter-panel`, but that wrapper is `flex: 1 1 0%` too, so it depends on this block the same way.
- *
- * The cost of nesting is not cosmetic. Playwright's `scrollIntoViewIfNeeded` on a chip click never
- * converges — the click point keeps landing outside the visible box, and the hit test reports whatever
- * sits at that viewport point (`<section>`, `.fe-filter-drawer__header`). `clickFirstFacetChip`
- * documents the whole shape.
- *
- * A flex column with a definite height is what the inner scroller needs: the panel bounds and scrolls
- * itself, matching the desktop sidebar, and this box does not scroll. `overflow: hidden` is deliberate
- * rather than incidental — it pins the scroll bounds here and makes a child that forgets to bring a
- * scroller fail visibly instead of quietly recreating the nested pair.
- *
- * The scrollbar sits inside the 16px inset rather than hugging the panel edge; to change that, move
- * the inset onto `.fe-filter-panel__scroller` rather than adding `overflow-y` here. */
-.fe-filter-drawer__body {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-height: 0;
-	padding: 12px 16px 24px;
-	overflow: hidden;
-}
-
-@keyframes fe-filter-drawer-slide {
-	from {
-		transform: translateX(-100%);
-	}
-
-	to {
-		transform: translateX(0);
-	}
-}
-
-@keyframes fe-filter-drawer-fade {
-	from {
-		opacity: 0;
-	}
-
-	to {
-		opacity: 1;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.fe-filter-drawer__panel,
-	.fe-filter-drawer__scrim {
-		animation: none;
-	}
 }
 
 /* fe-book-card — one book record as a compact card (books-domain presentational; mirror of

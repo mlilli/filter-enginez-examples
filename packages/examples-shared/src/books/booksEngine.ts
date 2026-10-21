@@ -19,6 +19,7 @@ import type { Book } from '@filter-enginez/mock-data/books';
 
 import { createSignalsEngine, type SignalsEngine } from '@filter-enginez/reactive-signals';
 
+import { reviveSignalsEngine } from '../data/reviveSignalsEngine.js';
 import { type BooksBootMeta, bootBooksCore } from './bootBooksCore.js';
 
 /** Boot result — the signals-wrapped engine plus boot metadata. */
@@ -32,12 +33,24 @@ let cachedBoot: Promise<BooksEngineBundle> | null = null;
 
 /**
  * Boot the books engine on the main thread, wrapped in the signals surface. Idempotent — repeated
- * calls return the cached bundle.
+ * calls return the cached bundle, with a fresh facade over the same core when a route that left
+ * disposed the cached one (see `reviveSignalsEngine`).
  */
 export async function bootBooksEngine(): Promise<BooksEngineBundle> {
 	cachedBoot ??= bootInternal();
 
-	return cachedBoot;
+	const bundle = await cachedBoot;
+	const engine = reviveSignalsEngine(bundle.engine);
+
+	if (engine === bundle.engine) {
+		return bundle;
+	}
+	// A route that left disposed the cached facade; hand the next visit a live one over the same core.
+	const revived = { ...bundle, engine };
+
+	cachedBoot = Promise.resolve(revived);
+
+	return revived;
 }
 
 /**

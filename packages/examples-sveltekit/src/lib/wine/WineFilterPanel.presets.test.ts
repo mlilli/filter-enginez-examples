@@ -8,16 +8,17 @@
  * sees over a real engine: the manual chip goes out, only the expression is left, and the action is
  * marked busy on the click's own frame.
  *
- * It also pins the way back out of a RESTORED preset. `loadConfig` registers a restored preset's leaves
- * as flat rules under minted ids, so "Clear smart filters" has to drop those too, or they would start
- * filtering the moment the expression went, with no chip on screen to explain them.
+ * It also pins the way back out of a RESTORED preset, from a link written today and from one written
+ * by engine 0.0.3 (whose inline rules carry no `inline` mark). A restore registers none of the preset's
+ * leaves, so "Clear smart filters" gives back the full corpus: leaves left behind as flat rules would
+ * start filtering the moment the expression went, with no chip on screen to explain them.
  *
  * @packageDocumentation
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { createFilterEngine, type FilterEngine, inSet } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngine, type FilterEngineConfig, inSet } from '@filter-enginez/core';
 import {
 	buildSmartFilterExpression,
 	deriveSelectedPresetIds,
@@ -91,16 +92,20 @@ describe('<WineFilterPanel> — a preset replaces the manual filters', () => {
 		expect(wineBusyCore.getIsEngineBusy()).toBe(true);
 	});
 
-	it('"Clear smart filters" on a restored preset leaves no rule behind to keep filtering', async () => {
+	it.each([
+		['a link written today', (config: FilterEngineConfig): FilterEngineConfig => config],
+		['a link written by engine 0.0.3', (config: FilterEngineConfig): FilterEngineConfig => ({ ...config, rules: config.rules.map(({ id, rule }) => ({ id, rule })) })],
+	])('"Clear smart filters" on a preset restored from %s gives back the full corpus', async (_label, link) => {
 		const donor = createFilterEngine<Wine>({ sourceData: ROWS as unknown as Wine[] });
 
 		donor.setExpression(buildSmartFilterExpression(['pinot-any']));
 
 		const { core, getByRole } = renderPanel((seeded) => {
-			seeded.loadConfig(donor.exportConfig());
+			seeded.loadConfig(link(donor.exportConfig()));
 		});
 
-		expect(core.getRules().size).toBeGreaterThan(0);
+		expect(core.getRules().size).toBe(0);
+		expect(deriveSelectedPresetIds(core.getExpression())).toEqual(['pinot-any']);
 		await fireEvent.click(getByRole('button', { name: 'Clear smart filters' }));
 
 		expect(core.getExpression()).toBeNull();

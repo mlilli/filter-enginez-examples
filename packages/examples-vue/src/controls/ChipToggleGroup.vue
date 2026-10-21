@@ -7,6 +7,11 @@
  * the result set are subdued (`fe-chip--unavailable`) + `disabled`, telling the user "this would give
  * zero matches" before they click. Selected chips always stay clickable so the user can deselect to
  * escape. With `showCount`, unselected chips show the projected result count.
+ *
+ * **No whitespace between the label, the badge and their tags.** The compiler keeps a space for a
+ * line break beside an interpolation, so the template writes `{{ label }}<span …>(n)</span>` with no
+ * gap: a chip's text reads `red(86,914)`, starting with its value, as it does in every app
+ * (`tests/tooling/filterPanelMarkupParity.test.ts`).
  */
 import type { ChipExclusion, ExclusionMap } from '@filter-enginez/examples-shared/bundle-readers';
 
@@ -84,14 +89,11 @@ function titleFor(option: string): string | undefined {
 			:title="titleFor(option)"
 			@click="emit('toggle', option)"
 		>
-			{{ formatLabel(option) }}
-			<span
+			{{ formatLabel(option) }}<span
 				v-if="showCount && exclusionData(option) && !isSelected(option)"
 				class="fe-chip__count"
 				:class="{ 'fe-chip__count--unavailable': isUnavailable(option) }"
-			>
-				({{ exclusionData(option)!.projectedCount.toLocaleString() }})
-			</span>
+			>({{ exclusionData(option)!.projectedCount.toLocaleString() }})</span>
 		</button>
 	</div>
 </template>

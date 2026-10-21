@@ -10,7 +10,7 @@
  * (which fires `onValueChange` + `onValueCommit` without geometry).
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createElement } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -231,15 +231,109 @@ describe('RangeSlider — editable inputs', () => {
 		expect(upperInput().value).toBe('80');
 	});
 
-	it('selects the field contents on focus', () => {
+	it('leaves the field contents unselected on focus, as every other app does', () => {
 		const selectSpy = vi.spyOn(HTMLInputElement.prototype, 'select');
 
 		renderTyping();
-		fireEvent.focus(lowerInput());
-		fireEvent.focus(upperInput());
+		act(() => {
+			lowerInput().focus();
+			upperInput().focus();
+		});
 
-		expect(selectSpy).toHaveBeenCalledTimes(2);
+		expect(selectSpy).not.toHaveBeenCalled();
 		selectSpy.mockRestore();
+	});
+
+	it('commits nothing per keystroke, only when the field is left', () => {
+		const onChange = vi.fn();
+
+		renderTyping({ onChange });
+		act(() => {
+			lowerInput().focus();
+		});
+		fireEvent.input(lowerInput(), { target: { value: '3' }});
+		fireEvent.input(lowerInput(), { target: { value: '35' }});
+
+		expect(onChange).not.toHaveBeenCalled();
+
+		act(() => {
+			lowerInput().blur();
+		});
+		expect(onChange.mock.calls).toEqual([[{ max: 80, min: 35 }]]);
+	});
+
+	it('reverts on Escape and commits nothing on the blur Escape causes', () => {
+		// The real sequence: focus, type, Escape. Escape blurs the field while the DOM still holds the
+		// typed text, so a blur handler reading the DOM would commit exactly what the user discarded.
+		const onChange = vi.fn();
+
+		renderTyping({ onChange });
+		act(() => {
+			lowerInput().focus();
+		});
+		fireEvent.change(lowerInput(), { target: { value: '55' }});
+		fireEvent.keyDown(lowerInput(), { key: 'Escape' });
+
+		expect(document.activeElement).not.toBe(lowerInput());
+		expect(onChange).not.toHaveBeenCalled();
+		expect(lowerInput().value).toBe('20');
+	});
+
+	it('commits a later edit normally after an Escape', () => {
+		// The Escape guard is scoped to its own blur; the next real blur must commit.
+		const onChange = vi.fn();
+
+		renderTyping({ onChange });
+		act(() => {
+			upperInput().focus();
+		});
+		fireEvent.change(upperInput(), { target: { value: '65' }});
+		fireEvent.keyDown(upperInput(), { key: 'Escape' });
+		act(() => {
+			upperInput().focus();
+		});
+		fireEvent.change(upperInput(), { target: { value: '70' }});
+		act(() => {
+			upperInput().blur();
+		});
+
+		expect(onChange.mock.calls).toEqual([[{ max: 70, min: 20 }]]);
+	});
+
+	it('commits Enter once, not again on the blur Enter causes', () => {
+		const onChange = vi.fn();
+
+		renderTyping({ onChange });
+		act(() => {
+			lowerInput().focus();
+		});
+		fireEvent.change(lowerInput(), { target: { value: '30' }});
+		fireEvent.keyDown(lowerInput(), { key: 'Enter' });
+
+		expect(document.activeElement).not.toBe(lowerInput());
+		expect(onChange.mock.calls).toEqual([[{ max: 80, min: 30 }]]);
+	});
+
+	it('snaps a typed value to the step', () => {
+		const onChange = vi.fn();
+
+		renderTyping({ onChange, step: 5 });
+		fireEvent.change(lowerInput(), { target: { value: '32' }});
+		fireEvent.blur(lowerInput());
+
+		expect(onChange).toHaveBeenCalledWith({ max: 80, min: 30 });
+		expect(lowerInput().value).toBe('30');
+	});
+
+	it('puts the committed value back and writes nothing for a value that snaps to it', () => {
+		const onChange = vi.fn();
+
+		renderTyping({ onChange });
+		fireEvent.change(lowerInput(), { target: { value: '20.4' }});
+		fireEvent.blur(lowerInput());
+
+		expect(onChange).not.toHaveBeenCalled();
+		expect(lowerInput().value).toBe('20');
 	});
 
 	it('reverts a non-numeric upper entry without committing', () => {
@@ -266,6 +360,36 @@ describe('RangeSlider — editable inputs', () => {
 	});
 });
 
+describe('RangeSlider — editable inputs re-sync from outside', () => {
+	it('shows the new committed bound when the rule changes from outside', () => {
+		const { rerender } = renderTyping();
+
+		rerender(createElement(RangeSlider, props({ format: FORMAT, valueMax: 90, valueMin: 40 })));
+
+		expect(lowerInput().value).toBe('40');
+		expect(upperInput().value).toBe('90');
+	});
+
+	it('keeps a draft in one field when only the other bound changes from outside', () => {
+		const { rerender } = renderTyping();
+
+		fireEvent.change(upperInput(), { target: { value: '70' }});
+		rerender(createElement(RangeSlider, props({ format: FORMAT, valueMin: 40 })));
+
+		expect(lowerInput().value).toBe('40');
+		expect(upperInput().value).toBe('70');
+	});
+
+	it('renders both fields through a new formatter', () => {
+		const { rerender } = renderTyping();
+
+		rerender(createElement(RangeSlider, props({ format: (n: number): string => `$${n}` })));
+
+		expect(lowerInput().value).toBe('$20');
+		expect(upperInput().value).toBe('$80');
+	});
+});
+
 describe('RangeSlider — Radix keyboard + drag-end', () => {
 	it('early-returns the drag-end commit when there is no pending drag', () => {
 		const onChange = vi.fn();
@@ -275,6 +399,45 @@ describe('RangeSlider — Radix keyboard + drag-end', () => {
 		fireEvent.pointerUp(root);
 
 		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('swallows PageUp and PageDown, which Radix would turn into a ten-step jump', () => {
+		const onChange = vi.fn();
+
+		renderSlider({ onChange });
+		const [lowerThumb, upperThumb] = screen.getAllByRole('slider');
+
+		fireEvent.keyDown(lowerThumb as HTMLElement, { key: 'PageUp' });
+		fireEvent.keyDown(upperThumb as HTMLElement, { key: 'PageDown' });
+
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('steps one step for Shift+Arrow, with no acceleration', () => {
+		const onChange = vi.fn();
+
+		renderSlider({ onChange });
+		const [lowerThumb, upperThumb] = screen.getAllByRole('slider');
+
+		fireEvent.keyDown(lowerThumb as HTMLElement, { key: 'ArrowRight', shiftKey: true });
+		fireEvent.keyDown(upperThumb as HTMLElement, { key: 'ArrowLeft', shiftKey: true });
+
+		expect(onChange.mock.calls).toEqual([[{ max: 80, min: 21 }], [{ max: 79, min: 20 }]]);
+	});
+
+	it('lets the thumbs meet, so a single-value range is reachable', () => {
+		const onChange = vi.fn();
+
+		renderSlider({ onChange, valueMax: 21, valueMin: 20 });
+		const [, upperThumb] = screen.getAllByRole('slider');
+
+		// Radix steps the thumb that last took focus.
+		act(() => {
+			(upperThumb as HTMLElement).focus();
+		});
+		fireEvent.keyDown(upperThumb as HTMLElement, { key: 'ArrowLeft' });
+
+		expect(onChange).toHaveBeenCalledWith({ max: 20, min: 20 });
 	});
 
 	it('commits a keyboard step through Radix, then de-dupes the drag-end', () => {

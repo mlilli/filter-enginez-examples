@@ -33,7 +33,7 @@ describe('landingCards', () => {
 		// differently, the differences a visitor notices stop being the ones the demo is about.
 		//
 		// Asserted PAIRWISE rather than against one vertical's list, because no vertical serves every
-		// dataset — SvelteKit alone has `/wine-server`, the React apps alone have `/books-config` — so
+		// dataset — only SvelteKit and vanilla have `/wine-server`, only the React apps `/books-config` — so
 		// any single reference would silently skip whatever it happens to lack.
 		const orderOf = (id: VerticalId): string[] => landingCards(id).map((card) => card.id);
 

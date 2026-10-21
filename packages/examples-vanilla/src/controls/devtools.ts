@@ -82,8 +82,9 @@ export interface DevtoolsSurfaceOptions {
 	 * Bump the route's busy version, so a "computing" indicator lights on the click's own frame.
 	 *
 	 * @remarks
-	 * Optional because not every vanilla route tracks busy state — the bare-core `/books-raw` route
-	 * deliberately has no such machinery, and a required no-op would be noise there.
+	 * Every route passes its dataset's tracker, so undo, redo, the keyboard shortcuts and every
+	 * timeline jump light the indicator like any other write. Optional only so the surface stands
+	 * alone in a suite that has no tracker to hand it.
 	 */
 	readonly markBusy?: () => void;
 }
@@ -251,8 +252,12 @@ export function createDevtoolsSurface(options: DevtoolsSurfaceOptions): Devtools
 	 * @param index - The log index to jump to.
 	 */
 	function commitTo(index: number): void {
-		markBusy?.();
-		devtools.jumpTo(index);
+		// A jump to where the cursor already is writes nothing and so would never settle: no busy
+		// mark for it.
+		if (index !== devtools.currentIndex) {
+			markBusy?.();
+			devtools.jumpTo(index);
+		}
 		update();
 	}
 
@@ -430,7 +435,21 @@ export function createDevtoolsSurface(options: DevtoolsSurfaceOptions): Devtools
 		});
 	}
 
-	const detachKeyboard = attachUndoRedoKeyboard(devtools);
+	// The keyboard shortcuts are writes too, so they take the same guard and busy mark as the buttons.
+	const detachKeyboard = attachUndoRedoKeyboard({
+		redo: () => {
+			if (devtools.canRedo) {
+				markBusy?.();
+				devtools.redo();
+			}
+		},
+		undo: () => {
+			if (devtools.canUndo) {
+				markBusy?.();
+				devtools.undo();
+			}
+		},
+	});
 
 	update();
 

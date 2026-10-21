@@ -141,8 +141,8 @@
 	// rule's removal, so the header clears the panel by writing the ENGINE — there is no second copy of
 	// the truth for a callback to reach.
 
-	// Mobile filter visibility, reusing the Svelte books pattern verbatim (an inline collapse, not an
-	// off-canvas drawer — the drawer is React-only). `matchMedia` is guarded so the component still
+	// Mobile filter visibility, reusing the Svelte books pattern verbatim: the inline collapse every app
+	// renders below the `lg` breakpoint. `matchMedia` is guarded so the component still
 	// renders under SSR / jsdom, where it is absent: there `isDesktop` stays `true` and the panel shows,
 	// which is also what keeps the e2e + component tests seeing the panel without a viewport.
 	let isDesktop = $state(true);
@@ -232,8 +232,8 @@
 		<div class="fe-sidebar-app__results">
 		<ResultsHeader
 			{activeFilters}
+			dataset="wine"
 			isBusy={isEngineBusy}
-			noun="bottles"
 			onClearAll={() => {
 				clearAllWineFilters(engine);
 			}}

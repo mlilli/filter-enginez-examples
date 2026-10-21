@@ -29,7 +29,24 @@ import {
 	subscribeSerializedFilterState,
 	subscribeUrlFormat,
 	URL_FORMAT_LABELS,
+	type UrlFormat,
 } from './urlState.js';
+
+/** How long the copy-link button reads "Copied!" before reverting — the same 1.6 s in every vertical. */
+export const COPIED_FEEDBACK_MS = 1600;
+
+/** The URL-format toggle's tooltip, as every vertical words it. */
+export const URL_FORMAT_TOGGLE_TITLE = 'Cycle the shareable-URL encoding';
+
+/**
+ * The URL-format toggle's accessible name for the current format.
+ *
+ * @param format - The current format.
+ * @returns E.g. `Shareable-URL format: Compressed. Activate to cycle formats.`
+ */
+export function urlFormatToggleLabel(format: UrlFormat): string {
+	return `Shareable-URL format: ${URL_FORMAT_LABELS[format]}. Activate to cycle formats.`;
+}
 
 /** A mounted header control with its teardown. */
 export interface HeaderControl {
@@ -47,7 +64,9 @@ export interface HeaderControl {
 export function createUrlFormatToggle(): HeaderControl {
 	const label = el('span', { text: URL_FORMAT_LABELS[getUrlFormat()] });
 	const element = el('button', {
-		attrs: { 'aria-label': 'Cycle the shareable-URL format', type: 'button' },
+		// The words every vertical's toggle carries: the name says the CURRENT format, so a screen
+		// reader hears what pressing it changes from; the title says what it does.
+		attrs: { 'aria-label': urlFormatToggleLabel(getUrlFormat()), title: URL_FORMAT_TOGGLE_TITLE, type: 'button' },
 		// `URL`, matching the other five verticals. This kicker is a hardcoded literal in six
 		// framework-specific components over the same shared `.fe-url-format-toggle` block. Six copies
 		// of one word is under the extraction threshold only because no two of them can share a
@@ -63,6 +82,7 @@ export function createUrlFormatToggle(): HeaderControl {
 
 	const dispose = subscribeUrlFormat((format) => {
 		label.textContent = URL_FORMAT_LABELS[format];
+		element.setAttribute('aria-label', urlFormatToggleLabel(format));
 	});
 
 	return { dispose, element };
@@ -104,7 +124,8 @@ function linkIcon(): SVGElement {
 /**
  * Build the copy-current-link button.
  *
- * @returns The button; it flashes "Copied" for 1.5s on success.
+ * @returns The button; it reads "Copied!" for {@link COPIED_FEEDBACK_MS} on success, as every
+ * vertical's does.
  */
 export function createCopyLinkButton(): HeaderControl {
 	let timer: ReturnType<typeof setTimeout> | null = null;
@@ -117,14 +138,14 @@ export function createCopyLinkButton(): HeaderControl {
 			click: () => {
 				void navigator.clipboard.writeText(window.location.href).then(
 					() => {
-						label.textContent = 'Copied';
+						label.textContent = 'Copied!';
 						if (timer !== null) {
 							clearTimeout(timer);
 						}
 						timer = setTimeout(() => {
 							label.textContent = 'Copy link';
 							timer = null;
-						}, 1500);
+						}, COPIED_FEEDBACK_MS);
 					},
 					() => {
 						// Clipboard denied (insecure origin / permission) — leave the label alone.

@@ -29,6 +29,7 @@ const loadBooks = vi.hoisted(() => vi.fn(async () => new Promise<never>(() => un
 vi.mock('../datasets.js', () => ({
 	datasets: [
 		{
+			bootFailure: 'books',
 			id: 'books',
 			label: 'Books',
 			load: loadBooks,

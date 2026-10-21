@@ -13,12 +13,19 @@
  * ## The vocabularies are ordered here, not in the panel
  *
  * Color, body and sweetness render in their canonical order filtered by what the corpus actually
- * contains — never raw vocabulary order, which is derivation order and would put `dessert` between
+ * contains (`orderedPresentOptions`, as every vertical does) — never raw vocabulary order, which is derivation order and would put `dessert` between
  * `red` and `white` depending on which wine streamed first. Varietal shows the
  * `VARIETAL_CHIP_LIMIT` most-reviewed varieties (the vocabulary arrives ranked by wine count) and
  * scrolls; the full vocabulary runs to hundreds, and its label carries the true count so the limit is
  * visible rather than silent. A selected varietal beyond the limit keeps its chip, so a rare grape
  * selected through a shared link can still be cleared where it is shown.
+ *
+ * ## A click paints at once
+ *
+ * Every section here repaints its own control from its local value the moment it is clicked, using
+ * the last bundle it was handed, and only then writes. On the worker tier the engine's answer is a
+ * round trip away; waiting for it would light the chip — or the tick — late. The settle then repaints
+ * again, adopting the engine's value only if it genuinely changed (`facetState.ts`).
  *
  * @packageDocumentation
  */
@@ -36,13 +43,15 @@ import {
 	commitRule,
 	commitSelection,
 	deriveOriginSelection,
+	orderedPresentOptions,
 	sameSelection,
 	SWEETNESS_ORDER,
 	visibleVarietalChips,
+	WINE_ORIGIN_TREE,
 	type WineFacets,
 } from '@filter-enginez/examples-shared/wine-domain';
 
-import type { WineSection, WineSectionContext } from './sections.js';
+import type { WineFacetState, WineSection, WineSectionContext } from './sections.js';
 
 import { createChipToggleGroup } from '../controls/controls.js';
 import { createHierarchicalPicker } from '../controls/hierarchicalPicker.js';
@@ -50,8 +59,8 @@ import { section } from '../controls/sections.js';
 import { createSelectMenu } from '../controls/selectMenu.js';
 import { createFacetAdopter } from './facetState.js';
 
-/** Scroll-viewport height for the origin tree — matches every other vertical's picker. */
-const ORIGIN_TREE_HEIGHT = '14rem';
+/** What a section paints from before the first settle: no bundle, the rules it was seeded from. */
+const NO_STATE: WineFacetState = { bundle: null, rules: new Map() };
 
 /** The four chip facets. */
 export type WineChipFacetId = 'body' | 'color' | 'sweetness' | 'varietal';
@@ -74,11 +83,11 @@ function chipOptions(facetId: WineChipFacetId, facets: WineFacets, selected: rea
 
 	switch (facetId) {
 		case 'body':
-			return BODY_ORDER.filter((entry) => vocabularies.body.includes(entry));
+			return orderedPresentOptions(BODY_ORDER, vocabularies.body);
 		case 'color':
-			return COLOR_ORDER.filter((entry) => vocabularies.color.includes(entry));
+			return orderedPresentOptions(COLOR_ORDER, vocabularies.color);
 		case 'sweetness':
-			return SWEETNESS_ORDER.filter((entry) => vocabularies.sweetness.includes(entry));
+			return orderedPresentOptions(SWEETNESS_ORDER, vocabularies.sweetness);
 		default:
 			return visibleVarietalChips(vocabularies.varietal, selected);
 	}
@@ -125,6 +134,16 @@ export function createChipSection(
 		committedSet(host.core.getRules(), facetId),
 		sameSelection,
 	);
+	let latest = NO_STATE;
+
+	/** Repaint the chips from the local selection and the last bundle. */
+	const render = (): void => {
+		chips.update({
+			exclusion: chipExclusionMap(latest.bundle, facetId),
+			options: chipOptions(facetId, facets, selection.value()),
+			selected: selection.value(),
+		});
+	};
 
 	const chips = createChipToggleGroup({
 		onToggle: (clicked) => {
@@ -133,23 +152,21 @@ export function createChipSection(
 			const next = toggleSetValue(selection.value(), clicked);
 
 			selection.paint(next);
+			render();
 			commitSelection(host, facetId, next, (values) => inSet<string>(facetId, values));
 		},
-		// Color alone shows projected counts, matching every other vertical: with six chips the badges
-		// are informative, and on sixty varietals they are noise.
+		// Color alone shows projected counts. Varietal chips carry none in any vertical — on sixty
+		// chips the badges would be noise — and scroll inside a capped group instead.
 		scrollable: facetId === 'varietal',
 		showCount: facetId === 'color',
 	});
 
 	return {
 		element: section(chipLabel(facetId, facets), chips.element),
-		update: ({ bundle, rules }) => {
-			selection.adopt(committedSet(rules, facetId));
-			chips.update({
-				exclusion: chipExclusionMap(bundle, facetId),
-				options: chipOptions(facetId, facets, selection.value()),
-				selected: selection.value(),
-			});
+		update: (state) => {
+			latest = state;
+			selection.adopt(committedSet(state.rules, facetId));
+			render();
 		},
 	};
 }
@@ -169,13 +186,18 @@ export function createChipSection(
  */
 export function createSingleColorSection(context: WineSectionContext): WineSection {
 	const { facets, host, leaveExpressionMode } = context;
-	const menuOptions = facets.vocabularies.color.map((entry) => ({ label: entry, value: entry }));
+	// Canonical color order, as the chips above it and every other vertical's menu list them.
+	const menuOptions = orderedPresentOptions(COLOR_ORDER, facets.vocabularies.color).map((entry) => ({
+		label: entry,
+		value: entry,
+	}));
 	const selected = createFacetAdopter<string>(committedValue(host.core.getRules()));
 
 	const menu = createSelectMenu({
 		onChange: (next) => {
 			leaveExpressionMode();
 			selected.paint(next);
+			render();
 
 			if (next === '') {
 				clearRule(host, 'color-value');
@@ -188,11 +210,16 @@ export function createSingleColorSection(context: WineSectionContext): WineSecti
 		selectLabel: 'Filter by exact wine color',
 	});
 
+	/** Repaint the menu from the local value. */
+	function render(): void {
+		menu.update({ options: menuOptions, value: selected.value() });
+	}
+
 	return {
 		element: section('Single color (exact)', menu.element),
 		update: ({ rules }) => {
 			selected.adopt(committedValue(rules));
-			menu.update({ options: menuOptions, value: selected.value() });
+			render();
 		},
 	};
 }
@@ -227,30 +254,40 @@ export function createOriginSection(context: WineSectionContext): WineSection {
 		return rule === undefined ? [] : deriveOriginSelection(rule.config.set, originSpecs);
 	};
 	const selection = createFacetAdopter<readonly string[]>(read(host.core.getRules()), sameSelection);
+	let latest = NO_STATE;
 
+	/** Repaint the tree from the local selection and the last bundle. */
+	const render = (): void => {
+		picker.update({
+			counts: chipProjectedCounts(latest.bundle, 'origin'),
+			disabled: chipDisabledSet(latest.bundle, 'origin'),
+			selected: selection.value(),
+			tree: originTree,
+		});
+	};
+
+	// The group's accessible name and viewport height are the shared ones every vertical's origin
+	// tree uses.
 	const picker = createHierarchicalPicker({
-		groupLabel: 'Origin',
-		maxHeight: ORIGIN_TREE_HEIGHT,
+		groupLabel: WINE_ORIGIN_TREE.groupLabel,
+		maxHeight: WINE_ORIGIN_TREE.maxHeight,
 		// The picker hands back the WHOLE next selection rather than one toggled value: a single click
 		// can select a subtree, or de-cascade an ancestor into its siblings, so "which id changed" is
 		// not expressible.
 		onChange: (next) => {
 			leaveExpressionMode();
 			selection.paint(next);
+			render();
 			commitOriginSelection(host, next, originSpecs);
 		},
 	});
 
 	return {
-		element: section('Origin', picker.element),
-		update: ({ bundle, rules }) => {
-			selection.adopt(read(rules));
-			picker.update({
-				counts: chipProjectedCounts(bundle, 'origin'),
-				disabled: chipDisabledSet(bundle, 'origin'),
-				selected: selection.value(),
-				tree: originTree,
-			});
+		element: section(WINE_ORIGIN_TREE.groupLabel, picker.element),
+		update: (state) => {
+			latest = state;
+			selection.adopt(read(state.rules));
+			render();
 		},
 	};
 }

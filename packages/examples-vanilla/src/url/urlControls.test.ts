@@ -11,8 +11,14 @@
 import { SITE } from '@filter-enginez/examples-shared/verticals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from './urlControls.js';
-import { readConfigFromUrl } from './urlState.js';
+import {
+	COPIED_FEEDBACK_MS,
+	createCompareLinkButton,
+	createCopyLinkButton,
+	createUrlFormatToggle,
+	urlFormatToggleLabel,
+} from './urlControls.js';
+import { getUrlFormat, readConfigFromUrl, URL_FORMAT_LABELS } from './urlState.js';
 
 describe('createCopyLinkButton', () => {
 	beforeEach(() => {
@@ -39,7 +45,7 @@ describe('createCopyLinkButton', () => {
 		dispose();
 	});
 
-	it('swaps the label to "Copied" and back, leaving the icon in place', async () => {
+	it('swaps the label to "Copied!" and back after 1.6 s, leaving the icon in place', async () => {
 		vi.useFakeTimers();
 
 		try {
@@ -57,14 +63,17 @@ describe('createCopyLinkButton', () => {
 			// what it is checking. This drains the microtask queue for us.
 			await vi.advanceTimersByTimeAsync(0);
 
-			expect(element.textContent).toBe('Copied');
+			expect(element.textContent).toBe('Copied!');
 			// The icon is a sibling of the label span, so a naive `textContent = …` on the BUTTON would
 			// have destroyed it. This is the assertion that pins that.
 			expect(element.querySelector('svg')).not.toBeNull();
 
-			vi.advanceTimersByTime(1500);
+			vi.advanceTimersByTime(COPIED_FEEDBACK_MS - 1);
+			expect(element.textContent).toBe('Copied!');
 
+			vi.advanceTimersByTime(1);
 			expect(element.textContent).toBe('Copy link');
+			expect(COPIED_FEEDBACK_MS).toBe(1600);
 			expect(element.querySelector('svg')).not.toBeNull();
 			dispose();
 		} finally {
@@ -90,15 +99,16 @@ describe('createCopyLinkButton', () => {
 			await vi.advanceTimersByTimeAsync(0);
 			await vi.advanceTimersByTimeAsync(1200);
 
-			expect(element.textContent).toBe('Copied');
+			expect(element.textContent).toBe('Copied!');
 
 			element.click();
 			await vi.advanceTimersByTimeAsync(0);
-			// 400ms past the FIRST timer's deadline. A surviving first timer reverts the label here.
-			await vi.advanceTimersByTimeAsync(400);
+			// 100ms past the FIRST timer's 1,600ms deadline. A surviving first timer reverts the label here.
+			await vi.advanceTimersByTimeAsync(500);
 
-			expect(element.textContent).toBe('Copied');
+			expect(element.textContent).toBe('Copied!');
 
+			// 1,600ms after the SECOND click.
 			await vi.advanceTimersByTimeAsync(1100);
 
 			expect(element.textContent).toBe('Copy link');
@@ -140,14 +150,14 @@ describe('createCopyLinkButton', () => {
 			element.click();
 			await vi.advanceTimersByTimeAsync(0);
 
-			expect(element.textContent).toBe('Copied');
+			expect(element.textContent).toBe('Copied!');
 
 			dispose();
 			await vi.advanceTimersByTimeAsync(2000);
 
 			// Still "Copied": the callback never ran. It is harmless on a detached node, which is
 			// exactly why a leak here would go unnoticed without an assertion.
-			expect(element.textContent).toBe('Copied');
+			expect(element.textContent).toBe('Copied!');
 			expect(vi.getTimerCount()).toBe(0);
 		} finally {
 			vi.useRealTimers();
@@ -167,7 +177,8 @@ describe('createUrlFormatToggle', () => {
 		const { dispose, element } = createUrlFormatToggle();
 
 		expect(element.querySelector('.fe-url-format-toggle__kicker')?.textContent).toBe('URL');
-		expect(element.getAttribute('aria-label')).toBe('Cycle the shareable-URL format');
+		expect(element.getAttribute('aria-label')).toMatch(/^Shareable-URL format: .+\. Activate to cycle formats\.$/u);
+		expect(element.getAttribute('title')).toBe('Cycle the shareable-URL encoding');
 		dispose();
 	});
 
@@ -183,6 +194,9 @@ describe('createUrlFormatToggle', () => {
 		const after = element.textContent;
 
 		expect(after).not.toBe(before);
+		// The accessible name follows the format too, naming the one now in effect.
+		expect(element.getAttribute('aria-label')).toBe(urlFormatToggleLabel(getUrlFormat()));
+		expect(element.getAttribute('aria-label')).toContain(URL_FORMAT_LABELS[getUrlFormat()]);
 
 		element.click();
 		element.click();

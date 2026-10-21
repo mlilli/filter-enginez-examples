@@ -18,10 +18,9 @@
  *      its expression holds `range('priceUsd', { min: 60, max: Infinity })`, so every vertical
  *      writes an open bound to `?f=`. Its count drops to the `>= 93 pts` subset if the bound loads as
  *      `0`, so the comparison is sharp.
- *   2. **Typing a lower price bound with the upper thumb at the top.** The two React panels commit
- *      `Number.POSITIVE_INFINITY` for that (`RangeFilterSection.tsx`); the other four commit the
- *      slider's finite top. The case asserts the same thing of all six: what the user sees as "$60 and
- *      up" survives the trip, whatever the panel wrote.
+ *   2. **Typing a lower price bound with the upper thumb at the top.** Every panel commits that
+ *      through the shared `wineRangeRule`, which writes `max: Infinity` for a price thumb at the top
+ *      of its track. The case asserts what the user sees as "$60 and up" survives the trip.
  *
  * ## Why this module takes a harness instead of importing `wineFlow.ts`
  *
@@ -46,8 +45,6 @@ import { type VerticalId } from './subtitles.js';
 
 /** What the open-range cases need from `describeWineVertical`. */
 export interface OpenRangeHarness {
-	/** Dismiss a drawer that overlays the results column and header; a no-op where there is none. */
-	readonly closePanelIfItOverlaysResults: (page: Page, testInfo: TestInfo) => Promise<void>;
 	/** The vertical's registry id, for its hub link's accessible name. */
 	readonly id: VerticalId;
 	/** Human label for the suite title, e.g. `'Vue'`. */
@@ -89,7 +86,7 @@ async function writtenFilterParam(page: Page): Promise<string> {
  * @param harness - The vertical, and the helpers its suite already has.
  */
 export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
-	const { closePanelIfItOverlaysResults, id, label, openPanel, settled, urlOf, waitForBoot } = harness;
+	const { id, label, openPanel, settled, urlOf, waitForBoot } = harness;
 
 	/**
 	 * The count after a reload or a history step.
@@ -98,6 +95,20 @@ export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
 	 * positive-only settle would turn that into a timeout naming no number.
 	 */
 	const restoredCount = async (page: Page): Promise<number> => settledCount(page, { ...settled, requirePositive: false });
+
+	/**
+	 * Wait until the restored filter is on the engine: its one pill is showing.
+	 *
+	 * @remarks
+	 * A route renders as soon as its engine boots and loads `?f=` into it alongside, and on the worker
+	 * tier the load lands a round trip later. Until then the page shows the whole corpus with the
+	 * engine idle, so a settled count read straight after the boot can be the unfiltered one. The pill
+	 * and the count come from the same mirror refresh, so once the pill shows, the count that settles
+	 * is the restored one. The same wait the URL round-trip case in `wineFlow.ts` makes.
+	 */
+	const expectRestored = async (page: Page): Promise<void> => {
+		await expect(page.locator(ACTIVE_CHIP), 'the restored filter never reached the engine').toHaveCount(1);
+	};
 
 	/** The vertical's hub link, inside the header brand on every viewport. */
 	const hubLink = (page: Page): Locator => page
@@ -122,6 +133,7 @@ export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
 
 			await page.reload();
 			await waitForBoot(page);
+			await expectRestored(page);
 			expect(await restoredCount(page), 'the reload restored the preset but not its matches').toBe(applied);
 
 			await page.goBack();
@@ -129,6 +141,7 @@ export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
 			await page.goForward();
 			await waitForBoot(page);
 			expect(new URL(page.url()).searchParams.get('f')).toBe(written);
+			await expectRestored(page);
 			expect(await restoredCount(page), 'Back then Forward restored the preset but not its matches').toBe(applied);
 
 			// The preset chip must light from the restored expression too, not only the count.
@@ -146,8 +159,8 @@ export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
 			// (`<label> lower bound (editable)`), scoped to the price slider. Typing then Enter commits in
 			// every panel: React, SvelteKit, Vue and vanilla commit on the keydown, Angular blurs on it and
 			// commits on the blur. The parser strips the `$` and `,` the readout adds, so plain digits
-			// commit. The upper thumb is untouched, so it sits at the top: the React panels write
-			// `max: Infinity`, the other four the slider's top.
+			// commit. The upper thumb is untouched, so it sits at the top and the rule's maximum is
+			// `Infinity`.
 			const lower = rangeSliderByLabel(page, PRICE_LABEL).getByRole('textbox', {
 				exact: true,
 				name: `${PRICE_LABEL} lower bound (editable)`,
@@ -155,10 +168,6 @@ export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
 
 			await lower.fill(LOWER_PRICE);
 			await lower.press('Enter');
-			// Dismissed now, while the drawer is still open. The reload below closes it, so a dismissal
-			// after the reload would wait for a "Close filters" button that is not there. A no-op for the
-			// inline collapses.
-			await closePanelIfItOverlaysResults(page, testInfo);
 			// The active-filter pill is the commit signal, as in the facet cases: it appears once the rule
 			// is in the engine.
 			await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
@@ -169,16 +178,17 @@ export function describeOpenRangeRoundTrips(harness: OpenRangeHarness): void {
 
 			await page.reload();
 			await waitForBoot(page);
+			await expectRestored(page);
 			expect(await restoredCount(page), 'the reload restored the price filter but not its matches').toBe(applied);
 
 			// An in-app navigation and Back: a client-side route change in five of the six, then the
-			// route's own decode on the way back. The reload closed any drawer, so nothing covers the
-			// header here.
+			// route's own decode on the way back.
 			await hubLink(page).click();
 			await page.waitForURL(urlOf(APP_HUB_PATH));
 			await page.goBack();
 			await waitForBoot(page);
 			expect(new URL(page.url()).searchParams.get('f')).toBe(written);
+			await expectRestored(page);
 			expect(await restoredCount(page), 'Back restored the price filter but not its matches').toBe(applied);
 		});
 	});

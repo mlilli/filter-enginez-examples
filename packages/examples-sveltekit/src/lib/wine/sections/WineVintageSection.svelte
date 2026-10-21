@@ -46,6 +46,7 @@
 		parseVintage,
 		vintageBoundsFromSet,
 		vintageYearsFromRange,
+		WINE_SLIDER_COPY,
 		wineSliderHistogram,
 		wineSliderScale,
 	} from '@filter-enginez/examples-shared/wine-domain';
@@ -121,6 +122,7 @@
 
 <section>
 	<RangeSlider
+		ariaLabel={WINE_SLIDER_COPY.vintage.sliderLabel}
 		{available}
 		{baseline}
 		{histogram}
@@ -129,7 +131,7 @@
 		{valueMax}
 		{valueMin}
 		format={formatVintage}
-		label="Vintage"
+		label={WINE_SLIDER_COPY.vintage.label}
 		parse={parseVintage}
 		onChange={(next) => {
 			leaveExpressionMode();

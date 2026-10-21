@@ -20,6 +20,15 @@
  * The one exception is the geo section, which keeps its last-used center and radius locally — the rule
  * is *absent* while that filter is off, so there is nothing to read back. It documents why.
  *
+ * ### Busy, focus and the shared copy
+ *
+ * Every write goes through {@link RealEstatePanelOptions.markBusy} first — the shared
+ * `realEstateBusyCore` — and {@link RealEstatePanel.setBusy} paints the body's `--busy` /
+ * `aria-busy` from it. The chips, the school-district list and the location tree update in place,
+ * keyed by value, so a keyboard user's focus survives their click and the repaint after it. The
+ * location tree's name and height, the school-district list's height, the listed-date label and the
+ * description search's words are the shared `REAL_ESTATE_*` constants.
+ *
  * ### Nothing about this dataset is defined here
  *
  * Vocabularies, baselines, the location hierarchy, the bundle query, the custom rule, the unit
@@ -65,18 +74,20 @@ import {
 	humanizeVocabularyValue,
 	LOCATION_RULE_ID,
 	type MetroCenterOption,
+	REAL_ESTATE_DESCRIPTION_SEARCH,
+	REAL_ESTATE_LISTED_DATE_LABEL,
+	REAL_ESTATE_LOCATION_TREE,
+	REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
 } from '@filter-enginez/examples-shared/real-estate-domain';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
 
-import { createChipToggleGroup, createSearchInput } from '../controls/controls.js';
+import { createCheckboxList, createChipToggleGroup } from '../controls/controls.js';
 import { createDatePresetGroup } from '../controls/datePresetGroup.js';
 import { createHierarchicalPicker } from '../controls/hierarchicalPicker.js';
 import { panelHeader, section } from '../controls/sections.js';
+import { createTypeaheadSearch } from '../controls/typeaheadSearch.js';
 import { createGeoSection } from './geoSection.js';
 import { createSliderFacets, deriveSliderBaselines } from './panelSections.js';
-
-/** Scroll-viewport height for the location tree — matches every other vertical's picker. */
-const LOCATION_TREE_HEIGHT = '14rem';
 
 /** The engine snapshot the panel renders from. */
 export interface RealEstatePanelState {
@@ -92,16 +103,20 @@ export interface RealEstatePanel {
 	readonly dispose: () => void;
 	/** The panel root. */
 	readonly element: HTMLElement;
-	/** Re-measure the map after the mobile drawer reveals the panel. */
+	/** Re-measure the map after the mobile collapse reveals the panel. */
 	readonly invalidateMapSize: () => void;
 	/** The `applyFiltersAndQuery` query describing every facet this panel predictive-disables. */
 	readonly query: FilterBundleQuery;
+	/** Dim the body and set `aria-busy` while the real-estate busy tracker says a write is settling. */
+	readonly setBusy: (isBusy: boolean) => void;
 	/** Re-apply committed engine state to every control. */
 	readonly update: (state: RealEstatePanelState) => void;
 }
 
 /** Construction options for {@link createRealEstatePanel}. */
 export interface RealEstatePanelOptions {
+	/** Mark the real-estate busy tracker. The panel's one write path calls it FIRST. */
+	readonly markBusy: () => void;
 	/**
 	 * The metro dropdown's options.
 	 *
@@ -123,7 +138,7 @@ export function createRealEstatePanel(
 	core: FilterEngine<Listing>,
 	options: RealEstatePanelOptions,
 ): RealEstatePanel {
-	const { metroCenters } = options;
+	const { markBusy, metroCenters } = options;
 
 	// The corpus is resident + immutable post-boot, so the vocabularies, the hierarchy, the baselines
 	// and the bundle query are all computed once — the equivalent of React's `useMemo(…, [sourceData])`.
@@ -150,25 +165,33 @@ export function createRealEstatePanel(
 	 * Apply a rule, or REMOVE the facet when `rule` is `null`.
 	 *
 	 * @remarks
-	 * **This is the one place a facet is cleared, and the reason it is one place is a real trap.** An
-	 * `InSetRule` with an empty set still participates in the AND and matches nothing, so writing an
-	 * "empty" rule on deselect-everything filters the results to zero rather than clearing the facet.
-	 * The call looks perfectly reasonable in review, which is exactly why the decision cannot live at
-	 * fourteen call sites.
+	 * **This is the one place a facet is cleared, so all fourteen clear the same way.** An `InSetRule`
+	 * with an empty set matches every item, but writing one on deselect-everything would leave a rule
+	 * registered that no control shows, carried in the `?f=` link and logged as a change rather than a
+	 * removal. The call looks perfectly reasonable in review, which is exactly why the decision cannot
+	 * live at fourteen call sites.
 	 *
 	 * `ContainsAllRule` with an empty `required` IS neutral — everything contains all of nothing — so
 	 * must-have features could get away with writing one. It clears anyway, so all fourteen behave
 	 * identically and nobody has to remember which facet is the exception.
+	 *
+	 * **The busy mark is here too, for the same reason** — and so is the one case that must NOT mark:
+	 * clearing a facet that holds no rule writes nothing, emits no change, and so would never settle.
 	 *
 	 * @param ruleId - The facet's stable rule id.
 	 * @param rule - The rule to apply, or `null` to clear the facet.
 	 */
 	function commitFacet(ruleId: RuleId, rule: FilterRule | null): void {
 		if (rule === null) {
+			if (!core.getRules().has(ruleId)) {
+				return;
+			}
+			markBusy();
 			core.removeRule(ruleId);
 
 			return;
 		}
+		markBusy();
 		core.addRule(ruleId, rule);
 	}
 
@@ -200,8 +223,8 @@ export function createRealEstatePanel(
 	// ─── Controls ─────────────────────────────────────────────────────────────
 
 	const locationPicker = createHierarchicalPicker({
-		groupLabel: 'Location',
-		maxHeight: LOCATION_TREE_HEIGHT,
+		groupLabel: REAL_ESTATE_LOCATION_TREE.groupLabel,
+		maxHeight: REAL_ESTATE_LOCATION_TREE.maxHeight,
 		// The picker hands back the WHOLE next selection rather than one toggled value: a single click
 		// can select a subtree, or de-cascade an ancestor into its siblings, so "which id changed" is
 		// not expressible.
@@ -212,13 +235,11 @@ export function createRealEstatePanel(
 
 	const geoSection = createGeoSection({ commit: commitFacet, metroCenters });
 
-	// The other verticals render school districts through a dedicated scrolling `<CheckboxList>`. This
-	// vertical has no such control and deliberately does not gain one: a checkbox list and a chip group
-	// are the same multi-select `InSet` semantics in two skins, and building a second control to hold
-	// the same state is how the two drift on exclusion handling. `showCount` is on, because that is the
-	// affordance the checkbox list actually contributes — with ~30 districts the projected counts are
-	// what make the facet navigable.
-	const schoolDistrictChips = createChipToggleGroup({
+	// A scrolling checkbox list with projected counts, the control every vertical renders school
+	// districts with: with ~30 districts the counts are what make the facet navigable. It shares the
+	// chips' exclusion rule — an unselected district that would empty the results is disabled.
+	const schoolDistrictList = createCheckboxList({
+		maxHeight: REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
 		onToggle: (value) => {
 			commitSelection('school-district', toggleSetValue(selectedSet('school-district'), value), (values) =>
 				inSet<string>('schoolDistrict', values),
@@ -260,28 +281,24 @@ export function createRealEstatePanel(
 
 	const datePresets = createDatePresetGroup<DatePresetValue>({
 		anyLabel: 'Any time',
-		groupLabel: 'Listed within',
+		groupLabel: REAL_ESTATE_LISTED_DATE_LABEL,
 		onSelect: (value) => {
 			commitFacet('listed-date', value === null ? null : dateRange('listedDate', { preset: value }));
 		},
 	});
 
-	const descriptionSearch = createSearchInput({
-		ariaLabel: 'Search listing descriptions',
-		// Typing alone does not filter — the rule commits on blur / Enter, so a substring scan of the
-		// corpus runs once per query rather than once per character.
-		onChange: () => undefined,
-		onCommit: (value) => {
-			const trimmed = value.trim();
-
+	// The shared typeahead controller: a debounced commit while typing, a flush on blur / Enter /
+	// clear, nothing for an unchanged query. An empty query removes the rule.
+	const descriptionSearch = createTypeaheadSearch({
+		ariaLabel: REAL_ESTATE_DESCRIPTION_SEARCH.ariaLabel,
+		commit: (trimmed) => {
 			commitFacet(
 				'text-search',
-				trimmed === ''
-					? null
-					: text('description', { caseSensitive: false, mode: 'substring', query: trimmed }),
+				trimmed === '' ? null : text('description', { caseSensitive: false, mode: 'substring', query: trimmed }),
 			);
 		},
-		placeholder: 'waterfront, remodeled, cul-de-sac...',
+		initialQuery: (core.getRules().get('text-search') as TextSearchRule | undefined)?.config.query ?? '',
+		placeholder: REAL_ESTATE_DESCRIPTION_SEARCH.placeholder,
 	});
 
 	/** The committed must-have set (empty when the rule is absent). */
@@ -294,10 +311,14 @@ export function createRealEstatePanel(
 	// ─── Assembly — the fourteen sections, in render order ─────────────────────
 
 	const body = el('div', {
+		// Scroller and body on ONE element, as the books panel does: this panel has nothing that must
+		// scroll with the sections while staying outside the dimmed region (wine's smart-filter presets
+		// are the only case that needs the two split).
+		attrs: { 'aria-busy': 'false' },
 		children: [
-			section('Location', locationPicker.element),
+			section(REAL_ESTATE_LOCATION_TREE.groupLabel, locationPicker.element),
 			geoSection.element,
-			section('School district', schoolDistrictChips.element),
+			section('School district', schoolDistrictList.element),
 			section('Property type', propertyTypeChips.element),
 			section('Status', statusChips.element),
 			...sliders.elements,
@@ -306,12 +327,9 @@ export function createRealEstatePanel(
 			// so its rule stays active and each candidate is projected on top of what is already checked —
 			// otherwise "solar" would look available while "garage" is checked, though no listing has both.
 			section('Must-have features', featureChips.element),
-			section('Listed within', datePresets.element),
+			section(REAL_ESTATE_LISTED_DATE_LABEL, datePresets.element),
 			section('Description search', descriptionSearch.element),
 		],
-		// Scroller and body on ONE element, as the books panel does: this panel has nothing that must
-		// scroll with the sections while staying outside the dimmed region (wine's smart-filter presets
-		// are the only case that needs the two split).
 		className: 'fe-filter-panel__scroller fe-filter-panel__body',
 	});
 
@@ -323,6 +341,7 @@ export function createRealEstatePanel(
 	return {
 		dispose: () => {
 			geoSection.dispose();
+			descriptionSearch.dispose();
 		},
 
 		element,
@@ -332,6 +351,12 @@ export function createRealEstatePanel(
 		},
 
 		query,
+
+		setBusy: (isBusy) => {
+			// `--busy` dims the body and blocks pointer events while a write settles.
+			body.classList.toggle('fe-filter-panel__body--busy', isBusy);
+			body.setAttribute('aria-busy', String(isBusy));
+		},
 
 		update: (state) => {
 			latest = state;
@@ -346,7 +371,7 @@ export function createRealEstatePanel(
 
 			geoSection.update(deriveGeoRadius(rules.get(GEO_RADIUS_RULE_ID)));
 
-			schoolDistrictChips.update({
+			schoolDistrictList.update({
 				exclusion: chipExclusionMap(bundle, 'school-district'),
 				options: vocabularies.schoolDistricts,
 				selected: selectedSet('school-district'),
@@ -380,9 +405,7 @@ export function createRealEstatePanel(
 				),
 			});
 
-			descriptionSearch.update(
-				(rules.get('text-search') as TextSearchRule | undefined)?.config.query ?? '',
-			);
+			descriptionSearch.adopt((rules.get('text-search') as TextSearchRule | undefined)?.config.query ?? '');
 		},
 	};
 }

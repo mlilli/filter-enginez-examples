@@ -27,6 +27,7 @@ export interface ActiveFilterSummary {
 </script>
 
 <script setup lang="ts">
+import { RESULT_COPY, type ResultDataset } from '@filter-enginez/examples-shared/verticals';
 import { computed, ref } from 'vue';
 
 /**
@@ -46,7 +47,11 @@ import { computed, ref } from 'vue';
  * third line instead of being pushed off screen.
  *
  * The count roll is delegated to `<ResultCount>` rather than reimplemented, so every dataset rolls
- * its count the same way.
+ * its count the same way. The noun after the count is `RESULT_COPY[dataset].noun` (`bottles`,
+ * `results`, `listings`), the same word every app uses for that dataset.
+ *
+ * "Clear all" and each chip's × are emitted, not performed: the caller owns the engine and the busy
+ * tracker, and calls the shared `clearAllFilters` (wine: `clearAllWineFilters`) for the former.
  */
 import ResultCount from '../brand/ResultCount.vue';
 
@@ -54,10 +59,10 @@ const props = withDefaults(
 	defineProps<{
 		/** The chips to render, in engine rule order. */
 		activeFilters: readonly ActiveFilterSummary[];
+		/** Whose results these are; picks the noun beside the count from `RESULT_COPY`. */
+		dataset: ResultDataset;
 		/** Whether the engine is mid-recompute — OR'd with the count roll. */
 		isBusy: boolean;
-		/** Label beside the count — `results`, `bottles`, `listings`. */
-		noun?: string;
 		/** The most recently changed rule, briefly highlighted so a change is locatable. */
 		recentRuleId?: string | null;
 		/** The current result count. */
@@ -66,7 +71,6 @@ const props = withDefaults(
 		totalCount: number;
 	}>(),
 	{
-		noun: 'results',
 		recentRuleId: null,
 	},
 );
@@ -84,6 +88,9 @@ const isTicking = ref(false);
 // engine a recompute resolves within the frame, so `isBusy` alone would flash for one tick and the
 // indicator would look broken rather than fast.
 const isComputing = computed(() => props.isBusy || isTicking.value);
+
+/** The word after the count. */
+const noun = computed(() => RESULT_COPY[props.dataset].noun);
 </script>
 
 <template>

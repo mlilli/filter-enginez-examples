@@ -22,9 +22,14 @@
  * rules on the engine, correct results on screen, and every chip in the panel unselected — and clicking
  * a third chip would then write a one-element set, silently dropping the two restored values.
  *
- * Only `descriptionQuery` stays local, because it holds UNCOMMITTED keystrokes and deriving it would
- * fight the user's typing. It is re-seeded from the committed rule by a `watch`, which is what keeps a
- * clear-all or a URL restore reaching the text input too.
+ * Only the description search's text stays local, because it holds UNCOMMITTED keystrokes and
+ * deriving it would fight the user's typing. `useTypeaheadSearch` binds it to the shared timing
+ * contract and adopts an external change to the rule, which is what keeps a clear-all or a URL restore
+ * reaching the text input too.
+ *
+ * The copy every app shares is `REAL_ESTATE_*` from `real-estate-domain`: the location tree's group
+ * name and height, the school-district list's height, the listed-date presets' group name and the
+ * description search's wording.
  *
  * ### What the panel does NOT own
  *
@@ -63,11 +68,15 @@ import {
 	type MetroCenterOption,
 	type PickerTreeNode,
 	RANGE_FACETS,
+	REAL_ESTATE_DESCRIPTION_SEARCH,
+	REAL_ESTATE_LISTED_DATE_LABEL,
+	REAL_ESTATE_LOCATION_TREE,
+	REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
 	type RealEstateChipVocabularies,
 } from '@filter-enginez/examples-shared/real-estate-domain';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
 import { useEngineRefs } from '@filter-enginez/vue-signals';
-import { type Component, computed, ref, watch } from 'vue';
+import { type Component, computed } from 'vue';
 
 import CheckboxList from '../controls/CheckboxList.vue';
 import ChipToggleGroup from '../controls/ChipToggleGroup.vue';
@@ -76,6 +85,7 @@ import HierarchicalPicker from '../controls/HierarchicalPicker.vue';
 import PanelHeader from '../controls/PanelHeader.vue';
 import SearchInput from '../controls/SearchInput.vue';
 import SectionHeader from '../controls/SectionHeader.vue';
+import { useTypeaheadSearch } from '../search/useTypeaheadSearch.js';
 import { injectRealEstateBundle } from './realEstateBundle.js';
 import { clearRule, commitRule, commitSelection } from './realEstateCommit.js';
 import RangeFacetSection from './sections/RangeFacetSection.vue';
@@ -126,8 +136,8 @@ const { activeRules, rule } = useEngineRefs(props.engine);
  * @remarks
  * The one control here that watches a narrow signal rather than the whole `activeRules` map. Every
  * other selection is fully derived, so re-evaluating on any engine change is free and correct; this
- * one holds uncommitted keystrokes, and a map-wide dependency would discard them. See
- * `descriptionQuery`.
+ * one holds uncommitted keystrokes, and a map-wide dependency would wake the adoption check on every
+ * other facet's commit. See `descriptionSearch`.
  */
 const descriptionRule = rule('text-search');
 
@@ -172,28 +182,35 @@ const datePreset = computed<DatePresetValue | null>(() =>
 	coerceDatePreset((activeRules.value.get('listed-date') as DateRangeRule | undefined)?.config.preset ?? null),
 );
 
-/** The query the engine currently holds, or `''` when the facet is off. */
-const committedDescription = computed(() => (descriptionRule.value as TextSearchRule | undefined)?.config.query ?? '');
-
 /**
- * What the description input displays — the panel's ONE piece of local state.
+ * The description search — the panel's ONE piece of local state, the field's text.
  *
  * @remarks
- * Derived state would fight the user's typing, because the rule is only committed on blur / Enter and
- * so lags every keystroke in between. The `watch` re-seeds it from the COMMITTED value instead, which
- * is what makes "Clear all", a removed chip and a `?f` restore all reach into the text box — the same
- * pattern as the books panels' text mirrors in every vertical.
+ * Bound to the shared typeahead contract: the query commits once typing pauses and at once on blur,
+ * Enter or the clear button, an unchanged query is never written (so no busy mark without a write),
+ * and an external change to the rule (Clear all, a pill's ×, Undo, a `?f` restore) is adopted while
+ * the echo of the field's own commit is not. An empty query REMOVES the rule.
  *
- * Watching this facet's OWN rule, not the map: a map-wide source fires whenever any facet commits, and
- * firing means overwriting the keystrokes the user has not blurred yet. Clicking another control blurs
- * this input first, which commits — but undo/redo by keyboard and the devtools time travel this view
- * renders both change rules without moving focus.
+ * Watching this facet's OWN rule, not the map: undo/redo by keyboard and the devtools time travel this
+ * view renders both change rules without moving focus, and only a change to THIS rule is the field's
+ * business.
  */
-const descriptionQuery = ref(committedDescription.value);
+const descriptionSearch = useTypeaheadSearch({
+	commit: (trimmedQuery) => {
+		if (trimmedQuery === '') {
+			clearRule(props.engine, 'text-search');
 
-watch(committedDescription, (value) => {
-	descriptionQuery.value = value;
+			return;
+		}
+		commitRule(
+			props.engine,
+			'text-search',
+			text('description', { caseSensitive: false, mode: 'substring', query: trimmedQuery }),
+		);
+	},
+	committedQuery: () => (descriptionRule.value as TextSearchRule | undefined)?.config.query ?? '',
 });
+const { query: descriptionQuery } = descriptionSearch;
 
 /** Exclusion data per chip group. Empty until the first bundle — read as all-enabled. */
 const locationDisabled = computed(() => chipDisabledSet(bundle.value, LOCATION_RULE_ID));
@@ -281,38 +298,6 @@ function handleDatePresetSelect(value: DatePresetValue | null): void {
 	}
 	commitRule(props.engine, 'listed-date', dateRange('listedDate', { preset: value }));
 }
-
-/**
- * Mirror the typed text without filtering.
- *
- * @remarks
- * Typing alone does not filter — the rule is committed on blur / Enter instead, so a substring scan of
- * the corpus runs once per query rather than once per keystroke.
- *
- * @param next - The current input text.
- */
-function handleDescriptionChange(next: string): void {
-	descriptionQuery.value = next;
-}
-
-/**
- * Commit the description search, or clear it when the query empties.
- *
- * @param next - The committed text.
- */
-function handleDescriptionCommit(next: string): void {
-	descriptionQuery.value = next;
-	if (next.trim().length === 0) {
-		clearRule(props.engine, 'text-search');
-
-		return;
-	}
-	commitRule(
-		props.engine,
-		'text-search',
-		text('description', { caseSensitive: false, mode: 'substring', query: next.trim() }),
-	);
-}
 </script>
 
 <template>
@@ -331,13 +316,13 @@ function handleDescriptionCommit(next: string): void {
 			:aria-busy="isComputing"
 		>
 			<section>
-				<SectionHeader label="Location" />
+				<SectionHeader :label="REAL_ESTATE_LOCATION_TREE.groupLabel" />
 				<HierarchicalPicker
 					v-if="locationTree"
-					group-label="Location"
+					:group-label="REAL_ESTATE_LOCATION_TREE.groupLabel"
 					:counts="locationCounts"
 					:disabled="locationDisabled"
-					max-height="14rem"
+					:max-height="REAL_ESTATE_LOCATION_TREE.maxHeight"
 					:selected="locations"
 					:tree="locationTree"
 					@change="handleLocationChange"
@@ -353,7 +338,7 @@ function handleDescriptionCommit(next: string): void {
 				<SectionHeader label="School district" />
 				<CheckboxList
 					:exclusion="schoolDistrictExclusion"
-					max-height="220px"
+					:max-height="REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT"
 					:options="vocabularies.schoolDistricts"
 					:selected="schoolDistricts"
 					show-count
@@ -407,10 +392,10 @@ function handleDescriptionCommit(next: string): void {
 			</section>
 
 			<section>
-				<SectionHeader label="Listed within" />
+				<SectionHeader :label="REAL_ESTATE_LISTED_DATE_LABEL" />
 				<DatePresetGroup
 					any-label="Any time"
-					group-label="Listed within"
+					:group-label="REAL_ESTATE_LISTED_DATE_LABEL"
 					:presets="DATE_PRESET_OPTIONS"
 					:selected="datePreset"
 					@select="handleDatePresetSelect"
@@ -420,11 +405,11 @@ function handleDescriptionCommit(next: string): void {
 			<section>
 				<SectionHeader label="Description search" />
 				<SearchInput
-					input-label="Search listing descriptions"
-					placeholder="waterfront, remodeled, cul-de-sac…"
+					:input-label="REAL_ESTATE_DESCRIPTION_SEARCH.ariaLabel"
+					:placeholder="REAL_ESTATE_DESCRIPTION_SEARCH.placeholder"
 					:value="descriptionQuery"
-					@change="handleDescriptionChange"
-					@commit="handleDescriptionCommit"
+					@change="descriptionSearch.input"
+					@commit="descriptionSearch.flush"
 				/>
 			</section>
 		</div>

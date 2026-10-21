@@ -334,23 +334,19 @@ export function createHttpFilterEngine<T = Book>(options: HttpFilterEngineOption
 		getSourceData: async (): Promise<readonly T[]> => ensureCorpus(),
 		jumpToDevtoolsIndex: async () => Promise.resolve(),
 		loadConfig: async (config: FilterEngineConfig): Promise<void> => {
-			// `resolveConfig` reconstructs the (reference-tree) expression into a real `CompositeRule`,
-			// resolving its `__inline_N` leaf refs against `config.rules`. Re-serializing that gives the
-			// self-contained wire form `getExpression` / `buildConfig` expect.
+			// `resolveConfig` does what the in-process engine's `loadConfig` does: it reconstructs the
+			// (reference-tree) expression into a real `CompositeRule`, resolving its inline leaves against
+			// `config.rules`, and returns as `rules` only the rules to REGISTER, never those inline leaves.
+			// So both are stored exactly as resolved, the way the engine that exported the config held
+			// them: a flat rule loaded beside an expression stays registered (dormant while the expression
+			// is set), and clearing the expression leaves nothing behind that starts filtering.
 			const resolved = resolveConfig(config);
 
 			rules.clear();
-			expression = resolved.expression === null
-				? null
-				: resolved.expression.serialize();
-			// In expression mode the flat rules are ignored, and keeping the hoisted `__inline_N` rules
-			// would collide with the ids `buildConfig` re-mints for the same leaves. So load EITHER the
-			// expression OR the flat rules, never both — which is exactly the two engine modes.
-			if (expression === null) {
-				for (const entry of config.rules) {
-					rules.set(entry.id, entry.rule);
-				}
+			for (const [ruleId, rule] of resolved.rules) {
+				rules.set(ruleId, rule.serialize());
 			}
+			expression = resolved.expression === null ? null : resolved.expression.serialize();
 			scheduleEmit({ type: 'reset' });
 
 			return Promise.resolve();

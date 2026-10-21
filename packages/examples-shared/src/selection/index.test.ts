@@ -9,9 +9,10 @@
  * @packageDocumentation
  */
 
-import { describe, expect, it } from 'vitest';
+import { createFilterEngine, inSet, or } from '@filter-enginez/core';
+import { describe, expect, it, vi } from 'vitest';
 
-import { toggleSetValue } from './index.js';
+import { clearAllFilters, toggleSetValue } from './index.js';
 
 describe('toggleSetValue', () => {
 	it('appends a value that is absent', () => {
@@ -27,8 +28,8 @@ describe('toggleSetValue', () => {
 	});
 
 	it('empties a single-member selection', () => {
-		// The case every caller pairs with `commitSelection`, which must then REMOVE the rule: an empty
-		// `InSetRule` is not neutral, it matches nothing.
+		// The case every caller pairs with `commitSelection`, which then REMOVES the rule rather than
+		// leaving an empty `InSetRule` registered behind a control that shows nothing selected.
 		expect(toggleSetValue(['red'], 'red')).toEqual([]);
 	});
 
@@ -59,5 +60,41 @@ describe('toggleSetValue', () => {
 		// carry a duplicated set. Leaving one behind would make the chip stay lit after a click that
 		// visibly cleared it.
 		expect(toggleSetValue(['a', 'b', 'a'], 'a')).toEqual(['b']);
+	});
+});
+
+describe('clearAllFilters', () => {
+	it('marks the action busy, then makes ONE clearRules call', () => {
+		const order: string[] = [];
+		const engine = { core: { clearRules: vi.fn(() => order.push('clear')) }};
+
+		clearAllFilters(engine, () => order.push('busy'));
+
+		expect(order).toEqual(['busy', 'clear']);
+	});
+
+	it('routes the clear through a supplied seam instead of the engine', () => {
+		const engine = { core: { clearRules: vi.fn() }};
+		const forward = vi.fn();
+
+		clearAllFilters(engine, vi.fn(), forward);
+
+		expect(forward).toHaveBeenCalledTimes(1);
+		expect(engine.core.clearRules).not.toHaveBeenCalled();
+	});
+
+	it('drops every rule, including one under an id no panel lists, and the expression', () => {
+		const rows = [{ genre: 'a' }, { genre: 'b' }];
+		const engine = createFilterEngine({ sourceData: rows });
+
+		engine.addRule('genre', inSet('genre', ['a']));
+		engine.addRule('hand-edited', inSet('genre', ['b']));
+		engine.setExpression(or(inSet('genre', ['a'])));
+
+		clearAllFilters({ core: engine }, vi.fn());
+
+		expect(engine.getRules().size).toBe(0);
+		expect(engine.getExpression()).toBeNull();
+		expect(engine.getResultCount()).toBe(rows.length);
 	});
 });

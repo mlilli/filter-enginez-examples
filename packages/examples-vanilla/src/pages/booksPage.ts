@@ -17,6 +17,10 @@
  * Note `.subscribe` fires immediately with the current value, so the first paint is free — no separate
  * "initial render" pass.
  *
+ * A boot that rejects (the corpus fetch failing, say) replaces the boot caption with the shared
+ * boot-failure screen over `BOOT_FAILURE_COPY.books`, as every app's books page does, and the route
+ * still returns a teardown, which the router calls on navigation however the render ended.
+ *
  * @packageDocumentation
  */
 
@@ -33,7 +37,9 @@ import { el } from '@filter-enginez/examples-shared/dom';
 import type { RouteTeardown } from '../router.js';
 
 import { createBooksView } from '../books/view.js';
+import { booksBusyCore } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
+import { bootFailureMessage, createBootFailure } from '../shell/bootFailure.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
@@ -46,7 +52,20 @@ import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 export async function renderBooksPage(container: HTMLElement): Promise<RouteTeardown> {
 	container.append(bootingNotice());
 
-	const { engine } = await bootBooksEngine();
+	let booted;
+
+	try {
+		booted = await bootBooksEngine();
+	} catch (error) {
+		console.error('[books] boot failed:', error);
+		container.replaceChildren(createBootFailure('books', bootFailureMessage(error)));
+
+		return () => {
+			container.replaceChildren();
+		};
+	}
+
+	const { engine } = booted;
 
 	container.replaceChildren();
 
@@ -70,6 +89,9 @@ export async function renderBooksPage(container: HTMLElement): Promise<RouteTear
 	// `FilterEngine` surface this route is typed against, hence the structural cast.
 	const devtools = createDevtoolsSurface({
 		devtools: (engine.core as unknown as { devtools: DevtoolsCursor }).devtools,
+		// Undo, redo and every timeline jump are engine writes like any other: the books busy tracker
+		// is marked first, and the view resolves it on the change they cause.
+		markBusy: booksBusyCore.markUserAction,
 	});
 	const view = createBooksView(engine.core, {
 		footnote: 'filter-enginez · books demo · vanilla + reactive-signals (fine-grained)',
@@ -135,7 +157,7 @@ function bootingNotice(): HTMLElement {
 	// This route awaits the books engine without subscribing to its boot progress, so it only renders the
 	// caption's idle state — but it renders it through the same module the streaming routes use rather
 	// than as a literal, so a fourth state or an ARIA affordance added there reaches here too. The
-	// sentence comes from `books-domain`, shared with SvelteKit's and Vue's books pages.
+	// sentence comes from `books-domain`, shared with every app's books page.
 	// `bootCaptionText` because there is no live number to highlight.
 	//
 	// The class is the shared boot caption, not a panel SECTION HEADING — `.fe-books-section-label`

@@ -65,7 +65,7 @@ export const DevtoolsPanelView = (props: DevtoolsPanelViewProps): React.ReactEle
 
 	return (
 		<section aria-label="Devtools action log" className="fe-devtools-panel">
-			<DrawerHeader entries={entries} activeCursor={activeCursor} onClose={onClose} />
+			<PanelHeader entries={entries} activeCursor={activeCursor} onClose={onClose} />
 			<RowList entries={entries} activeCursor={activeCursor} isComputing={isComputing} onJump={onJump} />
 			<TimelineScrubber
 				entries={entries}
@@ -84,7 +84,7 @@ export const DevtoolsPanelView = (props: DevtoolsPanelViewProps): React.ReactEle
  *
  * @internal
  */
-const DrawerHeader = ({
+const PanelHeader = ({
 	activeCursor,
 	entries,
 	onClose,

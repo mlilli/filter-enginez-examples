@@ -306,6 +306,9 @@ const ORIGIN_RULE_MODULE = 'packages/examples-shared/src/wine/wine-domain/origin
 /** The one module that builds the `?f=` serializer every app reads and writes links with. */
 const LINK_SERIALIZER_MODULE = 'packages/examples-shared/src/url/linkSerializer.ts';
 
+/** The hook the two React apps build their URL sync's serializer with. */
+const URL_SYNC_BINDINGS_MODULE = 'packages/examples-shared/src/url/useUrlSyncBindings.ts';
+
 /**
  * An origin rule built by hand: a rule factory or constructor called on the `originId` field.
  *
@@ -359,8 +362,17 @@ describe('one origin rule and one link reader in every app', () => {
 	});
 
 	it.each(Object.keys(VERTICALS_WITH_OWN_WINE_DIRECTORY))('%s reads and writes its links with the shared link serializer', (pkg) => {
-		const readers = sources.filter(({ path, text }) => path.startsWith(`packages/${pkg}/`) && text.includes('createLinkSerializer('));
+		// The React apps hand `<FilterEngineUrlSync>` the serializer `useUrlSyncBindings` builds, which is
+		// `createLinkSerializer` wrapped to remember the sync's own writes (`examples-shared/src/url/`).
+		const readers = sources.filter(({ path, text }) => path.startsWith(`packages/${pkg}/`) && /\b(?:createLinkSerializer|useUrlSyncBindings)\(/u.test(text));
 
 		expect(readers.length, `${pkg} never calls createLinkSerializer`).toBeGreaterThan(0);
+	});
+
+	it('builds the React apps\' URL-sync serializer from the shared link serializer', () => {
+		const bindings = sources.find(({ path }) => path === URL_SYNC_BINDINGS_MODULE);
+
+		expect(bindings, `${URL_SYNC_BINDINGS_MODULE} is missing`).toBeDefined();
+		expect(bindings?.text ?? '').toMatch(/guardSerializer\(createLinkSerializer\(/u);
 	});
 });

@@ -3,12 +3,13 @@
  * `<WineRangeSection>` — one `RangeRule` slider with predictive bounds and a histogram.
  *
  * @remarks
- * Price, points and ABV are the same facet three times over, differing only in field, label and drag
- * step. Everything else is keyed by `ruleId` from the declarations all six apps share in
- * `wine-domain`: the readout format and typed-text parser (`WINE_SLIDER_TEXT`), the track scale
- * (`wineSliderScale` — log for price, linear for points and ABV) and the bars
- * (`wineSliderHistogram`, already sliced for that scale). So `$25` sits at the same point of the
- * price track here as on every other app's wine page, and reads the same.
+ * Price, points and ABV are the same facet three times over, differing only in drag step. Everything
+ * else is keyed by `ruleId` from the declarations all six apps share in `wine-domain`: the label and
+ * the thumbs' accessible names (`WINE_SLIDER_COPY`), the readout format and typed-text parser
+ * (`WINE_SLIDER_TEXT`), the track scale (`wineSliderScale` — log for price, linear for points and
+ * ABV), the bars (`wineSliderHistogram`, already sliced for that scale) and the committed rule
+ * (`wineRangeRule`). So `$25` sits at the same point of the price track here as on every other app's
+ * wine page, reads the same, and commits the same rule.
  *
  * **The handle span is a `ref` + one-way `watch`, not a `computed`** — the pattern
  * `<WineChipSection>` establishes and documents at length. The slider makes the reason especially
@@ -17,19 +18,24 @@
  *
  * An absent rule renders as the full baseline track, which is exactly what no constraint means. That
  * is spelled `null` rather than `min === 0`, which would collide with a genuine selection whose lower
- * bound is zero. An infinite `max` — which only reaches this route through a `?f` link from React's
- * open-ended price slider — reads back as the baseline maximum rather than as an infinite handle.
+ * bound is zero.
+ *
+ * Price is open-ended at the top (`WINE_OPEN_ENDED_SLIDERS`): its upper thumb at the top of the track
+ * commits `max: Infinity`, "this price and up", and an infinite `max` reads back as the track top.
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { range, type RangeRule } from '@filter-enginez/core';
+import { type RangeRule } from '@filter-enginez/core';
 import {
 	commitRule,
 	FALLBACK_BOUNDS,
 	fieldBounds,
+	WINE_SLIDER_COPY,
 	WINE_SLIDER_TEXT,
+	wineRangeRule,
+	type WineRangeSliderId,
 	wineSliderHistogram,
 	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
@@ -41,14 +47,9 @@ import { injectWineBundle } from '../wineBundle.js';
 
 const props = defineProps<{
 	engine: SignalsEngine<Wine>;
-	/** The `Wine` property the `RangeRule` constrains — `priceUsd` for the `price` rule. */
-	field: string;
-	label: string;
 	leaveExpressionMode: () => void;
-	/** Rule id — also the key into the shared baselines and the bundle's field metadata. */
-	ruleId: 'abv' | 'points' | 'price';
-	/** Accessible name for the slider group. Not `ariaLabel` — see `<ResultGrid>`'s `listLabel`. */
-	sliderLabel: string;
+	/** Rule id — the key into the shared copy, baselines, field and the bundle's field metadata. */
+	ruleId: WineRangeSliderId;
 	/** Drag granularity. NOT `SLIDER_STEPS` — see the panel's `DRAG_STEPS`. */
 	step: number;
 }>();
@@ -120,6 +121,9 @@ const histogram = computed(() =>
 /** The shared readout formatter and typed-text parser for this field (`$1,250`, `13.5%`, `92`). */
 const sliderText = computed(() => WINE_SLIDER_TEXT[props.ruleId]);
 
+/** The shared label and thumb-name stem (`Price (USD)`, `Filter by price`). */
+const sliderCopy = computed(() => WINE_SLIDER_COPY[props.ruleId]);
+
 /**
  * Commit a dragged span, painting locally first.
  *
@@ -129,8 +133,12 @@ function handleChange(next: { readonly max: number; readonly min: number }): voi
 	props.leaveExpressionMode();
 	// Locally first: on the worker tier the engine's own value lags a full round trip, so waiting for
 	// the recompute would snap the handle backwards mid-drag.
-	span.value = next;
-	commitRule(props.engine, props.ruleId, range(props.field, next));
+	// `wineRangeRule` always builds a `RangeRule`; the span takes its config, so an open top paints
+	// as the track top exactly as the committed rule will read back.
+	const rule = wineRangeRule(props.ruleId, next, baseline.value) as RangeRule;
+
+	span.value = rule.config;
+	commitRule(props.engine, props.ruleId, rule);
 }
 </script>
 
@@ -141,10 +149,10 @@ function handleChange(next: { readonly max: number; readonly min: number }): voi
 			:baseline="baseline"
 			:format="sliderText.format"
 			:histogram="histogram"
-			:label="label"
+			:label="sliderCopy.label"
 			:parse="sliderText.parse"
 			:scale="scale"
-			:slider-label="sliderLabel"
+			:slider-label="sliderCopy.sliderLabel"
 			:step="step"
 			:value-max="valueMax"
 			:value-min="valueMin"

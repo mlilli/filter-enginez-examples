@@ -91,6 +91,13 @@ export {
 	type MetroCenterOption,
 } from './metroCenters.js';
 export type { PickerTreeNode } from './pickerTree.js';
+// What every app's panel says where the apps used to word it themselves.
+export {
+	REAL_ESTATE_DESCRIPTION_SEARCH,
+	REAL_ESTATE_LISTED_DATE_LABEL,
+	REAL_ESTATE_LOCATION_TREE,
+	REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
+} from './panelCopy.js';
 export {
 	buildRuleSummaries,
 	type FilterSummary,
@@ -136,5 +143,6 @@ export {
 	type ExclusionMap,
 	fieldBounds,
 	fieldHistogram,
+	isToggleDisabled,
 	toggleWouldBeEmpty,
 } from '../../filter-bundle/bundleReaders.js';

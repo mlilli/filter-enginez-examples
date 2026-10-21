@@ -51,6 +51,7 @@
 		COLOR_ORDER,
 		deriveSelectedPresetIds,
 		EMPTY_SELECTION,
+		orderedPresentOptions,
 		type OriginNodeSpec,
 		type PickerTreeNode,
 		SWEETNESS_ORDER,
@@ -196,25 +197,12 @@
 			class="fe-filter-panel__body"
 			class:fe-filter-panel__body--expression={isExpressionMode}
 			class:fe-filter-panel__body--busy={isComputing && !isExpressionMode}
+			aria-busy={isComputing}
 			inert={isExpressionMode}
 		>
-			<WineRangeSection
-				{engine}
-				{leaveExpressionMode}
-				field="priceUsd"
-				label="Price (USD)"
-				ruleId="price"
-				step={DRAG_STEPS.price}
-			/>
+			<WineRangeSection {engine} {leaveExpressionMode} ruleId="price" step={DRAG_STEPS.price} />
 
-			<WineRangeSection
-				{engine}
-				{leaveExpressionMode}
-				field="points"
-				label="Points"
-				ruleId="points"
-				step={DRAG_STEPS.points}
-			/>
+			<WineRangeSection {engine} {leaveExpressionMode} ruleId="points" step={DRAG_STEPS.points} />
 
 			<ScoreCompareSection {engine} {leaveExpressionMode} />
 
@@ -222,12 +210,16 @@
 				{engine}
 				{leaveExpressionMode}
 				label="Color"
-				options={COLOR_ORDER.filter((entry) => vocabularies.color.includes(entry))}
+				options={orderedPresentOptions(COLOR_ORDER, vocabularies.color)}
 				ruleId="color"
 				showCount
 			/>
 
-			<SingleColorSection {engine} {leaveExpressionMode} options={vocabularies.color} />
+			<SingleColorSection
+				{engine}
+				{leaveExpressionMode}
+				options={orderedPresentOptions(COLOR_ORDER, vocabularies.color)}
+			/>
 
 			<WineChipSection
 				{engine}
@@ -242,20 +234,13 @@
 
 			<WineVintageSection {engine} {leaveExpressionMode} step={DRAG_STEPS.vintage} />
 
-			<WineRangeSection
-				{engine}
-				{leaveExpressionMode}
-				field="abv"
-				label="ABV (%)"
-				ruleId="abv"
-				step={DRAG_STEPS.abv}
-			/>
+			<WineRangeSection {engine} {leaveExpressionMode} ruleId="abv" step={DRAG_STEPS.abv} />
 
 			<WineChipSection
 				{engine}
 				{leaveExpressionMode}
 				label="Body"
-				options={BODY_ORDER.filter((entry) => vocabularies.body.includes(entry))}
+				options={orderedPresentOptions(BODY_ORDER, vocabularies.body)}
 				ruleId="body"
 			/>
 
@@ -263,7 +248,7 @@
 				{engine}
 				{leaveExpressionMode}
 				label="Sweetness"
-				options={SWEETNESS_ORDER.filter((entry) => vocabularies.sweetness.includes(entry))}
+				options={orderedPresentOptions(SWEETNESS_ORDER, vocabularies.sweetness)}
 				ruleId="sweetness"
 			/>
 

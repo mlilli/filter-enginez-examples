@@ -159,3 +159,62 @@ export function bootCaptionParts(
 export function bootCaptionText(parts: readonly BootCaptionPart[]): string {
 	return parts.map((part) => part.text).join('');
 }
+
+/** The datasets a boot screen can fail to start. */
+export type BootFailureDataset = 'books' | 'real-estate' | 'wine';
+
+/** What a boot-failure screen says, beside the error's own message. */
+export interface BootFailureCopy {
+	/** The line under the error message: why it failed, or what the visitor can do about it. */
+	readonly hint: string;
+	/** The headline. */
+	readonly title: string;
+}
+
+/**
+ * The words of each dataset's boot-failure screen, the same in every app.
+ *
+ * @remarks
+ * Rendered with the error's message between the two lines, inside an element with `role="alert"`
+ * (within the page's `<main>`, so the landmark keeps its role). Books and real estate boot from a
+ * static file on the main thread, where the remedy is a reload. Wine's hint explains the one failure
+ * there with a workaround, a worker that cannot start, and each app follows it with how ITS build
+ * selects the 10,000-wine main-thread tier instead (`VITE_WINE_TIER=default` for the Vite apps, a
+ * constant in Angular's), because that remedy is a fact about the app's build, not about the engine.
+ */
+export const BOOT_FAILURE_COPY: Readonly<Record<BootFailureDataset, BootFailureCopy>> = {
+	books: { hint: 'Refresh the page to retry.', title: 'The books engine could not start.' },
+	'real-estate': { hint: 'Refresh the page to retry.', title: 'The real-estate engine could not start.' },
+	wine: {
+		hint: 'The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the worker could not start.',
+		title: 'The wine engine could not start.',
+	},
+};
+
+/**
+ * What every server-backed route (`/books-server`, `/wine-server`) says while it connects and when
+ * the server cannot be reached.
+ *
+ * @remarks
+ * Import-free like the rest of this module, because the connecting screen is drawn before the route's
+ * own code has loaded. The offline hint names the command that starts THAT app's filter server
+ * between {@link SERVER_ROUTE_SCREEN_COPY.offlineHintLead} and
+ * {@link SERVER_ROUTE_SCREEN_COPY.offlineHintTail}: the React, Angular and vanilla apps query the
+ * examples server, while SvelteKit serves the query endpoint itself, so the command is the one fact
+ * that differs.
+ */
+export const SERVER_ROUTE_SCREEN_COPY = {
+	/** The connecting screen's caption, under the hero loader. */
+	connectingCaption: 'Filtering on the Node server · fetching corpus + initial state',
+	/** The hero loader's accessible name while connecting. */
+	connectingLoaderLabel: 'Connecting to the filter server',
+	/** The offline hint's words before the command. */
+	offlineHintLead: 'Start it with ',
+	/** The offline hint's words after the command. */
+	offlineHintTail: ', then refresh.',
+	/** The offline screen's headline. */
+	offlineTitle: 'Can\'t reach the filter server',
+} as const;
+
+/** The command that starts the examples filter server the React, Angular and vanilla server routes query. */
+export const EXAMPLES_SERVER_START_COMMAND = 'pnpm --filter @filter-enginez/examples-server serve:api';

@@ -4,12 +4,20 @@
  *
  * @remarks
  * The real-estate "must-have features" filter is an AND over `Listing.features` (a `string[]`): a
- * listing passes only if its features include every selected one. None of the engine's built-in rules
- * expresses "array ⊇ set", and a `PredicateRule` would not do: a predicate's closure can't serialize,
- * so its state couldn't round-trip through JSON config / the URL. This registry-registered subclass
- * can: its config is a plain `{ required: string[] }`, so it serializes
- * with the default `FilterRule.serialize()` and revives through `ruleRegistry.deserialize` (which
- * constructs via `new ContainsAllRule(field, config)`, running the `action` class-field initializer).
+ * listing passes only if its features include every selected one. A `PredicateRule` would not do: a
+ * predicate's closure can't serialize, so its state couldn't round-trip through JSON config / the URL.
+ * This registry-registered subclass can: its config is a plain `{ required: string[] }`, so it
+ * serializes with the default `FilterRule.serialize()` and revives through `ruleRegistry.deserialize`
+ * (which constructs via `new ContainsAllRule(field, config)`, running the `action` class-field
+ * initializer).
+ *
+ * **The built-in equivalent.** `inSet('features', { arrayMatch: 'all', set: required })` matches the
+ * same listings: every array that holds all the selected values, everything for an empty selection,
+ * and no empty array for a non-empty one. The two differ only on a field that is not an array, which
+ * `InSetRule` compares as a single value and this rule rejects; `features` is always an array. This
+ * rule stays because it is the repo's worked example of the extension contract (the
+ * `ruleTypeName` static, the registry, the bundle's `containsAll` chip kind and the results-header
+ * summarizer branch a custom rule needs), and because `?f=` links already carry it by this name.
  *
  * @packageDocumentation
  */

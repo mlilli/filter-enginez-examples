@@ -1,8 +1,8 @@
 /**
- * Tests for `wine/sliderSections.ts` — the five facets no other suite drives or commits to.
+ * Tests for `wine/sliderSections.ts` — the five slider and comparison facets.
  *
  * @remarks
- * ### 🔴 Only the sites no other suite reaches
+ * ### 🔴 The sites the rest of the suite does not reach
  *
  * A throw-mutant probe against the WHOLE `packages/examples-vanilla` suite — not against any one
  * sibling, because coverage is transitive — shows the rest of the suite already drives the adopt on
@@ -12,12 +12,12 @@
  * The sixteen sites that remain are not sixteen unrelated sites. They are **two properties**, and
  * every case below drives one of them:
  *
- * - **Nothing in this package performs one of these interactions.** No test moves a slider handle,
- *   chooses a comparison operator, or types a threshold. (R1, R14, R21–R24.)
- * - **Nothing in this package ever repaints this panel with a committed rule on one of these five
- *   facets.** Every read-back arm — the committed span, both derived handle values on both sliders,
- *   both constructor seeds, the operator adopt and the conditional threshold overwrite — needs a rule
- *   that no suite ever commits. (R3, R5, R7, R12, R15, R16, R19, R20, R25, R26.)
+ * - **The interactions themselves**: moving a slider handle, choosing a comparison operator, typing
+ *   a threshold. The other suites drive the panel, never these controls. (R1, R14, R21–R24.)
+ * - **A repaint with a committed rule on one of these five facets.** Every read-back arm — the
+ *   committed span, both derived handle values on both sliders, both constructor seeds, the operator
+ *   adopt and the conditional threshold overwrite — needs such a rule on the engine, which this file
+ *   commits. (R3, R5, R7, R12, R15, R16, R19, R20, R25, R26.)
  *
  * ### 🔴 The LIVE `available` arms are reached by the page, not by a spec that passes a bundle
  *
@@ -31,9 +31,9 @@
  *
  * `opens on the comparison a shared link already committed` drives both constructor seeds (R19, R20),
  * but it cannot prove the CONSTRUCTOR read is what put the values there — and no test in this package
- * can. The controls render nothing until `update` runs, and `update` adopts the operator and
- * overwrites the threshold from the same rule on that first pass, so a blank seed lands in the
- * identical place. The seeds are load-bearing in the reactive verticals, where the first render comes
+ * can. The panel paints its first frame through the same `update` every later repaint takes, from the
+ * engine's rules, and that pass adopts the operator and overwrites the threshold from the same rule,
+ * so a blank seed lands in the identical place. The seeds are load-bearing in the reactive verticals, where the first render comes
  * straight from local state; here they are belt-and-braces. Written down rather than asserted,
  * because an assertion that passes on a mechanism other than the one it names is indistinguishable
  * from green.
@@ -49,8 +49,9 @@
  * set with a GAP reads back as its outer bounds — which is why the case below seeds a gapped set.
  * With a contiguous one, "the outer bounds" and "the set" are the same assertion.
  *
- * **An infinite maximum reads back as the baseline edge.** It reaches this route only through a `?f`
- * link from React's open-ended price slider. The arm it takes is already covered by the no-rule path
+ * **An infinite maximum reads back as the baseline edge.** Every app's price slider commits one
+ * (`wineRangeRule`'s open top), so it arrives through this panel's own top thumb, a `?f` link, Undo or
+ * a preset. The arm it takes is already covered by the no-rule path
  * (R8), so this is the accidental-coverage category: a branch reached by accident of another case
  * rather than by anything asserting the contract the source comment names.
  *
@@ -64,6 +65,7 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import {
+	createFilterEngine,
 	inSet,
 	type InSetRule,
 	numCompare,
@@ -76,6 +78,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { makeWine } from '../test-support/wineFixture.js';
 import { createWinePanelMounter } from '../test-support/winePanelHarness.js';
+import { createWinePanel } from './panel.js';
 
 /**
  * Three wines chosen so every baseline is readable at a glance.
@@ -223,9 +226,32 @@ describe('the range sliders', () => {
 
 		expect(rule?.field).toBe('priceUsd');
 		// Baseline 20–40, drag step 1 for price on a log track: one percent of this narrow track is a
-		// fraction of a dollar, so the press moves the floor of one whole step, 20 → 21.
-		expect(rule?.config).toEqual({ max: 40, min: 21 });
+		// fraction of a dollar, so the press moves the floor of one whole step, 20 → 21. The top thumb
+		// still sits at the top of the track, so `wineRangeRule` commits it open-ended, as every
+		// vertical's price slider does.
+		expect(rule?.config).toEqual({ max: Number.POSITIVE_INFINITY, min: 21 });
 		expect(core.getResultCount()).toBe(2);
+	});
+
+	it('commits a finite price maximum once the top thumb leaves the top of the track', () => {
+		const { core, root } = mountPanel();
+
+		pressOnThumb(root, 'Filter by price', 'upper', 'ArrowDown');
+
+		expect((core.getRules().get('price') as RangeRule | undefined)?.config.max).toBeLessThan(40);
+	});
+
+	it('steps a second press from the first one\'s painted value before the engine answers', () => {
+		// No repaint between the presses — the worker tier's round trip.
+		const { core, root } = mountPanel();
+
+		pressOnThumb(root, 'Filter by points', 'lower', 'ArrowUp');
+
+		const first = (core.getRules().get('points') as RangeRule | undefined)?.config.min ?? 0;
+
+		pressOnThumb(root, 'Filter by points', 'lower', 'ArrowUp');
+
+		expect((core.getRules().get('points') as RangeRule | undefined)?.config.min).toBe(first + 1);
 	});
 
 	it('opens on the span a shared link already committed', () => {
@@ -240,9 +266,9 @@ describe('the range sliders', () => {
 	});
 
 	it('reads an INFINITE committed maximum back as the baseline edge', () => {
-		// Only reachable here through a `?f` link from React's open-ended price slider, which serializes
-		// "no upper limit" as Infinity. The lower handle still comes from the rule; the upper falls back
-		// to the baseline rather than rendering an infinite handle.
+		// The open-ended price top every app commits through `wineRangeRule`, which serializes "no upper
+		// limit" as Infinity. The lower handle still comes from the rule; the upper falls back to the
+		// baseline rather than rendering an infinite handle.
 		//
 		// The arm this takes is already exercised by every no-rule repaint, so this case does not move
 		// the number. It is here because the contract the source comment names is otherwise pinned by
@@ -267,6 +293,57 @@ describe('the range sliders', () => {
 		});
 
 		expect(handles(root, 'Filter by price')).toEqual([25, 40]);
+	});
+
+	it('repaints from a RESOLVED bundle, an infinite committed maximum included', () => {
+		// Every other case here repaints with `bundle: null`. This one hands the panel the engine's own
+		// answer to its query, so the sliders read their available bounds and histograms from the
+		// bundle — with the open-ended price top and a committed vintage set in the same pass, the
+		// combination the case above notes no `null`-bundle case can reach.
+		const core = createFilterEngine<Wine>({ sourceData: DATA });
+
+		core.addRule('price', range('priceUsd', { max: Number.POSITIVE_INFINITY, min: 25 }));
+		core.addRule('vintage', inSet<number>('vintage', [2018, 2020]));
+
+		const panel = createWinePanel(core);
+		const root = document.createElement('div');
+
+		root.append(panel.element);
+		document.body.append(root);
+		panel.update({ bundle: core.applyFiltersAndQuery(panel.query), expression: null, rules: core.getRules() });
+
+		// The bundle projects each slider with its own rule dropped, so only wines `b` and `c` remain
+		// available to price and points — and the slider holds its handles inside that span. A lower
+		// handle at 30 rather than the committed 25 (price), or 90 rather than the baseline 88 (points),
+		// can only come from the bundle's bounds; a `null` bundle would leave the whole track available.
+		expect(handles(root, 'Filter by price')).toEqual([30, 40]);
+		expect(handles(root, 'Filter by points')).toEqual([90, 92]);
+		expect(handles(root, 'Filter by vintage year')).toEqual([2018, 2020]);
+		panel.dispose();
+	});
+});
+
+describe('the first frame', () => {
+	it('paints every slider and chip the moment the panel is built, before any update', () => {
+		// On the worker tier the first `update` waits for the first bundle, a round trip away. The
+		// controls must read the engine's state before that, as in every other app: a thumb with no
+		// value or an empty bound field is a control nobody can read or type over.
+		const core = createFilterEngine<Wine>({ sourceData: DATA });
+
+		core.addRule('points', range('points', { max: 92, min: 90 }));
+
+		const panel = createWinePanel(core);
+		const root = document.createElement('div');
+
+		root.append(panel.element);
+		document.body.append(root);
+
+		expect(handles(root, 'Filter by price')).toEqual([20, 40]);
+		expect(handles(root, 'Filter by points')).toEqual([90, 92]);
+		expect(thumb(root, 'Filter by points', 'lower').getAttribute('aria-valuetext')).toBe('90');
+		expect(root.querySelector<HTMLInputElement>('input[aria-label="Points lower bound (editable)"]')?.value).toBe('90');
+		expect(root.querySelectorAll('.fe-chip').length).toBeGreaterThan(0);
+		panel.dispose();
 	});
 });
 

@@ -2,10 +2,10 @@
  * `books/panel` — the full books filter panel, hand-built.
  *
  * @remarks
- * Wires the same nine rule types the React / Vue / Svelte panels demo: Genre / Format / Language
+ * Wires the same nine rule types every vertical's books panel demos: Genre / Format / Language
  * (`InSetRule` chips), genre super-groups (`InSetofSetsRule`), Publication year / Rating / Page count
  * (`RangeRule` sliders), In print / Has audiobook (`BooleanRule`), Rated only (`ExistsRule`), Editor's
- * picks (`BloomMembershipRule`), Description (`TextSearchRule`), Authors (`FuzzySearchRule`), and an
+ * picks (`BloomMembershipRule`), Description (`TextSearchRule`), Author (`FuzzySearchRule`), and an
  * ISBN pattern (`RegexRule`).
  *
  * **The panel is surface-agnostic on purpose.** It takes a bare `FilterEngine` for writes, because the
@@ -13,8 +13,13 @@
  * type. Only the read path differs (per-signal subscriptions vs one coarse re-read), and that lives
  * entirely in the page wiring. So this file is shared verbatim by `/books` and `/books-raw`.
  *
- * Vocabulary, baselines, curated super-groups, and the predictive-disable readers all come from the
- * shared `@filter-enginez/examples-shared/books-domain` module — no logic is re-implemented here.
+ * Vocabulary, baselines, curated super-groups, the predictive-disable readers and every label and
+ * accessible name (`BOOKS_*`) come from the shared `@filter-enginez/examples-shared/books-domain`
+ * module — no logic or copy is re-implemented here.
+ *
+ * Every write marks the books busy tracker first; the view binds that tracker to the body's
+ * `--busy` / `aria-busy` and to the header's computing indicator. The controls update in place, so a
+ * keyboard user's focus survives their own click and the repaint that follows it.
  *
  * @packageDocumentation
  */
@@ -47,6 +52,11 @@ import {
 	type TextSearchRule,
 } from '@filter-enginez/core';
 import {
+	BOOKS_CHIP_SECTION_LABELS,
+	BOOKS_ISBN_INVALID_MESSAGE,
+	BOOKS_SEARCH_COPY,
+	BOOKS_SLIDER_COPY,
+	BOOKS_TOGGLE_LABELS,
 	buildBooksBundleQuery,
 	buildEditorsPicksFilter,
 	chipExclusionMap,
@@ -55,18 +65,20 @@ import {
 	deriveSelectedGroupKeys,
 	fieldBounds,
 	fieldHistogram,
+	isToggleDisabled,
 	nextSuperGroupSets,
 	type NumericBounds,
 	regexInputValue,
 	SUPER_GROUP_KEYS,
 	uniqueSorted,
 } from '@filter-enginez/examples-shared/books-domain';
-import { el, setHidden } from '@filter-enginez/examples-shared/dom';
+import { el } from '@filter-enginez/examples-shared/dom';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
 
-import { type Control, createCheckboxControl, createChipToggleGroup, createSearchInput } from '../controls/controls.js';
+import { type Control, createCheckboxControl, createChipToggleGroup } from '../controls/controls.js';
 import { createRangeSlider, type RangeSliderState } from '../controls/rangeSlider.js';
 import { section } from '../controls/sections.js';
+import { createTypeaheadSearch } from '../controls/typeaheadSearch.js';
 
 /** The engine snapshot the panel renders from. */
 export interface PanelState {
@@ -78,21 +90,33 @@ export interface PanelState {
 
 /** A mounted panel: its root element, the bundle query it needs, and an in-place updater. */
 export interface BooksPanel {
+	/** Cancel the searches' pending debounced commits. */
+	readonly dispose: () => void;
 	/** The panel root. */
 	readonly element: HTMLElement;
 	/** The `applyFiltersAndQuery` query describing every facet this panel predictive-disables. */
 	readonly query: FilterBundleQuery;
+	/** Dim the body and set `aria-busy` while the books busy tracker says a write is settling. */
+	readonly setBusy: (isBusy: boolean) => void;
 	/** Re-apply committed engine state to every control. */
 	readonly update: (state: PanelState) => void;
+}
+
+/** Construction options for {@link createBooksPanel}. */
+export interface BooksPanelOptions {
+	/** Mark the books busy tracker. Every write below calls it FIRST. */
+	readonly markBusy: () => void;
 }
 
 /**
  * Build the books filter panel over a bare engine.
  *
  * @param core - The engine every control writes through (identical on both demo routes).
+ * @param options - The busy mark every write goes through.
  * @returns The mounted panel + the bundle query its predictive-disable needs.
  */
-export function createBooksPanel(core: FilterEngine<Book>): BooksPanel {
+export function createBooksPanel(core: FilterEngine<Book>, options: BooksPanelOptions): BooksPanel {
+	const { markBusy } = options;
 	// The corpus is resident + immutable post-boot, so vocabulary, baselines, the Bloom set, and the
 	// bundle query are all computed once (the equivalent of the React panel's `useMemo(…, [sourceData])`).
 	const corpus = core.getSourceData();
@@ -111,13 +135,35 @@ export function createBooksPanel(core: FilterEngine<Book>): BooksPanel {
 		{ formats, genres, languages },
 	);
 
-	// ── Mutations. Every one writes straight through `core` — no framework in the path. ──
+	// The four toggles' candidate rules — what each box WOULD add — for predictive disable.
+	const inPrintCandidate = bool('isInPrint', true);
+	const audiobookCandidate = bool('hasAudiobook', true);
+	const ratedCandidate = exists('averageRating');
+	const editorsPicksCandidate = bloomMembership('id', editorsPicksFilter);
 
-	/** Toggle a chip value in an `InSetRule` (an empty set is a permissive no-op). */
+	// ── Mutations. Every one marks busy, then writes straight through `core` — no framework in the path. ──
+
+	/** Commit a rule, busy mark first. */
+	function commit(ruleId: string, rule: FilterRule): void {
+		markBusy();
+		core.addRule(ruleId, rule);
+	}
+
+	/**
+	 * Drop a rule, busy mark first — unless there is no rule to drop: that writes nothing, emits no
+	 * change, and so would leave the busy state with nothing to resolve it.
+	 */
+	function remove(ruleId: string): void {
+		if (!core.getRules().has(ruleId)) {
+			return;
+		}
+		markBusy();
+		core.removeRule(ruleId);
+	}
+
+	/** Toggle a chip value in an `InSetRule` (an empty set is a permissive no-op, the books convention). */
 	function toggleChip(ruleId: string, field: string, current: readonly string[], value: string): void {
-		const next = toggleSetValue(current, value);
-
-		core.addRule(ruleId, inSet<string>(field, next));
+		commit(ruleId, inSet<string>(field, toggleSetValue(current, value)));
 	}
 
 	/** Selected super-group labels, derived from the committed array-of-genre-sets. */
@@ -136,7 +182,7 @@ export function createBooksPanel(core: FilterEngine<Book>): BooksPanel {
 	});
 	const superGroupChips = createChipToggleGroup({
 		onToggle: (key) => {
-			core.addRule('genre-groups', inSetofSets<BookGenre>('genre', nextSuperGroupSets(selectedGroupKeys, key)));
+			commit('genre-groups', inSetofSets<BookGenre>('genre', nextSuperGroupSets(selectedGroupKeys, key)));
 		},
 	});
 	const formatChips = createChipToggleGroup({
@@ -152,145 +198,159 @@ export function createBooksPanel(core: FilterEngine<Book>): BooksPanel {
 	});
 
 	const yearSlider = createRangeSlider({
-		ariaLabel: 'Publication-year range',
+		ariaLabel: BOOKS_SLIDER_COPY.publicationYear.ariaLabel,
 		format: (value) => value.toFixed(0),
-		label: 'Publication year',
+		label: BOOKS_SLIDER_COPY.publicationYear.label,
 		onChange: (next) => {
-			core.addRule('publication-year', range('publicationYear', { max: next.max, min: next.min }));
+			commit('publication-year', range('publicationYear', { max: next.max, min: next.min }));
 		},
 	});
 	const ratingSlider = createRangeSlider({
-		ariaLabel: 'Rating range',
+		ariaLabel: BOOKS_SLIDER_COPY.rating.ariaLabel,
 		// Unit-suffixed to match React. `parse` has to strip what `format` adds — the inputs are
 		// editable, and the default `parseFloat` would read "4.2★" fine but "★" is trailing junk the
 		// moment a user retypes the field.
 		format: (value) => `${value.toFixed(1)}★`,
-		label: 'Rating',
+		label: BOOKS_SLIDER_COPY.rating.label,
 		onChange: (next) => {
-			core.addRule('rating', range('averageRating', { max: next.max, min: next.min }));
+			commit('rating', range('averageRating', { max: next.max, min: next.min }));
 		},
 		parse: (raw) => Number.parseFloat(raw.replace(/[★\s]/gu, '')),
 		step: 0.1,
 	});
 	const pageSlider = createRangeSlider({
-		ariaLabel: 'Page-count range',
+		ariaLabel: BOOKS_SLIDER_COPY.pageCount.ariaLabel,
 		format: (value) => `${value.toFixed(0)} pp`,
-		label: 'Page count',
+		label: BOOKS_SLIDER_COPY.pageCount.label,
 		onChange: (next) => {
-			core.addRule('page-count', range('pageCount', { max: next.max, min: next.min }));
+			commit('page-count', range('pageCount', { max: next.max, min: next.min }));
 		},
 		parse: (raw) => Number.parseFloat(raw.replace(/[^0-9.]/gu, '')),
 		step: 10,
 	});
 
 	const inPrintToggle = createCheckboxControl({
-		label: 'In print',
+		label: BOOKS_TOGGLE_LABELS.inPrint,
 		onToggle: (checked) => {
-			core.addRule('in-print', bool('isInPrint', checked ? true : undefined));
+			commit('in-print', bool('isInPrint', checked ? true : undefined));
 		},
 	});
 	const audiobookToggle = createCheckboxControl({
-		label: 'Has audiobook',
+		label: BOOKS_TOGGLE_LABELS.audiobook,
 		onToggle: (checked) => {
-			core.addRule('has-audiobook', bool('hasAudiobook', checked ? true : undefined));
+			commit('has-audiobook', bool('hasAudiobook', checked ? true : undefined));
 		},
 	});
 	const ratedToggle = createCheckboxControl({
-		label: 'Rated only',
+		label: BOOKS_TOGGLE_LABELS.rated,
 		onToggle: (checked) => {
 			if (checked) {
-				core.addRule('has-rating', exists('averageRating'));
+				commit('has-rating', ratedCandidate);
 			} else {
-				core.removeRule('has-rating');
+				remove('has-rating');
 			}
 		},
 	});
 	const editorsPicksToggle = createCheckboxControl({
-		label: "Editor's picks",
+		label: BOOKS_TOGGLE_LABELS.editorsPicks,
 		onToggle: (checked) => {
 			if (checked) {
-				core.addRule('editors-picks', bloomMembership('id', editorsPicksFilter));
+				commit('editors-picks', editorsPicksCandidate);
 			} else {
-				core.removeRule('editors-picks');
+				remove('editors-picks');
 			}
 		},
 	});
 
-	const descriptionSearch = createSearchInput({
-		ariaLabel: 'Search descriptions',
-		onChange: () => undefined,
-		onCommit: (value) => {
-			core.addRule('text-search', text('description', { caseSensitive: false, mode: 'substring', query: value.trim() }));
+	// The three searches bind the shared typeahead controller. Description and author write a rule
+	// even for an empty query — the books convention every vertical keeps — while an empty ISBN
+	// pattern removes its rule.
+	const descriptionSearch = createTypeaheadSearch({
+		ariaLabel: BOOKS_SEARCH_COPY.description.ariaLabel,
+		commit: (trimmed) => {
+			commit('text-search', text('description', { caseSensitive: false, mode: 'substring', query: trimmed }));
 		},
-		placeholder: 'dystopia, seafaring, coming of age...',
+		initialQuery: committedTextQuery(core.getRules()),
+		placeholder: BOOKS_SEARCH_COPY.description.placeholder,
 	});
-	const authorSearch = createSearchInput({
-		ariaLabel: 'Search authors',
-		onChange: () => undefined,
-		onCommit: (value) => {
-			core.addRule('author-search', fuzzy('authors', { keys: ['authors'], query: value.trim(), threshold: 0.3 }));
+	const authorSearch = createTypeaheadSearch({
+		ariaLabel: BOOKS_SEARCH_COPY.author.ariaLabel,
+		commit: (trimmed) => {
+			commit('author-search', fuzzy('authors', { keys: ['authors'], query: trimmed, threshold: 0.3 }));
 		},
-		placeholder: 'a surname or full name...',
+		initialQuery: committedAuthorQuery(core.getRules()),
+		placeholder: BOOKS_SEARCH_COPY.author.placeholder,
 	});
 
-	const isbnError = el('p', { className: 'fe-books-regex-error', text: 'Invalid pattern — showing the last valid filter.' });
-	const isbnSearch = createSearchInput({
-		ariaLabel: 'ISBN-13 pattern',
-		onChange: () => undefined,
-		onCommit: (value) => {
-			commitIsbn(value);
-		},
-		placeholder: 'e.g. ^9780',
+	// Inserted only while the pattern is invalid, so the `role="alert"` region announces when it
+	// appears rather than sitting in the tree hidden.
+	const isbnError = el('p', {
+		attrs: { role: 'alert' },
+		className: 'fe-books-regex-error',
+		text: BOOKS_ISBN_INVALID_MESSAGE,
 	});
+	const isbnSearch = createTypeaheadSearch({
+		ariaLabel: BOOKS_SEARCH_COPY.isbn.ariaLabel,
+		commit: (trimmed) => {
+			commitIsbn(trimmed);
+		},
+		initialQuery: committedIsbnQuery(core.getRules()),
+		placeholder: BOOKS_SEARCH_COPY.isbn.placeholder,
+	});
+	const isbnSection = section(BOOKS_SEARCH_COPY.isbn.label, isbnSearch.element);
+
+	/** Show or drop the invalid-pattern alert. */
+	function setIsbnInvalid(isInvalid: boolean): void {
+		isIsbnInvalid = isInvalid;
+		if (isInvalid) {
+			isbnSection.append(isbnError);
+		} else {
+			isbnError.remove();
+		}
+	}
 
 	/**
 	 * Commit an ISBN-13 regex. Empty removes the rule; a valid pattern commits it; an invalid pattern
-	 * flags the field and leaves the last good rule in place — a half-typed `[` never throws.
+	 * flags the field and writes nothing — the last good rule stays in place and nothing is marked
+	 * busy, because nothing was written.
 	 */
-	function commitIsbn(value: string): void {
-		const trimmed = value.trim();
-
+	function commitIsbn(trimmed: string): void {
 		if (trimmed === '') {
-			isIsbnInvalid = false;
-			setHidden(isbnError, true);
-			core.removeRule('isbn-pattern');
+			setIsbnInvalid(false);
+			remove('isbn-pattern');
 
 			return;
 		}
 		const compiled = compilePattern(trimmed);
 
 		if (compiled === null) {
-			isIsbnInvalid = true;
-			setHidden(isbnError, false);
+			setIsbnInvalid(true);
 
 			return;
 		}
-		isIsbnInvalid = false;
-		setHidden(isbnError, true);
-		core.addRule('isbn-pattern', regex('isbn13', { pattern: compiled }));
+		setIsbnInvalid(false);
+		commit('isbn-pattern', regex('isbn13', { pattern: compiled }));
 	}
 
-	setHidden(isbnError, true);
-
+	// The fifth chip-like control is the toggle block; like every vertical's, it has no heading of its
+	// own — each box's label says what it filters.
 	const body = el('div', {
+		attrs: { 'aria-busy': 'false' },
 		children: [
-			section('Genre', genreChips.element),
-			section('Genre super-groups', superGroupChips.element),
-			section('Format', formatChips.element),
-			section('Language', languageChips.element),
+			section(BOOKS_CHIP_SECTION_LABELS.genre, genreChips.element),
+			section(BOOKS_CHIP_SECTION_LABELS.genreGroups, superGroupChips.element),
+			section(BOOKS_CHIP_SECTION_LABELS.format, formatChips.element),
+			section(BOOKS_CHIP_SECTION_LABELS.language, languageChips.element),
 			yearSlider.element,
 			ratingSlider.element,
 			pageSlider.element,
-			section(
-				'Availability',
-				el('div', {
-					children: [inPrintToggle.element, audiobookToggle.element, ratedToggle.element, editorsPicksToggle.element],
-					className: 'fe-books-toggles',
-				}),
-			),
-			section('Description', descriptionSearch.element),
-			section('Authors', authorSearch.element),
-			section('ISBN pattern', el('div', { children: [isbnSearch.element, isbnError]})),
+			el('section', {
+				children: [inPrintToggle.element, audiobookToggle.element, ratedToggle.element, editorsPicksToggle.element],
+				className: 'fe-books-toggles',
+			}),
+			section(BOOKS_SEARCH_COPY.description.label, descriptionSearch.element),
+			section(BOOKS_SEARCH_COPY.author.label, authorSearch.element),
+			isbnSection,
 		],
 		className: 'fe-filter-panel__scroller fe-books-panel__body',
 	});
@@ -307,11 +367,25 @@ export function createBooksPanel(core: FilterEngine<Book>): BooksPanel {
 	});
 
 	return {
+		dispose: () => {
+			descriptionSearch.dispose();
+			authorSearch.dispose();
+			isbnSearch.dispose();
+		},
 		element,
 		query,
+		setBusy: (isBusy) => {
+			// `--busy` dims the body and blocks pointer events while a write settles, as in every
+			// vertical's books panel.
+			body.classList.toggle('fe-books-panel__body--busy', isBusy);
+			body.setAttribute('aria-busy', String(isBusy));
+		},
 		update: (state) => {
 			latest = state;
 			const { bundle, rules } = state;
+			// The books engine is main-thread, so the core's results are already the post-write set the
+			// toggles' predictive disable must test against.
+			const results = core.getResults();
 
 			selectedGroupKeys = deriveSelectedGroupKeys(
 				(rules.get('genre-groups') as InSetofSetsRule<BookGenre> | undefined)?.config.set ?? [],
@@ -342,20 +416,59 @@ export function createBooksPanel(core: FilterEngine<Book>): BooksPanel {
 			updateSlider(ratingSlider, rules, 'rating', ratingBaseline, bundle);
 			updateSlider(pageSlider, rules, 'page-count', pageBaseline, bundle);
 
-			inPrintToggle.update({ checked: (rules.get('in-print') as BooleanRule | undefined)?.config === true });
-			audiobookToggle.update({ checked: (rules.get('has-audiobook') as BooleanRule | undefined)?.config === true });
-			ratedToggle.update({ checked: (rules.get('has-rating') as ExistsRule | undefined) !== undefined });
+			const isInPrint = (rules.get('in-print') as BooleanRule | undefined)?.config === true;
+			const hasAudiobook = (rules.get('has-audiobook') as BooleanRule | undefined)?.config === true;
+			const isRated = (rules.get('has-rating') as ExistsRule | undefined) !== undefined;
+			const isEditorsPick = (rules.get('editors-picks') as BloomMembershipRule | undefined) !== undefined;
+
+			// `isToggleDisabled` never disables a CHECKED box, so a dead end can always be undone.
+			inPrintToggle.update({ checked: isInPrint, disabled: isToggleDisabled(isInPrint, results, inPrintCandidate) });
+			audiobookToggle.update({
+				checked: hasAudiobook,
+				disabled: isToggleDisabled(hasAudiobook, results, audiobookCandidate),
+			});
+			ratedToggle.update({ checked: isRated, disabled: isToggleDisabled(isRated, results, ratedCandidate) });
 			editorsPicksToggle.update({
-				checked: (rules.get('editors-picks') as BloomMembershipRule | undefined) !== undefined,
+				checked: isEditorsPick,
+				disabled: isToggleDisabled(isEditorsPick, results, editorsPicksCandidate),
 			});
 
-			descriptionSearch.update((rules.get('text-search') as TextSearchRule | undefined)?.config.query ?? '');
-			authorSearch.update((rules.get('author-search') as FuzzySearchRule | undefined)?.config.query ?? '');
+			descriptionSearch.adopt(committedTextQuery(rules));
+			authorSearch.adopt(committedAuthorQuery(rules));
+			// While the typed pattern is invalid the field keeps it, beside its alert: adopting the last
+			// valid rule would throw the user's edit away.
 			if (!isIsbnInvalid) {
-				isbnSearch.update(regexInputValue((rules.get('isbn-pattern') as RegexRule | undefined)?.config.pattern.source));
+				isbnSearch.adopt(committedIsbnQuery(rules));
 			}
 		},
 	};
+}
+
+/**
+ * The committed description query (`''` when the rule is absent).
+ *
+ * @internal
+ */
+function committedTextQuery(rules: ReadonlyMap<RuleId, FilterRule>): string {
+	return (rules.get('text-search') as TextSearchRule | undefined)?.config.query ?? '';
+}
+
+/**
+ * The committed author query (`''` when the rule is absent).
+ *
+ * @internal
+ */
+function committedAuthorQuery(rules: ReadonlyMap<RuleId, FilterRule>): string {
+	return (rules.get('author-search') as FuzzySearchRule | undefined)?.config.query ?? '';
+}
+
+/**
+ * The committed ISBN pattern, as the field shows it (`''` when the rule is absent).
+ *
+ * @internal
+ */
+function committedIsbnQuery(rules: ReadonlyMap<RuleId, FilterRule>): string {
+	return regexInputValue((rules.get('isbn-pattern') as RegexRule | undefined)?.config.pattern.source);
 }
 
 /**

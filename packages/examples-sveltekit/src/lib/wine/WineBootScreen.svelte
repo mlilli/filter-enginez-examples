@@ -25,10 +25,8 @@
 	 * caption prints `~` before the total only while the local real corpus streams — the one source
 	 * that cannot know its length up front.
 	 *
-	 * **The warning line** appears only on the `'default-tier'` source: the 10,000-wine tier booted on
-	 * the main thread because `VITE_WINE_TIER=default` is set. That is a development switch, and a
-	 * page quietly running a fifteenth of the corpus without a worker would misrepresent the demo, so
-	 * the screen names the switch.
+	 * Every tier boots with this same screen, the 10,000-wine main-thread tier included: the footer
+	 * names the tier once the engine is up, as in every app.
 	 */
 
 	import type { WineBootProgress } from '@filter-enginez/examples-shared/wine-core';
@@ -38,6 +36,7 @@
 
 	const {
 		idleCaption,
+		loaderLabel = 'Loading wine reviews',
 		progress,
 	}: {
 		/** The caption shown before any progress arrives. `/wine` spins up a worker; `/wine-server` has no
@@ -48,6 +47,8 @@
 		 * `DEFAULT_IDLE_CAPTION`, so the wording has exactly one home — which
 		 * `tests/tooling/bootCaptionSingleSource.test.ts` enforces. */
 		idleCaption?: string;
+		/** The loader's accessible name: what is being waited for. */
+		loaderLabel?: string;
 		progress: WineBootProgress | null;
 	} = $props();
 
@@ -59,7 +60,7 @@
 
 <!-- `<main>`: until the engine boots, the loader and its caption are the page's main content. -->
 <main class="fe-wine-boot">
-	<BrainSynapse width={520} ariaLabel="Loading wine reviews" />
+	<BrainSynapse width={520} ariaLabel={loaderLabel} />
 
 	<p class="fe-boot-caption fe-boot-caption--hero">
 		{#each captionParts as part (part.kind + part.text)}
@@ -70,14 +71,6 @@
 			{/if}
 		{/each}
 	</p>
-
-	{#if progress?.source === 'default-tier'}
-		<p class="fe-wine-boot__warn">
-			Serving the 10,000-wine default tier on the main thread (<code>VITE_WINE_TIER=default</code>),
-			so the worker tier is not in play. Unset <code>VITE_WINE_TIER</code> to generate the 150,000
-			wines in the worker.
-		</p>
-	{/if}
 </main>
 
 <style>
@@ -98,12 +91,4 @@
 	   global one is inert exactly until the global one changes. The LAYOUT stays here: a full-viewport
 	   column behind a 520px loader is this screen's own arrangement, and `ui-styles` deliberately has
 	   no boot-stage component. */
-
-	.fe-wine-boot__warn {
-		/* A configuration warning, not engine activity — phosphor would claim the engine is working. */
-		color: var(--danger);
-		font-size: 0.8125rem;
-		max-width: 34rem;
-		text-align: center;
-	}
 </style>

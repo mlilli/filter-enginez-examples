@@ -2,8 +2,8 @@
  * `wineCommit` — this app's alias for the shared wine commit helpers.
  *
  * @remarks
- * The implementations live in `@filter-enginez/examples-shared/wine-domain`, shared with the Vue,
- * Angular and vanilla wine routes. `WINE_FACET_RULE_IDS` is the important part — a thirteen-entry list
+ * The implementations live in `@filter-enginez/examples-shared/wine-domain`, shared with every other
+ * app's wine route. `WINE_FACET_RULE_IDS` is the important part — a thirteen-entry list
  * that has to stay in step with the panel; a mismatch shows up as a preset switch that leaves one
  * facet quietly ANDed against the expression.
  *

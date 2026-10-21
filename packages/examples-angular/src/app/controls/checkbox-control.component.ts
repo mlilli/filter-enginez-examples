@@ -4,8 +4,9 @@
  * @remarks
  * Its `isDisabled` input carries the same predictive-disable idea as the chips, arrived at by a
  * cheaper route: checkboxes are binary, so instead of consulting the engine's projection bundle the
- * panel just asks `toggleWouldBeEmpty(results, candidateRule)` against a prebuilt candidate. One pass
- * over the current results beats a full re-query for a single yes/no.
+ * panel asks the shared `isToggleDisabled(isChecked, results, candidateRule)` against a prebuilt
+ * candidate. One pass over the current results beats a full re-query for a single yes/no, and a
+ * checked box is never disabled, so a filter can always be turned back off.
  *
  * ### No `styles` block, deliberately
  *
@@ -45,7 +46,7 @@ export class CheckboxControlComponent {
 	/** Whether the filter is on. */
 	public readonly isChecked = input.required<boolean>();
 
-	/** Whether turning it on would empty the result set. */
+	/** Whether turning it on would empty the result set (never while it is checked). */
 	public readonly isDisabled = input<boolean>(false);
 
 	/** Visible label text. */

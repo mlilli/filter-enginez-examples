@@ -272,3 +272,174 @@ describe('RangeSlider track scale', () => {
 		expect(thumbs[1]?.attributes('aria-valuetext')).toBe('$3242');
 	});
 });
+
+/**
+ * The two editable bound fields.
+ *
+ * @param wrapper - The mounted slider.
+ * @returns The lower and upper `<input>`s.
+ */
+function boundFields(wrapper: ReturnType<typeof mountSlider>) {
+	const [lower, upper] = wrapper.findAll('.fe-range-slider__input');
+
+	if (lower === undefined || upper === undefined) {
+		throw new Error('the slider rendered no bound fields');
+	}
+
+	return { lower, upper };
+}
+
+describe('RangeSlider typed bounds', () => {
+	it('resets junk to the committed value and writes nothing', async () => {
+		const wrapper = mountSlider({ valueMax: 80, valueMin: 20 });
+		const { lower } = boundFields(wrapper);
+
+		await lower.setValue('abc');
+		await lower.trigger('blur');
+
+		expect(emittedChanges(wrapper)).toEqual([]);
+		expect((lower.element as HTMLInputElement).value).toBe('20');
+	});
+
+	it('resets a value that snaps to the committed bound and writes nothing', async () => {
+		const wrapper = mountSlider({ valueMax: 80, valueMin: 20 });
+		const { upper } = boundFields(wrapper);
+
+		await upper.setValue('80.3');
+		await upper.trigger('blur');
+
+		expect(emittedChanges(wrapper)).toEqual([]);
+		expect((upper.element as HTMLInputElement).value).toBe('80');
+	});
+
+	it('commits a typed bound snapped to the step and clamped into the available zone', async () => {
+		const wrapper = mountSlider({ available: { max: 90, min: 10 }, step: 5, valueMax: 80, valueMin: 20 });
+		const { lower, upper } = boundFields(wrapper);
+
+		await lower.setValue('31');
+		await lower.trigger('blur');
+		await upper.setValue('500');
+		await upper.trigger('blur');
+
+		expect(emittedChanges(wrapper)).toEqual([{ max: 80, min: 30 }, { max: 90, min: 20 }]);
+	});
+
+	it('re-orders a typed lower bound above the upper one', async () => {
+		const wrapper = mountSlider({ valueMax: 50, valueMin: 20 });
+		const { lower } = boundFields(wrapper);
+
+		await lower.setValue('70');
+		await lower.trigger('blur');
+
+		expect(emittedChanges(wrapper)).toEqual([{ max: 70, min: 50 }]);
+	});
+
+	it('commits once on Enter, not again on the blur Enter causes', async () => {
+		const wrapper = mount(RangeSlider, {
+			attachTo: document.body,
+			props: { baseline: { max: 100, min: 0 }, label: 'Pages', valueMax: 100, valueMin: 0 },
+		});
+		const { lower } = boundFields(wrapper);
+
+		(lower.element as HTMLInputElement).focus();
+		await lower.setValue('40');
+		await lower.trigger('keydown', { key: 'Enter' });
+
+		expect(document.activeElement).not.toBe(lower.element);
+		expect(emittedChanges(wrapper)).toEqual([{ max: 100, min: 40 }]);
+		wrapper.unmount();
+	});
+
+	it('reverts on Escape and commits nothing, through the blur that follows either', async () => {
+		const wrapper = mount(RangeSlider, {
+			attachTo: document.body,
+			props: { baseline: { max: 100, min: 0 }, label: 'Pages', valueMax: 100, valueMin: 0 },
+		});
+		const { upper } = boundFields(wrapper);
+
+		(upper.element as HTMLInputElement).focus();
+		await upper.setValue('40');
+		await upper.trigger('keydown', { key: 'Escape' });
+
+		expect(document.activeElement).not.toBe(upper.element);
+		expect((upper.element as HTMLInputElement).value).toBe('100');
+		expect(emittedChanges(wrapper)).toEqual([]);
+		wrapper.unmount();
+	});
+
+	it('names the fields "<label> lower bound (editable)" and the thumbs after the slider label', () => {
+		const wrapper = mountSlider({ sliderLabel: 'Filter by pages' });
+		const { lower, upper } = boundFields(wrapper);
+		const thumbs = wrapper.findAll('[role="slider"]');
+
+		expect(lower.attributes('aria-label')).toBe('Pages lower bound (editable)');
+		expect(upper.attributes('aria-label')).toBe('Pages upper bound (editable)');
+		expect(thumbs[0]?.attributes('aria-label')).toBe('Filter by pages lower bound');
+		expect(thumbs[1]?.attributes('aria-label')).toBe('Filter by pages upper bound');
+	});
+});
+
+describe('RangeSlider keys', () => {
+	it.each(['PageUp', 'PageDown'])('ignores %s', async (key) => {
+		const wrapper = mountSlider({ valueMax: 80, valueMin: 20 });
+
+		await wrapper.findAll('[role="slider"]')[0]?.trigger('keydown', { key });
+
+		expect(emittedChanges(wrapper)).toEqual([]);
+	});
+
+	it('steps one step with Shift held, never an accelerated jump', async () => {
+		const wrapper = mountSlider({ valueMax: 80, valueMin: 20 });
+
+		await wrapper.findAll('[role="slider"]')[1]?.trigger('keydown', { key: 'ArrowUp', shiftKey: true });
+
+		expect(emittedChanges(wrapper)).toEqual([{ max: 81, min: 20 }]);
+	});
+
+	it('jumps to the available bounds on Home and End', async () => {
+		const wrapper = mountSlider({ available: { max: 90, min: 10 }, valueMax: 80, valueMin: 20 });
+		const thumbs = wrapper.findAll('[role="slider"]');
+
+		await thumbs[0]?.trigger('keydown', { key: 'Home' });
+		await thumbs[1]?.trigger('keydown', { key: 'End' });
+
+		expect(emittedChanges(wrapper)).toEqual([{ max: 80, min: 10 }, { max: 90, min: 20 }]);
+	});
+
+	it('lets the thumbs meet', async () => {
+		const wrapper = mountSlider({ valueMax: 21, valueMin: 20 });
+
+		await wrapper.findAll('[role="slider"]')[0]?.trigger('keydown', { key: 'ArrowRight' });
+
+		expect(emittedChanges(wrapper)).toEqual([{ max: 21, min: 21 }]);
+	});
+});
+
+describe('RangeSlider track press', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('moves the thumb nearer the press on screen, which on a log track is not the nearer value', () => {
+		stubTrackGeometry();
+		// $20 and $600: a press at $150 is closer in VALUE to $20 but closer on the log track to $600.
+		const wrapper = mountSlider({ baseline: PRICE_BASELINE, scale: PRICE_SCALE, valueMax: 600, valueMin: 20 });
+		const pressFraction = PRICE_SCALE.toFraction(150);
+
+		pressTrackAt(wrapper, pressFraction * TRACK_WIDTH);
+
+		const [change] = emittedChanges(wrapper);
+
+		expect(change?.min).toBe(20);
+		expect(change?.max).toBeLessThan(600);
+	});
+
+	it('moves the lower thumb on a tie', () => {
+		stubTrackGeometry();
+		const wrapper = mountSlider({ valueMax: 60, valueMin: 40 });
+
+		pressTrackAt(wrapper, 0.5 * TRACK_WIDTH);
+
+		expect(emittedChanges(wrapper)).toEqual([{ max: 60, min: 50 }]);
+	});
+});

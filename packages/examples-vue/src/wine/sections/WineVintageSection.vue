@@ -39,6 +39,7 @@ import {
 	type NumericBounds,
 	vintageBoundsFromSet,
 	vintageYearsFromRange,
+	WINE_SLIDER_COPY,
 	WINE_SLIDER_TEXT,
 	wineSliderHistogram,
 	wineSliderScale,
@@ -123,10 +124,10 @@ function handleChange(next: { readonly max: number; readonly min: number }): voi
 			:baseline="baseline"
 			:format="WINE_SLIDER_TEXT.vintage.format"
 			:histogram="histogram"
-			label="Vintage"
+			:label="WINE_SLIDER_COPY.vintage.label"
 			:parse="WINE_SLIDER_TEXT.vintage.parse"
 			:scale="scale"
-			slider-label="Filter by vintage year"
+			:slider-label="WINE_SLIDER_COPY.vintage.sliderLabel"
 			:step="step"
 			:value-max="valueMax"
 			:value-min="valueMin"

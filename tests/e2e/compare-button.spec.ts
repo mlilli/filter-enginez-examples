@@ -70,9 +70,8 @@
  *
  * ### Two shapes, and the second is the one that scales
  *
- * The filter-driven test above can only be written per-vertical: applying a filter means knowing
- * that app's panel idiom (React's off-canvas `dialog`, SvelteKit's inline collapse, and three more
- * behind them). So it stays on React, where the DEBOUNCED write path is what it uniquely proves.
+ * The filter-driven test above runs on React, where the DEBOUNCED write path is what it uniquely
+ * proves; applying a filter in each of the other five would add five boots for the same write path.
  *
  * The **inbound-link** test needs none of that. Arriving at `/books?f=…` publishes the state at
  * hydration with no interaction at all, so one loop covers every shell that ships the button —
@@ -97,7 +96,7 @@ import { COMPARE_STATE_VALUE, openComparePage } from './comparePage.js';
 import {
 	ACTIVE_CHIP,
 	clickFirstFacetChip,
-	closeFilterPanel,
+	FACET_CHIP,
 	openFilterPanel,
 	RESULT_COUNT,
 	settledCount,
@@ -218,14 +217,6 @@ async function settledStatePair(page: Page): Promise<readonly [string | null, st
 	return previous;
 }
 
-/**
- * What "open" means in this vertical: react-ui renders the mobile filter panel as an off-canvas
- * `dialog` named for the dataset, so the drawer itself is the readiness signal.
- */
-function filterDrawer(page: Page): Locator {
-	return page.getByRole('dialog', { name: 'Book filters' });
-}
-
 /** Navigate to the books route and wait for the corpus boot to swap in the live books page. */
 async function bootBooksApp(page: Page): Promise<void> {
 	await page.goto('/books');
@@ -261,9 +252,8 @@ test.describe('the header Compare button', () => {
 		await bootBooksApp(page);
 		const full = await settledCount(page);
 
-		await openFilterPanel(page, testInfo, filterDrawer(page));
+		await openFilterPanel(page, testInfo, page.locator(FACET_CHIP).first());
 		await clickFirstFacetChip(page);
-		await closeFilterPanel(page, testInfo, filterDrawer(page));
 		await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 
 		expect(await settledCount(page), 'the facet click did not narrow anything').toBeLessThan(full);

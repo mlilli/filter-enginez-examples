@@ -18,9 +18,9 @@
  *
  * **Selection is derived, never mirrored.** Every control reads its current value back out of
  * `activeRules$`. So "Clear all", removing a pill in the header, and a URL restore all flow into the
- * controls for free — there is no second copy of the truth to keep in sync. The exception is the three
- * text inputs, which need a local mirror for uncommitted keystrokes; those re-seed from engine state
- * via an effect.
+ * controls for free — there is no second copy of the truth to keep in sync. The three search fields
+ * hold their uncommitted keystrokes inside `<fe-search-input>`, which adopts each new committed query
+ * from the value this panel derives.
  *
  * **The bundle is anchored on `lastChange`.** `applyFiltersAndQuery` is a plain call over engine
  * state, not a stream, so it needs something to tell it when to re-run. `toObservable(_lastChangeEvent)`
@@ -41,12 +41,17 @@
  * permissive rule; `exists` and `bloomMembership` are added and removed instead. That asymmetry is
  * deliberate and load-bearing — matching it keeps clear-all behavior identical across verticals.
  *
+ * **The books search convention.** An emptied description or author field writes its rule with an
+ * EMPTY query (an emptied ISBN pattern removes its rule), the same in all six apps. Each field commits
+ * on the shared typeahead contract (`<fe-search-input>`): only a changed query writes and marks busy.
+ * Every heading, label and placeholder is a `BOOKS_*` constant every books panel reads.
+ *
  * @packageDocumentation
  */
 
 import type { Book, BookGenre } from '@filter-enginez/mock-data/books';
 
-import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal, type WritableSignal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { injectEngineBusy, injectFilterEngine } from '@filter-enginez/angular-rxjs';
 import {
@@ -72,6 +77,11 @@ import {
 	type TextSearchRule,
 } from '@filter-enginez/core';
 import {
+	BOOKS_CHIP_SECTION_LABELS,
+	BOOKS_ISBN_INVALID_MESSAGE,
+	BOOKS_SEARCH_COPY,
+	BOOKS_SLIDER_COPY,
+	BOOKS_TOGGLE_LABELS,
 	buildBooksBundleQuery,
 	buildEditorsPicksFilter,
 	chipExclusionMap,
@@ -81,12 +91,12 @@ import {
 	type ExclusionMap,
 	fieldBounds,
 	fieldHistogram,
+	isToggleDisabled,
 	nextSuperGroupSets,
 	type NumericBounds,
 	regexInputValue,
 	safeApplyBundleFromCore,
 	SUPER_GROUP_KEYS,
-	toggleWouldBeEmpty,
 	uniqueSorted,
 } from '@filter-enginez/examples-shared/books-domain';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
@@ -96,6 +106,7 @@ import { CheckboxControlComponent } from '../controls/checkbox-control.component
 import { ChipToggleGroupComponent } from '../controls/chip-toggle-group.component.js';
 import { type RangeSliderChange, RangeSliderComponent } from '../controls/range-slider.component.js';
 import { SearchInputComponent } from '../controls/search-input.component.js';
+import { adoptSelection, EMPTY_SELECTION } from './adopt-selection.js';
 
 /** Fuse.js distance threshold for the typo-tolerant author search. */
 const FUZZY_THRESHOLD = 0.3;
@@ -130,7 +141,7 @@ function replaceHyphens(value: string): string {
 	templateUrl: './books-filter-panel.component.html',
 })
 export class BooksFilterPanelComponent {
-	/** Whether to render the "Filters" heading (hidden in the mobile drawer). */
+	/** Whether to render the "Filters" heading. Every page keeps the default; `false` is for a host with its own title. */
 	public readonly isHeaderVisible = input<boolean>(true);
 
 	private readonly _busy = injectEngineBusy();
@@ -194,7 +205,7 @@ export class BooksFilterPanelComponent {
 	/** Prebuilt so the Bloom filter is constructed once, not per keystroke. */
 	private readonly _editorsPicksFilter = buildEditorsPicksFilter(this._corpus);
 
-	/** Candidate rules for the cheap `toggleWouldBeEmpty` checkbox projection. */
+	/** Candidate rules for the cheap `isToggleDisabled` checkbox projection. */
 	private readonly _audiobookCandidate = bool('hasAudiobook', true);
 	private readonly _editorsPicksCandidate = bloomMembership('id', this._editorsPicksFilter);
 	private readonly _inPrintCandidate = bool('isInPrint', true);
@@ -311,23 +322,24 @@ export class BooksFilterPanelComponent {
 		fieldHistogram(this.bundle(), 'rating', this.ratingSelected().min, this.ratingSelected().max),
 	);
 
-	protected readonly selectedFormats = computed<readonly string[]>(
-		() => (this._activeRules().get('format') as InSetRule<string> | undefined)?.config.set ?? [],
+	// ─── Chip selections: painted on click, adopted when the engine settles (see adopt-selection.ts) ─
+	protected readonly selectedFormats = adoptSelection(
+		() => (this._activeRules().get('format') as InSetRule<string> | undefined)?.config.set ?? EMPTY_SELECTION,
 	);
 
-	protected readonly selectedGenres = computed<readonly string[]>(
-		() => (this._activeRules().get('genre') as InSetRule<string> | undefined)?.config.set ?? [],
+	protected readonly selectedGenres = adoptSelection(
+		() => (this._activeRules().get('genre') as InSetRule<string> | undefined)?.config.set ?? EMPTY_SELECTION,
 	);
 
-	protected readonly selectedGroupKeys = computed<readonly string[]>(() =>
+	protected readonly selectedGroupKeys = adoptSelection(() =>
 		deriveSelectedGroupKeys(
 			(this._activeRules().get('genre-groups') as InSetofSetsRule<BookGenre> | undefined)?.config
 				.set ?? [],
 		),
 	);
 
-	protected readonly selectedLanguages = computed<readonly string[]>(
-		() => (this._activeRules().get('language') as InSetRule<string> | undefined)?.config.set ?? [],
+	protected readonly selectedLanguages = adoptSelection(
+		() => (this._activeRules().get('language') as InSetRule<string> | undefined)?.config.set ?? EMPTY_SELECTION,
 	);
 
 	protected readonly yearSelected = computed<NumericBounds>(() => ({
@@ -357,30 +369,39 @@ export class BooksFilterPanelComponent {
 		() => (this._activeRules().get('has-rating') as ExistsRule | undefined) !== undefined,
 	);
 
-	// ─── Checkbox disable projections — one pass over results, no re-query ────────────────────────
-	protected readonly isAudiobookDisabled = computed<boolean>(
-		() =>
-			!this.isAudiobookChecked() && toggleWouldBeEmpty(this._results(), this._audiobookCandidate),
+	// ─── Checkbox disable projections — one pass over results, no re-query. `isToggleDisabled` never
+	// disables a checked box, so a filter can always be turned back off.
+	protected readonly isAudiobookDisabled = computed<boolean>(() =>
+		isToggleDisabled(this.isAudiobookChecked(), this._results(), this._audiobookCandidate),
 	);
 
-	protected readonly isEditorsPicksDisabled = computed<boolean>(
-		() =>
-			!this.isEditorsPicksChecked()
-			&& toggleWouldBeEmpty(this._results(), this._editorsPicksCandidate),
+	protected readonly isEditorsPicksDisabled = computed<boolean>(() =>
+		isToggleDisabled(this.isEditorsPicksChecked(), this._results(), this._editorsPicksCandidate),
 	);
 
-	protected readonly isInPrintDisabled = computed<boolean>(
-		() => !this.isInPrintChecked() && toggleWouldBeEmpty(this._results(), this._inPrintCandidate),
+	protected readonly isInPrintDisabled = computed<boolean>(() =>
+		isToggleDisabled(this.isInPrintChecked(), this._results(), this._inPrintCandidate),
 	);
 
-	protected readonly isRatedDisabled = computed<boolean>(
-		() => !this.isRatedChecked() && toggleWouldBeEmpty(this._results(), this._ratedCandidate),
+	protected readonly isRatedDisabled = computed<boolean>(() =>
+		isToggleDisabled(this.isRatedChecked(), this._results(), this._ratedCandidate),
 	);
 
-	// ─── Text mirrors: local while typing, re-seeded from the engine on commit ────────────────────
-	protected readonly authorText = signal('');
-	protected readonly descriptionText = signal('');
-	protected readonly isbnText = signal('');
+	// ─── Copy, from the constants every books panel reads ─────────────────────────────────────────
+	/** The chip groups' headings. */
+	protected readonly chipSectionLabels = BOOKS_CHIP_SECTION_LABELS;
+
+	/** What the ISBN field says while its pattern does not compile. */
+	protected readonly isbnInvalidMessage = BOOKS_ISBN_INVALID_MESSAGE;
+
+	/** The three search fields' headings, placeholders and accessible names. */
+	protected readonly searchCopy = BOOKS_SEARCH_COPY;
+
+	/** The three sliders' labels and track names. */
+	protected readonly sliderCopy = BOOKS_SLIDER_COPY;
+
+	/** The four checkboxes' labels. */
+	protected readonly toggleLabels = BOOKS_TOGGLE_LABELS;
 
 	/** Set when the ISBN pattern won't compile. Purely local — the last good rule stays applied. */
 	protected readonly isIsbnInvalid = signal(false);
@@ -406,49 +427,50 @@ export class BooksFilterPanelComponent {
 	protected readonly parsePages = (raw: string): number =>
 		Number.parseFloat(raw.replace(/[^0-9.]/g, ''));
 
-	private readonly _committedAuthor = computed<string>(
+	/** The author rule's committed query; `''` when there is no rule. */
+	protected readonly committedAuthor = computed<string>(
 		() =>
 			(this._activeRules().get('author-search') as { config: { query: string }} | undefined)
 				?.config.query ?? '',
 	);
 
-	private readonly _committedDescription = computed<string>(
+	/** The description rule's committed query; `''` when there is no rule. */
+	protected readonly committedDescription = computed<string>(
 		() => (this._activeRules().get('text-search') as TextSearchRule | undefined)?.config.query ?? '',
 	);
 
-	private readonly _committedIsbn = computed<string>(() =>
+	/** The ISBN rule's committed pattern, as the field shows it; `''` when there is no rule. */
+	protected readonly committedIsbn = computed<string>(() =>
 		regexInputValue((this._activeRules().get('isbn-pattern') as RegexRule | undefined)?.config.pattern.source),
 	);
 
-	public constructor() {
-		// Re-seed each mirror whenever the COMMITTED value changes. This is what makes "Clear all" and
-		// pill removal reach into the text inputs.
-		effect(() => {
-			this.descriptionText.set(this._committedDescription());
-		});
-		effect(() => {
-			this.authorText.set(this._committedAuthor());
-		});
-		effect(() => {
-			this.isbnText.set(this._committedIsbn());
-		});
-	}
+	/**
+	 * Commit a chip toggle for one of the flat `InSetRule` groups, painting the group first.
+	 *
+	 * @param ruleId - The group's rule id.
+	 * @param field - The `Book` field it filters.
+	 * @param selection - The group's selection signal.
+	 * @param value - The toggled value.
+	 */
+	protected toggleChip(ruleId: RuleId, field: string, selection: WritableSignal<readonly string[]>, value: string): void {
+		const next = toggleSetValue(selection(), value);
 
-	/** Commit a chip toggle for one of the flat `InSetRule` groups. */
-	protected toggleChip(ruleId: RuleId, field: string, current: readonly string[], value: string): void {
-		const next = toggleSetValue(current, value);
-
+		selection.set(next);
 		this._busy.markUserAction();
 		this._engine.core.addRule(ruleId, inSet<string>(field, next));
 	}
 
-	/** Commit a super-group toggle. The set-of-sets arithmetic lives in the shared module. */
+	/**
+	 * Commit a super-group toggle. The set-of-sets arithmetic lives in the shared module.
+	 *
+	 * @param key - The toggled super-group.
+	 */
 	protected toggleSuperGroup(key: string): void {
+		const nextSets = nextSuperGroupSets(this.selectedGroupKeys(), key);
+
+		this.selectedGroupKeys.set(deriveSelectedGroupKeys(nextSets));
 		this._busy.markUserAction();
-		this._engine.core.addRule(
-			'genre-groups',
-			inSetofSets<BookGenre>('genre', nextSuperGroupSets(this.selectedGroupKeys(), key)),
-		);
+		this._engine.core.addRule('genre-groups', inSetofSets<BookGenre>('genre', nextSets));
 	}
 
 	/** Commit a slider range. */
@@ -496,53 +518,44 @@ export class BooksFilterPanelComponent {
 		this._engine.core.removeRule('editors-picks');
 	}
 
-	/** Commit the substring description search. */
-	protected commitDescription(value: string): void {
-		const trimmed = value.trim();
-
+	/**
+	 * Commit a changed description query; an empty one writes an empty-query rule (books convention).
+	 *
+	 * @param trimmedQuery - The trimmed query, already known to differ from the committed one.
+	 */
+	protected commitDescription(trimmedQuery: string): void {
 		this._busy.markUserAction();
-
-		if (trimmed === '') {
-			this._engine.core.removeRule('text-search');
-
-			return;
-		}
 		this._engine.core.addRule(
 			'text-search',
-			text('description', { caseSensitive: false, mode: 'substring', query: trimmed }),
-		);
-	}
-
-	/** Commit the typo-tolerant author search. */
-	protected commitAuthor(value: string): void {
-		const trimmed = value.trim();
-
-		this._busy.markUserAction();
-
-		if (trimmed === '') {
-			this._engine.core.removeRule('author-search');
-
-			return;
-		}
-		this._engine.core.addRule(
-			'author-search',
-			fuzzy('authors', { keys: ['authors'], query: trimmed, threshold: FUZZY_THRESHOLD }),
+			text('description', { caseSensitive: false, mode: 'substring', query: trimmedQuery }),
 		);
 	}
 
 	/**
-	 * Commit the ISBN regex.
+	 * Commit a changed typo-tolerant author query; an empty one writes an empty-query rule.
+	 *
+	 * @param trimmedQuery - The trimmed query, already known to differ from the committed one.
+	 */
+	protected commitAuthor(trimmedQuery: string): void {
+		this._busy.markUserAction();
+		this._engine.core.addRule(
+			'author-search',
+			fuzzy('authors', { keys: ['authors'], query: trimmedQuery, threshold: FUZZY_THRESHOLD }),
+		);
+	}
+
+	/**
+	 * Commit a changed ISBN regex.
 	 *
 	 * @remarks
-	 * A pattern that will not compile returns early WITHOUT marking a user action — the previous good rule
-	 * stays applied and the results don't flinch while you're mid-typing a character class.
+	 * An empty pattern removes the rule. A pattern that will not compile returns early WITHOUT marking
+	 * a user action — the previous good rule stays applied and the results don't flinch while you're
+	 * mid-typing a character class.
 	 *
-	 * @param value - The raw pattern text.
+	 * @param trimmedPattern - The trimmed pattern text, already known to differ from the committed one.
 	 */
-	protected commitIsbn(value: string): void {
-		const trimmed = value.trim();
-
-		if (trimmed === '') {
+	protected commitIsbn(trimmedPattern: string): void {
+		if (trimmedPattern === '') {
 			this.isIsbnInvalid.set(false);
 			this._busy.markUserAction();
 			this._engine.core.removeRule('isbn-pattern');
@@ -550,7 +563,7 @@ export class BooksFilterPanelComponent {
 			return;
 		}
 
-		const compiled = compilePattern(trimmed);
+		const compiled = compilePattern(trimmedPattern);
 
 		if (compiled === null) {
 			this.isIsbnInvalid.set(true);

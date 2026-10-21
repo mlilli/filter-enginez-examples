@@ -131,9 +131,9 @@ describe('callbacks', () => {
 });
 
 describe('repaint', () => {
-	it('REBUILDS the row rather than appending to it', () => {
-		// The full-rebuild decision, and its failure mode. An `append` here passes every assertion
-		// above — the first four pills are still correct — and grows a new row on every repaint.
+	it('repaints the row in place rather than appending to it', () => {
+		// An `append` here passes every assertion above — the first four pills are still correct —
+		// and grows a new row on every repaint.
 		const { control, pills } = renderGroup();
 
 		expect(pills()).toHaveLength(4);
@@ -145,15 +145,28 @@ describe('repaint', () => {
 		expect(pills().filter((pill) => pill.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
 	});
 
-	it('rebinds the click handlers, so a stale pill cannot fire the old value', () => {
-		// The other half of a rebuild: the pills are new elements, so their closures must be new
-		// too. Clicking after a repaint is what proves the row on screen is the one that was wired.
+	it('drops a preset that is no longer offered, and the pill in its place fires ITS value', () => {
+		// Keyed by value: a pill is only ever wired to the value it was built for, so clicking after a
+		// repaint that removed presets reaches the right one.
 		const { chosen, control, pills } = renderGroup();
 
 		control.update({ presets: PRESETS.slice(0, 1), selected: null });
 		pills()[1]?.click();
 
 		expect(chosen).toEqual(['7d']);
+	});
+
+	it('keeps focus on the pressed pill through the repaint its click causes', () => {
+		const { control, element, pills } = renderGroup();
+		const sevenDays = pills()[1];
+
+		document.body.replaceChildren(element);
+		sevenDays?.focus();
+		control.update({ presets: PRESETS, selected: '7d' });
+
+		expect(pills()[1]).toBe(sevenDays);
+		expect(document.activeElement).toBe(sevenDays);
+		document.body.replaceChildren();
 	});
 
 	it('renders the "any" escape even with no presets at all', () => {

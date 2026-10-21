@@ -18,7 +18,7 @@
 	 * Which is Svelte's one-construct spelling of React's seed-and-adopt: its initial value is the
 	 * committed rule's set (the seed), it is reassignable when the user clicks (the optimistic paint),
 	 * and it recomputes — discarding the local value — whenever the rule changes from outside (the
-	 * adopt). Same idiom the books and real-estate panels use for their search boxes.
+	 * adopt). Same idiom the books panel uses for its chip groups.
 	 *
 	 * Seeding is what makes a shared `?f` link arrive with the right chips lit: `routes/wine/+page.svelte`
 	 * calls `core.loadConfig(urlConfig)` before this ever mounts, so a selection initialized to empty

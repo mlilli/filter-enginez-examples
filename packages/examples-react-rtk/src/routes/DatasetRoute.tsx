@@ -1,6 +1,6 @@
 /**
  * `<DatasetRoute />` — the per-dataset route element. Loads the dataset's code and boots its engine on
- * first visit, shows the brand loader while that happens, then swaps in the live dataset app inside its
+ * first visit, shows the dataset's boot screen while that happens, then swaps in the live dataset app inside its
  * Redux + engine providers. Every dataset route shares this one load/boot/provide path.
  *
  * @remarks
@@ -28,7 +28,7 @@
  */
 
 import { BrainSynapse } from '@filter-enginez/brand';
-import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
+import { BOOT_FAILURE_COPY, type BootCaptionPart, bootCaptionParts, type BootFailureDataset } from '@filter-enginez/examples-shared/boot-caption';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { BootedDataset, DatasetEntry, DatasetModule } from '../datasets.js';
@@ -74,8 +74,8 @@ export function prefetchDatasetRoute(entry: DatasetEntry): void {
 }
 
 /**
- * Load + boot + provide a dataset: the brand loader with a live caption while the code loads and the
- * engine boots, the failure screen if either rejects, then the dataset's `Component` inside the
+ * Load + boot + provide a dataset: the dataset's boot screen (see {@link DatasetBootScreen}) while the
+ * code loads and the engine boots, the failure screen if either rejects, then the dataset's `Component` inside the
  * Redux + engine providers.
  */
 export const DatasetRoute = ({ entry }: { readonly entry: DatasetEntry }): React.ReactElement => {
@@ -122,7 +122,7 @@ export const DatasetRoute = ({ entry }: { readonly entry: DatasetEntry }): React
 	}, [entry]);
 
 	if (error !== null) {
-		return <BootError error={error} />;
+		return <BootError dataset={entry.bootFailure} error={error} />;
 	}
 
 	if (ready === null) {
@@ -138,13 +138,26 @@ export const DatasetRoute = ({ entry }: { readonly entry: DatasetEntry }): React
 interface DatasetBootScreenProps {
 	/** The dataset's code, once loaded; `null` until then. */
 	readonly datasetModule: DatasetModule | null;
-	/** The dataset being booted — its label and record noun. */
+	/** The dataset being booted — its boot-screen shape, idle caption and record noun. */
 	readonly entry: DatasetEntry;
 }
 
 /**
- * Full-screen boot loader — the brand `<BrainSynapse>` + a live "Loaded N of ~M <noun>" caption
- * driven by the dataset's boot-progress store.
+ * The cold-start screen, in the shape every app shows for the dataset.
+ *
+ * @remarks
+ * Two shapes, chosen by the registry entry rather than by this screen, so each reads the same as the
+ * other five apps' boot of the same dataset:
+ *
+ *   - **The hero loader** (wine, whose entry names a `heroLoaderLabel`): the brand `<BrainSynapse>`
+ *     over a live "Loaded N of ~M bottles" caption, for a worker boot long enough to need narrating.
+ *   - **The inline caption alone** (books, real estate): a main-thread boot over a static file, short
+ *     enough that a 520px loader would only flash. Real estate's caption follows its progress store;
+ *     books' module publishes none, so its caption is the idle sentence throughout.
+ *
+ * The wording — including the zero-total guard — lives in `examples-shared/boot-caption`, shared by
+ * every vertical. What stays here is the only React-specific part: turning a `value` segment into an
+ * accent span. Cyan, never phosphor — a corpus arriving is data, and the engine is not computing yet.
  *
  * @internal
  */
@@ -154,58 +167,97 @@ const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): Re
 		datasetModule?.getProgressSnapshot ?? nullSnapshot,
 		nullSnapshot,
 	);
-	// The wording — including the zero-total guard — lives in `examples-shared/boot-caption`, shared by
-	// every vertical. What stays here is the only React-specific part: turning a `value` segment into
-	// an accent span. Cyan, never phosphor — a corpus arriving is data, and the engine is not computing
-	// yet.
-	const caption = bootCaptionParts(progress, { recordNoun: entry.recordNoun });
+	const caption = renderCaption(bootCaptionParts(progress, { idleCaption: entry.idleCaption, recordNoun: entry.recordNoun }));
 
-	// `<main>`: until the dataset arrives, the loader and its caption are the page's main content, and
-	// a page with no main landmark fails the accessibility audit a visitor's tools run mid-boot.
+	// `<main>` in both shapes: until the dataset arrives, the loader and its caption are the page's main
+	// content, and a page with no main landmark fails the accessibility audit a visitor's tools run
+	// mid-boot.
+	if (entry.heroLoaderLabel === undefined) {
+		return (
+			<main>
+				<p className="fe-boot-caption fe-boot-caption--inline">{caption}</p>
+			</main>
+		);
+	}
+
 	return (
 		<main
 			className="min-h-screen flex flex-col items-center justify-center gap-6 px-6"
 			style={{ background: 'var(--gray-0)' }}
 		>
-			<BrainSynapse width={520} ariaLabel={`Loading ${entry.label}`} className="fe-boot-loader" />
-			<p className="fe-boot-caption fe-boot-caption--hero">
-				{caption.map((part) =>
-					part.kind === 'value' ? (
-						<span key={`${part.kind}:${part.text}`} className="fe-boot-caption__value">{part.text}</span>
-					) : (
-						part.text
-					),
-				)}
-			</p>
+			<BrainSynapse width={520} ariaLabel={entry.heroLoaderLabel} className="fe-boot-loader" />
+			<p className="fe-boot-caption fe-boot-caption--hero">{caption}</p>
 		</main>
 	);
 };
 
 /**
- * Boot-failure screen. Surfaces the error message; recovery is a page refresh (no meaningful retry
- * at this layer).
+ * A caption's segments as React children: each `value` segment in its accent span, text as-is.
+ *
+ * @param parts - Segments from `bootCaptionParts`.
+ * @returns The children to render inside the caption element.
+ */
+function renderCaption(parts: readonly BootCaptionPart[]): React.ReactNode[] {
+	return parts.map((part) =>
+		part.kind === 'value' ? (
+			<span key={`${part.kind}:${part.text}`} className="fe-boot-caption__value">{part.text}</span>
+		) : (
+			part.text
+		),
+	);
+}
+
+/** Props for {@link BootError}. */
+interface BootErrorProps {
+	/** Whose failure copy to show (`BOOT_FAILURE_COPY`). */
+	readonly dataset: BootFailureDataset;
+	/** Why the boot failed. */
+	readonly error: Error;
+}
+
+/**
+ * Boot-failure screen: the dataset's shared failure copy around the error's own message. Recovery is a
+ * page refresh (no meaningful retry at this layer).
+ *
+ * @remarks
+ * The words are `BOOT_FAILURE_COPY[dataset]`, the same in all six apps. They sit in an element with
+ * `role="alert"` INSIDE `<main>`, not on it: a `role` on the `<main>` element would replace its
+ * landmark role, and the failure is still the page's main content.
+ *
+ * Wine's hint names the one failure there with a workaround, a Web Worker that cannot start, and this
+ * app follows it with how its own build selects the main-thread tier instead: the `VITE_WINE_TIER`
+ * setting every Vite app reads.
  *
  * @internal
  */
-const BootError = ({ error }: { readonly error: Error }): React.ReactElement => {
-	// `<main>`, as the boot screen is: the failure is the page's main content.
+const BootError = ({ dataset, error }: BootErrorProps): React.ReactElement => {
+	const copy = BOOT_FAILURE_COPY[dataset];
+
 	return (
 		<main
-			className="min-h-screen flex flex-col items-center justify-center gap-4 p-8 text-center"
+			className="min-h-screen flex flex-col items-center justify-center p-8 text-center"
 			style={{ background: 'var(--gray-0)', color: 'var(--gray-10)' }}
 		>
-			<p
-				className="text-lg font-semibold"
-				style={{ color: 'var(--danger)', fontFamily: 'var(--font-display)' }}
-			>
-				Engine failed to boot
-			</p>
-			<p style={{ color: 'var(--gray-9)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
-				{error.message}
-			</p>
-			<p className="text-xs" style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)' }}>
-				Refresh the page to retry.
-			</p>
+			<div role="alert" className="flex flex-col items-center gap-4 max-w-xl">
+				<p
+					className="text-lg font-semibold"
+					style={{ color: 'var(--danger)', fontFamily: 'var(--font-display)' }}
+				>
+					{copy.title}
+				</p>
+				<p style={{ color: 'var(--gray-9)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+					{error.message}
+				</p>
+				<p className="text-xs" style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)' }}>
+					{copy.hint}
+				</p>
+				{dataset === 'wine' ? (
+					<p className="text-xs" style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)' }}>
+						Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default tier on the main thread
+						instead.
+					</p>
+				) : null}
+			</div>
 		</main>
 	);
 };

@@ -36,6 +36,7 @@ import {
 	provideEngineBusy,
 	provideFilterEngineFactory,
 } from '@filter-enginez/angular-rxjs';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 import { type Observable } from 'rxjs';
 
 import { BOOKS_ROUTE_DATA_KEY, type BooksRouteData } from '../app.routes.js';
@@ -136,7 +137,7 @@ function injectBooksRouteData(): BooksRouteData {
 				</aside>
 
 				<section class="fe-books-app__results">
-					<fe-results-header noun="books" />
+					<fe-results-header [noun]="resultNoun" />
 
 					<!--
 						An inline card in the document flow, not an overlay: it pushes the grid down rather
@@ -155,11 +156,7 @@ function injectBooksRouteData(): BooksRouteData {
 							[results]="results"
 							[card]="bookCard"
 							[itemKey]="bookKey"
-							emptyTitle="No books match the current filters."
-							emptyHint="Try a shorter search term."
-							listLabel="Matching books"
-							scrollRegionLabel="Book results"
-							noun="books"
+							dataset="books"
 						/>
 						<ng-template #bookCard [feResultCardOf]="results" let-book>
 							<fe-book-card [book]="book" />
@@ -177,6 +174,9 @@ function injectBooksRouteData(): BooksRouteData {
 })
 export class BooksPageComponent {
 	private readonly _busy = injectEngineBusy();
+
+	/** The word after the results-header count, the same in every app. */
+	protected readonly resultNoun = RESULT_COPY.books.noun;
 
 	/** Devtools panel visibility. Hidden by default so a first visit gets a clean page. */
 	protected readonly isDevtoolsOpen = signal(false);
@@ -204,7 +204,7 @@ export class BooksPageComponent {
 	 */
 	protected readonly results$: Observable<readonly Book[]> = this._engine.results$;
 
-	/** Sidebar-or-drawer, and the drawer's open state. */
+	/** Sidebar-or-collapse, and the collapse's open state. */
 	protected readonly breakpoint = trackDesktopBreakpoint();
 
 	/**

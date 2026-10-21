@@ -21,6 +21,11 @@
  * makes. The synthetic smart-filter pill names no rule, so the results view's default
  * `core.removeRule` would leave the preset on.
  *
+ * **Busy comes from the shared wine tracker.** The view binds `wineBusyCore` (passed in as
+ * {@link WineViewOptions.busy}) to the results header's computing indicator and the panel body's
+ * `--busy` / `aria-busy`, so both light in the frame a write is marked — by the shared commit helpers,
+ * the pills, the presets or the devtools — and clear on the settle the route resolves it on.
+ *
  * **The panel's state carries the expression, not a boolean.** The strip needs to know WHICH presets
  * are lit and the sections only need to know that some are, so passing the tree serves both from one
  * value — and keeps the route from computing a derived boolean the panel would have to trust.
@@ -32,6 +37,7 @@ import type { FilterEngine, FilterRule, RuleId } from '@filter-enginez/core';
 import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 import {
 	buildWineFilterSummaries,
 	clearAllWineFilters,
@@ -39,6 +45,7 @@ import {
 	type WineBundleQuery,
 } from '@filter-enginez/examples-shared/wine-domain';
 
+import { bindBusyState, type BusyCore } from '../busy/engineBusy.js';
 import { createResultsView } from '../results/resultsView.js';
 import { createAppShell } from '../shell/appShell.js';
 import { trackDesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
@@ -72,6 +79,11 @@ export interface WineView {
 
 /** Construction options for the view. */
 export interface WineViewOptions {
+	/**
+	 * The wine busy tracker — `wineBusyCore` from `@filter-enginez/examples-shared/wine-domain`, the
+	 * instance the shared commit helpers mark.
+	 */
+	readonly busy: BusyCore;
 	/** Footer caption — spells out the wiring, so routes are distinguishable at a glance. */
 	readonly footnote: string;
 	/** Extra nodes for the header's right-hand control cluster. */
@@ -90,7 +102,7 @@ export interface WineViewOptions {
  * @returns The mounted view with its granular updaters.
  */
 export function createWineView(core: FilterEngine<Wine>, options: WineViewOptions): WineView {
-	const { footnote, headerControls = [], resultsInsetElement, subtitle } = options;
+	const { busy, footnote, headerControls = [], resultsInsetElement, subtitle } = options;
 
 	const panel = createWinePanel(core);
 	const breakpoint = trackDesktopBreakpoint();
@@ -106,15 +118,12 @@ export function createWineView(core: FilterEngine<Wine>, options: WineViewOption
 		clearAll: () => {
 			clearAllWineFilters(host);
 		},
-		emptyHint: 'Try widening the price range — or clearing a varietal.',
-		emptyTitle: 'No wines match these filters',
-		listLabel: 'Matching wines',
-		noun: 'bottles',
+		copy: RESULT_COPY.wine,
+		markBusy: busy.markUserAction,
 		removePill: (ruleId) => {
 			removeWineFilterChip(host, ruleId);
 		},
 		renderCard: wineCard,
-		scrollRegionLabel: 'Wine results',
 		summarize: (rules) => buildWineFilterSummaries(rules, isExpressionMode),
 	});
 
@@ -133,9 +142,14 @@ export function createWineView(core: FilterEngine<Wine>, options: WineViewOption
 	const stopBreakpoint = breakpoint.subscribe(() => {
 		shell.syncPanelVisibility();
 	});
+	const stopBusy = bindBusyState(busy, (isBusy) => {
+		results.setBusy(isBusy);
+		panel.setBusy(isBusy);
+	});
 
 	return {
 		dispose: () => {
+			stopBusy();
 			stopBreakpoint();
 			breakpoint.dispose();
 			results.dispose();

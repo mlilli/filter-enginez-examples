@@ -24,7 +24,9 @@
  * hook wraps, not a second implementation. It is attached beside the buttons whose tooltips advertise
  * it, which is the only arrangement that cannot drift apart: a binding wired once in an app-level
  * component leaves any route that renders the buttons elsewhere advertising a shortcut nothing has
- * attached.
+ * attached. The shortcut drives the same two handlers as the buttons, so a keyboard undo marks the
+ * busy tracker before it writes, exactly as a click does, and a shortcut with nothing to step to
+ * writes nothing and marks nothing.
  *
  * Undo and redo stay in the header rather than inside the panel because they are ordinary
  * post-misclick affordances, and they render always (going `disabled`) because a control that
@@ -188,8 +190,16 @@ export class TimeTravelControlsComponent {
 
 	constructor() {
 		// The attach function returns its own teardown, which is exactly what `DestroyRef` wants — so
-		// the binding is two lines and cannot leak a duplicate listener across a re-navigation.
-		inject(DestroyRef).onDestroy(attachUndoRedoKeyboard(this._devtools));
+		// the binding cannot leak a duplicate listener across a re-navigation. It drives the handlers,
+		// not the cursor, so the shortcut marks busy like the buttons.
+		inject(DestroyRef).onDestroy(attachUndoRedoKeyboard({
+			redo: () => {
+				this.handleRedo();
+			},
+			undo: () => {
+				this.handleUndo();
+			},
+		}));
 	}
 
 	/**
@@ -201,7 +211,9 @@ export class TimeTravelControlsComponent {
 	 * frozen for the duration rather than busy.
 	 */
 	protected handleUndo(): void {
-		if (!this.canUndo()) {
+		// The live getter rather than the `computed`: a shortcut can arrive between a cursor move and
+		// the change event that re-reads it.
+		if (!this._devtools.canUndo) {
 			return;
 		}
 		this._busy.markUserAction();
@@ -210,7 +222,7 @@ export class TimeTravelControlsComponent {
 
 	/** Step one action forward. */
 	protected handleRedo(): void {
-		if (!this.canRedo()) {
+		if (!this._devtools.canRedo) {
 			return;
 		}
 		this._busy.markUserAction();

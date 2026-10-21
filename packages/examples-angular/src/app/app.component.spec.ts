@@ -12,9 +12,13 @@
  * They pin the three things the caption must do — appear while the outlet is empty, leave once the
  * page activates, never appear beside a page already on screen — plus the routes that name none.
  *
+ * A route that also names a loader (`/books-server`) gets the hero connecting screen: the brand loader
+ * over the caption in the hero style.
+ *
  * The page-error cases fail a navigation the two ways a page cannot be shown: its resolver rejects, or
  * its code does not load. Either shows the shared page-error screen, one main landmark, in place of
- * the routed page, until the next navigation ends.
+ * the routed page, until the next navigation ends. A resolver whose ENGINE could not boot rejects
+ * with a `DatasetBootError`, which shows that dataset's boot-failure screen instead.
  *
  * @packageDocumentation
  */
@@ -22,11 +26,19 @@
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { BOOT_FAILURE_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppComponent } from './app.component.js';
-import { routes as appRoutes, ROUTE_BOOT_CAPTION_KEY } from './app.routes.js';
+import {
+	routes as appRoutes,
+	BOOKS_SERVER_CONNECTING_CAPTION,
+	BOOKS_SERVER_LOADER_LABEL,
+	ROUTE_BOOT_CAPTION_KEY,
+	ROUTE_BOOT_LOADER_KEY,
+} from './app.routes.js';
+import { DatasetBootError } from './shell/dataset-boot-error.js';
 
 /** A route with nothing to render. */
 @Component({ selector: 'fe-blank', template: '' })
@@ -44,6 +56,12 @@ let releaseBoot: () => void = () => undefined;
 
 /** Rejects the failing route's resolver; replaced for every test. */
 let failBoot: () => void = () => undefined;
+
+/** Rejects the engine-boot route's resolver with a `DatasetBootError`; replaced for every test. */
+let failEngineBoot: () => void = () => undefined;
+
+/** The loader label the connecting test route names. */
+const TEST_LOADER_LABEL = 'Connecting to the test server';
 
 let fixture: ComponentFixture<AppComponent>;
 
@@ -76,6 +94,25 @@ beforeEach(() => {
 							new Promise<boolean>((_resolve, reject) => {
 								failBoot = () => {
 									reject(new Error('boot failed'));
+								};
+							}),
+					},
+				},
+				{
+					component: BootedComponent,
+					data: { [ROUTE_BOOT_CAPTION_KEY]: TEST_CAPTION, [ROUTE_BOOT_LOADER_KEY]: TEST_LOADER_LABEL },
+					path: 'connecting',
+					resolve: { booted: async () => new Promise<boolean>(() => undefined) },
+				},
+				{
+					component: BootedComponent,
+					data: { [ROUTE_BOOT_CAPTION_KEY]: TEST_CAPTION },
+					path: 'engine-fails',
+					resolve: {
+						booted: async () =>
+							new Promise<boolean>((_resolve, reject) => {
+								failEngineBoot = () => {
+									reject(new DatasetBootError('books', new Error('corpus missing')));
 								};
 							}),
 					},
@@ -236,6 +273,23 @@ describe('<fe-root> boot caption', () => {
 
 		expect(captionText()).toBeNull();
 	});
+
+	it('draws the hero connecting screen for a route that names a loader', async () => {
+		void TestBed.inject(Router).navigateByUrl('/connecting');
+		await settle();
+
+		const root = fixture.nativeElement as HTMLElement;
+
+		expect(root.querySelectorAll('main')).toHaveLength(1);
+		expect(root.querySelector('main p.fe-boot-caption')?.classList.contains('fe-boot-caption--hero')).toBe(true);
+		expect(captionText()).toBe(TEST_CAPTION);
+
+		// The loader is deferred out of the startup chunks, so it follows the caption.
+		await vi.waitFor(() => {
+			fixture.detectChanges();
+			expect(root.querySelector(`main [aria-label="${TEST_LOADER_LABEL}"]`)).not.toBeNull();
+		});
+	});
 });
 
 describe('<fe-root> page-error screen', () => {
@@ -290,6 +344,25 @@ describe('<fe-root> page-error screen', () => {
 		expect(root.querySelector('router-outlet')?.parentElement?.style.display).toBe('contents');
 	});
 
+	it('shows the dataset boot-failure screen, not the page error, when the engine could not boot', async () => {
+		const navigation = TestBed.inject(Router).navigateByUrl('/engine-fails');
+
+		await settle();
+		failEngineBoot();
+		await expect(navigation).rejects.toThrow('corpus missing');
+		await settle();
+
+		const root = fixture.nativeElement as HTMLElement;
+		const alert = root.querySelector('main [role="alert"]');
+
+		expect(root.querySelectorAll('main')).toHaveLength(1);
+		expect(errorScreen()).toBeNull();
+		expect(alert?.querySelector('.fe-boot-error__title')?.textContent).toBe(BOOT_FAILURE_COPY.books.title);
+		expect(alert?.textContent).toContain('corpus missing');
+		expect(alert?.textContent).toContain(BOOT_FAILURE_COPY.books.hint);
+		expect(captionText()).toBeNull();
+	});
+
 	it('shows nothing of it while navigations succeed', async () => {
 		await TestBed.inject(Router).navigateByUrl('/page');
 		await settle();
@@ -316,5 +389,14 @@ describe('the app routes’ boot captions', () => {
 
 	it('names none for the landing hub, which renders at once', () => {
 		expect(captionFor('')).toBeUndefined();
+	});
+
+	it('names the connecting caption and the hero loader for /books-server', () => {
+		const data = appRoutes.find((route) => route.path === 'books-server')?.data;
+
+		expect(captionFor('books-server')).toBe(BOOKS_SERVER_CONNECTING_CAPTION);
+		expect(BOOKS_SERVER_CONNECTING_CAPTION).toBe('Filtering on the Node server · fetching corpus + initial state');
+		expect(data?.[ROUTE_BOOT_LOADER_KEY]).toBe(BOOKS_SERVER_LOADER_LABEL);
+		expect(appRoutes.find((route) => route.path === 'books')?.data?.[ROUTE_BOOT_LOADER_KEY]).toBeUndefined();
 	});
 });

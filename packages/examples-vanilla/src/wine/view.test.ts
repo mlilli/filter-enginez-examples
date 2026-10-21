@@ -25,18 +25,19 @@
  * ### The clear-to-remove contract
  *
  * Deselecting the last chip must REMOVE the rule, not write an empty one. An `InSetRule` with an
- * empty set still participates in the AND and matches nothing, so the wrong version filters to zero
- * on deselect-everything and looks, on screen, exactly like a filter that works — until the count
- * hits zero with no chip to explain it.
+ * empty set matches every item, so the wrong version looks, on screen, exactly like a cleared facet
+ * while a rule stays registered behind it: in the `?f=` link, and in the action log as a change rather
+ * than the removal every other app logs.
  *
  * @packageDocumentation
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { createFilterEngine, type FilterEngine, type InSetRule } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngine, type FuzzySearchRule, type InSetRule } from '@filter-enginez/core';
 import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
-import { describe, expect, it } from 'vitest';
+import { wineBusyCore } from '@filter-enginez/examples-shared/wine-domain';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { makeWine } from '../test-support/wineFixture.js';
 import { createWineView, type WineView } from './view.js';
@@ -76,7 +77,7 @@ interface MountedWineView {
  */
 function mountView(data: readonly Wine[] = DATA): MountedWineView {
 	const core = createFilterEngine<Wine>({ sourceData: data });
-	const view = createWineView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
+	const view = createWineView(core, { busy: wineBusyCore, footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -88,13 +89,23 @@ function mountView(data: readonly Wine[] = DATA): MountedWineView {
 		view.setCount(core.getResultCount(), data.length);
 		view.setResults(core.getResults());
 		view.setRules(core.getRules(), null, expression !== null);
-		view.setPanelState({ bundle: null, expression, isComputing: false, rules: core.getRules() });
+		view.setPanelState({ bundle: null, expression, rules: core.getRules() });
 	};
 
 	repaint();
 
 	return { core, repaint, root, view };
 }
+
+// `wineBusyCore` is the shared module-level instance, so every case starts and ends settled.
+beforeEach(() => {
+	wineBusyCore.markResolvedAtLeast(wineBusyCore.captureCurrentVersion());
+});
+
+afterEach(() => {
+	wineBusyCore.markResolvedAtLeast(wineBusyCore.captureCurrentVersion());
+	document.body.replaceChildren();
+});
 
 /** The chip button whose visible text starts with `label` (throws if absent, so callers avoid `!`). */
 function chipByText(root: HTMLElement, label: string): HTMLElement {
@@ -174,15 +185,15 @@ describe('vanilla wine panel', () => {
 		const stale = new Map(core.getRules());
 
 		chipByText(root, 'white').click();
-		view.setPanelState({ bundle: null, expression: null, isComputing: false, rules: stale });
+		view.setPanelState({ bundle: null, expression: null, rules: stale });
 
 		expect(stale.has('color')).toBe(false);
 		expect(chipByText(root, 'white').getAttribute('aria-pressed')).toBe('true');
 	});
 
 	it('REMOVES the rule when the last chip is deselected', () => {
-		// Not an empty `InSetRule` — that matches nothing, so the corpus would not come back. This is
-		// the only way that bug shows up in a test.
+		// Not an empty `InSetRule`: the corpus would come back either way, so asserting that the rule
+		// is gone is the only way that difference shows up in a test.
 		const { core, repaint, root } = mountView();
 
 		chipByText(root, 'white').click();
@@ -275,19 +286,26 @@ describe('vanilla wine panel', () => {
 	it('does not dim the body for a recompute while a preset is driving the results', () => {
 		// `--busy` and `--expression` mean different things — one is transient, one is chosen — and
 		// stacking them reads as a recompute that never ends.
-		const { core, root, view } = mountView();
-
-		view.setPanelState({ bundle: null, expression: null, isComputing: true, rules: core.getRules() });
-
+		const { core, repaint, root } = mountView();
 		const body = root.querySelector('.fe-filter-panel__body');
 
+		wineBusyCore.markUserAction();
+
 		expect(body?.classList.contains('fe-filter-panel__body--busy')).toBe(true);
+		expect(body?.getAttribute('aria-busy')).toBe('true');
 		// `inert` is expression-mode ONLY: it blurs whatever is focused inside, which on a transient
 		// state would drop a keyboard user at the top of the document mid-filter.
 		expect(body?.hasAttribute('inert')).toBe(false);
+
+		chipByText(root, 'Bold reds').click();
+		repaint();
+		expect(core.getExpression()).not.toBeNull();
+		expect(body?.classList.contains('fe-filter-panel__body--busy')).toBe(false);
+		expect(body?.getAttribute('aria-busy')).toBe('false');
+		expect(body?.classList.contains('fe-filter-panel__body--expression')).toBe(true);
 	});
 
-	it('repaints the drawer when the breakpoint notifies', () => {
+	it('repaints the collapse when the breakpoint notifies', () => {
 		// The view subscribes the shell's `syncPanelVisibility` to the breakpoint, and nothing
 		// exercised that wiring: every assertion above reads the panel at its boot state. jsdom has no
 		// `matchMedia`, so the tracker boots desktop — the toggle is the one channel that still
@@ -300,10 +318,150 @@ describe('vanilla wine panel', () => {
 
 		toggle?.click();
 
-		// Desktop plus the drawer flag flipped off still shows the panel — `shouldShowPanel` is a
+		// Desktop plus the collapse flag flipped off still shows the panel — `shouldShowPanel` is a
 		// disjunction — so what this proves is that the subscriber RAN and repainted from live state.
 		expect(toggle?.getAttribute('aria-expanded')).toBe('false');
 		expect(collapse?.hasAttribute('hidden')).toBe(false);
+	});
+});
+
+describe('vanilla wine view — busy marking', () => {
+	/** The header's computing indicator. */
+	function indicatorOf(root: HTMLElement): string | null | undefined {
+		return root.querySelector('.fe-computing-indicator')?.getAttribute('aria-label');
+	}
+
+	it('lights the header indicator and the panel body in the click\'s own frame, and clears both on the settle', () => {
+		const { root } = mountView();
+		const body = root.querySelector('.fe-filter-panel__body');
+
+		expect(indicatorOf(root)).toBe('Engine idle');
+		expect(body?.getAttribute('aria-busy')).toBe('false');
+
+		chipByText(root, 'white').click();
+
+		expect(indicatorOf(root)).toBe('Engine computing');
+		expect(body?.classList.contains('fe-filter-panel__body--busy')).toBe(true);
+		expect(body?.getAttribute('aria-busy')).toBe('true');
+
+		wineBusyCore.markResolvedAtLeast(wineBusyCore.captureCurrentVersion());
+
+		expect(indicatorOf(root)).toBe('Engine idle');
+		expect(body?.classList.contains('fe-filter-panel__body--busy')).toBe(false);
+	});
+
+	it('marks busy for "Clear all" and a pill\'s x', () => {
+		const { repaint, root } = mountView();
+
+		chipByText(root, 'white').click();
+		repaint();
+		wineBusyCore.markResolvedAtLeast(wineBusyCore.captureCurrentVersion());
+
+		root.querySelector<HTMLElement>('.fe-filter-chip__remove')?.click();
+		expect(wineBusyCore.getIsEngineBusy()).toBe(true);
+
+		wineBusyCore.markResolvedAtLeast(wineBusyCore.captureCurrentVersion());
+		chipByText(root, 'white').click();
+		repaint();
+		wineBusyCore.markResolvedAtLeast(wineBusyCore.captureCurrentVersion());
+
+		root.querySelector<HTMLElement>('.fe-active-filters__clear')?.click();
+		expect(wineBusyCore.getIsEngineBusy()).toBe(true);
+	});
+
+	it('stops repainting busy state after dispose', () => {
+		const { root, view } = mountView();
+
+		view.dispose();
+		wineBusyCore.markUserAction();
+
+		expect(indicatorOf(root)).toBe('Engine idle');
+	});
+});
+
+describe('vanilla wine panel — a click paints at once, and focus survives', () => {
+	it('lights the clicked chip before any repaint, and keeps focus on it through the engine\'s answer', () => {
+		const { repaint, root } = mountView();
+		const white = chipByText(root, 'white');
+
+		white.focus();
+		white.click();
+
+		// No `repaint()` yet: the worker has not answered.
+		expect(white.getAttribute('aria-pressed')).toBe('true');
+		expect(document.activeElement).toBe(white);
+
+		repaint();
+
+		expect(chipByText(root, 'white')).toBe(white);
+		expect(document.activeElement).toBe(white);
+	});
+
+	it('ticks an origin row before any repaint', () => {
+		const { root } = mountView();
+		const italy = root.querySelector<HTMLElement>('[role="group"][aria-label="Origin"] [role="checkbox"]');
+
+		italy?.click();
+
+		expect(italy?.getAttribute('aria-checked')).toBe('true');
+	});
+});
+
+describe('vanilla wine panel — the two searches', () => {
+	/**
+	 * The search field with the given accessible name.
+	 *
+	 * @param root - The mounted view.
+	 * @param label - Its `aria-label`.
+	 * @returns The field.
+	 */
+	function field(root: HTMLElement, label: string): HTMLInputElement {
+		const node = root.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
+
+		if (node === null) {
+			throw new Error(`No search field labelled ${label}`);
+		}
+
+		return node;
+	}
+
+	it('commits the winery search once on Enter with the shared rule, and REMOVES it when emptied', () => {
+		const { core, root } = mountView();
+		const winery = field(root, 'Search wineries with typo tolerance');
+
+		winery.focus();
+		winery.value = 'caruso';
+		winery.dispatchEvent(new Event('input', { bubbles: true }));
+		winery.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+
+		const rule = core.getRules().get('winery') as FuzzySearchRule | undefined;
+
+		expect(rule?.field).toBe('winery');
+		expect(rule?.config).toMatchObject({ query: 'caruso', threshold: 0.35 });
+
+		winery.focus();
+		winery.value = '';
+		winery.dispatchEvent(new Event('input', { bubbles: true }));
+		winery.blur();
+
+		expect(core.getRules().has('winery')).toBe(false);
+	});
+
+	it('marks nothing busy for the blur of an untouched notes field, and adopts Clear all', () => {
+		const { core, repaint, root } = mountView();
+		const notes = field(root, 'Search tasting notes');
+
+		notes.focus();
+		notes.blur();
+		expect(wineBusyCore.getIsEngineBusy()).toBe(false);
+
+		notes.value = 'cherry';
+		notes.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+		expect(core.getRules().has('notes')).toBe(true);
+
+		core.clearRules();
+		repaint();
+		expect(notes.value).toBe('');
 	});
 });
 

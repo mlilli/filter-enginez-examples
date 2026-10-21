@@ -177,13 +177,12 @@ export function wineSliderScale(field: SliderFieldId, baseline: NumericBounds): 
 }
 
 /**
- * How many varietal chips a chip-group panel shows.
+ * How many varietal chips the panel shows.
  *
  * @remarks
- * The SvelteKit, Vue, Angular and vanilla panels render varietals as wrapping chips, and hundreds of
- * chips would push every section below off the panel. Sixty of the most-reviewed varieties cover
- * about nine wines in ten. The React panels render a scrolling checkbox list instead and show every
- * varietal, most-reviewed first, in the same order.
+ * Every app's panel renders varietals as a scrolling chip group, and hundreds of chips would push every
+ * section below off the panel. Sixty of the most-reviewed varieties cover about nine wines in ten; a
+ * selected varietal outside the sixty is kept on screen beside them (see {@link visibleVarietalChips}).
  */
 export const VARIETAL_CHIP_LIMIT = 60;
 

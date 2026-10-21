@@ -12,7 +12,8 @@
  * ### Two halves per dataset: the card and the code
  *
  * The hub renders from this registry, so everything in it is in the startup bundle. An entry therefore
- * holds only what the hub card and the boot screen print — id, label, record noun, tagline — and a
+ * holds only what the hub card and the boot screen print — id, label, record noun, tagline, the boot
+ * screen's shape and words — and a
  * `load` that `import()`s the rest: the dataset's {@link DatasetModule}, whose module graph carries the
  * engine, the dataset's `examples-shared` slice and its page. Each dataset's code is its own chunk,
  * fetched the first time its route opens (or its hub card is hovered or focused), so a visitor pays
@@ -26,6 +27,12 @@
  */
 
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
+
+import {
+	BOOKS_BOOT_IDLE_CAPTION,
+	type BootFailureDataset,
+	REAL_ESTATE_BOOT_IDLE_CAPTION,
+} from '@filter-enginez/examples-shared/boot-caption';
 
 /** Boot progress the loader reads — records loaded so far out of the tier total. */
 export interface DatasetBootProgress {
@@ -65,8 +72,24 @@ export interface DatasetModule {
  * One dataset the app serves: its route id, landing-card copy, and the loader for its code.
  */
 export interface DatasetEntry {
+	/**
+	 * Whose words the boot-failure screen shows: `BOOT_FAILURE_COPY[bootFailure]`, the copy every app
+	 * shows for that dataset. `/books-config` fails as books does.
+	 */
+	readonly bootFailure: BootFailureDataset;
+	/**
+	 * The accessible name of the full-screen hero loader, for a dataset whose cold start shows one —
+	 * wine's worker spin-up, "Loading wine reviews" in every app. Absent, the boot screen is the inline
+	 * caption alone, which is how every app boots books and real estate.
+	 */
+	readonly heroLoaderLabel?: string;
 	/** URL segment + registry key, e.g. `wine`. */
 	readonly id: string;
+	/**
+	 * The caption's pre-stream sentence, e.g. books' `Booting the books engine…`. Absent, the shared
+	 * default (`DEFAULT_IDLE_CAPTION`), which is wine's.
+	 */
+	readonly idleCaption?: string;
 	/** Human label, e.g. `Wine reviews`. */
 	readonly label: string;
 	/**
@@ -90,6 +113,8 @@ export interface DatasetEntry {
 
 /** The wine dataset. Boots the 150,000-wine tier in a worker (see `examples-shared/wine`). */
 const wine: DatasetEntry = {
+	bootFailure: 'wine',
+	heroLoaderLabel: 'Loading wine reviews',
 	id: 'wine',
 	label: 'Wine reviews',
 	load: async () => (await import('./wine/wineDataset.js')).wineDataset,
@@ -101,7 +126,9 @@ const wine: DatasetEntry = {
 
 /** Books. Boots the bundled default tier on the main thread (see `examples-shared/books`). */
 const books: DatasetEntry = {
+	bootFailure: 'books',
 	id: 'books',
+	idleCaption: BOOKS_BOOT_IDLE_CAPTION,
 	label: 'Books',
 	load: async () => (await import('./books/booksDataset.js')).booksDataset,
 	recordNoun: 'books',
@@ -115,7 +142,9 @@ const books: DatasetEntry = {
  * `examples-shared/books` — `bootBooksConfigEngine` + `ConfigDrivenPanel`). The headline
  * "the filter UI is a function of the data" demonstration. */
 const booksConfig: DatasetEntry = {
+	bootFailure: 'books',
 	id: 'books-config',
+	idleCaption: BOOKS_BOOT_IDLE_CAPTION,
 	label: 'Books · config-driven',
 	load: async () => (await import('./books/booksConfigDataset.js')).booksConfigDataset,
 	recordNoun: 'books',
@@ -127,7 +156,9 @@ const booksConfig: DatasetEntry = {
 /** Real estate. The geo-heavy dataset (GeoProximity / R-tree, DateRange, metro→neighborhood
  * tree), booting the bundled default tier on the main thread (see `examples-shared/real-estate`). */
 const realEstate: DatasetEntry = {
+	bootFailure: 'real-estate',
 	id: 'real-estate',
+	idleCaption: REAL_ESTATE_BOOT_IDLE_CAPTION,
 	label: 'Real estate',
 	load: async () => (await import('./real-estate/realEstateDataset.js')).realEstateDataset,
 	recordNoun: 'listings',

@@ -7,10 +7,10 @@
  * `svelte-real-estate.spec.ts`, sharing their boot / settled-count / geo-chip machinery through
  * `filterFlow.ts`. Two structural notes, both inherited from `angular-books.spec.ts`:
  *
- *   - **No off-canvas drawer.** The mobile filter panel is an inline `.fe-filter-collapse` toggled by a
- *     "Filters" button, not react-ui's named `dialog`, so `openFilterPanel` merely expands it and there
- *     is nothing to close. The collapse also stays MOUNTED when closed — it is driven by the `hidden`
- *     attribute rather than an `@if`, because destroying it would destroy the Leaflet map inside it.
+ *   - **The mobile collapse.** The filter panel is an inline `.fe-filter-collapse` toggled by a
+ *     "Filters" button, so `openFilterPanel` merely expands it and there is nothing to close. The
+ *     collapse stays MOUNTED when closed — it is driven by the `hidden` attribute rather than an `@if`,
+ *     because destroying it would destroy the Leaflet map inside it.
  *   - **Absolute URLs.** Playwright's `baseURL` is the React app; these navigate to the Angular origin
  *     via `angularUrl(...)`.
  *
@@ -54,6 +54,7 @@ import {
 	TOGGLEABLE_CHIP,
 	TREE_ROW,
 } from './filterFlow.js';
+import { describeRealEstateParity } from './realEstateParity.js';
 import { subtitle } from './subtitles.js';
 
 /**
@@ -63,7 +64,7 @@ import { subtitle } from './subtitles.js';
  * @remarks
  * Used only by the deep-link test, which is about the panel EXISTING. Every readiness wait uses the
  * chips the panel reveals instead, per `filterFlow.ts`'s first trap: a boot signal inside the panel
- * cannot tell "the route did not boot" apart from "the drawer is closed".
+ * cannot tell "the route did not boot" apart from "the collapse is shut".
  */
 const FILTER_PANEL = '.fe-filter-panel';
 
@@ -290,7 +291,7 @@ test.describe('Angular real-estate app — filter flow', () => {
 		await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 		expect(await settledCount(page, SETTLED)).toBe(narrowed);
 
-		// Reopen the drawer — a reload closes it at phone width — because the panel's controls must
+		// Reopen the collapse — a reload shuts it at phone width — because the panel's controls must
 		// reflect the restored state too. Every control here derives from the engine's rule map, so an
 		// unselected chip over a restored rule would mean hydration wrote the URL config somewhere the
 		// controls never read.
@@ -328,3 +329,5 @@ test.describe('Angular real-estate app — filter flow', () => {
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
 });
+
+describeRealEstateParity({ id: 'angular', label: 'Angular' });

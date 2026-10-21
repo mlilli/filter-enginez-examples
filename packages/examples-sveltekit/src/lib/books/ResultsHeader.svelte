@@ -19,6 +19,7 @@
 	import type { Book } from '@filter-enginez/mock-data/books';
 
 	import { buildRuleSummaries } from '@filter-enginez/examples-shared/books-domain';
+	import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
 	import { createEngineStores, getFilterEngine } from '@filter-enginez/svelte-signals';
 	import SharedResultsHeader from '$lib/controls/ResultsHeader.svelte';
 
@@ -32,10 +33,10 @@
 
 <SharedResultsHeader
 	activeFilters={summaries}
+	dataset="books"
 	isBusy={isEngineBusy}
 	onClearAll={() => {
-		markUserAction();
-		engine.core.clearRules();
+		clearAllFilters(engine, markUserAction);
 	}}
 	onRemove={(ruleId) => {
 		markUserAction();

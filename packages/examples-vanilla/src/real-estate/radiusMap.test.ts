@@ -291,7 +291,7 @@ describe('teardown', () => {
 	});
 
 	it('re-measures only once a controller exists', async () => {
-		// The drawer opening on a route where the facet was never enabled calls this with nothing
+		// The collapse opening on a route where the facet was never enabled calls this with nothing
 		// behind it. Paired with the live arm so the no-op half cannot pass vacuously.
 		const { log, map } = await loadRadiusMap();
 

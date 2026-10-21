@@ -41,6 +41,7 @@ import { bootSignalsEngine } from '@filter-enginez/reactive-signals/worker';
 import { type FilterEngineAsync, type WorkerLike, wrapInWorker } from '@filter-enginez/worker-bridge';
 
 import { loadCorpusPaged } from '../data/loadCorpusPaged.js';
+import { reviveSignalsEngineOverWorker } from '../data/reviveSignalsEngine.js';
 import { buildWineEngine } from './buildWineEngine.js';
 import { describeWineCorpusTier, type WineCorpusSource } from './wineCorpusTier.js';
 import { resolveWineWorkerTier } from './wineMemoryTier.js';
@@ -326,7 +327,8 @@ function readProgressMeta(
 
 /**
  * Boot the wine engine, in a Web Worker above `WORKER_THRESHOLD` records and on the main thread at
- * or below it. Idempotent — repeated calls cache and return the same bundle.
+ * or below it. Idempotent — repeated calls cache and return the same bundle, with a fresh facade
+ * over the same engine when a route that left disposed the cached one.
  *
  * @remarks
  * **The cache is keyed on nothing: first call wins.** A second call with different options returns
@@ -343,7 +345,19 @@ export async function bootWineEngine(options: WineBootOptions = {}): Promise<Win
 		cachedBoot = bootInternal(options);
 	}
 
-	return cachedBoot;
+	const bundle = await cachedBoot;
+	const engine = await reviveSignalsEngineOverWorker(bundle.engine);
+
+	if (engine === bundle.engine) {
+		return bundle;
+	}
+	// A route that left disposed the cached facade; hand the next visit a live one over the same engine
+	// (the worker's, when it runs in one).
+	const revived = { ...bundle, engine };
+
+	cachedBoot = Promise.resolve(revived);
+
+	return revived;
 }
 
 async function bootInternal(options: WineBootOptions): Promise<WineEngineBundle> {

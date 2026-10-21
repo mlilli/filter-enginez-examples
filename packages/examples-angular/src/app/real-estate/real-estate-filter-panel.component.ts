@@ -20,25 +20,29 @@
  * because they are derived ONCE in the route resolver from the booted corpus. See
  * `real-estate-facets.ts` for why the derivation belongs at the route.
  *
- * ### Four patterns worth naming, and one deviation from the Vue original
+ * ### Five patterns worth naming
  *
  * **Selection is DERIVED, never mirrored.** Every control reads its current value back out of
  * `activeRules$`. So "Clear all", removing a chip in the results header, and a `?f` URL restore all
- * flow into the controls for free — there is no second copy of the truth to keep in sync. This is the
- * one real structural departure from Vue and Svelte, which hold fourteen pieces of local state and
- * maintain a `registerReset` handshake so the results header can reach them. Angular needs neither:
- * no reset table, no registration, and no way for the two lists to drift. The exception is the
- * description input, which needs a local mirror for uncommitted keystrokes; it re-seeds from engine
- * state via an effect, exactly as the books panel's three text fields do.
+ * flow into the controls for free — there is no second copy of the truth to keep in sync. Every app's
+ * real-estate panel has this shape: no reset table, no registration handshake, and no way for two
+ * lists to drift. The description field holds
+ * its uncommitted keystrokes inside `<fe-search-input>`, which adopts each new committed query, exactly
+ * as the books panel's three search fields do. It commits on the shared typeahead contract (debounced
+ * while typing, at once on blur, Enter or clear, never an unchanged query), and an emptied field
+ * REMOVES the rule, like every other facet here.
+ *
+ * **Copy comes from `real-estate-domain`.** The location tree's group name and height, the school
+ * district list's height, the listed-date heading and the description field's copy are the
+ * `REAL_ESTATE_*` constants every real-estate panel reads.
  *
  * **Clearing a facet REMOVES its rule.** It never writes an empty one. An `InSetRule` with an empty
- * set still participates in the AND and matches nothing, so "deselect everything" would filter the
- * results to zero rather than clear the facet — the single most likely thing to get wrong here, and
- * invisible in code review because the call looks perfectly reasonable. Every selection facet routes
- * through {@link RealEstateFilterPanelComponent._commitSelection}, which is the one place that
- * decision is made. The trap has a second form specific to this dataset: `ContainsAllRule` with an
- * empty `required` array IS neutral (everything contains all of nothing), so must-have features could
- * get away with writing one. It clears instead, so all fourteen behave identically.
+ * set matches every item, so the results would look the same, but the rule would stay registered with
+ * nothing on screen showing it: in the `?f=` link, and in the devtools log as a change rather than a
+ * removal. Every selection facet routes through
+ * {@link RealEstateFilterPanelComponent._commitSelection}, which is the one place that decision is
+ * made. `ContainsAllRule` with an empty `required` array is neutral too (everything contains all of
+ * nothing), and must-have features clear the same way, so all fourteen behave identically.
  *
  * **`markUserAction()` before the engine write.** That ordering is what lets the "computing"
  * indicator light on the same frame the user clicks. Real estate boots on the main thread so the gap
@@ -109,6 +113,10 @@ import {
 	LOCATION_RULE_ID,
 	RANGE_FACETS,
 	type RangeFacetSpec,
+	REAL_ESTATE_DESCRIPTION_SEARCH,
+	REAL_ESTATE_LISTED_DATE_LABEL,
+	REAL_ESTATE_LOCATION_TREE,
+	REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
 	type RealEstateSliderFieldId,
 } from '@filter-enginez/examples-shared/real-estate-domain';
 import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
@@ -125,11 +133,6 @@ import { GeoRadiusSectionComponent } from './geo-radius-section.component.js';
 import { deriveRangeFacetStates, type RangeFacetState } from './range-facets.js';
 import { injectRealEstateFacets } from './real-estate-facets.js';
 
-/** Height cap on the location tree's scroll viewport. Fourteen sections; none may own the panel. */
-const LOCATION_TREE_MAX_HEIGHT = '14rem';
-
-/** Height cap on the school-district checklist — roughly a hundred values in the default tier. */
-const SCHOOL_DISTRICT_LIST_MAX_HEIGHT = '220px';
 
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -166,7 +169,7 @@ export class RealEstateFilterPanelComponent {
 	 *
 	 * @remarks
 	 * Read by nothing here; threaded to the geo section, whose Leaflet map must re-measure when the
-	 * mobile drawer reveals it. The page hides the panel with `hidden` rather than destroying it, so a
+	 * mobile collapse reveals it. The page hides the panel with `hidden` rather than destroying it, so a
 	 * map created while it is closed measures a zero-height container and, without a re-measure, never
 	 * recovers.
 	 */
@@ -228,14 +231,20 @@ export class RealEstateFilterPanelComponent {
 	 */
 	protected readonly locationTree = this._facets.locationTree;
 
-	/** Exposed for the template, which cannot read a module constant. */
-	protected readonly locationTreeMaxHeight = LOCATION_TREE_MAX_HEIGHT;
+	/** The location tree's group name and scroll height. Exposed for the template. */
+	protected readonly locationTreeCopy = REAL_ESTATE_LOCATION_TREE;
+
+	/** The listed-date heading, which also names the presets' group. */
+	protected readonly listedDateLabel = REAL_ESTATE_LISTED_DATE_LABEL;
+
+	/** The description field's placeholder and accessible name. */
+	protected readonly descriptionSearchCopy = REAL_ESTATE_DESCRIPTION_SEARCH;
 
 	/** The six sliders' static configuration, in render order. */
 	protected readonly rangeFacets = RANGE_FACETS;
 
-	/** @see locationTreeMaxHeight */
-	protected readonly schoolDistrictListMaxHeight = SCHOOL_DISTRICT_LIST_MAX_HEIGHT;
+	/** The school-district checklist's scroll height. */
+	protected readonly schoolDistrictListMaxHeight = REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT;
 
 	/** Sorted distinct values per chip / checkbox facet, derived once at the route. */
 	protected readonly vocabularies = this._facets.vocabularies;
@@ -317,24 +326,19 @@ export class RealEstateFilterPanelComponent {
 		() => deriveRangeFacetStates(this.bundle(), this._facets.baselines, this._activeRules()),
 	);
 
-	// ─── The one local mirror: uncommitted keystrokes in the description field ────────────────────
-	/** What the description input displays. Re-seeded from the committed rule by an effect. */
-	protected readonly descriptionText = signal('');
-
+	// ─── The description search's committed query ─────────────────────────────────────────────────
 	/**
 	 * This facet's OWN rule stream, as a signal.
 	 *
 	 * @remarks
-	 * The one control here that reads a narrow stream rather than the whole `activeRules` map. Every
-	 * other selection is fully derived, so recomputing on any engine change is free and correct; this
-	 * one holds uncommitted keystrokes, and a map-wide dependency would discard them. Clicking another
-	 * control blurs the input first, which commits, but undo/redo by keyboard and the devtools panel's
-	 * time travel both change rules without moving focus.
+	 * The one control here that reads a narrow stream rather than the whole `activeRules` map, so an
+	 * unrelated facet's change never reaches the field that holds uncommitted keystrokes. Undo / redo
+	 * by keyboard and the devtools panel's time travel change rules without moving focus.
 	 */
 	private readonly _descriptionRule = toSignal(this._engine.rule$('text-search'), { requireSync: true });
 
 	/** The query the engine currently holds, or `''` when the facet is off. */
-	private readonly _committedDescription = computed<string>(
+	protected readonly committedDescription = computed<string>(
 		() => (this._descriptionRule() as TextSearchRule | undefined)?.config.query ?? '',
 	);
 
@@ -350,12 +354,6 @@ export class RealEstateFilterPanelComponent {
 		effect(() => {
 			this._lastChangeEvent();
 			this._bundleFetcher.request(this._query);
-		});
-
-		// Re-seed the description mirror whenever the COMMITTED value changes. This is what makes
-		// "Clear all", a removed chip and a `?f` restore all reach into the text input.
-		effect(() => {
-			this.descriptionText.set(this._committedDescription());
 		});
 
 		inject(DestroyRef).onDestroy(() => {
@@ -385,28 +383,26 @@ export class RealEstateFilterPanelComponent {
 	}
 
 	/**
-	 * Commit the description search, or clear it when the query empties.
+	 * Commit a changed description query, or clear the facet when the query empties.
 	 *
 	 * @remarks
-	 * Committed on blur / Enter rather than per keystroke, so a substring scan of the corpus runs once
-	 * per query. Whitespace-only counts as empty — a rule matching `''` would be a silent no-op that
-	 * still shows up as an active-filter chip.
+	 * `<fe-search-input>` calls this only for a trimmed query that differs from the committed one, so
+	 * the busy mark always comes with a write. An empty query removes the rule — a rule matching `''`
+	 * would be a silent no-op that still shows up as an active-filter chip.
 	 *
-	 * @param value - The committed text.
+	 * @param trimmedQuery - The trimmed query.
 	 */
-	protected commitDescription(value: string): void {
-		const trimmed = value.trim();
-
+	protected commitDescription(trimmedQuery: string): void {
 		this._busy.markUserAction();
 
-		if (trimmed === '') {
+		if (trimmedQuery === '') {
 			this._engine.core.removeRule('text-search');
 
 			return;
 		}
 		this._engine.core.addRule(
 			'text-search',
-			text('description', { caseSensitive: false, mode: 'substring', query: trimmed }),
+			text('description', { caseSensitive: false, mode: 'substring', query: trimmedQuery }),
 		);
 	}
 
@@ -496,9 +492,10 @@ export class RealEstateFilterPanelComponent {
 	 *
 	 * @remarks
 	 * The single most load-bearing method in the file, and the reason every selection facet routes
-	 * through it. Writing an `InSetRule` with an empty set would leave the facet participating in the
-	 * AND and matching nothing, so "deselect everything" would filter to zero results instead of
-	 * clearing the filter — a bug that looks correct at every call site.
+	 * through it. An `InSetRule` with an empty set matches every item, so writing one on "deselect
+	 * everything" would look like a cleared filter while the rule stayed registered — in the `?f=` link,
+	 * in the action log as a change, behind a control that shows nothing selected. A bug that looks
+	 * correct at every call site.
 	 *
 	 * `build` is only invoked for a non-empty selection, so it never has to defend against the empty
 	 * case, and `markUserAction()` runs before either branch touches the engine.

@@ -75,6 +75,7 @@ import {
 	provideEngineBusy,
 	provideFilterEngineFactory,
 } from '@filter-enginez/angular-rxjs';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 import {
 	buildWineBundleQuery,
 	buildWineFilterSummaries,
@@ -166,7 +167,7 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 						/>
 					}
 					<!--
-						Hidden, NOT removed — control state survives a mobile drawer close. And no backticks in
+						Hidden, NOT removed — control state survives closing the mobile collapse. And no backticks in
 						this comment: it lives inside a template literal, so one would close the string.
 						fe-filter-collapse supplies its display via :not([hidden]) by design, which is why the
 						attribute drives it rather than a class.
@@ -185,7 +186,7 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 				<div class="fe-sidebar-app__results">
 					<fe-results-header
 						[clearAllHandler]="clearAll"
-						noun="bottles"
+						[noun]="resultNoun"
 						[removeRuleHandler]="removeChip"
 						[summarize]="summarizeWineRules"
 					/>
@@ -207,11 +208,7 @@ import { WineFilterPanelComponent } from './wine-filter-panel.component.js';
 							[results]="results"
 							[card]="wineCard"
 							[itemKey]="wineKey"
-							emptyTitle="No wines match the current filters."
-							emptyHint="Try widening the price range or clearing a varietal."
-							listLabel="Matching wines"
-							scrollRegionLabel="Wine results"
-							noun="bottles"
+							dataset="wine"
 						/>
 						<ng-template #wineCard [feResultCardOf]="results" let-wine>
 							<fe-wine-card [wine]="wine" />
@@ -231,10 +228,13 @@ export class WineViewComponent {
 	/** Read in the template for the footer; public on the store, so bound directly. */
 	protected readonly store = inject(WineBootStore);
 
+	/** The word after the results-header count, the same in every app. */
+	protected readonly resultNoun = RESULT_COPY.wine.noun;
+
 	/** Everything derived from the booted corpus. Fixed after boot, so read once. */
 	protected readonly facets = inject(WineBootStore).requireFacets();
 
-	/** Mobile drawer state. */
+	/** Mobile collapse state. */
 	protected readonly breakpoint = trackDesktopBreakpoint();
 
 	/** Whether the inline devtools panel is showing. Same shape as the real-estate route. */

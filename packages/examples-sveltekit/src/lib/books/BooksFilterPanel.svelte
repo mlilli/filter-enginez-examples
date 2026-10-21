@@ -1,17 +1,40 @@
 <script lang="ts">
 	/**
 	 * `<BooksFilterPanel>` — the facet panel for the Svelte books app, the port of
-	 * `examples-shared`'s `BooksFilterPanel` + `BookFilterSections`. A thin assembler: it derives the
-	 * chip vocabularies + the three numeric baselines from the resident corpus, fires ONE
-	 * `applyFiltersAndQuery` bundle per engine change (a `derived(lastChange, …)` store), and
-	 * distributes the per-candidate exclusion + filtered-except-self bounds so every facet
-	 * predictive-disables (books can't reach zero results). Runs synchronously on the main thread.
+	 * `examples-shared`'s `BooksFilterPanel` + `BookFilterSections`, rendered on both `/books` (a
+	 * main-thread engine) and `/books-server` (an HTTP engine). A thin assembler: it derives the chip
+	 * vocabularies + the three numeric baselines from the resident corpus, fetches ONE predictive-disable
+	 * bundle per engine change, and distributes the per-candidate exclusion + filtered-except-self
+	 * bounds so every facet predictive-disables. Every word it shows comes from the `BOOKS_*` copy in
+	 * `books-domain`, shared with every app's books panel.
 	 *
 	 * Filters wired (the full parity set): Genre / Format / Language (`InSetRule` chips), genre
 	 * super-groups (`InSetofSetsRule`), Publication year / Rating / Page count (`RangeRule` sliders),
 	 * In print / Has audiobook (`BooleanRule` checkboxes), Rated only (`ExistsRule`), Editor's picks
 	 * (`BloomMembershipRule`), Description (`TextSearchRule`), Authors (`FuzzySearchRule`), and an ISBN
 	 * pattern (`RegexRule`) — the same nine rule types the React panel demos.
+	 *
+	 * ### The bundle, on either engine
+	 *
+	 * `createBundleFetcher` asks the engine the panel was given: the main-thread engine answers in the
+	 * same tick through `core.applyFiltersAndQuery`, and the HTTP engine through
+	 * `asyncEngine.applyFiltersAndQuery`, because its sync `core` shim has no `applyFiltersAndQuery`.
+	 * A failed fetch keeps the previous bundle: predictive disable is an enhancement, and slightly stale
+	 * hints beat every control blanking.
+	 *
+	 * ### Chips paint at once
+	 *
+	 * Each chip group's selection is a WRITABLE `$derived` off its own rule store: the click paints the
+	 * chip, the write goes to the engine, and an external change (Clear all, a pill's ×, Undo, a `?f`
+	 * link) re-derives it. On `/books-server` a write is a round trip, and a read-only derivation would
+	 * leave the chip dark until the server answered. Per-rule stores rather than the `activeRules` map,
+	 * so one group's settle never re-derives (and un-paints) another group's pending click.
+	 *
+	 * ### Searches
+	 *
+	 * The three search fields are `<TypeaheadSearch>`es. Description and author write a rule with an
+	 * empty query when emptied (the books convention in every app); the ISBN pattern removes its rule,
+	 * and flags a pattern that does not compile without writing it.
 	 */
 
 	import type { Book, BookGenre } from '@filter-enginez/mock-data/books';
@@ -23,6 +46,7 @@
 		type BooleanRule,
 		exists,
 		type ExistsRule,
+		type FilterBundle,
 		type FilterBundleQuery,
 		fuzzy,
 		type FuzzySearchRule,
@@ -38,29 +62,36 @@
 		type TextSearchRule,
 	} from '@filter-enginez/core';
 	import {
+		BOOKS_CHIP_SECTION_LABELS,
+		BOOKS_ISBN_INVALID_MESSAGE,
+		BOOKS_SEARCH_COPY,
+		BOOKS_SLIDER_COPY,
+		BOOKS_TOGGLE_LABELS,
 		buildBooksBundleQuery,
 		buildEditorsPicksFilter,
 		chipExclusionMap,
 		compilePattern,
+		createBundleFetcher,
 		deriveBaseline,
 		deriveSelectedGroupKeys,
 		fieldBounds,
 		fieldHistogram,
+		isToggleDisabled,
 		nextSuperGroupSets,
 		type NumericBounds,
 		regexInputValue,
-		safeApplyBundle,
 		SUPER_GROUP_KEYS,
-		toggleWouldBeEmpty,
 		uniqueSorted,
 	} from '@filter-enginez/examples-shared/books-domain';
 	import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
+	// The fetch loop is dataset-neutral (it lives in `filter-bundle/`); `wine-domain` is the subpath
+	// that exports it to the non-React apps.
 	import { createEngineStores, getFilterEngine } from '@filter-enginez/svelte-signals';
 	import CheckboxControl from '$lib/controls/CheckboxControl.svelte';
 	import ChipToggleGroup from '$lib/controls/ChipToggleGroup.svelte';
 	import RangeSlider from '$lib/controls/RangeSlider.svelte';
-	import SearchInput from '$lib/controls/SearchInput.svelte';
-	import { derived } from 'svelte/store';
+	import TypeaheadSearch from '$lib/controls/TypeaheadSearch.svelte';
+	import { onDestroy } from 'svelte';
 
 	import { isEngineBusy, markUserAction } from './booksBusy.js';
 
@@ -72,7 +103,7 @@
 	const { isHeaderVisible = true }: Props = $props();
 
 	const engine = getFilterEngine<Book>();
-	const { activeRules, lastChange, results } = createEngineStores(engine);
+	const { activeRules, lastChange, results, rule } = createEngineStores(engine);
 
 	// The corpus is resident + immutable post-boot, so vocab + baselines + the bundle query are computed
 	// once (the Svelte analogue of the React panel's `useMemo(…, [sourceData])`).
@@ -90,14 +121,44 @@
 		{ formats, genres, languages },
 	);
 
-	// ONE bundle per engine change → per-candidate exclusion + filtered-except-self slider bounds.
-	const bundle = derived(lastChange, () => safeApplyBundle(engine, query));
+	// `$state.raw`: the bundle carries typed arrays, which Svelte's deep proxy would wrap.
+	let bundle = $state.raw<FilterBundle | null>(null);
 
-	// ─── Current committed state (reactive off the active-rule map) ──────────────
-	const selectedGenres = $derived(($activeRules.get('genre') as InSetRule<string> | undefined)?.config.set ?? []);
-	const selectedFormats = $derived(($activeRules.get('format') as InSetRule<string> | undefined)?.config.set ?? []);
-	const selectedLanguages = $derived(($activeRules.get('language') as InSetRule<string> | undefined)?.config.set ?? []);
+	// ONE bundle per engine change → per-candidate exclusion + filtered-except-self slider bounds. See
+	// the docblock for why this is a fetcher rather than a synchronous read.
+	const fetcher = createBundleFetcher(engine, {
+		onBundle: (next) => {
+			bundle = next;
+		},
+	});
 
+	// Reading `$lastChange` is what registers the dependency; the value itself is unused.
+	$effect(() => {
+		void $lastChange;
+		fetcher.request(query);
+	});
+
+	onDestroy(() => {
+		fetcher.dispose();
+	});
+
+	// ─── Chip groups: writable deriveds off each group's own rule (see the docblock) ──
+	const genreRule = rule('genre');
+	const formatRule = rule('format');
+	const languageRule = rule('language');
+	const superGroupRule = rule('genre-groups');
+
+	let selectedGenres = $derived(($genreRule as InSetRule<string> | undefined)?.config.set ?? []);
+	let selectedFormats = $derived(($formatRule as InSetRule<string> | undefined)?.config.set ?? []);
+	let selectedLanguages = $derived(($languageRule as InSetRule<string> | undefined)?.config.set ?? []);
+
+	// Genre super-groups (InSetofSetsRule): the selected labels derive from the committed
+	// array-of-genre-sets, so clear-all / pill-removal reach them with no local mirror.
+	let selectedGroupKeys = $derived(
+		deriveSelectedGroupKeys(($superGroupRule as InSetofSetsRule<BookGenre> | undefined)?.config.set ?? []),
+	);
+
+	// ─── Sliders and toggles (reactive off the active-rule map) ──────────────
 	const yearRule = $derived($activeRules.get('publication-year') as RangeRule | undefined);
 	const ratingRule = $derived($activeRules.get('rating') as RangeRule | undefined);
 	const pageRule = $derived($activeRules.get('page-count') as RangeRule | undefined);
@@ -111,36 +172,33 @@
 	const audiobookCandidate = bool('hasAudiobook', true);
 	const ratedCandidate = exists('averageRating');
 
-	// ─── Curated demo filters (super-groups / Editor's picks / ISBN regex) ───────
-	// Genre super-groups (InSetofSetsRule): the selected labels derive directly from the committed
-	// array-of-genre-sets, so clear-all / pill-removal stay in sync with no local mirror.
-	const selectedGroupKeys = $derived(
-		deriveSelectedGroupKeys(($activeRules.get('genre-groups') as InSetofSetsRule<BookGenre> | undefined)?.config.set ?? []),
-	);
-
 	// Editor's picks (BloomMembershipRule): the Bloom set is built once from the resident corpus's
-	// top-rated books; the checkbox toggles the prebuilt rule. The candidate is built once + probed per
-	// change for predictive-disable.
+	// top-rated books; the checkbox toggles the prebuilt rule, which is also its disable candidate.
 	const editorsPicksFilter = buildEditorsPicksFilter(corpus);
 	const editorsPicksCandidate = bloomMembership('id', editorsPicksFilter);
 	const editorsPicksChecked = $derived(($activeRules.get('editors-picks') as BloomMembershipRule | undefined) !== undefined);
 
-	// ISBN pattern (RegexRule): a writable `$derived` off the committed pattern source (re-syncs on
-	// external clear), plus a local invalid flag so a half-typed pattern flags without wiping the rule.
-	let isbnText = $derived(regexInputValue(($activeRules.get('isbn-pattern') as RegexRule | undefined)?.config.pattern.source));
+	// ─── Searches: the committed query each field adopts ─────────────────────
+	const descriptionRule = rule('text-search');
+	const authorRule = rule('author-search');
+	const isbnRule = rule('isbn-pattern');
+
+	const descriptionQuery = $derived(($descriptionRule as TextSearchRule | undefined)?.config.query ?? '');
+	const authorQuery = $derived(($authorRule as FuzzySearchRule | undefined)?.config.query ?? '');
+	const isbnQuery = $derived(regexInputValue(($isbnRule as RegexRule | undefined)?.config.pattern.source));
+
+	/** Whether the last ISBN pattern committed failed to compile (and so was not written). */
 	let isbnInvalid = $state(false);
 
-	// ─── Search local mirror state (writable deriveds off the committed rule query) ──
-	// A writable `$derived` reads the committed query but can be reassigned while the user types; it
-	// snaps back to the committed value whenever that changes from outside (clear-all, remove pill), so
-	// in-progress input is preserved but external resets propagate.
-	let descriptionText = $derived(($activeRules.get('text-search') as TextSearchRule | undefined)?.config.query ?? '');
-	let authorText = $derived(($activeRules.get('author-search') as FuzzySearchRule | undefined)?.config.query ?? '');
-
-	/** Toggle a chip value in an `InSetRule`, committing the new set (empty = permissive no-op). */
-	function toggleChip(ruleId: string, field: string, current: readonly string[], value: string): void {
-		const next = toggleSetValue(current, value);
-
+	/**
+	 * Toggle a chip value in an `InSetRule`: paint the chip, then commit the new set (empty =
+	 * permissive no-op, the books convention).
+	 *
+	 * @param ruleId - The chip group's rule.
+	 * @param field - The `Book` field.
+	 * @param next - The next selection, already painted by the caller.
+	 */
+	function commitChips(ruleId: string, field: string, next: readonly string[]): void {
 		markUserAction();
 		engine.core.addRule(ruleId, inSet<string>(field, next));
 	}
@@ -167,22 +225,25 @@
 		}
 	}
 
-	/** Commit a substring text search over `description`. */
-	function commitDescription(value: string): void {
+	/** Commit a substring text search over `description`; an empty query is written as a rule too. */
+	function commitDescription(trimmed: string): void {
 		markUserAction();
-		engine.core.addRule('text-search', text('description', { caseSensitive: false, mode: 'substring', query: value.trim() }));
+		engine.core.addRule('text-search', text('description', { caseSensitive: false, mode: 'substring', query: trimmed }));
 	}
 
 	/** Commit a typo-tolerant fuzzy search over the array-valued `authors` field. */
-	function commitAuthor(value: string): void {
+	function commitAuthor(trimmed: string): void {
 		markUserAction();
-		engine.core.addRule('author-search', fuzzy('authors', { keys: ['authors'], query: value.trim(), threshold: 0.3 }));
+		engine.core.addRule('author-search', fuzzy('authors', { keys: ['authors'], query: trimmed, threshold: 0.3 }));
 	}
 
-	/** Toggle a genre super-group — commits the new array-of-genre-sets over `genre`. */
+	/** Toggle a genre super-group — paint it, then commit the new array-of-genre-sets over `genre`. */
 	function toggleSuperGroup(key: string): void {
+		const nextSets = nextSuperGroupSets(selectedGroupKeys, key);
+
+		selectedGroupKeys = deriveSelectedGroupKeys(nextSets);
 		markUserAction();
-		engine.core.addRule('genre-groups', inSetofSets<BookGenre>('genre', nextSuperGroupSets(selectedGroupKeys, key)));
+		engine.core.addRule('genre-groups', inSetofSets<BookGenre>('genre', nextSets));
 	}
 
 	/** Toggle the Editor's-picks Bloom pre-screen — checked adds the rule, unchecked removes it. */
@@ -196,17 +257,24 @@
 	}
 
 	/**
-	 * Commit an ISBN-13 regex pattern. Empty removes the rule; a valid pattern commits it; an invalid
-	 * pattern flags the box (via `isbnInvalid`) and leaves the last good rule in place — a half-typed
-	 * `[` never throws or wipes the current filter.
+	 * Commit an ISBN-13 regex pattern.
+	 *
+	 * @remarks
+	 * Empty removes the rule (and writes nothing, so marks nothing busy, when there is no rule to
+	 * remove: a removal the engine has nothing to do for emits no change, and a busy mark would then
+	 * never clear). A valid pattern commits it. An invalid one flags the box with
+	 * `BOOKS_ISBN_INVALID_MESSAGE` and leaves the last good rule in place, so a half-typed `[` never
+	 * throws or wipes the current filter.
+	 *
+	 * @param trimmed - The trimmed pattern.
 	 */
-	function commitIsbn(value: string): void {
-		const trimmed = value.trim();
-
+	function commitIsbn(trimmed: string): void {
 		if (trimmed === '') {
 			isbnInvalid = false;
-			markUserAction();
-			engine.core.removeRule('isbn-pattern');
+			if ($isbnRule !== undefined) {
+				markUserAction();
+				engine.core.removeRule('isbn-pattern');
+			}
 
 			return;
 		}
@@ -227,9 +295,9 @@
 		return value.replace(/-/g, ' ');
 	}
 
-	const yearAvailable = $derived<NumericBounds>(fieldBounds($bundle, 'publication-year') ?? yearBaseline);
-	const ratingAvailable = $derived<NumericBounds>(fieldBounds($bundle, 'rating') ?? ratingBaseline);
-	const pageAvailable = $derived<NumericBounds>(fieldBounds($bundle, 'page-count') ?? pageBaseline);
+	const yearAvailable = $derived<NumericBounds>(fieldBounds(bundle, 'publication-year') ?? yearBaseline);
+	const ratingAvailable = $derived<NumericBounds>(fieldBounds(bundle, 'rating') ?? ratingBaseline);
+	const pageAvailable = $derived<NumericBounds>(fieldBounds(bundle, 'page-count') ?? pageBaseline);
 
 	// The committed selection per slider, defaulting to the whole track. Derived rather than written
 	// inline on each `valueMin` / `valueMax` because the histogram needs the same two numbers to tier
@@ -250,10 +318,10 @@
 	// The distribution the engine already computed for each field. `undefined` until the first bundle
 	// resolves, which the slider renders as no overlay rather than as an empty 38px band.
 	const yearHistogram = $derived(
-		fieldHistogram($bundle, 'publication-year', yearSelected.min, yearSelected.max),
+		fieldHistogram(bundle, 'publication-year', yearSelected.min, yearSelected.max),
 	);
-	const ratingHistogram = $derived(fieldHistogram($bundle, 'rating', ratingSelected.min, ratingSelected.max));
-	const pageHistogram = $derived(fieldHistogram($bundle, 'page-count', pageSelected.min, pageSelected.max));
+	const ratingHistogram = $derived(fieldHistogram(bundle, 'rating', ratingSelected.min, ratingSelected.max));
+	const pageHistogram = $derived(fieldHistogram(bundle, 'page-count', pageSelected.min, pageSelected.max));
 </script>
 
 <div class="fe-books-panel">
@@ -270,50 +338,59 @@
 		aria-busy={$isEngineBusy}
 	>
 		<section>
-			<h3 class="fe-books-section-label">Genre</h3>
+			<h3 class="fe-books-section-label">{BOOKS_CHIP_SECTION_LABELS.genre}</h3>
 			<ChipToggleGroup
 				options={genres}
 				selected={selectedGenres}
-				exclusion={chipExclusionMap($bundle, 'genre')}
+				exclusion={chipExclusionMap(bundle, 'genre')}
 				formatLabel={replaceHyphens}
-				onToggle={(value) => toggleChip('genre', 'genre', selectedGenres, value)}
+				onToggle={(value) => {
+					selectedGenres = toggleSetValue(selectedGenres, value);
+					commitChips('genre', 'genre', selectedGenres);
+				}}
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Genre super-groups</h3>
+			<h3 class="fe-books-section-label">{BOOKS_CHIP_SECTION_LABELS.genreGroups}</h3>
 			<ChipToggleGroup
 				options={SUPER_GROUP_KEYS}
 				selected={selectedGroupKeys}
-				exclusion={chipExclusionMap($bundle, 'genre-groups')}
+				exclusion={chipExclusionMap(bundle, 'genre-groups')}
 				onToggle={toggleSuperGroup}
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Format</h3>
+			<h3 class="fe-books-section-label">{BOOKS_CHIP_SECTION_LABELS.format}</h3>
 			<ChipToggleGroup
 				options={formats}
 				selected={selectedFormats}
-				exclusion={chipExclusionMap($bundle, 'format')}
+				exclusion={chipExclusionMap(bundle, 'format')}
 				formatLabel={replaceHyphens}
-				onToggle={(value) => toggleChip('format', 'format', selectedFormats, value)}
+				onToggle={(value) => {
+					selectedFormats = toggleSetValue(selectedFormats, value);
+					commitChips('format', 'format', selectedFormats);
+				}}
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Language</h3>
+			<h3 class="fe-books-section-label">{BOOKS_CHIP_SECTION_LABELS.language}</h3>
 			<ChipToggleGroup
 				options={languages}
 				selected={selectedLanguages}
-				exclusion={chipExclusionMap($bundle, 'language')}
-				onToggle={(value) => toggleChip('language', 'language', selectedLanguages, value)}
+				exclusion={chipExclusionMap(bundle, 'language')}
+				onToggle={(value) => {
+					selectedLanguages = toggleSetValue(selectedLanguages, value);
+					commitChips('language', 'language', selectedLanguages);
+				}}
 			/>
 		</section>
 
 		<RangeSlider
-			label="Publication year"
-			ariaLabel="Publication-year range"
+			label={BOOKS_SLIDER_COPY.publicationYear.label}
+			ariaLabel={BOOKS_SLIDER_COPY.publicationYear.ariaLabel}
 			baseline={yearBaseline}
 			available={yearAvailable}
 			histogram={yearHistogram}
@@ -326,8 +403,8 @@
 		/>
 
 		<RangeSlider
-			label="Rating"
-			ariaLabel="Average-rating range"
+			label={BOOKS_SLIDER_COPY.rating.label}
+			ariaLabel={BOOKS_SLIDER_COPY.rating.ariaLabel}
 			baseline={ratingBaseline}
 			available={ratingAvailable}
 			histogram={ratingHistogram}
@@ -340,8 +417,8 @@
 		/>
 
 		<RangeSlider
-			label="Page count"
-			ariaLabel="Page-count range"
+			label={BOOKS_SLIDER_COPY.pageCount.label}
+			ariaLabel={BOOKS_SLIDER_COPY.pageCount.ariaLabel}
 			baseline={pageBaseline}
 			available={pageAvailable}
 			histogram={pageHistogram}
@@ -353,66 +430,65 @@
 			onChange={(next) => commitRange('page-count', 'pageCount', next)}
 		/>
 
+		<!-- `isToggleDisabled`: an unchecked box is disabled when checking it would empty the results; a
+		     checked one never is, so a filter can always be turned back off. -->
 		<section class="fe-books-toggles">
 			<CheckboxControl
-				label="In print only"
+				label={BOOKS_TOGGLE_LABELS.inPrint}
 				isChecked={inPrintChecked}
-				isDisabled={toggleWouldBeEmpty($results, inPrintCandidate)}
+				isDisabled={isToggleDisabled(inPrintChecked, $results, inPrintCandidate)}
 				onToggle={(checked) => commitBoolean('in-print', 'isInPrint', checked)}
 			/>
 			<CheckboxControl
-				label="Has audiobook"
+				label={BOOKS_TOGGLE_LABELS.audiobook}
 				isChecked={audiobookChecked}
-				isDisabled={toggleWouldBeEmpty($results, audiobookCandidate)}
+				isDisabled={isToggleDisabled(audiobookChecked, $results, audiobookCandidate)}
 				onToggle={(checked) => commitBoolean('has-audiobook', 'hasAudiobook', checked)}
 			/>
 			<CheckboxControl
-				label="Rated only"
+				label={BOOKS_TOGGLE_LABELS.rated}
 				isChecked={ratedChecked}
-				isDisabled={toggleWouldBeEmpty($results, ratedCandidate)}
+				isDisabled={isToggleDisabled(ratedChecked, $results, ratedCandidate)}
 				onToggle={(checked) => commitExists('has-rating', 'averageRating', checked)}
 			/>
 			<CheckboxControl
-				label="Editor's picks (top-rated)"
+				label={BOOKS_TOGGLE_LABELS.editorsPicks}
 				isChecked={editorsPicksChecked}
-				isDisabled={toggleWouldBeEmpty($results, editorsPicksCandidate)}
+				isDisabled={isToggleDisabled(editorsPicksChecked, $results, editorsPicksCandidate)}
 				onToggle={commitEditorsPicks}
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Description search</h3>
-			<SearchInput
-				value={descriptionText}
-				placeholder="dystopia, seafaring, coming of age..."
-				ariaLabel="Search descriptions"
-				onChange={(value) => (descriptionText = value)}
-				onCommit={commitDescription}
+			<h3 class="fe-books-section-label">{BOOKS_SEARCH_COPY.description.label}</h3>
+			<TypeaheadSearch
+				ariaLabel={BOOKS_SEARCH_COPY.description.ariaLabel}
+				placeholder={BOOKS_SEARCH_COPY.description.placeholder}
+				ruleQuery={descriptionQuery}
+				commit={commitDescription}
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Author (typo-tolerant)</h3>
-			<SearchInput
-				value={authorText}
-				placeholder="a surname or full name..."
-				ariaLabel="Search authors with typo tolerance"
-				onChange={(value) => (authorText = value)}
-				onCommit={commitAuthor}
+			<h3 class="fe-books-section-label">{BOOKS_SEARCH_COPY.author.label}</h3>
+			<TypeaheadSearch
+				ariaLabel={BOOKS_SEARCH_COPY.author.ariaLabel}
+				placeholder={BOOKS_SEARCH_COPY.author.placeholder}
+				ruleQuery={authorQuery}
+				commit={commitAuthor}
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">ISBN pattern (regex)</h3>
-			<SearchInput
-				value={isbnText}
-				placeholder="e.g. ^9780"
-				ariaLabel="Filter by ISBN-13 pattern (regular expression)"
-				onChange={(value) => (isbnText = value)}
-				onCommit={commitIsbn}
+			<h3 class="fe-books-section-label">{BOOKS_SEARCH_COPY.isbn.label}</h3>
+			<TypeaheadSearch
+				ariaLabel={BOOKS_SEARCH_COPY.isbn.ariaLabel}
+				placeholder={BOOKS_SEARCH_COPY.isbn.placeholder}
+				ruleQuery={isbnQuery}
+				commit={commitIsbn}
 			/>
 			{#if isbnInvalid}
-				<p class="fe-books-regex-error" role="alert">Invalid regular expression</p>
+				<p class="fe-books-regex-error" role="alert">{BOOKS_ISBN_INVALID_MESSAGE}</p>
 			{/if}
 		</section>
 	</div>

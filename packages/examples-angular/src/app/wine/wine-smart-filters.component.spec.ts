@@ -8,9 +8,10 @@
  * `activeRules$`, which `wine-chip-section.component.spec.ts` pins; this suite pins what the row
  * writes, over a real engine.
  *
- * It also pins the way back out of a RESTORED preset. `loadConfig` registers a restored preset's leaves
- * as flat rules under minted ids, so "Clear smart filters" has to drop those too, or they would start
- * filtering the moment the expression went, with no chip on screen to explain them.
+ * It also pins the way back out of a RESTORED preset, from a link written today and from one written
+ * by engine 0.0.3 (whose inline rules carry no `inline` mark). A restore registers none of the preset's
+ * leaves, so "Clear smart filters" gives back the full corpus: leaves left behind as flat rules would
+ * start filtering the moment the expression went, with no chip on screen to explain them.
  *
  * @packageDocumentation
  */
@@ -19,7 +20,7 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideFilterEngine } from '@filter-enginez/angular-rxjs';
-import { createFilterEngine, type FilterEngine, inSet } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngine, type FilterEngineConfig, inSet } from '@filter-enginez/core';
 import {
 	buildSmartFilterExpression,
 	deriveSelectedPresetIds,
@@ -111,16 +112,20 @@ describe('<fe-wine-smart-filters> — a preset replaces the manual filters', () 
 		expect(wineBusyCore.getIsEngineBusy()).toBe(true);
 	});
 
-	it('"Clear smart filters" on a restored preset leaves no rule behind to keep filtering', () => {
+	it.each([
+		['a link written today', (config: FilterEngineConfig): FilterEngineConfig => config],
+		['a link written by engine 0.0.3', (config: FilterEngineConfig): FilterEngineConfig => ({ ...config, rules: config.rules.map(({ id, rule }) => ({ id, rule })) })],
+	])('"Clear smart filters" on a preset restored from %s gives back the full corpus', (_label, link) => {
 		const donor = createFilterEngine<Wine>({ sourceData: [...ROWS]});
 
 		donor.setExpression(buildSmartFilterExpression(['pinot-any']));
 
 		const { core, fixture } = mountRow((seeded) => {
-			seeded.loadConfig(donor.exportConfig());
+			seeded.loadConfig(link(donor.exportConfig()));
 		}, ['pinot-any']);
 
-		expect(core.getRules().size).toBeGreaterThan(0);
+		expect(core.getRules().size).toBe(0);
+		expect(deriveSelectedPresetIds(core.getExpression())).toEqual(['pinot-any']);
 		button(fixture, 'Clear smart filters').click();
 
 		expect(core.getExpression()).toBeNull();

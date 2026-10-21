@@ -26,8 +26,16 @@
  * the interesting thing about those routes, so they ride in the stack label as a parenthetical:
  * `React RTK (server)`, `Vanilla (bare core)`. See {@link stackLabel}.
  *
+ * ### The results column's words live beside it
+ *
+ * What every app shows in a dataset's results column (the count's noun, the empty state, the list's
+ * accessible name, the paging window and its cap notice) is the same kind of shared fact, so
+ * `./resultCopy.ts` is re-exported from this address rather than given one of its own.
+ *
  * @packageDocumentation
  */
+
+export * from './resultCopy.js';
 
 /** The six demo applications. */
 export type VerticalId =

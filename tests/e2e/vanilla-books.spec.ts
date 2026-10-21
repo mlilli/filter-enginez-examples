@@ -13,6 +13,8 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { BOOKS_SEARCH_COPY } from '../../packages/examples-shared/src/books/books-domain/panelCopy.js';
+import { describeBooksParity } from './booksParity.js';
 import {
 	expectPanelScrollsToLastControl,
 	isMobileProject,
@@ -57,7 +59,7 @@ const SURFACES = [
  * @remarks
  * Both signals are OUTSIDE the filter panel, deliberately. At phone width the panel is behind
  * a "Filters" button — and waiting on anything inside it would conflate "the engine has not booted"
- * with "the drawer is closed". Only one of those is a failure.
+ * with "the collapse is shut". Only one of those is a failure.
  */
 async function waitForBoot(page: Page): Promise<void> {
 	await expect(page.locator('.fe-books-app')).toBeVisible({ timeout: 60_000 });
@@ -116,7 +118,7 @@ for (const surface of SURFACES) {
 			await page.reload();
 			await waitForBoot(page);
 			// No reopen needed: everything asserted below the reload — the pills and the count — lives in
-			// the results column, outside the drawer.
+			// the results column, outside the collapse.
 
 			await expect(page.locator('.fe-filter-chip')).toHaveCount(1);
 			await expect.poll(async () => readCount(page), { timeout: 15_000 }).toBe(filtered);
@@ -147,7 +149,7 @@ for (const surface of SURFACES) {
 			// Without `fe-filter-panel__scroller` the panel stops scrolling and the PAGE scrolls instead,
 			// which nothing else notices. See the helper.
 			// Runs on BOTH vanilla surfaces (`/books` and `/books-raw`), which share this panel.
-			await expectPanelScrollsToLastControl(page, 'input[aria-label="ISBN-13 pattern"]');
+			await expectPanelScrollsToLastControl(page, `input[aria-label="${BOOKS_SEARCH_COPY.isbn.ariaLabel}"]`);
 		});
 
 		test('has no serious or critical accessibility violations', async ({ page }) => {
@@ -182,3 +184,5 @@ test.describe('vanilla books — the two surfaces agree', () => {
 		expect(rawTotal).toBe(signalsTotal);
 	});
 });
+
+describeBooksParity({ id: 'vanilla', label: 'vanilla' });

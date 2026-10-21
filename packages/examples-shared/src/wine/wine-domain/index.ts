@@ -61,6 +61,8 @@ export { wineBusyCore } from '../engineBusyCore.js';
 export * from './filterConfig.js';
 export * from './originLinks.js';
 export * from './originRule.js';
+// What every app's wine panel says, and the choices behind its sliders, searches and option lists.
+export * from './panelCopy.js';
 export * from './ruleSummaries.js';
 export {
 	buildSmartFilterExpression,
@@ -91,5 +93,6 @@ export {
 	type ExclusionMap,
 	fieldBounds,
 	fieldHistogram,
+	isToggleDisabled,
 	toggleWouldBeEmpty,
 } from '../../filter-bundle/bundleReaders.js';

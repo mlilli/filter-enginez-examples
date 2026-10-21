@@ -14,6 +14,7 @@
  * @packageDocumentation
  */
 
+import { BOOT_FAILURE_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { describe, expect, it } from 'vitest';
 
 import { bootCaptionValue } from '../brand/indicators.js';
@@ -73,11 +74,15 @@ describe('createWineBootFailure', () => {
 		expect(failure.tagName).toBe('MAIN');
 		expect(failure.getAttribute('role')).toBeNull();
 		expect(failure.querySelector('[role="alert"]')?.textContent).toContain('worker never handshook');
+		// The title and hint are every app's (`BOOT_FAILURE_COPY.wine`); the sentence after the hint is
+		// this app's own way to select the main-thread tier.
 		expect(lines).toEqual([
-			'The wine engine could not start.',
+			BOOT_FAILURE_COPY.wine.title,
 			'worker never handshook',
-			'The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the worker could not start. Set VITE_WINE_TIER=default to boot the 10,000-wine default tier on the main thread instead.',
+			`${BOOT_FAILURE_COPY.wine.hint} Set VITE_WINE_TIER=default to boot the 10,000-wine default tier on the main thread instead.`,
 		]);
+		// Non-vacuous: the shared copy is the wine wording, not an empty record.
+		expect(BOOT_FAILURE_COPY.wine.title).toBe('The wine engine could not start.');
 		expect(failure.querySelector('code')?.textContent).toBe('VITE_WINE_TIER=default');
 	});
 

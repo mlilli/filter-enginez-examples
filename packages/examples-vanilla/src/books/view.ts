@@ -10,8 +10,12 @@
  * Because the write path is identical on both routes — `SignalsEngine.core` and the bare engine are
  * the same `FilterEngine` — the panel and results write straight through the engine handed in here.
  *
+ * The busy state is wired here too, so both routes get it identically: every write marks
+ * {@link booksBusyCore}, the view paints it onto the header's computing indicator and the panel
+ * body's `--busy` / `aria-busy`, and each engine change resolves it after one painted frame.
+ *
  * What is left in this file is only what is books-SPECIFIC: the panel, the card, the summarizer and
- * the wording. The chrome lives in `../shell/appShell.ts` and the grid in
+ * the shared `RESULT_COPY.books` wording. The chrome lives in `../shell/appShell.ts` and the grid in
  * `../results/resultsView.ts`, shared with the real-estate and wine routes.
  *
  * @packageDocumentation
@@ -28,7 +32,9 @@ import type { AppHeaderSubtitle } from '@filter-enginez/examples-shared/app-head
 import type { Book } from '@filter-enginez/mock-data/books';
 
 import { buildRuleSummaries } from '@filter-enginez/examples-shared/books-domain';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 
+import { bindBusyState, booksBusyCore, type BusyCore, resolveAfterPaint } from '../busy/engineBusy.js';
 import { createResultsView } from '../results/resultsView.js';
 import { createAppShell } from '../shell/appShell.js';
 import { trackDesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
@@ -60,6 +66,11 @@ export interface BooksView {
 
 /** Construction options for the view. */
 export interface BooksViewOptions {
+	/**
+	 * The books busy tracker. Defaults to {@link booksBusyCore}, the one both books routes share;
+	 * injectable so a suite can observe a fresh instance.
+	 */
+	readonly busy?: BusyCore;
 	/** Subtitle under the wordmark — names which reactive surface is driving this route. */
 	readonly subtitle: AppHeaderSubtitle;
 	/** Footer caption — spells out the wiring, so the two routes are distinguishable at a glance. */
@@ -78,16 +89,13 @@ export interface BooksViewOptions {
  * @returns The mounted view with its granular updaters.
  */
 export function createBooksView(core: FilterEngine<Book>, options: BooksViewOptions): BooksView {
-	const { footnote, headerControls = [], resultsInsetElement, subtitle } = options;
-	const panel = createBooksPanel(core);
+	const { busy = booksBusyCore, footnote, headerControls = [], resultsInsetElement, subtitle } = options;
+	const panel = createBooksPanel(core, { markBusy: busy.markUserAction });
 	const breakpoint = trackDesktopBreakpoint();
 	const results = createResultsView<Book>(core, {
-		emptyHint: 'Try relaxing a filter — or clear them all.',
-		emptyTitle: 'No books match these filters',
-		listLabel: 'Matching books',
-		noun: 'results',
+		copy: RESULT_COPY.books,
+		markBusy: busy.markUserAction,
 		renderCard: bookCard,
-		scrollRegionLabel: 'Book results',
 		summarize: buildRuleSummaries,
 	});
 
@@ -104,12 +112,25 @@ export function createBooksView(core: FilterEngine<Book>, options: BooksViewOpti
 	});
 
 	const stopBreakpoint = breakpoint.subscribe(shell.syncPanelVisibility);
+	const stopBusy = bindBusyState(busy, (isBusy) => {
+		results.setBusy(isBusy);
+		panel.setBusy(isBusy);
+	});
+	// The books engine is main-thread, so every change event IS the settle of the writes marked
+	// before it — including time travel, which emits `reset` rather than a rule event. Resolving after
+	// a painted frame is what lets the busy state be seen at all.
+	const stopResolve = core.subscribe(() => {
+		resolveAfterPaint(busy);
+	});
 
 	return {
 		dispose: () => {
+			stopResolve();
+			stopBusy();
 			stopBreakpoint();
 			breakpoint.dispose();
 			results.dispose();
+			panel.dispose();
 		},
 		element: shell.element,
 		query: panel.query,

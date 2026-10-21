@@ -3,9 +3,10 @@
  *
  * @remarks
  * Exercises the `DateRangeRule` presets (resolved relative to `Date.now()` at evaluation time, so
- * "last 7 days" stays current). A row of pill buttons commits `dateRange('listedDate', { preset })`;
- * "Any time" removes the rule (empty = no constraint). The active preset is cyan (data identity),
- * and the button's `aria-pressed` — not color alone — carries the selected state.
+ * "last 7 days" stays current). A row of `fe-chip` buttons commits `dateRange('listedDate', { preset })`;
+ * "Any time" removes the rule (empty = no constraint). The markup is every app's: the chips sit in a
+ * `role="group"` named by `REAL_ESTATE_LISTED_DATE_LABEL`, the active one carries `fe-chip--selected`,
+ * and its `aria-pressed` — not color alone — carries the selected state.
  *
  * @packageDocumentation
  */
@@ -23,12 +24,9 @@ import {
 	DATE_PRESET_OPTIONS,
 	type DatePresetValue,
 } from './real-estate-domain/filterConfig.js';
+import { REAL_ESTATE_LISTED_DATE_LABEL } from './real-estate-domain/panelCopy.js';
 import { SectionHeader } from './RealEstateFilterSections.js';
 
-/**
- * The selectable "listed within" presets. `as const` pins each `value` to its literal type so it
- * type-checks against the `DateRangeRule` preset union at the `dateRange(...)` call.
- */
 /** Rule id + registry key for the listed-date rule. */
 const LISTED_DATE_RULE_ID = 'listed-date';
 
@@ -66,8 +64,8 @@ export const ListedDateSection = (): React.ReactElement => {
 
 	return (
 		<section>
-			<SectionHeader label="Listed within" />
-			<div className="fe-chip-toggle">
+			<SectionHeader label={REAL_ESTATE_LISTED_DATE_LABEL} />
+			<div className="fe-chip-toggle" role="group" aria-label={REAL_ESTATE_LISTED_DATE_LABEL}>
 				<PresetButton
 					label="Any time"
 					isActive={activePreset === null}
@@ -87,8 +85,8 @@ export const ListedDateSection = (): React.ReactElement => {
 };
 
 /**
- * One preset pill button. `aria-pressed` carries the selected state for assistive tech (color is not
- * the sole signal); the active pill is cyan.
+ * One preset chip. `aria-pressed` carries the selected state for assistive tech (color is not the
+ * sole signal); `fe-chip--selected` paints it.
  *
  * @internal
  */
@@ -104,17 +102,7 @@ const PresetButton = (props: {
 			type="button"
 			onClick={onSelect}
 			aria-pressed={isActive}
-			className="text-xs"
-			style={{
-				background: isActive ? 'rgba(34, 211, 238, 0.12)' : 'transparent',
-				border: `1px solid ${isActive ? 'var(--accent)' : 'var(--gray-4)'}`,
-				borderRadius: '9999px',
-				color: isActive ? 'var(--accent)' : 'var(--gray-9)',
-				cursor: 'pointer',
-				fontFamily: 'var(--font-mono)',
-				minHeight: '44px',
-				padding: '0 14px',
-			}}
+			className={`fe-chip${isActive ? ' fe-chip--selected' : ''}`}
 		>
 			{label}
 		</button>

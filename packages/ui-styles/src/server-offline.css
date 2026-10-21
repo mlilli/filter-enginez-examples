@@ -57,22 +57,3 @@
 	color: var(--engine);
 	white-space: nowrap;
 }
-.fe-server-offline__back {
-	margin-top: 8px;
-	padding: 10px 22px;
-	font-family: var(--font-mono);
-	font-size: 12px;
-	letter-spacing: 0.05em;
-	color: var(--accent);
-	background: rgba(34, 211, 238, 0.06);
-	border: 1px solid var(--accent-dim);
-	border-radius: var(--radius-md);
-	text-decoration: none;
-	transition:
-		border-color 200ms ease,
-		background 200ms ease;
-}
-.fe-server-offline__back:hover {
-	border-color: var(--accent);
-	background: rgba(34, 211, 238, 0.12);
-}

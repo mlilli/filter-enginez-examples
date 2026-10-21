@@ -21,5 +21,5 @@ export {
 	useFieldBounds as useBooksFieldBounds,
 	useFieldHistogram as useBooksFieldHistogram,
 	useFetchFilterBundle as useFetchBooksBundle,
-	useToggleWouldBeEmpty,
+	useIsToggleDisabled,
 } from '../filter-bundle/index.js';

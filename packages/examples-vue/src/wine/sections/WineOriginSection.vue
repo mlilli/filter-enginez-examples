@@ -26,6 +26,9 @@
  * beneath it reads `1` while producing two hundred results.
  *
  * State is the panel's usual `ref` + one-way `watch`; see `<WineChipSection>`.
+ *
+ * The tree's accessible group name and the height it scrolls within are `WINE_ORIGIN_TREE`, the same
+ * in every app.
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
@@ -40,6 +43,7 @@ import {
 	EMPTY_SELECTION,
 	type OriginNodeSpec,
 	type PickerTreeNode,
+	WINE_ORIGIN_TREE,
 } from '@filter-enginez/examples-shared/wine-domain';
 import { useEngineRefs } from '@filter-enginez/vue-signals';
 import { computed, ref, watch } from 'vue';
@@ -106,7 +110,8 @@ function handleChange(next: readonly string[]): void {
 			v-if="tree"
 			:counts="counts"
 			:disabled="disabled"
-			group-label="Origin"
+			:group-label="WINE_ORIGIN_TREE.groupLabel"
+			:max-height="WINE_ORIGIN_TREE.maxHeight"
 			:selected="selected"
 			:tree="tree"
 			@change="handleChange"

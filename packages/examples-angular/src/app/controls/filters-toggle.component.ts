@@ -1,8 +1,8 @@
 /**
- * `<fe-filters-toggle>` — the mobile "Filters" button that opens and closes the sidebar drawer.
+ * `<fe-filters-toggle>` — the mobile "Filters" button that opens and closes the inline filter collapse.
  *
  * @remarks
- * Rendered only below the `lg` breakpoint, where the filter panel is a drawer rather than a
+ * Rendered only below the `lg` breakpoint, where the filter panel collapses rather than being a
  * permanent sidebar; above it the panel is always open and this button would be a control with
  * nothing to control. The page owns that decision — see `viewport/desktop-breakpoint.ts` — and
  * simply does not render this component on desktop.
@@ -13,7 +13,7 @@
  * hamburger path and the same `'Hide filters' : 'Filters'` ternary, and the shared `<fe-result-grid>`
  * beside it exists on exactly the argument that a third copy is the line.
  * Consistency here is also user-visible in a way a helper usually is not: the icon, the label and the
- * `aria-expanded` wiring are the affordance, and one page drifting is one page where the drawer
+ * `aria-expanded` wiring are the affordance, and one page drifting is one page where the collapse
  * announces itself differently to a screen reader.
  *
  * All styling is `fe-books-app__filters-toggle` from `@filter-enginez/ui-styles`. That prefix is the
@@ -58,7 +58,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 	`,
 })
 export class FiltersToggleComponent {
-	/** Whether the drawer is currently open. Drives both the label and `aria-expanded`. */
+	/** Whether the collapse is currently open. Drives both the label and `aria-expanded`. */
 	public readonly isOpen = input.required<boolean>();
 
 	/**

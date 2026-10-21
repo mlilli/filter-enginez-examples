@@ -16,6 +16,7 @@
 import type { Book } from '@filter-enginez/mock-data/books';
 
 import { buildRuleSummaries } from '@filter-enginez/examples-shared/books-domain';
+import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
 import { useBusy, useEngineRefs, useFilterEngine } from '@filter-enginez/vue-signals';
 import { computed } from 'vue';
 
@@ -36,16 +37,16 @@ function handleRemoveRule(ruleId: string): void {
 	engine.core.removeRule(ruleId);
 }
 
-/** Clear every active rule (the "Clear all" link). */
+/** Clear every active rule (the "Clear all" link) — the shared gesture every dataset's header calls. */
 function handleClearAll(): void {
-	markUserAction();
-	engine.core.clearRules();
+	clearAllFilters(engine, markUserAction);
 }
 </script>
 
 <template>
 	<ResultsHeader
 		:active-filters="summaries"
+		dataset="books"
 		:is-busy="isEngineBusy"
 		:recent-rule-id="lastChange.ruleId"
 		:result-count="resultCount"

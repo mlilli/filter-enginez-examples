@@ -4,9 +4,11 @@
  *
  * @remarks
  * The screens: the books and real-estate boot captions, the wine boot loader (which `/wine-server`
- * shows too while it connects), the wine and real-estate boot failures, the two server routes'
+ * shows too while it connects), the wine, books and real-estate boot failures (each saying the
+ * shared `BOOT_FAILURE_COPY` words around the error's own message), the two server routes'
  * server-rendered fallbacks (their no-JavaScript page, and what stays up while the live engine
- * connects or after it fails), and the error page. An accessibility audit often runs while one of
+ * connects or after it fails), and the error page (the not-found page for a 404, the page-error
+ * screen for anything else). An accessibility audit often runs while one of
  * them is up — the 150,000-wine tier takes a while to generate — and a page with no `<main>` fails it
  * however good the booted view is. Each booted view carries its own `<main>` in its markup.
  *
@@ -16,6 +18,8 @@
  * @packageDocumentation
  */
 
+import { BOOT_FAILURE_COPY } from '@filter-enginez/examples-shared/boot-caption';
+import { PAGE_ERROR_HINT, PAGE_ERROR_TITLE } from '@filter-enginez/examples-shared/page-error-core';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -124,7 +128,29 @@ describe('a failed boot', () => {
 		await waitFor(() => {
 			expect(screen.getByRole('alert')).toBeDefined();
 		});
-		expect(within(onlyMain()).getByText('the worker died')).toBeDefined();
+		const alert = within(onlyMain()).getByRole('alert');
+
+		expect(within(alert).getByText('the worker died')).toBeDefined();
+		expect(within(alert).getByText(BOOT_FAILURE_COPY.wine.title)).toBeDefined();
+		expect(alert.textContent).toContain(BOOT_FAILURE_COPY.wine.hint);
+		expect(alert.textContent.replace(/\s+/gu, ' ')).toContain(
+			'Set VITE_WINE_TIER=default to boot the 10,000-wine default tier on the main thread instead.',
+		);
+	});
+
+	it('/books shows the failure in one main landmark, rather than its caption forever', async () => {
+		boots.books.mockRejectedValue(new Error('corpus fetch returned 500'));
+		render(BooksPage);
+
+		await waitFor(() => {
+			expect(screen.getByRole('alert')).toBeDefined();
+		});
+		const alert = within(onlyMain()).getByRole('alert');
+
+		expect(within(alert).getByText(BOOT_FAILURE_COPY.books.title)).toBeDefined();
+		expect(within(alert).getByText('corpus fetch returned 500')).toBeDefined();
+		expect(alert.textContent).toContain(BOOT_FAILURE_COPY.books.hint);
+		expect(document.querySelector('.fe-boot-caption')).toBeNull();
 	});
 
 	it('/real-estate shows the failure in one main landmark', async () => {
@@ -134,7 +160,11 @@ describe('a failed boot', () => {
 		await waitFor(() => {
 			expect(screen.getByRole('alert')).toBeDefined();
 		});
-		expect(within(onlyMain()).getByText('corpus fetch returned 503')).toBeDefined();
+		const alert = within(onlyMain()).getByRole('alert');
+
+		expect(within(alert).getByText('corpus fetch returned 503')).toBeDefined();
+		expect(within(alert).getByText(BOOT_FAILURE_COPY['real-estate'].title)).toBeDefined();
+		expect(alert.textContent).toContain(BOOT_FAILURE_COPY['real-estate'].hint);
 	});
 });
 
@@ -156,6 +186,27 @@ describe('the server routes’ fallbacks', () => {
 
 		expect(onlyMain().querySelector('form')).not.toBeNull();
 		expect(pageBanners()).toHaveLength(1);
+	});
+
+	it('/books-server says what every app says while it connects, and when the server is unreachable', () => {
+		const props = {
+			applied: { genres: [], minRating: null, search: '' },
+			genres: ['fantasy'],
+			matched: 0,
+			sample: [],
+			total: 10,
+		};
+		const connecting = render(BooksServerFallback, { ...props, bootError: null, booting: true });
+
+		expect(onlyMain().textContent).toContain('Filtering on the Node server · fetching corpus + initial state');
+		connecting.unmount();
+
+		render(BooksServerFallback, { ...props, bootError: 'fetch failed', booting: false });
+		const alert = within(onlyMain()).getByRole('alert');
+
+		expect(within(alert).getByText('Can\'t reach the filter server')).toBeDefined();
+		expect(within(alert).getByText('fetch failed')).toBeDefined();
+		expect(alert.textContent.replace(/\s+/gu, ' ')).toMatch(/Start it with .+, then refresh\./u);
 	});
 
 	it.each([
@@ -185,6 +236,25 @@ describe('the error page', () => {
 		render(ErrorPage);
 
 		expect(onlyMain().classList.contains('fe-notfound')).toBe(true);
+		expect(screen.queryByRole('alert')).toBeNull();
+		window.history.replaceState(null, '', '/');
+	});
+
+	it('puts the page-error screen, not the not-found page, in one main landmark for a 500', () => {
+		// A load that threw is not a missing address: the words every app shows when a page cannot
+		// load, with the error's own message.
+		window.history.replaceState(null, '', '/wine');
+		showTestPageError(500, 'the load threw');
+		render(ErrorPage);
+
+		const main = onlyMain();
+		const alert = within(main).getByRole('alert');
+
+		expect(main.classList.contains('fe-notfound')).toBe(false);
+		expect(within(alert).getByText(PAGE_ERROR_TITLE)).toBeDefined();
+		expect(within(alert).getByText('the load threw')).toBeDefined();
+		expect(within(alert).getByText(PAGE_ERROR_HINT)).toBeDefined();
+		expect(within(alert).getByRole('link').getAttribute('href')).toBe('/');
 		window.history.replaceState(null, '', '/');
 	});
 });

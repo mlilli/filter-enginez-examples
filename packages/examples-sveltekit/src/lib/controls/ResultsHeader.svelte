@@ -23,6 +23,7 @@
 
 	import type { Readable } from 'svelte/store';
 
+	import { RESULT_COPY, type ResultDataset } from '@filter-enginez/examples-shared/verticals';
 	import ComputingIndicator from '$lib/brand/ComputingIndicator.svelte';
 	import ResultCount from '$lib/brand/ResultCount.svelte';
 
@@ -47,10 +48,13 @@
 	interface Props {
 		/** The chips to render, in engine rule order. */
 		readonly activeFilters: readonly ActiveFilterSummary[];
+		/**
+		 * Which dataset the header counts: its noun beside the count (`bottles`, `results`, `listings`)
+		 * is `RESULT_COPY[dataset].noun`, the same word every app uses.
+		 */
+		readonly dataset: ResultDataset;
 		/** Busy store — OR'd with the count roll so the indicator stays lit for the whole transition. */
 		readonly isBusy: Readable<boolean>;
-		/** Label beside the count — `results`, `bottles`, `listings`. */
-		readonly noun?: string;
 		/** Drop every filter. */
 		readonly onClearAll: () => void;
 		/** Drop one filter. */
@@ -65,8 +69,8 @@
 
 	const {
 		activeFilters,
+		dataset,
 		isBusy,
-		noun = 'results',
 		onClearAll,
 		onRemove,
 		recentRuleId = null,
@@ -80,6 +84,9 @@
 	// engine a recompute resolves within the frame, so `isBusy` alone would flash for one tick and the
 	// indicator would look broken rather than fast.
 	const isComputing = $derived($isBusy || isTicking);
+
+	/** The word after the count. */
+	const noun = $derived(RESULT_COPY[dataset].noun);
 </script>
 
 <div class="fe-results-header">

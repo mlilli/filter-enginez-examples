@@ -2,11 +2,13 @@
  * `<fe-wine-range-section>` — one `RangeRule` slider with predictive bounds and a histogram.
  *
  * @remarks
- * Price, points and ABV are the same facet three times over, differing only in field, label and drag
+ * Price, points and ABV are the same facet three times over, differing only in rule id and drag
  * step. Everything else is keyed off the rule id in `wine-domain`, the declarations every app's wine
- * panel reads: the track's scale (`wineSliderScale` — log for price, linear for points and ABV), the
- * bars sliced for that scale (`wineSliderHistogram`), and the readout format and typed-text parser
- * (`WINE_SLIDER_TEXT`, so price reads `$1,250` and accepts it back). Taking any of them as an input
+ * panel reads: the label and the thumbs' accessible-name stem (`WINE_SLIDER_COPY`), the track's scale
+ * (`wineSliderScale` — log for price, linear for points and ABV), the bars sliced for that scale
+ * (`wineSliderHistogram`), the readout format and typed-text parser (`WINE_SLIDER_TEXT`, so price
+ * reads `$1,250` and accepts it back) and the rule a position commits (`wineRangeRule`, whose price
+ * top thumb at the top of the track commits an open `max: Infinity`). Taking any of them as an input
  * would let one app's price slider drift from the other five.
  *
  * **The handle span is a writable derived, not a `computed`** — the pattern `adopted-rule-state.ts`
@@ -16,8 +18,8 @@
  *
  * An absent rule renders as the full baseline track, which is exactly what no constraint means. That
  * is spelled `null` rather than `min === 0`, which would collide with a genuine selection whose lower
- * bound is zero. An infinite `max` — which only reaches this route through a `?f` link from React's
- * open-ended price slider — reads back as the baseline maximum rather than as an infinite handle.
+ * bound is zero. An infinite `max` (the open-ended price top) reads back as the track's top rather than
+ * as an infinite handle.
  *
  * @packageDocumentation
  */
@@ -26,13 +28,15 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { injectFilterEngine } from '@filter-enginez/angular-rxjs';
-import { range, type RangeRule } from '@filter-enginez/core';
+import { type RangeRule } from '@filter-enginez/core';
 import {
 	commitRule,
 	FALLBACK_BOUNDS,
 	fieldBounds,
-	type SliderFieldId,
+	WINE_SLIDER_COPY,
 	WINE_SLIDER_TEXT,
+	wineRangeRule,
+	type WineRangeSliderId,
 	wineSliderHistogram,
 	wineSliderScale,
 } from '@filter-enginez/examples-shared/wine-domain';
@@ -48,12 +52,12 @@ import { injectWineBundle } from '../wine-bundle.js';
 	template: `
 		<section>
 			<fe-range-slider
-				[ariaLabel]="sliderLabel()"
+				[ariaLabel]="copy().sliderLabel"
 				[available]="available()"
 				[baseline]="baseline()"
 				[format]="text().format"
 				[histogram]="histogram()"
-				[label]="label()"
+				[label]="copy().label"
 				[parse]="text().parse"
 				[scale]="scale()"
 				[step]="step()"
@@ -65,19 +69,11 @@ import { injectWineBundle } from '../wine-bundle.js';
 	`,
 })
 export class WineRangeSectionComponent {
-	/** The `Wine` property the `RangeRule` constrains — `priceUsd` for the `price` rule. */
-	public readonly field = input.required<string>();
-
-	public readonly label = input.required<string>();
-
 	/** Drops any active preset — a facet edit means the user is back in flat-map mode. */
 	public readonly leaveExpressionMode = input.required<() => void>();
 
 	/** Rule id — also the key into the shared baselines and the bundle's field metadata. */
-	public readonly ruleId = input.required<Extract<SliderFieldId, 'abv' | 'points' | 'price'>>();
-
-	/** Accessible name for the slider group. */
-	public readonly sliderLabel = input.required<string>();
+	public readonly ruleId = input.required<WineRangeSliderId>();
 
 	/** Drag granularity. NOT `SLIDER_STEPS` — see the panel's `DRAG_STEPS`. */
 	public readonly step = input.required<number>();
@@ -116,6 +112,9 @@ export class WineRangeSectionComponent {
 	 * bars on one axis.
 	 */
 	protected readonly scale = computed(() => wineSliderScale(this.ruleId(), this.baseline()));
+
+	/** The slider's label and its thumbs' accessible-name stem. */
+	protected readonly copy = computed(() => WINE_SLIDER_COPY[this.ruleId()]);
 
 	/** This field's shared readout format and typed-text parser. */
 	protected readonly text = computed(() => WINE_SLIDER_TEXT[this.ruleId()]);
@@ -164,6 +163,6 @@ export class WineRangeSectionComponent {
 		// Locally first: on the worker tier the engine's own value lags a full round trip, so waiting
 		// for the recompute would snap the handle backwards mid-drag.
 		this.span.set({ max: next.max, min: next.min });
-		commitRule(this._engine, this.ruleId(), range(this.field(), next));
+		commitRule(this._engine, this.ruleId(), wineRangeRule(this.ruleId(), next, this.baseline()));
 	}
 }

@@ -63,6 +63,7 @@
 		SLIDER_STEPS,
 	} from '@filter-enginez/examples-shared/real-estate-domain';
 	import RealEstateView from '$lib/real-estate/RealEstateView.svelte';
+	import BootFailureScreen from '$lib/shell/BootFailureScreen.svelte';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -175,13 +176,7 @@
 </script>
 
 {#if bootError !== null}
-	<!-- `<main>` around the alert rather than on it: a `role` on the element would replace the landmark. -->
-	<main>
-		<div class="fe-boot-error" role="alert">
-			<p class="fe-boot-error__title">The real-estate engine did not boot</p>
-			<p class="fe-boot-error__detail">{bootError}</p>
-		</div>
-	</main>
+	<BootFailureScreen dataset="real-estate" message={bootError} />
 {:else if engine}
 	<RealEstateView {baselines} {engine} {locationSpecs} {locationTree} {metroCenters} {vocabularies} />
 {:else}
@@ -199,34 +194,3 @@
 	</main>
 {/if}
 
-<style>
-	/* Local, not in ui-styles: a boot-failure panel is one route's copy, and the wine route's
-	 * equivalent block says something entirely different (it names the corpus-generation commands).
-	 * Two error states that share only a border color are not a shared component. */
-	.fe-boot-error {
-		margin: 3rem auto;
-		max-width: 34rem;
-		padding: 1.5rem;
-		border: 1px solid var(--gray-4);
-		border-radius: var(--radius-lg);
-		background: var(--gray-1);
-	}
-
-	.fe-boot-error__title {
-		margin: 0 0 0.5rem;
-		color: var(--danger);
-		font-weight: 600;
-	}
-
-	.fe-boot-error__detail {
-		margin: 0;
-		color: var(--gray-9);
-		font-family: var(--font-mono);
-		font-size: 0.8125rem;
-	}
-
-	/* The boot caption is styled entirely by `ui-styles`: `.fe-boot-caption--inline` for the element
-	   and `.fe-boot-caption__value` for its live count, defined once for every app. A scoped copy
-	   here would style only this page, and an `fe-` class that no `fe-*` stylesheet declares renders
-	   unstyled with no warning. */
-</style>

@@ -31,9 +31,10 @@
  *
  * ## Two body modifiers, and they mean different things
  *
- * `--busy` dims and blocks pointer events while a recompute is in flight. `--expression` marks the
- * sections dormant because a preset is driving the results. They are deliberately NOT the same state
- * and never share a class: one is transient and one is chosen.
+ * `--busy` dims and blocks pointer events (with `aria-busy="true"`) from the frame a write is marked
+ * until the engine settles on it — {@link WinePanel.setBusy}, driven by the shared `wineBusyCore`.
+ * `--expression` marks the sections dormant because a preset is driving the results. They are
+ * deliberately NOT the same state and never share a class: one is transient and one is chosen.
  *
  * `inert` is applied for expression mode ONLY. It removes descendants from the focus order and
  * **blurs whatever is focused inside**, which on a transient state is user-hostile — committing a
@@ -81,8 +82,6 @@ export interface WinePanelState {
 	 * The page reads it once, at the point the settle is already known to have landed.
 	 */
 	readonly expression: CompositeRule | null;
-	/** Whether a recompute is in flight — dims the sections without touching focus. */
-	readonly isComputing: boolean;
 	/** The engine's committed rule map. */
 	readonly rules: ReadonlyMap<RuleId, FilterRule>;
 }
@@ -95,6 +94,12 @@ export interface WinePanel {
 	readonly element: HTMLElement;
 	/** The `applyFiltersAndQuery` query describing every facet this panel predictive-disables. */
 	readonly query: WineBundleQuery;
+	/**
+	 * Whether the wine busy tracker says a write is still settling — dims the sections without
+	 * touching focus. Separate from {@link WinePanel.update} because it turns on in the click's own
+	 * frame, a full round trip before the settle that `update` paints.
+	 */
+	readonly setBusy: (isBusy: boolean) => void;
 	/** Re-apply engine state to every section and to the body modifiers. */
 	readonly update: (state: WinePanelState) => void;
 }
@@ -173,6 +178,43 @@ export function createWinePanel(core: FilterEngine<Wine>): WinePanel {
 		children: [panelHeader(), scrollerElement],
 		className: 'fe-filter-panel',
 	});
+	let isBusy = false;
+	let isExpressionMode = false;
+
+	/**
+	 * `--busy` only while NOT in expression mode: a dormant panel is already dimmed, and stacking both
+	 * reads as a recompute that never ends.
+	 */
+	function paintBodyModifiers(): void {
+		const isBodyBusy = isBusy && !isExpressionMode;
+
+		sectionsElement.classList.toggle('fe-filter-panel__body--busy', isBodyBusy);
+		sectionsElement.setAttribute('aria-busy', String(isBodyBusy));
+		sectionsElement.classList.toggle('fe-filter-panel__body--expression', isExpressionMode);
+		// See the docblock: expression mode only, never for computing.
+		sectionsElement.toggleAttribute('inert', isExpressionMode);
+	}
+
+	/**
+	 * Paint every section, the presets and the body modifiers from one engine state.
+	 *
+	 * @param state - The state to paint.
+	 */
+	function paint({ bundle, expression, rules }: WinePanelState): void {
+		isExpressionMode = expression !== null;
+		smartFilters.update(expression);
+		for (const entry of sections) {
+			entry.update({ bundle, rules });
+		}
+		paintBodyModifiers();
+	}
+
+	// The first frame, painted here rather than on the first bundle's settle, which is a worker round
+	// trip away: the controls must read the engine's state the moment the panel is in the document, as
+	// they do in every other app — a slider's bounds and fields, every chip, the menus. The bundle-
+	// derived hints (disabled chips, counts, histograms) follow with the first settle. Every section
+	// reconciles in place, so that repaint replaces no element a click may be aimed at.
+	paint({ bundle: null, expression: core.getExpression(), rules: core.getRules() });
 
 	return {
 		dispose: () => {
@@ -182,22 +224,10 @@ export function createWinePanel(core: FilterEngine<Wine>): WinePanel {
 		},
 		element,
 		query,
-		update: ({ bundle, expression, isComputing, rules }) => {
-			const isExpressionMode = expression !== null;
-
-			smartFilters.update(expression);
-			for (const entry of sections) {
-				entry.update({ bundle, rules });
-			}
-			// `--busy` only while NOT in expression mode: a dormant panel is already dimmed, and
-			// stacking both reads as a recompute that never ends.
-			sectionsElement.classList.toggle(
-				'fe-filter-panel__body--busy',
-				isComputing && !isExpressionMode,
-			);
-			sectionsElement.classList.toggle('fe-filter-panel__body--expression', isExpressionMode);
-			// See the docblock: expression mode only, never for computing.
-			sectionsElement.toggleAttribute('inert', isExpressionMode);
+		setBusy: (nextIsBusy) => {
+			isBusy = nextIsBusy;
+			paintBodyModifiers();
 		},
+		update: paint,
 	};
 }

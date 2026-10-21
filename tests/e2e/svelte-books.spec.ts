@@ -7,8 +7,8 @@
  * svelte-signals` binding a main-thread engine, reusing the shared `ui-styles` `fe-*` classes — so the
  * selectors are identical to the React specs. Two Svelte-specific differences from `books.spec.ts`:
  *
- *   - **No off-canvas drawer.** The mobile filter panel is an inline collapse toggled by a "Filters"
- *     button (not a `dialog`), so `openFilterPanel` just expands it — there's nothing to close.
+ *   - **The mobile collapse.** The filter panel is an inline collapse toggled by a "Filters" button
+ *     and kept mounted under `hidden`, so `openFilterPanel` just expands it — there's nothing to close.
  *   - **Absolute URLs.** Playwright's `baseURL` is the React app; these navigate to the SvelteKit
  *     origin via `svelteUrl(...)`.
  *
@@ -19,6 +19,8 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { BOOKS_SEARCH_COPY } from '../../packages/examples-shared/src/books/books-domain/panelCopy.js';
+import { describeBooksParity } from './booksParity.js';
 import {
 	ACTIVE_CHIP,
 	expectPanelScrollsToLastControl,
@@ -93,7 +95,7 @@ test.describe('SvelteKit books app — filter flow', () => {
 
 		// Without `fe-filter-panel__scroller` the panel stops scrolling and the PAGE scrolls instead,
 		// which nothing else notices. See the helper.
-		await expectPanelScrollsToLastControl(page, 'input[aria-label="Filter by ISBN-13 pattern (regular expression)"]');
+		await expectPanelScrollsToLastControl(page, `input[aria-label="${BOOKS_SEARCH_COPY.isbn.ariaLabel}"]`);
 	});
 
 	test('the booted page has no serious or critical accessibility violations', async ({ page }, testInfo) => {
@@ -112,3 +114,5 @@ test.describe('SvelteKit books app — filter flow', () => {
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
 });
+
+describeBooksParity({ id: 'sveltekit', label: 'SvelteKit' });

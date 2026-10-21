@@ -64,6 +64,7 @@ import {
 import { computed, onMounted, onUnmounted, shallowRef } from 'vue';
 
 import RealEstateView from '../real-estate/RealEstateView.vue';
+import BootFailureScreen from '../shell/BootFailureScreen.vue';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
 const EMPTY_VOCABULARIES: RealEstateChipVocabularies = {
@@ -178,13 +179,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<!-- `<main>` around the alert rather than on it: a `role` on the element would replace the landmark. -->
-	<main v-if="bootError !== null">
-		<div class="fe-boot-error" role="alert">
-			<p class="fe-boot-error__title">The real-estate engine did not boot</p>
-			<p class="fe-boot-error__detail">{{ bootError }}</p>
-		</div>
-	</main>
+	<!-- The shared failure screen: `BOOT_FAILURE_COPY['real-estate']` in a `role="alert"` inside `<main>`. -->
+	<BootFailureScreen v-if="bootError !== null" dataset="real-estate" :message="bootError" />
 	<RealEstateView
 		v-else-if="engine"
 		:baselines="baselines"
@@ -204,34 +200,3 @@ onUnmounted(() => {
 		</p>
 	</main>
 </template>
-
-<style scoped>
-/* Local, not in ui-styles: a boot-failure panel is one route's copy, and the equivalent block on
- * other verticals' wine routes says something entirely different (it names the corpus-generation
- * commands). Two error states that share only a border color are not a shared component. */
-.fe-boot-error {
-	margin: 3rem auto;
-	max-width: 34rem;
-	padding: 1.5rem;
-	border: 1px solid var(--gray-4);
-	border-radius: var(--radius-lg);
-	background: var(--gray-1);
-}
-
-.fe-boot-error__title {
-	margin: 0 0 0.5rem;
-	color: var(--danger);
-	font-weight: 600;
-}
-
-.fe-boot-error__detail {
-	margin: 0;
-	color: var(--gray-9);
-	font-family: var(--font-mono);
-	font-size: 0.8125rem;
-}
-
-/* The boot caption's styles are NOT here: its live count is `.fe-boot-caption__value` and the inline
-   layout is `.fe-boot-caption--inline`, both declared once in `ui-styles` for every vertical. A
-   scoped copy of a class another route also uses is inert exactly until one of the copies changes. */
-</style>

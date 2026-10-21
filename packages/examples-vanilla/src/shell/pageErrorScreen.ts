@@ -6,7 +6,7 @@
  * The markup and words every app renders for this (`@filter-enginez/examples-shared/page-error-core`),
  * built by hand over the shared `.fe-page-error*` classes. The router paints it into the failed
  * route's mount (`startRouter`'s `renderError`, wired in `main.ts`), in place of the empty page the
- * failure would otherwise leave. The `/wine` boot failure (`wine/bootScreen.ts`) is the same shape:
+ * failure would otherwise leave. A dataset's boot failure (`shell/bootFailure.ts`) is the same shape:
  * one `<main>` around a `role="alert"` card.
  *
  * @packageDocumentation

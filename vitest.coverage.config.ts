@@ -159,20 +159,21 @@ export const COVERAGE_EXCLUDE: readonly string[] = [
 	// Every path is pinned by tests/tooling/vanillaCoverageExclusions.test.ts, so the list
 	// cannot rot into globs matching nothing while quietly implying they matter.
 	//
-	// The entry point and five route shells: reached by NO test. They boot an engine, mount
-	// a view and wire subscriptions — the category the whole-file exception already covers for
-	// examples-server's `cli.ts` / `server.ts`.
+	// The entry point and five route shells. They boot an engine, mount a view and wire
+	// subscriptions — the category the whole-file exception already covers for examples-server's
+	// `cli.ts` / `server.ts`. Their tests reach the boot-failure screens only; the booted path runs
+	// in tests/e2e.
 	'**/examples-vanilla/src/main.ts',
 	'**/examples-vanilla/src/pages/booksPage.ts',
 	'**/examples-vanilla/src/pages/booksRawPage.ts',
 	'**/examples-vanilla/src/pages/landingPage.ts',
 	'**/examples-vanilla/src/pages/realEstatePage.ts',
 	'**/examples-vanilla/src/pages/wineServerPage.ts',
-	// Browser-geometry bound. jsdom reports every element as 0×0, so the pointer paths (thumb
-	// drag, track click, marker drag) have no geometry to resolve against; the KEYBOARD paths
-	// and the histogram reconciliation ARE covered, in `rangeSlider.test.ts`. Leaflet needs a
-	// real layout box, and the part of the map that DECIDES anything — `radiusMapGeometry` —
-	// is pure and fully tested upstream in examples-shared.
+	// Browser-geometry bound. jsdom lays nothing out, so a thumb drag across a real track (pointer
+	// capture) and the marker drag run only in tests/e2e; the keyboard paths, the typed bounds, track
+	// presses over a stubbed track size and the histogram reconciliation ARE covered, in
+	// `rangeSlider.test.ts`. Leaflet needs a real layout box, and the part of the map that DECIDES
+	// anything — `radiusMapGeometry` — is pure and fully tested upstream in examples-shared.
 	'**/examples-vanilla/src/controls/rangeSlider.ts',
 	'**/examples-vanilla/src/real-estate/geoSection.ts',
 	// Panel BUILDERS — books' twelve sections and wine's two fuzzy-search facets. Declarative lists

@@ -1,5 +1,5 @@
 /**
- * Tests for the app shell's mobile filter drawer — scoped to the `.fe-filter-collapse` contract.
+ * Tests for the app shell's mobile filter collapse — scoped to the `.fe-filter-collapse` contract.
  *
  * @remarks
  * ### Why this file is narrow on purpose
@@ -37,7 +37,7 @@ import { describe, expect, it } from 'vitest';
 import { type DesktopBreakpoint } from '../viewport/desktopBreakpoint.js';
 import { type AppShell, createAppShell } from './appShell.js';
 
-/** The three states the drawer can be in, as the shell sees them. */
+/** The three states the collapse can be in, as the shell sees them. */
 interface BreakpointState {
 	readonly isDesktop: boolean;
 	readonly isFilterOpen: boolean;
@@ -52,7 +52,7 @@ interface BreakpointState {
  * mirrors the real implementation's `isDesktop || isFilterOpen` rather than being independently
  * settable, so a test cannot describe a combination the tracker cannot produce.
  *
- * @param state - The initial breakpoint + drawer state.
+ * @param state - The initial breakpoint + collapse state.
  * @returns The fake plus a setter for driving it between `syncPanelVisibility()` calls.
  */
 function fakeBreakpoint(state: BreakpointState): {
@@ -82,7 +82,7 @@ function fakeBreakpoint(state: BreakpointState): {
  * Mount a shell over a recognizable panel.
  *
  * @param state - The breakpoint state to boot in.
- * @returns The shell, its drawer readers, and the state setter.
+ * @returns The shell, its collapse readers, and the state setter.
  */
 function mountShell(state: BreakpointState) {
 	const { breakpoint, set } = fakeBreakpoint(state);
@@ -128,7 +128,7 @@ describe('the .fe-filter-collapse wrapper', () => {
 		expect(collapse.style.display).toBe('');
 	});
 
-	it('hides the closed mobile drawer by ATTRIBUTE, never by inline display', () => {
+	it('hides the closed mobile collapse by ATTRIBUTE, never by inline display', () => {
 		// The mutation this file exists for. `setHidden` would give `display: 'none'` and no
 		// attribute; both assertions invert, and the result is an unbounded panel scroller.
 		const { collapse } = mountShell({ isDesktop: false, isFilterOpen: false });
@@ -137,7 +137,7 @@ describe('the .fe-filter-collapse wrapper', () => {
 		expect(collapse.style.display).toBe('');
 	});
 
-	it('reveals it again when the drawer opens, still without an inline display', () => {
+	it('reveals it again when the collapse opens, still without an inline display', () => {
 		const { collapse, set, shell } = mountShell({ isDesktop: false, isFilterOpen: false });
 
 		set({ isDesktop: false, isFilterOpen: true });
@@ -147,7 +147,7 @@ describe('the .fe-filter-collapse wrapper', () => {
 		expect(collapse.style.display).toBe('');
 	});
 
-	it('re-hides it when a resize drops below the breakpoint with the drawer closed', () => {
+	it('re-hides it when a resize drops below the breakpoint with the collapse closed', () => {
 		// Crossing back is the path the real tracker takes on rotate, and the one where a
 		// write-only-on-hide implementation would leave the wrapper stuck open.
 		const { collapse, set, shell } = mountShell({ isDesktop: true, isFilterOpen: true });
@@ -170,13 +170,13 @@ describe('the filters toggle', () => {
 		expect(toggle?.style.display).toBe('none');
 	});
 
-	it('actually opens the drawer when clicked', () => {
+	it('actually opens the collapse when clicked', () => {
 		// Found by a coverage probe, and it is the gap worth being embarrassed about: the
 		// two cases below assert what the button SAYS in each state, and nothing asserted that
 		// pressing it does anything at all. A button wired to nothing passed both.
 		//
 		// The click must be the ONLY thing that moves the state. Setting `isFilterOpen` by hand here
-		// and then asserting the drawer opened would pass over a toggle wired to nothing — the fake
+		// and then asserting the collapse opened would pass over a toggle wired to nothing — the fake
 		// implements `toggleFilters`, so letting the click drive it is what makes this fatal.
 		const { collapse, shell, toggle } = mountShell({ isDesktop: false, isFilterOpen: false });
 
@@ -191,7 +191,7 @@ describe('the filters toggle', () => {
 		expect(toggle?.getAttribute('aria-expanded')).toBe('true');
 	});
 
-	it('announces the drawer state through aria-expanded and its label together', () => {
+	it('announces the collapse state through aria-expanded and its label together', () => {
 		// Two channels, deliberately: `aria-expanded` for a screen reader and the visible word for
 		// everyone else. Fixing one and not the other is how a page says two different things.
 		const { set, shell, toggle } = mountShell({ isDesktop: false, isFilterOpen: false });

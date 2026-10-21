@@ -14,8 +14,9 @@
  * must render the full baseline track, and it must do so without being confusable with a genuine
  * selection whose lower bound happens to be zero.
  *
- * The last pins what the section hands its slider from the shared wine declarations — the track scale
- * and the readout text — so this app's price track matches every other app's.
+ * The last pin what the section hands its slider from the shared wine declarations — the track scale,
+ * the readout text, the label and the thumbs' names — and the rule it commits through `wineRangeRule`,
+ * so this app's price track matches every other app's.
  */
 
 import type { SliderScale } from '@filter-enginez/examples-shared/bounds';
@@ -23,7 +24,12 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { range, type RangeRule } from '@filter-enginez/core';
-import { FALLBACK_BOUNDS, WINE_SLIDER_TEXT, wineSliderScale } from '@filter-enginez/examples-shared/wine-domain';
+import {
+	FALLBACK_BOUNDS,
+	WINE_SLIDER_COPY,
+	WINE_SLIDER_TEXT,
+	wineSliderScale,
+} from '@filter-enginez/examples-shared/wine-domain';
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { shallowRef } from 'vue';
@@ -55,11 +61,8 @@ function mountSection(): ReturnType<typeof mount> {
 	return mount(WineRangeSection, {
 		props: {
 			engine: fakeEngine(),
-			field: 'priceUsd',
-			label: 'Price (USD)',
 			leaveExpressionMode: (): void => undefined,
 			ruleId: 'price',
-			sliderLabel: 'Filter by price',
 			step: 5,
 		},
 	});
@@ -136,5 +139,45 @@ describe('<WineRangeSection>', () => {
 		expect(slider.props('parse')).toBe(WINE_SLIDER_TEXT.price.parse);
 		// The readout the user sees, through that formatter: thousands separated.
 		expect(slider.find('.fe-range-slider__summary').text()).toBe('$4 — $3,242');
+	});
+
+	it('labels the slider and names its thumbs from WINE_SLIDER_COPY', () => {
+		ruleRef.value = undefined;
+
+		const slider = mountSection().findComponent(RangeSlider);
+		const thumbs = slider.findAll('[role="slider"]');
+
+		expect(slider.props('label')).toBe(WINE_SLIDER_COPY.price.label);
+		expect(thumbs[0]?.attributes('aria-label')).toBe(`${WINE_SLIDER_COPY.price.sliderLabel} lower bound`);
+		expect(thumbs[1]?.attributes('aria-label')).toBe(`${WINE_SLIDER_COPY.price.sliderLabel} upper bound`);
+	});
+
+	it('commits an open top through wineRangeRule when the upper thumb reaches the top of the price track', async () => {
+		ruleRef.value = undefined;
+		addRule.mockClear();
+
+		const wrapper = mountSection();
+
+		wrapper.findComponent(RangeSlider).vm.$emit('change', { max: FALLBACK_BOUNDS.price.max, min: 20 });
+		await flushPromises();
+
+		const committed = addRule.mock.calls[0]?.[1] as RangeRule | undefined;
+
+		expect(addRule.mock.calls[0]?.[0]).toBe('price');
+		expect(committed?.config).toMatchObject({ max: Number.POSITIVE_INFINITY, min: 20 });
+		// The open top still paints as the track top.
+		expect(handlePositions(wrapper)).toEqual([20, FALLBACK_BOUNDS.price.max]);
+	});
+
+	it('commits a finite top below the top of the track', async () => {
+		ruleRef.value = undefined;
+		addRule.mockClear();
+
+		const wrapper = mountSection();
+
+		wrapper.findComponent(RangeSlider).vm.$emit('change', { max: 90, min: 20 });
+		await flushPromises();
+
+		expect((addRule.mock.calls[0]?.[1] as RangeRule | undefined)?.config).toMatchObject({ max: 90, min: 20 });
 	});
 });

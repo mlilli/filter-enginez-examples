@@ -12,7 +12,7 @@
 	 * ### Enablement is DERIVED; center and radius are a re-seeded mirror
 	 *
 	 * All three are read out of the committed rule by the shared `deriveGeoRadius`. The rule's PRESENCE is
-	 * the checkbox, so an external `clearAllFacetRules()` or a removed results-header chip unchecks it for
+	 * the checkbox, so an external Clear all or a removed results-header chip unchecks it for
 	 * free — no reset table, no registration handshake, and no way for the panel's list of facets and this
 	 * section's local state to drift apart. Same contract as
 	 * every other facet in the panel, and the same one the Vue and Angular geo sections use.

@@ -253,6 +253,24 @@ describe('bootWineEngine', () => {
 	});
 });
 
+describe('bootWineEngine on a revisit', () => {
+	it('hands the next visit a live facade when a route that left disposed the cached one', async () => {
+		// Svelte and Vue dispose the facade on unmount; reusing it would render the revisited route over
+		// signals that never move.
+		const wineEngine = await loadModule();
+		const first = await wineEngine.bootWineEngine();
+
+		first.engine.dispose();
+
+		const revisited = await wineEngine.bootWineEngine();
+
+		expect(revisited.engine).not.toBe(first.engine);
+		expect(revisited.engine.core).toBe(first.engine.core);
+		expect(revisited.meta).toBe(first.meta);
+		expect((await wineEngine.bootWineEngine()).engine).toBe(revisited.engine);
+	});
+});
+
 describe('FULL_TIER_SIZE', () => {
 	it('matches the full tier the worker generates', async () => {
 		// A local copy, so the main thread does not bundle the generator to read one number. This is

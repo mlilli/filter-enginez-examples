@@ -49,9 +49,11 @@ import {
 	histogramBarHeightPercent,
 	type HistogramBucket,
 	linearSliderScale,
+	nearestThumb,
 	type NumericBounds,
+	resolveTypedBound,
 	type SliderScale,
-	snapToStep,
+	snapClampToBounds,
 	stepScaledValue,
 } from '@filter-enginez/examples-shared/bounds';
 import { el, setHidden } from '@filter-enginez/examples-shared/dom';
@@ -162,16 +164,10 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 	 *
 	 * @remarks
 	 * Through the scale, so the dim bands, the selected segment, the thumbs and the bars all place a
-	 * value at the same spot. The scale already clamps to the track and maps a degenerate baseline to
-	 * `0`, which is what the hand-written proportion here used to do.
+	 * value at the same spot. The scale also clamps to the track and maps a degenerate baseline to `0`.
 	 */
 	function pct(value: number): number {
 		return scale.toFraction(value) * 100;
-	}
-
-	/** Snap a raw value to the step grid, then clamp into the available zone. */
-	function snapClamp(value: number): number {
-		return Math.max(available.min, Math.min(snapToStep(value, step), available.max));
 	}
 
 	/**
@@ -261,16 +257,21 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 
 	/** Commit a candidate `[min, max]`, clamped + ordered. No-ops when unchanged. */
 	function commit(rawMin: number, rawMax: number): void {
-		const nextMin = snapClamp(Math.min(rawMin, rawMax));
-		const nextMax = snapClamp(Math.max(rawMin, rawMax));
+		const nextMin = snapClampToBounds(Math.min(rawMin, rawMax), step, available);
+		const nextMax = snapClampToBounds(Math.max(rawMin, rawMax), step, available);
 
-		if (nextMin === safeLower && nextMax === safeUpper) {
-			dragValue = null;
-			paint();
+		const isUnchanged = nextMin === safeLower && nextMax === safeUpper;
 
-			return;
+		// Painted at once, before the caller hears of it: on a worker-backed engine the next `update`
+		// is a round trip away, and until then a second Arrow press must step from THIS value, not
+		// from the one the engine last confirmed. The caller's `update` re-syncs either way.
+		safeLower = nextMin;
+		safeUpper = nextMax;
+		dragValue = null;
+		paint();
+		if (!isUnchanged) {
+			onChange({ max: nextMax, min: nextMin });
 		}
-		onChange({ max: nextMax, min: nextMin });
 	}
 
 	/**
@@ -285,7 +286,7 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		const rect = track.getBoundingClientRect();
 		const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
 
-		return snapClamp(scale.fromFraction(Math.max(0, Math.min(1, ratio))));
+		return snapClampToBounds(scale.fromFraction(Math.max(0, Math.min(1, ratio))), step, available);
 	}
 
 	function handlePointerMove(event: PointerEvent): void {
@@ -322,42 +323,15 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 	}
 
 	/**
-	 * Which thumb a click at `value` should move.
-	 *
-	 * @remarks
-	 * Nearest wins, with the two outside cases resolved first so a click beyond either end always
-	 * extends rather than inverts the selection. Without that, a click left of both thumbs when they sit
-	 * together would be equidistant, and the tie could pick `upper` — dragging the top of the range down
-	 * past the bottom, which `commit` then silently re-orders into something the user did not ask for.
-	 *
-	 * "Nearest" is measured along the TRACK, through the scale, because that is the distance the user
-	 * sees. On a linear track it is the value distance scaled by a constant, so the choice is unchanged;
-	 * on a log track a $40 gap near the floor can look wider than a $400 one in the tail.
-	 *
-	 * @param value - The value under the pointer.
-	 * @returns The handle to move.
-	 */
-	function pickHandle(value: number): 'lower' | 'upper' {
-		if (value <= displayLower()) {
-			return 'lower';
-		}
-		if (value >= displayUpper()) {
-			return 'upper';
-		}
-
-		const position = scale.toFraction(value);
-
-		return position - scale.toFraction(displayLower()) <= scale.toFraction(displayUpper()) - position
-			? 'lower'
-			: 'upper';
-	}
-
-	/**
 	 * Keyboard stepping — arrows nudge by one scaled step, Home/End jump to the available bounds.
 	 *
 	 * @remarks
 	 * `stepScaledValue` is one `step` on a linear track and about one percent of the track (never less
 	 * than one `step`) on a log track, so a keyboard user crosses either in a bounded number of presses.
+	 *
+	 * Those four keys are the whole keyboard contract, the same in every app: PageUp and PageDown are
+	 * not handled (they keep their default, scrolling the page), and a held Shift does not accelerate
+	 * an arrow, which still moves one scaled step.
 	 */
 	function handleKeydown(handle: 'lower' | 'upper', event: KeyboardEvent): void {
 		const direction = keyboardDirection(event.key);
@@ -381,29 +355,70 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 		}
 	}
 
-	/** Commit an edited text field, clamping + swapping to keep ordering coherent. */
-	function commitText(which: 'lower' | 'upper', raw: string): void {
-		const parsed = parse(raw);
-		const fallback = which === 'lower' ? safeLower : safeUpper;
-		const clamped = Number.isFinite(parsed) ? snapClamp(parsed) : fallback;
+	/**
+	 * Commit an edited text field through the shared `resolveTypedBound`.
+	 *
+	 * @remarks
+	 * Text that is not a number, or a value that snaps to the bound already committed, writes nothing
+	 * and puts the committed value back in the field, formatted: leaving `abc` or `40.2` in a field that
+	 * filters on `40` would show a bound that is not the one filtering. Anything else commits, the pair
+	 * re-ordered so min ≤ max, and the field shows the bound it committed.
+	 *
+	 * @param which - The field that was edited.
+	 * @param input - That field.
+	 */
+	function commitText(which: 'lower' | 'upper', input: HTMLInputElement): void {
+		const committedBound = which === 'lower' ? safeLower : safeUpper;
+		const resolved = resolveTypedBound(parse(input.value), step, available);
+
+		if (resolved === null || resolved === committedBound) {
+			input.value = format(committedBound);
+
+			return;
+		}
 		const other = which === 'lower' ? safeUpper : safeLower;
 
-		commit(which === 'lower' ? clamped : other, which === 'lower' ? other : clamped);
+		commit(which === 'lower' ? resolved : other, which === 'lower' ? other : resolved);
+		// `paint` leaves a focused field alone, and after Enter this one still has focus.
+		input.value = format(which === 'lower' ? safeLower : safeUpper);
 	}
 
-	/** Wire a bound input's blur/Enter commit + Escape revert. */
+	/**
+	 * Wire a bound input's blur/Enter commit and Escape revert.
+	 *
+	 * @remarks
+	 * Enter commits and then blurs the field; Escape puts the committed value back and blurs it. The
+	 * blur either one causes must commit nothing: after Enter the text is already committed, and after
+	 * Escape it is exactly what the user discarded. `blur()` dispatches synchronously, so the flag that
+	 * says so is up only for the length of that call, and a field that was never focused (so never
+	 * blurs) cannot leave it raised for the next real blur.
+	 *
+	 * @param input - The field.
+	 * @param which - Which bound it edits.
+	 */
 	function wireInput(input: HTMLInputElement, which: 'lower' | 'upper'): void {
+		let isBlurFromKeydown = false;
+
+		/** Leave the field without the blur committing it. */
+		function leaveField(): void {
+			isBlurFromKeydown = true;
+			input.blur();
+			isBlurFromKeydown = false;
+		}
+
 		input.addEventListener('blur', () => {
-			commitText(which, input.value);
+			if (!isBlurFromKeydown) {
+				commitText(which, input);
+			}
 		});
 		input.addEventListener('keydown', (event) => {
 			if (event.key === 'Enter') {
 				event.preventDefault();
-				commitText(which, input.value);
-				input.blur();
+				commitText(which, input);
+				leaveField();
 			} else if (event.key === 'Escape') {
 				input.value = format(which === 'lower' ? safeLower : safeUpper);
-				input.blur();
+				leaveField();
 			}
 		});
 	}
@@ -419,7 +434,13 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 	// The thumbs are SIBLINGS of the track, not children, so a press on a thumb never reaches here.
 	track.setAttribute('role', 'presentation');
 	track.addEventListener('pointerdown', (event) => {
-		startDrag(pickHandle(valueFromPointer(event.clientX)), event);
+		// The shared `nearestThumb`: a press beyond either thumb moves that one, and between them the
+		// thumb nearer ON SCREEN moves (track fractions, so a log track picks the one the user pointed
+		// at even when the other is nearer in value). A tie moves the lower thumb.
+		startDrag(
+			nearestThumb(valueFromPointer(event.clientX), displayLower(), displayUpper(), (value) => scale.toFraction(value)),
+			event,
+		);
 		handlePointerMove(event);
 	});
 	lowerThumb.addEventListener('pointerdown', (event) => {

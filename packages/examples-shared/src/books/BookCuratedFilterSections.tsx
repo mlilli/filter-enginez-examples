@@ -34,9 +34,10 @@ import { useSeedAndAdopt } from '../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../scheduling/index.js';
 import { sameMembers, SectionHeader } from './BookFilterSections.js';
 import { deriveSelectedGroupKeys, nextSuperGroupSets, SUPER_GROUP_KEYS } from './books-domain/curated.js';
+import { BOOKS_CHIP_SECTION_LABELS, BOOKS_TOGGLE_LABELS } from './books-domain/panelCopy.js';
 import { CheckboxControl } from './CheckboxControl.js';
 import { markUserAction } from './engineBusy.js';
-import { useBooksChipExclusion, useToggleWouldBeEmpty } from './filterBundle.js';
+import { useBooksChipExclusion, useIsToggleDisabled } from './filterBundle.js';
 
 /** Rule id + registry key for the genre super-groups InSetofSetsRule. */
 const GENRE_GROUPS_RULE_ID = 'genre-groups';
@@ -83,7 +84,7 @@ export const SuperGroupSection = (): React.ReactElement => {
 
 	return (
 		<section>
-			<SectionHeader label="Genre super-groups" />
+			<SectionHeader label={BOOKS_CHIP_SECTION_LABELS.genreGroups} />
 			<ChipToggleGroup<string> options={SUPER_GROUP_KEYS} selected={selectedKeys} onToggle={handleToggle} exclusion={exclusion} />
 		</section>
 	);
@@ -105,11 +106,13 @@ export const FeaturedSection = (props: FeaturedSectionProps): React.ReactElement
 	const { filter } = props;
 	const engine = useFilterEngine<Book>();
 	const rule = useRule(EDITORS_PICKS_RULE_ID) as BloomMembershipRule | undefined;
-	const isChecked = rule !== undefined;
+	// Painted at once and re-adopted when the rule changes from outside: see `CheckboxControl`.
+	const [isChecked, setIsChecked] = useSeedAndAdopt(rule !== undefined);
 	// Predictive-disable: turning this on pre-screens to the featured set; disable when none of the
-	// current results are in it (e.g. a rating cap below the pick threshold), so it can't zero.
+	// current results are in it (e.g. a rating cap below the pick threshold), so it can't zero. Never
+	// while checked, so it can always be turned back off.
 	const candidateRule = useMemo(() => bloomMembership('id', filter), [filter]);
-	const isDisabled = useToggleWouldBeEmpty(candidateRule);
+	const isDisabled = useIsToggleDisabled(candidateRule, isChecked);
 
 	const handleToggle = useCallback((event: React.ChangeEvent<HTMLInputElement>): void => {
 		// Capture the checked state now — `commitFilterMutation` defers `callEngine` to a later frame.
@@ -124,8 +127,9 @@ export const FeaturedSection = (props: FeaturedSectionProps): React.ReactElement
 				}
 			},
 			markBusy: markUserAction,
+			paintOptimisticUi: () => setIsChecked(shouldRequireMembership),
 		});
-	}, [engine, filter]);
+	}, [engine, filter, setIsChecked]);
 
-	return <CheckboxControl isChecked={isChecked} isDisabled={isDisabled} label="Editor's picks (top-rated)" onToggle={handleToggle} />;
+	return <CheckboxControl isChecked={isChecked} isDisabled={isDisabled} label={BOOKS_TOGGLE_LABELS.editorsPicks} onToggle={handleToggle} />;
 };

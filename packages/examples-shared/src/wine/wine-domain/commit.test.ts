@@ -21,10 +21,11 @@
  * @packageDocumentation
  */
 
-import { type CompositeRule, createFilterEngine, type FilterRule, inSet, range, type RuleId } from '@filter-enginez/core';
+import { type CompositeRule, createFilterEngine, type FilterEngineConfig, type FilterRule, inSet, range, type RuleId } from '@filter-enginez/core';
 import { wines } from '@filter-enginez/mock-data/wine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createLinkSerializer } from '../../url/linkSerializer.js';
 import { captureCurrentVersion, getIsEngineBusy, markResolvedAtLeast } from '../engineBusyCore.js';
 import { buildSmartFilterExpression, deriveSelectedPresetIds, WINE_SMART_FILTERS } from '../smartFilters.js';
 import {
@@ -44,11 +45,9 @@ import {
 import { SMART_FILTER_CHIP_ID } from './ruleSummaries.js';
 
 const addRule = vi.fn();
+const clearRules = vi.fn();
 const removeRule = vi.fn();
 const setExpression = vi.fn();
-
-/** The rule ids the fake engine reports as registered. */
-let registeredRuleIds: readonly RuleId[] = [];
 
 /**
  * A structural stand-in for the engine facade.
@@ -56,16 +55,14 @@ let registeredRuleIds: readonly RuleId[] = [];
  * @returns The fake host.
  */
 function fakeHost(): WineEngineHost {
-	const getRules = (): ReadonlyMap<RuleId, unknown> => new Map(registeredRuleIds.map((ruleId) => [ruleId, {}]));
-
-	return { core: { addRule, getRules, removeRule, setExpression }} as unknown as WineEngineHost;
+	return { core: { addRule, clearRules, removeRule, setExpression }} as unknown as WineEngineHost;
 }
 
 beforeEach(() => {
 	addRule.mockClear();
+	clearRules.mockClear();
 	removeRule.mockClear();
 	setExpression.mockClear();
-	registeredRuleIds = [];
 });
 
 describe('commitRule / clearRule / removeFacet', () => {
@@ -78,8 +75,8 @@ describe('commitRule / clearRule / removeFacet', () => {
 	});
 
 	it('clearRule REMOVES rather than writing a neutral rule', () => {
-		// The single most likely thing to get wrong in this file. An empty or "neutral" rule still
-		// participates in the AND; removing is the only way to actually clear a facet.
+		// An empty or "neutral" rule would match the same items, but it would stay registered: in the
+		// `?f=` link, in the devtools log as a change, and in the engine with no control showing it.
 		clearRule(fakeHost(), 'price');
 
 		expect(removeRule).toHaveBeenCalledWith('price');
@@ -104,9 +101,9 @@ describe('commitSelection', () => {
 	});
 
 	it('REMOVES the rule when the selection empties, and never builds one', () => {
-		// An empty `InSetRule` is not a neutral rule — it is a rule that matches nothing, so
-		// "deselect everything" would filter the results to zero rather than clear the facet. The
-		// builder must not even be called, or a future builder with a side effect would still run.
+		// Deselecting the last value leaves no rule behind, so the engine, the `?f=` link and the action
+		// log all say "no filter here". The builder must not even be called, or a future builder with a
+		// side effect would still run.
 		const build = vi.fn((values: readonly string[]) => inSet<string>('color', values));
 
 		commitSelection(fakeHost(), 'color', [], build);
@@ -127,13 +124,27 @@ describe('clearAllFacetRules / clearAllWineFilters', () => {
 		expect(setExpression).not.toHaveBeenCalled();
 	});
 
-	it('clearAllWineFilters ALSO leaves expression mode, as one operation', () => {
-		// The fusion is the point. Splitting these at a call site is how a clear-all comes to drop the
-		// facets while leaving a preset still driving the results, with every control blank.
+	it('clearAllWineFilters is ONE clearRules, which drops every rule and the expression together', () => {
+		// One engine action: one `RULES_CLEARED` in the log, one Undo back, one `reset` event. A
+		// `removeRule` per facet plus a `setExpression` would be fourteen of each, and would miss a rule
+		// under an id no facet lists.
 		clearAllWineFilters(fakeHost());
 
-		expect(removeRule.mock.calls.length).toBe(WINE_FACET_RULE_IDS.length);
-		expect(setExpression).toHaveBeenCalledWith(null);
+		expect(clearRules).toHaveBeenCalledTimes(1);
+		expect(removeRule).not.toHaveBeenCalled();
+		expect(setExpression).not.toHaveBeenCalled();
+	});
+
+	it('clearAllWineFilters routes the clear through a supplied seam, and marks the action busy first', () => {
+		const forward = vi.fn(() => {
+			expect(getIsEngineBusy()).toBe(true);
+		});
+
+		markResolvedAtLeast(captureCurrentVersion());
+		clearAllWineFilters(fakeHost(), forward);
+
+		expect(forward).toHaveBeenCalledTimes(1);
+		expect(clearRules).not.toHaveBeenCalled();
 	});
 });
 
@@ -150,52 +161,83 @@ describe('commitExpression', () => {
 	});
 });
 
-/** A real corpus slice for the one test that needs a real engine round trip. */
+/** A real corpus slice for the tests that need a real engine round trip. */
 const ROWS = wines.slice(0, 400);
 
-describe('rules no facet owns — a restored expression\'s leaves', () => {
-	// `loadConfig` registers each leaf of a restored preset as a flat rule under a minted id. Left in
-	// place, they start filtering the moment the expression is cleared, with no chip explaining them.
-	const RESTORED_LEAVES: readonly RuleId[] = ['__inline_0', '__inline_1'];
+/** The `?f=` codec every app's URL layer builds. */
+const SERIALIZER = createLinkSerializer('human-readable');
 
-	it('clearAllFacetRules drops them along with every facet', () => {
-		registeredRuleIds = ['color', ...RESTORED_LEAVES];
-		clearAllFacetRules(fakeHost());
+/**
+ * The `?f=` value a vertical writes for a preset selection, decoded the way a page restoring it does.
+ *
+ * @param presetIds - The presets the link holds.
+ * @returns The decoded config.
+ */
+function restoredPresetLink(presetIds: readonly string[]): FilterEngineConfig {
+	const donor = createFilterEngine({ sourceData: ROWS });
 
-		const cleared = new Set(removeRule.mock.calls.map(([ruleId]) => ruleId as RuleId));
+	donor.setExpression(buildSmartFilterExpression(presetIds));
 
-		expect(cleared).toEqual(new Set([...WINE_FACET_RULE_IDS, ...RESTORED_LEAVES]));
-	});
+	return SERIALIZER.decode(SERIALIZER.encode(donor.exportConfig()));
+}
 
-	it('exitExpressionMode drops them BEFORE clearing the expression, and keeps a facet\'s own rule', () => {
-		registeredRuleIds = ['color', ...RESTORED_LEAVES];
+/**
+ * The same link as engine 0.0.3 wrote it: its inline rules carry no `inline` mark, and are named only
+ * by the reserved `__inline_<n>` ids the expression references.
+ *
+ * @param presetIds - The presets the link holds.
+ * @returns The decoded config, without the marks.
+ */
+function restoredLegacyPresetLink(presetIds: readonly string[]): FilterEngineConfig {
+	const config = restoredPresetLink(presetIds);
+
+	return { ...config, rules: config.rules.map(({ id, rule }) => ({ id, rule })) };
+}
+
+describe('exitExpressionMode', () => {
+	it('clears the expression and touches no flat rule', () => {
 		exitExpressionMode(fakeHost());
 
-		expect(removeRule.mock.calls).toEqual(RESTORED_LEAVES.map((ruleId) => [ruleId]));
 		expect(setExpression).toHaveBeenCalledWith(null);
-		expect(Math.max(...removeRule.mock.invocationCallOrder)).toBeLessThan(setExpression.mock.invocationCallOrder[0] ?? 0);
+		expect(removeRule).not.toHaveBeenCalled();
+		expect(clearRules).not.toHaveBeenCalled();
 	});
 
-	it('exitExpressionMode marks the action busy', () => {
+	it('marks the action busy', () => {
 		markResolvedAtLeast(captureCurrentVersion());
 		exitExpressionMode(fakeHost());
 
 		expect(getIsEngineBusy()).toBe(true);
 	});
+});
 
-	it('they are really there after a preset link round-trips, and really filter once it is cleared', () => {
-		// The engine behavior the two helpers above exist for, pinned so a change to it is noticed.
-		const donor = createFilterEngine({ sourceData: ROWS });
-
-		donor.setExpression(buildSmartFilterExpression(['pinot-any']));
-
+describe('a preset restored from ?f, then cleared, gives back the full corpus', () => {
+	// "Pinot" is an OR of two varietals: if a restore registered its two leaves as flat rules, clearing
+	// the expression would leave them ANDed together, matching nothing, with no pill to explain it.
+	it.each([
+		['a link written today', restoredPresetLink],
+		['a link written by engine 0.0.3', restoredLegacyPresetLink],
+	])('%s registers no flat rule, and leaving the preset filters nothing', (_label, link) => {
 		const restored = createFilterEngine({ sourceData: ROWS });
 
-		restored.loadConfig(donor.exportConfig());
-		expect([...restored.getRules().keys()].every((ruleId) => !WINE_FACET_RULE_IDS.includes(ruleId))).toBe(true);
-		expect(restored.getRules().size).toBeGreaterThan(0);
+		restored.loadConfig(link(['pinot-any']));
+		expect(deriveSelectedPresetIds(restored.getExpression())).toEqual(['pinot-any']);
+		expect(restored.getResultCount()).toBeLessThan(ROWS.length);
+		expect([...restored.getRules().keys()]).toEqual([]);
 
 		exitExpressionMode({ core: restored });
+		expect(restored.getExpression()).toBeNull();
+		expect([...restored.getRules().keys()]).toEqual([]);
+		expect(restored.getResultCount()).toBe(ROWS.length);
+	});
+
+	it('Clear all after the restore gives back the full corpus too', () => {
+		const restored = createFilterEngine({ sourceData: ROWS });
+
+		restored.loadConfig(restoredLegacyPresetLink(['pinot-any']));
+		clearAllWineFilters({ core: restored });
+
+		expect(restored.getExpression()).toBeNull();
 		expect(restored.getRules().size).toBe(0);
 		expect(restored.getResultCount()).toBe(ROWS.length);
 	});
@@ -252,12 +294,11 @@ describe('removeWineFilterChip', () => {
 		expect(setExpression).not.toHaveBeenCalled();
 	});
 
-	it('the smart-filter chip clears every facet AND leaves expression mode', () => {
+	it('the smart-filter chip clears every facet AND leaves expression mode, as Clear all does', () => {
 		removeWineFilterChip(fakeHost(), SMART_FILTER_CHIP_ID);
 
-		expect(removeRule.mock.calls.length).toBe(WINE_FACET_RULE_IDS.length);
-		expect(removeRule).not.toHaveBeenCalledWith(SMART_FILTER_CHIP_ID);
-		expect(setExpression).toHaveBeenCalledWith(null);
+		expect(clearRules).toHaveBeenCalledTimes(1);
+		expect(removeRule).not.toHaveBeenCalled();
 	});
 
 	it('routes a facet removal through the supplied seam, and the smart-filter chip never through it', () => {
@@ -269,7 +310,15 @@ describe('removeWineFilterChip', () => {
 
 		removeWineFilterChip(fakeHost(), SMART_FILTER_CHIP_ID, forward);
 		expect(forward).toHaveBeenCalledTimes(1);
-		expect(setExpression).toHaveBeenCalledWith(null);
+		expect(clearRules).toHaveBeenCalledTimes(1);
+	});
+
+	it('routes the smart-filter chip\'s clear through the clear seam', () => {
+		const forwardClear = vi.fn();
+
+		removeWineFilterChip(fakeHost(), SMART_FILTER_CHIP_ID, undefined, forwardClear);
+		expect(forwardClear).toHaveBeenCalledTimes(1);
+		expect(clearRules).not.toHaveBeenCalled();
 	});
 });
 

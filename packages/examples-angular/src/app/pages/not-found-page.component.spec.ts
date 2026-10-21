@@ -5,7 +5,8 @@
  * Scoped to the page's header: the brand component's own spec owns the brand's links and names, so
  * this pins only that the 404 carries it, in the compact app header, with the hub link offered and
  * not marked current. The page renders through a real `Router`'s catch-all, the way an unmatched URL
- * reaches it.
+ * reaches it. The body quotes the unmatched PATHNAME only, as every app does, never the query or the
+ * fragment.
  *
  * @packageDocumentation
  */
@@ -18,10 +19,13 @@ import { appHeaderSubtitle, BRAND_NAV_LABEL, HEADER_PAGE_LABELS } from '@filter-
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { LandingPageComponent } from './landing-page.component.js';
-import { NotFoundPageComponent } from './not-found-page.component.js';
+import { NotFoundPageComponent, urlPathname } from './not-found-page.component.js';
 
 /** The rendered 404 page. */
 let page: HTMLElement;
+
+/** The one router harness a test may create. */
+let harness: RouterTestingHarness;
 
 beforeEach(async () => {
 	TestBed.configureTestingModule({
@@ -34,7 +38,7 @@ beforeEach(async () => {
 		],
 	});
 
-	const harness = await RouterTestingHarness.create();
+	harness = await RouterTestingHarness.create();
 
 	await harness.navigateByUrl('/no-such-route', NotFoundPageComponent);
 	page = harness.routeNativeElement as HTMLElement;
@@ -57,5 +61,27 @@ describe('<fe-not-found-page>', () => {
 		);
 		expect(hub?.getAttribute('href')).toBe('/');
 		expect(hub?.hasAttribute('aria-current')).toBe(false);
+	});
+});
+
+describe('<fe-not-found-page> body', () => {
+	it('quotes the pathname only, without the query or the fragment', async () => {
+		// A second unmatched URL: the catch-all reuses the page, which must quote the new path.
+		await harness.navigateByUrl('/another-missing-route?f=h~%7B%7D#top', NotFoundPageComponent);
+		harness.detectChanges();
+
+		const body = (harness.routeNativeElement as HTMLElement).querySelector('.fe-notfound__body')?.textContent ?? '';
+
+		expect(body).toContain('“/another-missing-route” matched no route.');
+		expect(body).not.toContain('?');
+		expect(body).not.toContain('#top');
+	});
+});
+
+describe('urlPathname', () => {
+	it('drops a query and a fragment, and keeps a bare path as is', () => {
+		expect(urlPathname('/a/b?c=1#d')).toBe('/a/b');
+		expect(urlPathname('/a/b#d?c=1')).toBe('/a/b');
+		expect(urlPathname('/a/b')).toBe('/a/b');
 	});
 });

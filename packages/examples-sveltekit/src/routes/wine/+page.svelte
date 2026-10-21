@@ -36,6 +36,7 @@
 		type SliderFieldId,
 		type WineChipVocabularies,
 	} from '@filter-enginez/examples-shared/wine-domain';
+	import BootFailureScreen from '$lib/shell/BootFailureScreen.svelte';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
 	import WineBootScreen from '$lib/wine/WineBootScreen.svelte';
 	import WineView from '$lib/wine/WineView.svelte';
@@ -139,48 +140,14 @@
 </script>
 
 {#if bootError !== null}
-	<!-- `<main>` around the alert rather than on it: a `role` on the element would replace the landmark. -->
-	<main>
-		<div class="fe-wine-error" role="alert">
-			<p class="fe-wine-error__title">The wine engine did not boot</p>
-			<p class="fe-wine-error__detail">{bootError}</p>
-			<p class="fe-wine-error__hint">
-				The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the
-				worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
-				tier on the main thread instead.
-			</p>
-		</div>
-	</main>
+	<!-- The shared boot-failure words, followed by how this Vite build selects the main-thread tier. -->
+	<BootFailureScreen dataset="wine" message={bootError}>
+		{#snippet remedy()}
+			Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default tier on the main thread instead.
+		{/snippet}
+	</BootFailureScreen>
 {:else if engine}
 	<WineView {baselines} compareDataset="wine" {corpusTier} {engine} {originSpecs} {originTree} {vocabularies} />
 {:else}
 	<WineBootScreen {progress} />
 {/if}
-
-<style>
-	.fe-wine-error {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		max-width: 36rem;
-		padding: 4rem 1.5rem;
-	}
-
-	.fe-wine-error__title {
-		/* A boot FAILURE, not engine activity. Phosphor would claim the engine is working. */
-		color: var(--danger);
-		font-size: 1.125rem;
-		font-weight: 600;
-	}
-
-	.fe-wine-error__detail {
-		color: var(--gray-11);
-		font-family: var(--font-mono, monospace);
-		font-size: 0.875rem;
-	}
-
-	.fe-wine-error__hint {
-		color: var(--gray-8);
-		font-size: 0.875rem;
-	}
-</style>

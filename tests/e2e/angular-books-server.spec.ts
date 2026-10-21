@@ -32,7 +32,9 @@
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 import { setTimeout as delay } from 'node:timers/promises';
 
+import { EXAMPLES_SERVER_START_COMMAND } from '../../packages/examples-shared/src/boot-caption/index.js';
 import { angularUrl } from './angularBase.js';
+import { describeBooksServerParity } from './booksServerParity.js';
 import { openFilterPanel, settledCount, type SettledCountOptions } from './filterFlow.js';
 import { subtitle } from './subtitles.js';
 
@@ -43,9 +45,8 @@ const QUERY_ENDPOINT = '**/api/query';
 const INJECTED_LATENCY_MS = 1_500;
 
 /**
- * What "open" means in this vertical: Angular's mobile filter panel is an inline collapse, not a
- * `dialog`, so the panel element appearing IS the readiness signal. (The React verticals wait for
- * react-ui's named off-canvas drawer instead.)
+ * What "open" means in this vertical: Angular's mobile filter panel sits in an inline collapse kept
+ * mounted under `hidden`, so the panel element turning visible IS the readiness signal.
  */
 const BOOKS_PANEL = '.fe-books-panel';
 
@@ -104,8 +105,8 @@ async function gotoBooksServer(page: Page, testInfo: TestInfo): Promise<void> {
 
 	await expect(page.locator('.fe-server-offline')).toHaveCount(0);
 	// The results header, NOT the filter panel: at phone width the panel sits behind the "Filters"
-	// drawer, so waiting on it would conflate "the corpus fetch has not landed"
-	// with "the drawer is closed" — and only one of those is a failure.
+	// toggle, so waiting on it would conflate "the corpus fetch has not landed"
+	// with "the collapse is shut" — and only one of those is a failure.
 	await expect(page.locator('.fe-results-header')).toBeVisible({ timeout: 45_000 });
 	await settledCount(page, SETTLED);
 	await openFilterPanel(page, testInfo, page.locator(BOOKS_PANEL));
@@ -246,8 +247,16 @@ test.describe('Angular /books-server — shareable URL state', () => {
 		await expect(page.locator('.fe-results-header')).toBeVisible({ timeout: 45_000 });
 
 		expect(await settledCount(page, SETTLED)).toBe(filtered);
-		// A reload closes the drawer at phone width, and the chip assertion is the point of this test.
+		// A reload shuts the collapse at phone width, and the chip assertion is the point of this test.
 		await openFilterPanel(page, testInfo, page.locator(BOOKS_PANEL));
 		await expect(page.locator('.fe-chip--selected', { hasText: 'fantasy' })).toBeVisible();
 	});
+});
+
+describeBooksServerParity({
+	corpusEndpoint: '**/api/corpus/books.json',
+	id: 'angular',
+	label: 'Angular',
+	queryEndpoint: QUERY_ENDPOINT,
+	startCommand: EXAMPLES_SERVER_START_COMMAND,
 });

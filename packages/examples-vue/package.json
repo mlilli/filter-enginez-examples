@@ -18,13 +18,13 @@
   },
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
-    "@filter-enginez/core": "0.0.3",
+    "@filter-enginez/core": "0.1.0",
     "@filter-enginez/examples-shared": "workspace:*",
-    "@filter-enginez/mock-data": "0.2.1",
-    "@filter-enginez/reactive-signals": "0.0.3",
+    "@filter-enginez/mock-data": "0.2.2",
+    "@filter-enginez/reactive-signals": "0.0.4",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.3",
-    "@filter-enginez/vue-signals": "0.0.3",
+    "@filter-enginez/url-state-router": "0.0.4",
+    "@filter-enginez/vue-signals": "0.0.4",
     "leaflet": "1.9.4",
     "vue": "^3.5.40",
     "vue-router": "^4.6.4"

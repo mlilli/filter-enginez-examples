@@ -14,7 +14,12 @@
  *
  * The `scale` suite pins the optional log track wine's price and vintage use: positions, pointer
  * presses and arrow keys all go through the same scale, and a slider given no scale keeps the linear
- * mapping books and real estate rely on.
+ * mapping books and real estate rely on. A track press moves the thumb nearer ON SCREEN (the shared
+ * `nearestThumb`), which on a log track is not always the one nearer in value.
+ *
+ * The typed-bound cases pin the shared contract: junk, or a value equal to the committed bound, puts
+ * the committed value back in the field and writes nothing, and Escape reverts and commits nothing,
+ * including on the blur it causes.
  *
  * @packageDocumentation
  */
@@ -95,6 +100,9 @@ describe('RangeSliderComponent', () => {
 		}
 		field.value = text;
 		field.dispatchEvent(new Event('input'));
+		// Change detection runs between the keystrokes and the blur in a browser, so the field's binding
+		// holds the typed text when the blur puts the committed value back.
+		fixture.detectChanges();
 		field.dispatchEvent(new Event('blur'));
 		fixture.detectChanges();
 	};
@@ -229,12 +237,47 @@ describe('RangeSliderComponent', () => {
 			expect(host.commits()).toHaveLength(before);
 		});
 
-		it('ignores unparseable text and keeps the current bound', () => {
+		it('ignores unparseable text, keeps the current bound, and puts it back in the field', () => {
 			const before = host.commits().length;
 
 			commitText(0, 'not a number');
 
 			expect(host.commits()).toHaveLength(before);
+			expect(inputs()[0]?.value).toBe('0 pp');
+		});
+
+		it('puts the committed value back when the text resolves to the committed bound', () => {
+			// `0.4` snaps to the committed `0`: nothing changed, so nothing is written, and the field
+			// shows the formatted bound rather than the text typed.
+			host.valueMin.set(20);
+			fixture.detectChanges();
+			commitText(0, '20.4');
+
+			expect(host.commits()).toEqual([]);
+			expect(inputs()[0]?.value).toBe('20 pp');
+		});
+
+		it('reverts on Escape and commits nothing, including on the blur that follows', () => {
+			const field = inputs()[0];
+
+			if (field === undefined) {
+				throw new Error('missing input');
+			}
+			field.focus();
+			field.value = '40 pp';
+			field.dispatchEvent(new Event('input'));
+			fixture.detectChanges();
+			field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
+			fixture.detectChanges();
+
+			expect(host.commits()).toEqual([]);
+			expect(field.value).toBe('0 pp');
+			expect(document.activeElement).not.toBe(field);
+
+			// The field still commits normally afterwards.
+			commitText(0, '40 pp');
+
+			expect(host.commits().at(-1)).toEqual({ max: 100, min: 40 });
 		});
 
 		it('moves by one step on arrow keys', () => {
@@ -353,6 +396,32 @@ describe('RangeSliderComponent', () => {
 
 			expect(host.commits().at(-1)).toEqual({ max: priceBaseline.max, min: expected });
 			expect(expected).toBeLessThan(400);
+		});
+
+		it('moves the thumb nearer ON SCREEN on a log track, not the one nearer in value', () => {
+			useLogTrack();
+			host.valueMin.set(10);
+			host.valueMax.set(1000);
+			fixture.detectChanges();
+			layOutTrack();
+
+			const scale = priceScale();
+			const lowerAt = scale.toFraction(10);
+			const upperAt = scale.toFraction(1000);
+			// Just past the midpoint between the thumbs on screen: nearer the upper thumb there, while
+			// the value under it is far nearer $10 than $1,000.
+			const pressAt = (lowerAt + upperAt) / 2 + 0.02;
+			const pressed = scale.fromFraction(pressAt);
+
+			expect(pressed - 10).toBeLessThan(1000 - pressed);
+
+			clickTrack(pressAt * 200);
+
+			const last = host.commits().at(-1);
+
+			expect(last?.min).toBe(10);
+			expect(last?.max).toBeLessThan(1000);
+			expect(last?.max).toBeGreaterThan(10);
 		});
 
 		it('maps a track press linearly when no scale is given', () => {

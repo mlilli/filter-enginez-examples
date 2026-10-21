@@ -17,18 +17,18 @@
 		[attr.aria-busy]="isEngineBusy()"
 	>
 		<section>
-			<h3 class="fe-books-section-label">Genre</h3>
+			<h3 class="fe-books-section-label">{{ chipSectionLabels.genre }}</h3>
 			<fe-chip-toggle-group
 				[options]="genres"
 				[selected]="selectedGenres()"
 				[exclusion]="genreExclusion()"
 				[formatLabel]="formatLabel"
-				(toggled)="toggleChip('genre', 'genre', selectedGenres(), $event)"
+				(toggled)="toggleChip('genre', 'genre', selectedGenres, $event)"
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Genre super-groups</h3>
+			<h3 class="fe-books-section-label">{{ chipSectionLabels.genreGroups }}</h3>
 			<fe-chip-toggle-group
 				[options]="superGroupKeys"
 				[selected]="selectedGroupKeys()"
@@ -38,29 +38,29 @@
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Format</h3>
+			<h3 class="fe-books-section-label">{{ chipSectionLabels.format }}</h3>
 			<fe-chip-toggle-group
 				[options]="formats"
 				[selected]="selectedFormats()"
 				[exclusion]="formatExclusion()"
 				[formatLabel]="formatLabel"
-				(toggled)="toggleChip('format', 'format', selectedFormats(), $event)"
+				(toggled)="toggleChip('format', 'format', selectedFormats, $event)"
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Language</h3>
+			<h3 class="fe-books-section-label">{{ chipSectionLabels.language }}</h3>
 			<fe-chip-toggle-group
 				[options]="languages"
 				[selected]="selectedLanguages()"
 				[exclusion]="languageExclusion()"
-				(toggled)="toggleChip('language', 'language', selectedLanguages(), $event)"
+				(toggled)="toggleChip('language', 'language', selectedLanguages, $event)"
 			/>
 		</section>
 
 		<fe-range-slider
-			label="Publication year"
-			ariaLabel="Publication-year range"
+			[label]="sliderCopy.publicationYear.label"
+			[ariaLabel]="sliderCopy.publicationYear.ariaLabel"
 			[baseline]="yearBaseline"
 			[available]="yearAvailable()"
 			[histogram]="yearHistogram()"
@@ -73,8 +73,8 @@
 		/>
 
 		<fe-range-slider
-			label="Rating"
-			ariaLabel="Average-rating range"
+			[label]="sliderCopy.rating.label"
+			[ariaLabel]="sliderCopy.rating.ariaLabel"
 			[baseline]="ratingBaseline"
 			[available]="ratingAvailable()"
 			[histogram]="ratingHistogram()"
@@ -87,8 +87,8 @@
 		/>
 
 		<fe-range-slider
-			label="Page count"
-			ariaLabel="Page-count range"
+			[label]="sliderCopy.pageCount.label"
+			[ariaLabel]="sliderCopy.pageCount.ariaLabel"
 			[baseline]="pageBaseline"
 			[available]="pageAvailable()"
 			[histogram]="pageHistogram()"
@@ -102,64 +102,66 @@
 
 		<section class="fe-books-toggles">
 			<fe-checkbox-control
-				label="In print only"
+				[label]="toggleLabels.inPrint"
 				[isChecked]="isInPrintChecked()"
 				[isDisabled]="isInPrintDisabled()"
 				(toggled)="commitBoolean('in-print', 'isInPrint', $event)"
 			/>
 			<fe-checkbox-control
-				label="Has audiobook"
+				[label]="toggleLabels.audiobook"
 				[isChecked]="isAudiobookChecked()"
 				[isDisabled]="isAudiobookDisabled()"
 				(toggled)="commitBoolean('has-audiobook', 'hasAudiobook', $event)"
 			/>
 			<fe-checkbox-control
-				label="Rated only"
+				[label]="toggleLabels.rated"
 				[isChecked]="isRatedChecked()"
 				[isDisabled]="isRatedDisabled()"
 				(toggled)="commitRated($event)"
 			/>
 			<fe-checkbox-control
-				label="Editor's picks (top-rated)"
+				[label]="toggleLabels.editorsPicks"
 				[isChecked]="isEditorsPicksChecked()"
 				[isDisabled]="isEditorsPicksDisabled()"
 				(toggled)="commitEditorsPicks($event)"
 			/>
 		</section>
 
+		<!--
+			The three searches commit on the shared typeahead contract: debounced while typing, at once
+			on blur, Enter or clear, and never an unchanged query. Each field adopts its rule's committed
+			query, so Clear all, a removed pill, Undo and a shared link reach it.
+		-->
 		<section>
-			<h3 class="fe-books-section-label">Description search</h3>
+			<h3 class="fe-books-section-label">{{ searchCopy.description.label }}</h3>
 			<fe-search-input
-				placeholder="dystopia, seafaring, coming of age..."
-				ariaLabel="Search descriptions"
-				[value]="descriptionText()"
-				(valueChange)="descriptionText.set($event)"
+				[placeholder]="searchCopy.description.placeholder"
+				[ariaLabel]="searchCopy.description.ariaLabel"
+				[query]="committedDescription()"
 				(commit)="commitDescription($event)"
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">Author (typo-tolerant)</h3>
+			<h3 class="fe-books-section-label">{{ searchCopy.author.label }}</h3>
 			<fe-search-input
-				placeholder="a surname or full name..."
-				ariaLabel="Search authors with typo tolerance"
-				[value]="authorText()"
-				(valueChange)="authorText.set($event)"
+				[placeholder]="searchCopy.author.placeholder"
+				[ariaLabel]="searchCopy.author.ariaLabel"
+				[query]="committedAuthor()"
 				(commit)="commitAuthor($event)"
 			/>
 		</section>
 
 		<section>
-			<h3 class="fe-books-section-label">ISBN pattern (regex)</h3>
+			<h3 class="fe-books-section-label">{{ searchCopy.isbn.label }}</h3>
 			<fe-search-input
-				placeholder="e.g. ^9780"
-				ariaLabel="Filter by ISBN-13 pattern (regular expression)"
-				[value]="isbnText()"
-				(valueChange)="isbnText.set($event)"
+				[placeholder]="searchCopy.isbn.placeholder"
+				[ariaLabel]="searchCopy.isbn.ariaLabel"
+				[query]="committedIsbn()"
 				(commit)="commitIsbn($event)"
 			/>
 			@if (isIsbnInvalid()) {
-				<p class="fe-books-regex-error" role="alert">Invalid regular expression</p>
+				<p class="fe-books-regex-error" role="alert">{{ isbnInvalidMessage }}</p>
 			}
 		</section>
 	</div>

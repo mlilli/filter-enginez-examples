@@ -55,6 +55,7 @@ beforeEach(() => {
 		return { engine: {} as never };
 	});
 	registryEntry = {
+		bootFailure: 'books',
 		id: 'books',
 		label: 'Books',
 		load: async () => {

@@ -17,12 +17,17 @@
  * provides them through `SmartFilterSelectionContext`.
  *
  * Filters wired: Origin (InSetofSetsRule, the same rule every app commits), Price/Points/ABV (RangeRule), Vintage (InSetRule-of-
- * years), Color/Body/Sweetness (InSetRule chips), Single color (ValueRule, exact single-select),
- * Score comparison (NumericComparisonRule, one-sided operator), Varietal (InSetRule checkbox list),
- * Tasting-notes + Winery (FuzzySearchRule), plus a Smart-filters preset row demonstrating `CompositeRule` / expression
+ * years), Color/Varietal/Body/Sweetness (InSetRule chips), Single color (ValueRule, exact single-select),
+ * Score comparison (NumericComparisonRule, one-sided operator), Tasting-notes + Winery
+ * (FuzzySearchRule), plus a Smart-filters preset row demonstrating `CompositeRule` / expression
  * mode via `setExpression` (single-select or "match any (OR)" multi-select).
  *
- * Headline UX moment: the exclusion-aware chip/checkbox/tree disabling
+ * **One facet derivation, shared with every app.** The chip vocabularies and the origin tree come
+ * from `deriveWineFacets` over the corpus the engine holds, the function the other four wine
+ * verticals call. Each chip group offers `orderedPresentOptions(<design order>, <corpus values>)`
+ * with the raw values as labels, and the bundle asks predictive disable about exactly those values.
+ *
+ * Headline UX moment: the exclusion-aware chip/tree disabling
  * — selections that would empty the result set are subdued + non-interactive, with projected counts
  * on unselected candidates (the engine's "predictive disable").
  *
@@ -37,12 +42,7 @@ import { useMemo } from 'react';
 
 import { ChipFilterSection } from './filters/ChipFilterSection.js';
 import { ColorValueFilterSection } from './filters/ColorValueFilterSection.js';
-import {
-	buildOriginNodeSpecs,
-	type BundleContextValue,
-	FilterBundleContext,
-	useFetchFilterBundle,
-} from './filters/filterBundle.js';
+import { type BundleContextValue, FilterBundleContext, useFetchFilterBundle } from './filters/filterBundle.js';
 import {
 	BODY_ORDER,
 	COLOR_ORDER,
@@ -58,18 +58,19 @@ import { PointsCompareFilterSection } from './filters/PointsCompareFilterSection
 import { RangeFilterSection } from './filters/RangeFilterSection.js';
 import { SmartFilterPresets } from './filters/SmartFilterPresets.js';
 import { SmartFilterSelectionContext, useSmartFilterSelectionState } from './filters/smartFilterSelection.js';
-import { VarietalFilterSection } from './filters/VarietalFilterSection.js';
 import { VintageFilterSection } from './filters/VintageFilterSection.js';
-import { buildWineOriginTree, rankWineVarietals } from './wine-domain/facets.js';
+import { deriveWineFacets } from './wine-domain/facets.js';
+import { visibleVarietalChips } from './wine-domain/filterConfig.js';
+import { orderedPresentOptions } from './wine-domain/panelCopy.js';
 
 /**
  * Props for `<WineFilterPanel />`.
  */
 export interface WineFilterPanelProps {
 	/**
-	 * Whether to render the panel's own `<PanelHeader />` ("Filters" title). Defaults to `true` for
-	 * the desktop sidebar; the mobile drawer passes `false` because `<FilterDrawer />` supplies its
-	 * own titled header + close affordance, so the panel title would be a redundant second header.
+	 * Whether to render the panel's own `<PanelHeader />` ("Filters" title). Defaults to `true`, which
+	 * every app's sidebar uses on every viewport; a host that supplies its own titled header passes
+	 * `false`, so the panel title is not a redundant second header.
 	 */
 	readonly isHeaderVisible?: boolean;
 }
@@ -93,29 +94,24 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 		[priceBaseline, pointsBaseline, abvBaseline, vintageBaseline],
 	);
 
-	// Varietal vocabulary derived from the FULL sourceData (not current results) so the list shows
-	// every varietal in the corpus, most-reviewed first, with bundle data telling us which are
-	// currently reachable.
+	// Every facet that is not a rule — the chip vocabularies, the origin tree and its flattened specs —
+	// from the shared derivation, over the corpus the ENGINE holds (`sourceData`), so the panel offers
+	// what the loaded tier actually contains. Varietal is ranked most-reviewed first; the origin tree
+	// is ordered by wine count.
 	const sourceData = engine.core.getSourceData();
-	const allVarietals = useMemo(() => rankWineVarietals(sourceData), [sourceData]);
-
+	const facets = useMemo(() => deriveWineFacets(sourceData), [sourceData]);
+	const { originSpecs, originTree, vocabularies } = facets;
+	// The chip groups' options: the design order, keeping only values the corpus carries.
+	const colorOptions = useMemo(() => orderedPresentOptions(COLOR_ORDER, vocabularies.color), [vocabularies.color]);
+	const bodyOptions = useMemo(() => orderedPresentOptions(BODY_ORDER, vocabularies.body), [vocabularies.body]);
+	const sweetnessOptions = useMemo(() => orderedPresentOptions(SWEETNESS_ORDER, vocabularies.sweetness), [vocabularies.sweetness]);
+	// Predictive disable asks about exactly the values the chips offer.
 	const chipVocabularies = useMemo(
-		() => ({
-			body: BODY_ORDER,
-			color: COLOR_ORDER,
-			sweetness: SWEETNESS_ORDER,
-			varietal: allVarietals,
-		}),
-		[allVarietals],
+		() => ({ body: bodyOptions, color: colorOptions, sweetness: sweetnessOptions, varietal: vocabularies.varietal }),
+		[bodyOptions, colorOptions, sweetnessOptions, vocabularies.varietal],
 	);
 
-	// Origin tree → flat node specs the bundle uses to simulate "if user clicked X, would it yield
-	// 0?" for every node. Built from the engine's loaded corpus (`sourceData`) so the tree reflects
-	// the actual tier, ordered by wine count like every other app's.
-	const originTree = useMemo(() => buildWineOriginTree(sourceData), [sourceData]);
-	const originNodeSpecs = useMemo(() => buildOriginNodeSpecs(originTree), [originTree]);
-
-	const bundle = useFetchFilterBundle(baselines, chipVocabularies, originNodeSpecs);
+	const bundle = useFetchFilterBundle(baselines, chipVocabularies, originSpecs);
 	const bundleCtx = useMemo<BundleContextValue>(() => ({ baselines, bundle }), [bundle, baselines]);
 	// The lit smart-filter presets, held here rather than in the preset row because every facet section
 	// reads it too: each one drops the active preset before it commits. See `smartFilterSelection.ts`.
@@ -125,8 +121,8 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 		<FilterBundleContext value={bundleCtx}>
 			<SmartFilterSelectionContext value={smartFilterSelection}>
 				{/* Two-zone structure: PanelHeader stays fixed at the aside's top (outside the scroller);
-				    FilterSectionGuard owns the overflow + the global dim-during-compute treatment. In the
-				    mobile drawer the drawer's own header stands in for PanelHeader, so it's suppressed. */}
+				    FilterSectionGuard owns the overflow + the global dim-during-compute treatment. A host
+				    with its own titled header suppresses PanelHeader through `isHeaderVisible`. */}
 				{isHeaderVisible ? <PanelHeader /> : null}
 				{/*
 				    Section order is MOST-USED-FIRST, and is byte-matched by the Svelte panel. Price and points
@@ -140,19 +136,25 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 				    contrast only reads if they are adjacent.
 				*/}
 				<FilterSectionGuard topSlot={<SmartFilterPresets />}>
-					<RangeFilterSection ruleId="price" fieldKey="priceUsd" label="Price (USD)" ariaLabel="Price range in USD" step={1} openEnded />
-					<RangeFilterSection ruleId="points" fieldKey="points" label="Points" ariaLabel="Wine Enthusiast points score" step={1} />
+					<RangeFilterSection ruleId="price" step={1} />
+					<RangeFilterSection ruleId="points" step={1} />
 					<PointsCompareFilterSection />
-					<ChipFilterSection ruleId="color" label="Color" options={COLOR_ORDER} showCount />
-					<ColorValueFilterSection />
-					<VarietalFilterSection />
-					<OriginFilterSection tree={originTree} specs={originNodeSpecs} />
+					<ChipFilterSection ruleId="color" label="Color" options={colorOptions} showCount />
+					<ColorValueFilterSection presentColors={vocabularies.color} />
+					<ChipFilterSection
+						ruleId="varietal"
+						label={`Varietal (${vocabularies.varietal.length})`}
+						options={vocabularies.varietal}
+						visibleOptions={visibleVarietalChips}
+						scrollable
+					/>
+					<OriginFilterSection tree={originTree} specs={originSpecs} />
 					<VintageFilterSection />
-					<RangeFilterSection ruleId="abv" fieldKey="abv" label="ABV (%)" ariaLabel="Alcohol by volume range" step={0.1} />
-					<ChipFilterSection ruleId="body" label="Body" options={BODY_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
-					<ChipFilterSection ruleId="sweetness" label="Sweetness" options={SWEETNESS_ORDER} formatLabel={(v) => v.replace(/-/g, ' ')} />
-					<FuzzySearchFilterSection ruleId="notes" label="Tasting notes search" placeholder="blackberry, citrus, oak..." ariaLabel="Search tasting notes (fuzzy)" field="description" threshold={0.45} keys={['description', 'tastingNotes']} />
-					<FuzzySearchFilterSection ruleId="winery" label="Winery (typo-tolerant)" placeholder="Vandermark, Caruso, Hartmann..." ariaLabel="Search wineries with typo tolerance" field="winery" threshold={0.35} />
+					<RangeFilterSection ruleId="abv" step={0.1} />
+					<ChipFilterSection ruleId="body" label="Body" options={bodyOptions} />
+					<ChipFilterSection ruleId="sweetness" label="Sweetness" options={sweetnessOptions} />
+					<FuzzySearchFilterSection searchId="notes" />
+					<FuzzySearchFilterSection searchId="winery" />
 				</FilterSectionGuard>
 			</SmartFilterSelectionContext>
 		</FilterBundleContext>

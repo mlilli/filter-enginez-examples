@@ -18,7 +18,7 @@ describe('@filter-enginez/react-ui barrel', () => {
 			'CheckboxList',
 			'ChipToggleGroup',
 			'DevtoolsPanelView',
-			'FilterDrawer',
+			'FilterCollapse',
 			'HierarchicalPicker',
 			'NumberField',
 			'RangeHistogram',

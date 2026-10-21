@@ -11,14 +11,14 @@
  *
  * `typeof window.matchMedia` is `undefined` under jsdom. So the "hostile environment, treat it as
  * desktop" branch is what any test that installs no stub exercises, and the three states that
- * matter — mobile, mobile-with-drawer-open, and a breakpoint CROSS — are unreachable without a stub. Installing one is not a convenience
+ * matter — mobile, mobile-with-collapse-open, and a breakpoint CROSS — are unreachable without a stub. Installing one is not a convenience
  * here; it is the only way to reach the code that makes decisions.
  *
  * ### The re-seeding case points at the half that can fail
  *
- * The docblock's rule is that crossing the breakpoint re-seeds the drawer as well as the layout, so
+ * The docblock's rule is that crossing the breakpoint re-seeds the collapse as well as the layout, so
  * a close / rotate / rotate-back lands closed. Starting closed and ending closed is the same under
- * both implementations — it is the user who OPENED the drawer whose answer differs, and that is the
+ * both implementations — it is the user who OPENED the collapse whose answer differs, and that is the
  * sequence the guard uses (the lesson: point it at the failing half).
  *
  * @packageDocumentation
@@ -51,7 +51,7 @@ describe('seeding', () => {
 		expect(breakpoint.shouldShowPanel()).toBe(true);
 	});
 
-	it('boots from the media query — mobile, with the drawer shut', () => {
+	it('boots from the media query — mobile, with the collapse shut', () => {
 		installMatchMedia(DESKTOP_MEDIA_QUERY, false);
 
 		const breakpoint = trackDesktopBreakpoint();
@@ -97,9 +97,9 @@ describe('seeding', () => {
 });
 
 describe('crossing the breakpoint', () => {
-	it('re-seeds the DRAWER as well as the layout, so a rotate round-trip lands shut', () => {
+	it('re-seeds the COLLAPSE as well as the layout, so a rotate round-trip lands shut', () => {
 		// The sequence from the docblock, and deliberately the OPENED one: a user who never touched
-		// the drawer ends shut under both implementations, so only this one can tell them apart.
+		// the collapse ends shut under both implementations, so only this one can tell them apart.
 		const media = installMatchMedia(DESKTOP_MEDIA_QUERY, false);
 		const breakpoint = trackDesktopBreakpoint();
 
@@ -139,8 +139,8 @@ describe('crossing the breakpoint', () => {
 });
 
 describe('shouldShowPanel', () => {
-	it('is a DISJUNCTION — desktop keeps the panel even with the drawer flag off', () => {
-		// The `&&` mutant's home. On desktop the drawer flag is meaningless, so a conjunction would
+	it('is a DISJUNCTION — desktop keeps the panel even with the collapse flag off', () => {
+		// The `&&` mutant's home. On desktop the collapse flag is meaningless, so a conjunction would
 		// let a stray toggle erase the permanent sidebar on a viewport that has no button to
 		// restore it.
 		installMatchMedia(DESKTOP_MEDIA_QUERY, true);
@@ -154,7 +154,7 @@ describe('shouldShowPanel', () => {
 		expect(breakpoint.shouldShowPanel()).toBe(true);
 	});
 
-	it('follows the drawer on mobile, in both directions', () => {
+	it('follows the collapse on mobile, in both directions', () => {
 		installMatchMedia(DESKTOP_MEDIA_QUERY, false);
 
 		const breakpoint = trackDesktopBreakpoint();

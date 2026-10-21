@@ -2,8 +2,8 @@
  * The two-column breakpoint switch, as a signal — shared by every page with a filter sidebar.
  *
  * @remarks
- * Below `lg` the filter panel is a drawer behind a "Filters" button; at `lg` and above it is a
- * sticky sidebar that is always open. Three pages need that decision (`/books`, `/books-server`,
+ * Below `lg` the filter panel is an inline collapse behind a "Filters" button; at `lg` and above it is
+ * a sticky sidebar that is always open. Three pages need that decision (`/books`, `/books-server`,
  * `/real-estate`), so it is authored once here rather than inlined three times — which is how the
  * breakpoint comes to be 1024 in two places and 1023 in the third.
  *
@@ -26,11 +26,11 @@
 import { computed, DestroyRef, inject, type Signal, signal } from '@angular/core';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 
-/** What a page needs to render the sidebar-or-drawer decision. */
+/** What a page needs to render the sidebar-or-collapse decision. */
 export interface DesktopBreakpointState {
 	/** True at `lg` and above — the sidebar is permanent and the toggle button is not rendered. */
 	readonly isDesktop: Signal<boolean>;
-	/** Whether the mobile drawer is currently open. Meaningless while {@link isDesktop} is true. */
+	/** Whether the mobile collapse is currently open. Meaningless while {@link isDesktop} is true. */
 	readonly isFilterOpen: Signal<boolean>;
 	/**
 	 * Whether the filter panel should be on screen.
@@ -42,7 +42,7 @@ export interface DesktopBreakpointState {
 	 * re-evaluates on every change-detection pass at every binding site.
 	 */
 	readonly shouldShowPanel: Signal<boolean>;
-	/** Flip the mobile drawer. */
+	/** Open or close the mobile collapse. */
 	readonly toggleFilters: () => void;
 }
 
@@ -54,10 +54,10 @@ export interface DesktopBreakpointState {
  * `DestroyRef` teardown so the `matchMedia` listener does not outlive the route.
  *
  * Crossing the breakpoint re-seeds `isFilterOpen` as well as `isDesktop`: someone who closed the
- * drawer, rotated to landscape and rotated back should get the drawer closed again, not a panel
+ * panel, rotated to landscape and rotated back should get the panel closed again, not a panel
  * that reappeared because the desktop branch left the flag `true` on the way through.
  *
- * @returns The breakpoint signals plus the drawer toggle.
+ * @returns The breakpoint signals plus the collapse toggle.
  */
 export function trackDesktopBreakpoint(): DesktopBreakpointState {
 	const isDesktop = signal(true);

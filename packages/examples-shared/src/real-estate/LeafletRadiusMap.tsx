@@ -11,8 +11,8 @@
  * ### Why a ref + effect is safe here
  *
  * A naive `L.map()` effect throws "Map container is already initialized" and crashes on view
- * operations issued after `remove()` — React 19 StrictMode double-invokes effects, and the filter
- * drawer's `keepMounted` offscreen remount does it again for real.
+ * operations issued after `remove()` — React 19 StrictMode double-invokes effects (mount → cleanup →
+ * mount).
  *
  * The controller answers both directly: it destroys any controller already bound to the container
  * before creating a map, and every method no-ops once destroyed. See its module docs. The map rules
@@ -144,6 +144,27 @@ export const LeafletRadiusMap = (props: LeafletRadiusMapProps): React.ReactEleme
 	useEffect(() => {
 		controllerRef.current?.setRadius(radiusMeters);
 	}, [radiusMeters]);
+
+	// Re-measure whenever the container gains or changes size, as every app's map does. A panel opened
+	// from a `?f` link on a phone mounts this map inside the collapsed (hidden) filter column, where
+	// Leaflet measures 0×0 and draws no tiles; the observer fires when the column is shown, and
+	// `invalidateSize()` makes Leaflet measure again.
+	useEffect(() => {
+		const element = containerRef.current;
+
+		if (element === null || typeof ResizeObserver === 'undefined') {
+			return undefined;
+		}
+		const observer = new ResizeObserver(() => {
+			controllerRef.current?.invalidateSize();
+		});
+
+		observer.observe(element);
+
+		return () => {
+			observer.disconnect();
+		};
+	}, []);
 
 	return (
 		<div

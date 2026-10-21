@@ -23,5 +23,6 @@
 export * from './bootCopy.js';
 export * from './bundle.js';
 export * from './curated.js';
+export * from './panelCopy.js';
 export * from './ruleSummaries.js';
 export * from './vocabulary.js';

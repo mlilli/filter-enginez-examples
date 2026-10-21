@@ -23,10 +23,13 @@
 	 * every chip in the panel unselected — and clicking a third chip would then write a one-element
 	 * set, silently dropping the two restored values the panel never knew about.
 	 *
-	 * Only `descriptionQuery` stays local, because it holds UNCOMMITTED keystrokes and deriving it
-	 * outright would fight the user's typing. It is a WRITABLE `$derived` off the committed rule — the
-	 * books panel's idiom: reassignable while typing, and it snaps back whenever the committed value
-	 * changes from outside, which is what keeps a clear-all or a URL restore reaching the text input too.
+	 * Only the description search holds local text, because it holds UNCOMMITTED keystrokes: it is a
+	 * `<TypeaheadSearch>`, which commits on a pause in typing or on blur, Enter or clear, and takes the
+	 * committed query back only when it changes from outside, so a clear-all or a URL restore reaches
+	 * the text input too while its own commit never yanks the text mid-word.
+	 *
+	 * The section headings, the tree's group name and height, the school-district list's height and
+	 * the search field's copy are the `REAL_ESTATE_*` constants every app's panel shares.
 	 *
 	 * ### What the panel does NOT own
 	 *
@@ -67,6 +70,10 @@
 		type MetroCenterOption,
 		type PickerTreeNode,
 		RANGE_FACETS,
+		REAL_ESTATE_DESCRIPTION_SEARCH,
+		REAL_ESTATE_LISTED_DATE_LABEL,
+		REAL_ESTATE_LOCATION_TREE,
+		REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT,
 		type RealEstateChipVocabularies,
 	} from '@filter-enginez/examples-shared/real-estate-domain';
 	import { toggleSetValue } from '@filter-enginez/examples-shared/selection';
@@ -76,8 +83,8 @@
 	import DatePresetGroup from '$lib/controls/DatePresetGroup.svelte';
 	import HierarchicalPicker from '$lib/controls/HierarchicalPicker.svelte';
 	import PanelHeader from '$lib/controls/PanelHeader.svelte';
-	import SearchInput from '$lib/controls/SearchInput.svelte';
 	import SectionHeader from '$lib/controls/SectionHeader.svelte';
+	import TypeaheadSearch from '$lib/controls/TypeaheadSearch.svelte';
 
 	import { getRealEstateBundle } from './realEstateBundle.js';
 	import { clearRule, commitRule, commitSelection } from './realEstateCommit.js';
@@ -140,9 +147,8 @@
 	 * The description facet's OWN rule store.
 	 *
 	 * @remarks
-	 * The one control here that reads a narrow signal rather than the map. Every other selection is
-	 * fully derived, so re-evaluating it on any engine change is free and correct; this one holds
-	 * uncommitted keystrokes, and a map-wide dependency would throw them away. See `descriptionQuery`.
+	 * The one control here that reads a narrow signal rather than the map, so another facet's commit
+	 * does not wake the search field. See `descriptionQuery`.
 	 */
 	const descriptionRule = rule('text-search');
 
@@ -184,23 +190,14 @@
 	);
 
 	/**
-	 * What the description input displays — the panel's ONE piece of local state.
+	 * The committed description query the search field adopts; `''` when there is no rule.
 	 *
 	 * @remarks
-	 * A WRITABLE `$derived`, the same idiom `<BooksFilterPanel>` uses for its three search boxes. Fully
-	 * derived state would fight the user's typing, because the rule is only committed on blur / Enter and
-	 * so lags every keystroke in between; a plain `$state` would never hear about an external change. A
-	 * writable `$derived` is both — reassignable while typing, and it snaps back to the committed value
-	 * whenever that changes from outside, which is what makes "Clear all", a removed chip and a `?f`
-	 * restore all reach into the text box.
-	 *
-	 * **Off this facet's OWN rule store, not the `activeRules` map.** A map-wide derivation re-evaluates
-	 * whenever ANY facet commits, and re-evaluating means discarding the uncommitted keystrokes and
-	 * showing the committed query instead. Clicking another control blurs this input first, which
-	 * commits, but undo/redo by keyboard and devtools time travel both change rules without moving
-	 * focus. `rule(id)` is also the narrower subscription, which is why wine's two search boxes use it.
+	 * The field itself is a `<TypeaheadSearch>`, which holds the typed text and takes this query only
+	 * when it changes from outside ("Clear all", a removed chip, Undo, a `?f` restore), never for the
+	 * echo of its own commit.
 	 */
-	let descriptionQuery = $derived(($descriptionRule as TextSearchRule | undefined)?.config.query ?? '');
+	const descriptionQuery = $derived(($descriptionRule as TextSearchRule | undefined)?.config.query ?? '');
 
 	/** Exclusion data per chip group. Empty until the first bundle — read as all-enabled. */
 	const locationDisabled = $derived(chipDisabledSet(bundle, LOCATION_RULE_ID));
@@ -226,15 +223,15 @@
 		aria-busy={isComputing}
 	>
 		<section>
-			<SectionHeader label="Location" />
+			<SectionHeader label={REAL_ESTATE_LOCATION_TREE.groupLabel} />
 			{#if locationTree}
 				<HierarchicalPicker
-					ariaLabel="Location"
+					ariaLabel={REAL_ESTATE_LOCATION_TREE.groupLabel}
 					tree={locationTree}
 					selected={locations}
 					counts={locationCounts}
 					disabled={locationDisabled}
-					maxHeight="14rem"
+					maxHeight={REAL_ESTATE_LOCATION_TREE.maxHeight}
 					onChange={(next) => {
 						// The picker hands back the WHOLE next selection rather than one toggled value: a
 						// single click can select a subtree, or de-cascade an ancestor into its siblings, so
@@ -261,7 +258,7 @@
 				selected={schoolDistricts}
 				exclusion={schoolDistrictExclusion}
 				showCount
-				maxHeight="220px"
+				maxHeight={REAL_ESTATE_SCHOOL_DISTRICT_LIST_MAX_HEIGHT}
 				onToggle={(value) => {
 					commitSelection(engine, 'school-district', toggleSetValue(schoolDistricts, value), (values) =>
 						inSet<string>('schoolDistrict', values),
@@ -339,10 +336,10 @@
 		</section>
 
 		<section>
-			<SectionHeader label="Listed within" />
+			<SectionHeader label={REAL_ESTATE_LISTED_DATE_LABEL} />
 			<DatePresetGroup
 				anyLabel="Any time"
-				ariaLabel="Listed within"
+				ariaLabel={REAL_ESTATE_LISTED_DATE_LABEL}
 				presets={DATE_PRESET_OPTIONS}
 				selected={datePreset}
 				onSelect={(value) => {
@@ -358,28 +355,19 @@
 
 		<section>
 			<SectionHeader label="Description search" />
-			<SearchInput
-				value={descriptionQuery}
-				placeholder="waterfront, remodeled, cul-de-sac…"
-				ariaLabel="Search listing descriptions"
-				onChange={(next: string) => {
-					// Typing alone does not filter — the rule is committed on blur / Enter instead, so a
-					// substring scan of the corpus runs once per query rather than once per keystroke.
-					descriptionQuery = next;
-				}}
-				onCommit={(next: string) => {
-					// No local write: the writable `$derived` re-reads the committed rule, so the input ends
-					// up showing the TRIMMED query the engine actually holds rather than the raw keystrokes.
-					if (next.trim().length === 0) {
+			<TypeaheadSearch
+				ariaLabel={REAL_ESTATE_DESCRIPTION_SEARCH.ariaLabel}
+				placeholder={REAL_ESTATE_DESCRIPTION_SEARCH.placeholder}
+				ruleQuery={descriptionQuery}
+				commit={(query: string) => {
+					// An empty query REMOVES the rule, like every facet here; anything else is a
+					// case-insensitive substring scan of the descriptions.
+					if (query === '') {
 						clearRule(engine, 'text-search');
 
 						return;
 					}
-					commitRule(
-						engine,
-						'text-search',
-						text('description', { caseSensitive: false, mode: 'substring', query: next.trim() }),
-					);
+					commitRule(engine, 'text-search', text('description', { caseSensitive: false, mode: 'substring', query }));
 				}}
 			/>
 		</section>

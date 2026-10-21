@@ -24,6 +24,7 @@ import { useCallback, useMemo } from 'react';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
 import { WINE_SLIDER_TEXT, wineSliderScale } from '../wine-domain/filterConfig.js';
+import { WINE_SLIDER_COPY } from '../wine-domain/panelCopy.js';
 import { vintageBoundsFromSet, vintageYearsFromRange } from '../wine-domain/vintage.js';
 import { useBundleFieldMeta, useBundleSliderHistogram } from './filterBundle.js';
 import { EMPTY_SELECTION, useBaselineBounds } from './filterConfig.js';
@@ -66,12 +67,12 @@ export const VintageFilterSection = (): React.ReactElement => {
 	}, [engine, baseline, leaveExpressionMode]);
 
 	// Wrapped in a <section>, like every other facet. The shared panel CSS targets
-	// `.fe-filter-panel section` for the rhythm between filters, so a bare slider silently
-	// opts out of it — which is exactly how React ended up tighter than Svelte here.
+	// `.fe-filter-panel section` for the rhythm between filters, so a bare slider would silently
+	// opt out of it.
 	return (
 		<section>
 			<RangeSlider
-				label="Vintage"
+				label={WINE_SLIDER_COPY.vintage.label}
 				baseline={baseline}
 				available={available}
 				step={1}
@@ -82,7 +83,7 @@ export const VintageFilterSection = (): React.ReactElement => {
 				parse={WINE_SLIDER_TEXT.vintage.parse}
 				histogram={histogram}
 				scale={scale}
-				ariaLabel="Vintage year range"
+				ariaLabel={WINE_SLIDER_COPY.vintage.sliderLabel}
 			/>
 		</section>
 	);

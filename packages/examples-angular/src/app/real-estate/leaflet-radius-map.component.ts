@@ -97,7 +97,7 @@ export class LeafletRadiusMapComponent {
 	 * Whether the filter panel is currently on screen.
 	 *
 	 * @remarks
-	 * Leaflet measures its container ONCE at initialization and caches the result. The mobile drawer
+	 * Leaflet measures its container ONCE at initialization and caches the result. The mobile collapse
 	 * hides this panel with the `hidden` attribute rather than destroying it — that is what preserves
 	 * the map's zoom and the user's filter state across a close — and a hidden element genuinely has no
 	 * box. A map initialized in there lays out a single tile in the corner and never recovers on its
@@ -176,7 +176,7 @@ export class LeafletRadiusMapComponent {
 		});
 
 		// ⚠️ Same trap once more. `isPanelVisible` MUST be read before the optional call, or a map
-		// created while the drawer was closed would never learn that it has a box now.
+		// created while the panel was closed would never learn that it has a box now.
 		effect(() => {
 			const isVisible = this.isPanelVisible();
 			const controller = this._controller();

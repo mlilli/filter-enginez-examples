@@ -3,7 +3,7 @@
  *
  * @remarks
  * Dataset-agnostic layout plumbing (unlike the `./wine` slice). Both React apps import the
- * breakpoint switch from here so the sidebar-vs-drawer decision is authored once.
+ * breakpoint switch from here so the sidebar-vs-collapse decision is authored once.
  *
  * @packageDocumentation
  */

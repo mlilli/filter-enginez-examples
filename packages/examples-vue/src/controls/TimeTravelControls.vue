@@ -78,12 +78,6 @@ const canRedo = computed((): boolean => {
 	return devtools.canRedo;
 });
 
-// Attached at setup rather than in `onMounted`: the binding touches `document.body` only when the
-// listener is registered, and this component is browser-only. The detach is what matters, and it is
-// the function `attachUndoRedoKeyboard` already hands back.
-const detachKeyboard = attachUndoRedoKeyboard(devtools);
-
-onUnmounted(detachKeyboard);
 
 /** Step one action back, marking busy first so the indicator lights on the click's own frame. */
 function handleUndo(): void {
@@ -102,6 +96,15 @@ function handleRedo(): void {
 	props.markBusy();
 	devtools.redo();
 }
+
+// Attached at setup rather than in `onMounted`: the binding touches `document.body` only when the
+// listener is registered, and this component is browser-only. The detach is what matters, and it is
+// the function `attachUndoRedoKeyboard` already hands back. The shortcuts go through the same two
+// handlers as the buttons, so Cmd/Ctrl+Z marks the engine busy before it writes, exactly as a click
+// does, and a shortcut with nothing to undo writes nothing.
+const detachKeyboard = attachUndoRedoKeyboard({ redo: handleRedo, undo: handleUndo });
+
+onUnmounted(detachKeyboard);
 </script>
 
 <template>

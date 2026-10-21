@@ -12,3 +12,5 @@ export { CompareLinkButton, type CompareLinkButtonProps } from './CompareLinkBut
 export { CopyLinkButton } from './CopyLinkButton.js';
 export { cycleUrlFormat, setUrlFormat, URL_FORMAT_LABELS, type UrlFormat, useUrlFormat } from './urlFormatStore.js';
 export { UrlFormatToggle } from './UrlFormatToggle.js';
+export { createOwnUrlWrites, OWN_URL_WRITES_REMEMBERED, type OwnUrlWrites } from './ownUrlWrites.js';
+export { type UrlSyncBindings, useUrlSyncBindings } from './useUrlSyncBindings.js';

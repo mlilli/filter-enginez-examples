@@ -12,8 +12,8 @@
  *
  * A naive `L.map()` effect throws **"Map container is already initialized"** and crashes on **async
  * view operations after `remove()`**. React 19 StrictMode double-invokes effects (mount → cleanup →
- * mount), and the filter drawer's `keepMounted` offscreen remount does it again for real. A wrapper
- * library such as `react-leaflet` hides that class of bug, but only for React.
+ * mount), and any framework's remount or fast teardown can race a pending view change the same way.
+ * A wrapper library such as `react-leaflet` hides that class of bug, but only for React.
  *
  * An imperative controller therefore has to answer both, once, here — which is the argument for the
  * controller in the first place: every vertical would otherwise have to rediscover them.
@@ -175,11 +175,11 @@ export interface RadiusMapController {
 	 * The symptom is a map that looks broken only on the path where the panel starts closed, which is
 	 * to say only on mobile.
 	 *
-	 * React does not need this: its filter drawer keeps the panel mounted and moves it with
-	 * `transform`, so the container always has a real size. SvelteKit, Angular and vanilla hide the
-	 * panel instead — keeping local control state across a close — and a hidden element genuinely has no
-	 * box. So the fix belongs to whichever vertical hides its panel, and it belongs HERE rather than in
-	 * each vertical, because several make the same choice for the same reason.
+	 * Every app hides a closed mobile filter panel with the `hidden` attribute rather than unmounting it
+	 * — keeping local control state across a close — and a hidden element genuinely has no box. So the
+	 * re-measure belongs to every vertical that can create the map while its panel is closed, and it
+	 * belongs HERE rather than in each vertical, because they all make the same choice for the same
+	 * reason.
 	 *
 	 * Safe to call at any time: a no-op once destroyed, and harmless when the size has not changed.
 	 */

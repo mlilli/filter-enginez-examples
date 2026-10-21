@@ -11,12 +11,18 @@
  *
  * Parsed from the real components rather than restated. A hardcoded list of fourteen labels would
  * pass while the panels drifted underneath it, which is precisely the failure being guarded.
+ *
+ * The sliders and the two searches take their labels from the shared copy in `wine-domain`
+ * (`WINE_SLIDER_COPY`, `WINE_SEARCHES`), so a section that names one of those (by a `ruleId` /
+ * `searchId` on its tag, or by reference in its own file) resolves to that entry's label.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+
+import { WINE_SEARCHES, WINE_SLIDER_COPY } from '../../packages/examples-shared/src/wine/wine-domain/panelCopy.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -33,6 +39,54 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
  */
 function canonical(label: string): string {
 	return label.replace(/\$\{[^}]*\}/gu, 'N');
+}
+
+/** A shared label table, read by an id parsed out of a source, which may name no entry. */
+type LabelTable = Readonly<Record<string, { readonly label: string } | undefined>>;
+
+/** The search fields' labels, by search id. */
+const SEARCH_LABELS: LabelTable = WINE_SEARCHES;
+
+/** The sliders' labels, by rule id. */
+const SLIDER_LABELS: LabelTable = WINE_SLIDER_COPY;
+
+/** The shared label tables, by the name a source refers to them by. */
+const SHARED_LABEL_TABLES: Readonly<Record<string, LabelTable | undefined>> = {
+	WINE_SEARCHES: SEARCH_LABELS,
+	WINE_SLIDER_COPY: SLIDER_LABELS,
+};
+
+/**
+ * The shared-copy label a panel tag names through its `ruleId` / `searchId` attribute.
+ *
+ * @param tag - The section's opening tag, in any of the three frameworks' syntaxes.
+ * @returns The label, or `undefined` when the tag names no shared entry.
+ */
+function labelFromSharedId(tag: string): string | undefined {
+	const sliderId = /\brule-?[Ii]d="(\w+)"/u.exec(tag)?.[1];
+	const searchId = /\bsearch-?[Ii]d="(\w+)"/u.exec(tag)?.[1];
+
+	if (searchId !== undefined) {
+		return SEARCH_LABELS[searchId]?.label;
+	}
+
+	return sliderId === undefined ? undefined : SLIDER_LABELS[sliderId]?.label;
+}
+
+/**
+ * The shared-copy label a section's own source refers to (`WINE_SLIDER_COPY.vintage`,
+ * `WINE_SEARCHES.notes`).
+ *
+ * @param source - The section's source.
+ * @returns The label, or `undefined` when the file names no shared entry.
+ */
+function labelFromSharedReference(source: string): string | undefined {
+	// A label attribute bound straight to an entry wins; otherwise the file's first reference, for a
+	// section that reads its entry into a local (`const copy = WINE_SEARCHES.notes`).
+	const reference = /(?<![-\w])label=\{?"?(WINE_SEARCHES|WINE_SLIDER_COPY)\.(\w+)\.label\b/u.exec(source)
+		?? /\b(WINE_SEARCHES|WINE_SLIDER_COPY)\.(\w+)\b/u.exec(source);
+
+	return reference === null ? undefined : SHARED_LABEL_TABLES[reference[1] ?? '']?.[reference[2] ?? '']?.label;
 }
 
 /**
@@ -56,17 +110,24 @@ function reactSectionLabels(): readonly string[] {
 
 	const out: string[] = [];
 
-	for (const line of source.slice(start, end).split('\n')) {
-		const trimmed = line.trim();
+	const lines = source.slice(start, end).split('\n');
+
+	for (let index = 0; index < lines.length; index += 1) {
+		let trimmed = (lines[index] ?? '').trim();
 
 		if (!trimmed.startsWith('<') || trimmed.startsWith('<FilterSectionGuard')) {
 			continue;
 		}
+		// Gather a tag that spans several lines (the varietal section's does), up to its `/>`.
+		while (!/\/>\s*$/u.test(trimmed) && index + 1 < lines.length) {
+			index += 1;
+			trimmed += ` ${(lines[index] ?? '').trim()}`;
+		}
 
-		const inline = /\blabel="([^"]+)"/u.exec(trimmed);
+		const inline = /\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(trimmed)?.[1] ?? labelFromSharedId(trimmed);
 
-		if (inline?.[1] !== undefined) {
-			out.push(canonical(inline[1]));
+		if (inline !== undefined) {
+			out.push(canonical(inline));
 			continue;
 		}
 
@@ -80,7 +141,8 @@ function reactSectionLabels(): readonly string[] {
 		// `SectionHeader` first; a few sections (Vintage) label their SLIDER instead and have no
 		// separate header, so fall back to the first `label=` in the file.
 		const label = (/<SectionHeader label=\{?["`]([^"`]+)["`]\}?/u.exec(own)?.[1])
-			?? (/\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(own)?.[1]);
+			?? (/\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(own)?.[1])
+			?? labelFromSharedReference(own);
 
 		expect(label, `${component} has no resolvable label`).toBeDefined();
 		out.push(canonical(label ?? ''));
@@ -136,10 +198,10 @@ function svelteSectionLabels(): readonly string[] {
 			tag += `\n${lines[index] ?? ''}`;
 		}
 
-		const inline = /\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(tag);
+		const inline = /\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(tag)?.[1] ?? labelFromSharedId(tag);
 
-		if (inline?.[1] !== undefined) {
-			out.push(canonical(inline[1]));
+		if (inline !== undefined) {
+			out.push(canonical(inline));
 			continue;
 		}
 
@@ -155,7 +217,8 @@ function svelteSectionLabels(): readonly string[] {
 		// `SectionHeader` first; `<WineVintageSection>` labels its SLIDER instead and has no separate
 		// header, so fall back to the first `label=` in the file — the same two-step React needs.
 		const label = (/<SectionHeader label=\{?["`]([^"`]+)["`]\}?/u.exec(own)?.[1])
-			?? (/\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(own)?.[1]);
+			?? (/\blabel=\{?["`]([^"`]+)["`]\}?/u.exec(own)?.[1])
+			?? labelFromSharedReference(own);
 
 		expect(label, `${component} has no resolvable label`).toBeDefined();
 		out.push(canonical(label ?? ''));
@@ -204,8 +267,8 @@ function vueSectionLabels(): readonly string[] {
 		}
 
 		const bound = /:label="`([^`]+)`"/u.exec(tag)?.[1];
-		const literal = /(?<!:)\blabel="([^"]+)"/u.exec(tag)?.[1];
-		const inline = bound ?? literal;
+		const literal = /(?<![-:\w])label="([^"]+)"/u.exec(tag)?.[1];
+		const inline = bound ?? literal ?? labelFromSharedId(tag);
 
 		if (inline !== undefined) {
 			out.push(canonical(inline));
@@ -224,7 +287,8 @@ function vueSectionLabels(): readonly string[] {
 		// `SectionHeader` first; `<WineVintageSection>` labels its SLIDER instead and has no separate
 		// header, so fall back to the first `label=` in the file — the same two-step the others need.
 		const label = (/<SectionHeader label="([^"]+)"/u.exec(own)?.[1])
-			?? (/\blabel="([^"]+)"/u.exec(own)?.[1]);
+			?? (/(?<![-:\w])label="([^"]+)"/u.exec(own)?.[1])
+			?? labelFromSharedReference(own);
 
 		expect(label, `${component} has no resolvable label`).toBeDefined();
 		out.push(canonical(label ?? ''));

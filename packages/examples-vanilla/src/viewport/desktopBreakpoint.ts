@@ -2,8 +2,8 @@
  * The two-column breakpoint switch, framework-lessly.
  *
  * @remarks
- * Below `lg` the filter panel is a drawer behind a "Filters" button; at `lg` and above it is a
- * permanent sidebar. Every vertical wires `matchMedia` in its own idiom — a React hook, a Vue
+ * Below `lg` the filter panel is an inline collapse behind a "Filters" button; at `lg` and above it
+ * is a permanent sidebar. Every vertical wires `matchMedia` in its own idiom — a React hook, a Vue
  * `onMounted`, an Angular `DestroyRef` — and this is the framework-less one: a plain subscribe
  * function returning its own teardown, which is the shape this app uses everywhere (see
  * `url/urlState.ts`'s `subscribeUrlFormat`).
@@ -25,17 +25,17 @@
 
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 
-/** The live breakpoint state plus the drawer toggle. */
+/** The live breakpoint state plus the collapse toggle. */
 export interface DesktopBreakpoint {
 	/** True at `lg` and above — the sidebar is permanent and no toggle button renders. */
 	readonly isDesktop: () => boolean;
-	/** Whether the mobile drawer is open. Meaningless while {@link isDesktop} is true. */
+	/** Whether the mobile collapse is open. Meaningless while {@link isDesktop} is true. */
 	readonly isFilterOpen: () => boolean;
-	/** Whether the panel should be on screen: desktop, or the drawer is open. */
+	/** Whether the panel should be on screen: desktop, or the collapse is open. */
 	readonly shouldShowPanel: () => boolean;
-	/** Flip the drawer, then notify. */
+	/** Flip the collapse, then notify. */
 	readonly toggleFilters: () => void;
-	/** Called on every breakpoint or drawer change. Returns an unsubscribe. */
+	/** Called on every breakpoint or collapse change. Returns an unsubscribe. */
 	readonly subscribe: (listener: () => void) => () => void;
 	/** Detach the `matchMedia` listener. */
 	readonly dispose: () => void;
@@ -45,7 +45,7 @@ export interface DesktopBreakpoint {
  * Track the desktop breakpoint for the lifetime of a route.
  *
  * @remarks
- * Crossing the breakpoint re-seeds the drawer as well as the layout: someone who closed the drawer,
+ * Crossing the breakpoint re-seeds the collapse as well as the layout: someone who closed the panel,
  * rotated to landscape and rotated back should find it closed again, rather than reopened because
  * the desktop branch left the flag `true` on the way through.
  *

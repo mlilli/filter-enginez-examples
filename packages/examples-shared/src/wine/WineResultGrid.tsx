@@ -1,5 +1,5 @@
 /**
- * `<WineResultGrid />` — incremental "load more" grid of `<WineCard />` for the current
+ * `<WineResultGrid />` — incremental infinite-scroll grid of `<WineCard />` for the current
  * filter result set.
  *
  * @remarks
@@ -14,11 +14,13 @@
  *
  * **Approach — incremental render with a hard cap.** No absolute positioning,
  * no virtualized spacer. The grid renders `results.slice(0, renderLimit)` using a normal
- * CSS Grid. `renderLimit` starts at `INITIAL_BATCH`, expands by `BATCH_INCREMENT` whenever
- * an `IntersectionObserver` reports the bottom-sentinel intersecting the scroller's
- * viewport, and caps at `HARD_CAP_RENDER`. Past the cap, the UX surfaces "showing N of M
- * — narrow your filters to surface the rest". Worst-case DOM cost is `HARD_CAP_RENDER` cards, which is tractable on every modern
- * browser.
+ * CSS Grid. The window is the shared `RESULT_GRID_WINDOW`, the same in all six apps: `renderLimit`
+ * starts at 60, grows by 60 (`nextRenderLimit`) whenever an `IntersectionObserver` reports the
+ * bottom sentinel intersecting the scroller's viewport, and stops at the 1,500 cap. Once the cap
+ * stops a larger result set (`isRenderCapped`), the grid says so with the shared
+ * `resultCapNotice` ("Showing N of M matches · narrow your filters to surface the rest"). Worst-case
+ * DOM cost is 1,500 cards, which is tractable on every modern browser. Every word the column says
+ * comes from `RESULT_COPY.wine`.
  *
  * **What we lose vs true virtualization.** Cards aren't recycled — appending more grows
  * the DOM monotonically until filter change resets it. For datasets where users
@@ -40,31 +42,11 @@ import { useResultCount, useResults } from '@filter-enginez/react-signals';
 import { ScrollRegion } from '@filter-enginez/react-ui';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
+import { isRenderCapped, nextRenderLimit, RESULT_COPY, RESULT_GRID_WINDOW, resultCapNotice } from '../verticals/verticals.js';
 import { WineCard } from './WineCard.js';
 
-/**
- * First page of cards shown before the user scrolls. Large enough to fill a typical
- * viewport at 3-4 cols × 3-4 visible rows + overscan.
- *
- * @internal
- */
-const INITIAL_BATCH = 60;
-
-/**
- * Page size for each subsequent "load more" trigger.
- *
- * @internal
- */
-const BATCH_INCREMENT = 60;
-
-/**
- * Hard cap on the number of cards ever rendered at once. Bounds worst-case DOM cost.
- * 1500 cards × ~40KB DOM each ≈ 60MB rendered — comfortably handled by every modern
- * browser. Beyond this, users see a "narrow your filters" hint.
- *
- * @internal
- */
-const HARD_CAP_RENDER = 1500;
+/** This dataset's result-column copy: the list and scroller names and the empty state. */
+const COPY = RESULT_COPY.wine;
 
 /**
  * The wine result grid.
@@ -73,7 +55,7 @@ const WineResultGridInner = (): React.ReactElement => {
 	const results = useResults<Wine>();
 	const totalCount = useResultCount();
 
-	const [renderLimit, setRenderLimit] = useState(INITIAL_BATCH);
+	const [renderLimit, setRenderLimit] = useState<number>(RESULT_GRID_WINDOW.initial);
 	const [renderLimitResults, setRenderLimitResults] = useState(results);
 	const scrollerRef = useRef<HTMLDivElement | null>(null);
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -84,7 +66,7 @@ const WineResultGridInner = (): React.ReactElement => {
 	// it resets during render — the new results never mount at the old, deeper limit.
 	if (renderLimitResults !== results) {
 		setRenderLimitResults(results);
-		setRenderLimit(INITIAL_BATCH);
+		setRenderLimit(RESULT_GRID_WINDOW.initial);
 	}
 
 	// Also scroll back to top so the new result set's first page is visible. The scroll
@@ -108,7 +90,7 @@ const WineResultGridInner = (): React.ReactElement => {
 			return;
 		}
 		setRenderLimit((current) => {
-			const next = Math.min(current + BATCH_INCREMENT, results.length, HARD_CAP_RENDER);
+			const next = nextRenderLimit(current, results.length);
 
 			return next === current ? current : next;
 		});
@@ -139,14 +121,15 @@ const WineResultGridInner = (): React.ReactElement => {
 		return <EmptyState />;
 	}
 
-	const renderedCount = Math.min(renderLimit, results.length, HARD_CAP_RENDER);
+	const renderedCount = Math.min(renderLimit, results.length, RESULT_GRID_WINDOW.cap);
 	const visible = results.slice(0, renderedCount);
-	const isCappedShort = renderedCount >= HARD_CAP_RENDER && results.length > HARD_CAP_RENDER;
+	// The notice only once the cap stops a larger result set; below it, scrolling renders more.
+	const isCappedShort = isRenderCapped(renderedCount, results.length);
 
 	return (
 		<ScrollRegion
 			ref={scrollerRef}
-			ariaLabel="Wine results"
+			ariaLabel={COPY.scrollerLabel}
 			// `flex-1 min-h-0 overflow-y-auto` — claims remaining vertical space in the
 			// parent section and scrolls internally, so the filter aside doesn't have to
 			// fight a page-tall scroll context (which breaks Radix's slider — see "Why
@@ -158,7 +141,7 @@ const WineResultGridInner = (): React.ReactElement => {
 			    labelled, focusable `<ScrollRegion>` (role="group"), so keyboard users can reach + scroll it. */}
 			<div
 				role="list"
-				aria-label={`${totalCount.toLocaleString()} matching wines`}
+				aria-label={COPY.listLabel(totalCount)}
 				className="grid gap-4"
 				style={{
 					// `min(280px, 100%)` caps the track floor at the container width so the card
@@ -199,6 +182,8 @@ const RenderCapNotice = ({
 	readonly renderedCount: number;
 	readonly totalCount: number;
 }): React.ReactElement => {
+	const notice = resultCapNotice(renderedCount, totalCount);
+
 	return (
 		<p
 			className="text-xs mt-4 mb-2"
@@ -211,10 +196,10 @@ const RenderCapNotice = ({
 		>
 			Showing{' '}
 			<span style={{ color: 'var(--accent)', fontWeight: 600 }}>
-				{renderedCount.toLocaleString()}
+				{notice.rendered}
 			</span>{' '}
-			of <span style={{ color: 'var(--gray-9)' }}>{totalCount.toLocaleString()}</span>{' '}
-			matches · narrow your filters to surface the rest
+			of <span style={{ color: 'var(--gray-9)' }}>{notice.total}</span>{' '}
+			{notice.suffix}
 		</p>
 	);
 };
@@ -242,10 +227,10 @@ const EmptyState = (): React.ReactElement => {
 					fontFamily: 'var(--font-display)',
 				}}
 			>
-				No wines match the current filters.
+				{COPY.emptyTitle}
 			</p>
 			<p className="text-sm" style={{ color: 'var(--gray-8)' }}>
-				Try loosening a price range or removing a varietal restriction.
+				{COPY.emptyHint}
 			</p>
 		</div>
 	);

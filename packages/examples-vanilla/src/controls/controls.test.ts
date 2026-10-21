@@ -54,13 +54,14 @@
  * covered here can be trusted as unreached elsewhere: a listener throw does turn the run red, so
  * K10 / K13 / K14 staying green means no other test dispatches those events at all.
  *
- * ### Parity with the React twin — identical code, divergent consequence
+ * ### Parity with the React twin — identical code, identical consequence
  *
- * `react-ui`'s `SearchInput` has byte-equivalent Enter / Escape / blur handling, and its own suite
- * pins Escape as _"a harmless no-op for a controlled field"_. **That reasoning does not transfer.**
- * That component is CONTROLLED — its `value` comes from a prop, so there is no local edit to revert —
- * while this one is uncontrolled and the field owns its text. Here Escape commits what the user typed.
- * Pinned below as the behavior it is, rather than quietly assumed to match the twin's rationale.
+ * `react-ui`'s `SearchInput` has byte-equivalent Enter / Escape / blur handling. That component is
+ * CONTROLLED — its `value` is the text its parent mirrors from each keystroke — while this one is
+ * uncontrolled and the field owns its text, but the consequence is the same: Escape blurs, the blur
+ * commits what the user typed, and the caller's typeahead flushes it (writing nothing when it equals
+ * the last commit). Pinned below as the behavior it is, rather than assumed from Escape's usual
+ * meaning.
  *
  * @packageDocumentation
  */
@@ -69,7 +70,14 @@ import type { ExclusionMap } from '@filter-enginez/examples-shared/books-domain'
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type Control, createCheckboxControl, createChipToggleGroup, createSearchInput } from './controls.js';
+import {
+	type Control,
+	createCheckboxControl,
+	createCheckboxList,
+	createChipToggleGroup,
+	createSearchInput,
+	TOGGLE_DISABLED_TITLE,
+} from './controls.js';
 
 /**
  * Options in render order: available-selected, would-be-empty, no-exclusion-datum, available-unselected.
@@ -308,10 +316,9 @@ describe('createSearchInput', () => {
 
 	it('leaves the field on Escape — and that COMMITS, because the resulting blur does', () => {
 		// 🔴 Read the parity note in the file docblock before "fixing" this. `react-ui`'s SearchInput
-		// runs the identical branch and its suite calls the consequence "a harmless no-op for a
-		// controlled field" — true there, because its value is a prop and there is no local edit to
-		// revert. This control is UNCONTROLLED: the field owns its text, so Escape commits whatever was
-		// typed rather than discarding it.
+		// runs the identical branch: in both, Escape blurs and the blur commits whatever was typed
+		// rather than discarding it. This control is UNCONTROLLED, so the text comes from the field
+		// itself rather than from a prop.
 		//
 		// Asserted as the behavior that ships, not as the behavior Escape conventionally implies. If it
 		// should instead revert to the last committed value, that is a shared decision across six
@@ -389,5 +396,174 @@ describe('createCheckboxControl', () => {
 
 		expect(input.disabled).toBe(false);
 		expect(control.element.className).toBe('fe-books-checkbox');
+	});
+
+	it('explains a disabled box in its title, and drops the title when it is enabled again', () => {
+		const control = createCheckboxControl({ label: 'In print only', onToggle: vi.fn() });
+
+		control.update({ checked: false, disabled: true });
+		expect(control.element.getAttribute('title')).toBe(TOGGLE_DISABLED_TITLE);
+		expect(TOGGLE_DISABLED_TITLE).toBe('No matches given your other filters');
+
+		control.update({ checked: false });
+		expect(control.element.hasAttribute('title')).toBe(false);
+	});
+});
+
+describe('createSearchInput — Enter', () => {
+	it('commits ONCE on Enter, not again on the blur that Enter causes', () => {
+		const { field, onCommit } = mountSearch('oak');
+
+		field.focus();
+		field.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }));
+
+		expect(document.activeElement).not.toBe(field);
+		expect(onCommit).toHaveBeenCalledTimes(1);
+		expect(onCommit).toHaveBeenCalledWith('oak');
+
+		// A later, ordinary blur still commits.
+		field.focus();
+		field.blur();
+		expect(onCommit).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('createChipToggleGroup — in place, keyed by value', () => {
+	it('keeps the SAME button, and its focus, across a repaint that changes its state', () => {
+		const control = createChipToggleGroup({ onToggle: vi.fn() });
+
+		document.body.append(control.element);
+		control.update({ options: ['red', 'white'], selected: []});
+
+		const red = queryOrThrow<HTMLButtonElement>(control.element, 'button');
+
+		red.focus();
+		control.update({ options: ['red', 'white'], selected: ['red']});
+
+		expect(control.element.querySelector('button')).toBe(red);
+		expect(document.activeElement).toBe(red);
+		expect(red.getAttribute('aria-pressed')).toBe('true');
+		expect(red.className).toBe('fe-chip fe-chip--selected');
+	});
+
+	it('adds and drops chips around the ones that stay, in the new order', () => {
+		const control = createChipToggleGroup({ onToggle: vi.fn() });
+
+		document.body.append(control.element);
+		control.update({ options: ['a', 'b', 'c'], selected: []});
+
+		const b = control.element.children[1];
+
+		b?.setAttribute('data-probe', 'kept');
+		control.update({ options: ['c', 'b', 'd'], selected: []});
+
+		expect([...control.element.children].map((chip) => chip.textContent)).toEqual(['c', 'b', 'd']);
+		expect(control.element.children[1]).toBe(b);
+	});
+
+	it('takes a chip\'s title away again once it is no longer a dead end', () => {
+		const control = createChipToggleGroup({ onToggle: vi.fn() });
+		const exclusion = new Map([['red', { projectedCount: 0, wouldBeEmpty: true }]]);
+
+		control.update({ exclusion, options: ['red'], selected: []});
+
+		const red = queryOrThrow<HTMLButtonElement>(control.element, 'button');
+
+		expect(red.disabled).toBe(true);
+		expect(red.getAttribute('title')).toBe('No matches for red given your other filters');
+
+		control.update({ options: ['red'], selected: []});
+		expect(red.disabled).toBe(false);
+		expect(red.hasAttribute('title')).toBe(false);
+	});
+});
+
+describe('createCheckboxList', () => {
+	/**
+	 * Mount a list of three districts.
+	 *
+	 * @param showCount - Whether the count column is on.
+	 * @returns The control and its toggle spy.
+	 */
+	function mountList(showCount?: boolean) {
+		const onToggle = vi.fn();
+		const control = createCheckboxList({ maxHeight: '220px', onToggle, ...(showCount === undefined ? {} : { showCount }) });
+
+		document.body.append(control.element);
+
+		return { control, onToggle };
+	}
+
+	/** The rows, in order. */
+	function rowsOf(element: HTMLElement): HTMLLabelElement[] {
+		return [...element.querySelectorAll<HTMLLabelElement>('.fe-checkbox-list__row')];
+	}
+
+	it('renders one labelled box per value inside a height-capped list', () => {
+		const { control } = mountList();
+
+		control.update({ options: ['Austin ISD', 'Round Rock ISD'], selected: ['Round Rock ISD']});
+
+		expect(control.element.className).toBe('fe-checkbox-list');
+		expect(control.element.style.maxHeight).toBe('220px');
+		expect(rowsOf(control.element).map((row) => row.textContent)).toEqual(['Austin ISD', 'Round Rock ISD']);
+		expect(rowsOf(control.element).map((row) => row.querySelector('input')?.checked)).toEqual([false, true]);
+		expect(rowsOf(control.element)[1]?.className).toBe('fe-checkbox-list__row fe-checkbox-list__row--selected');
+	});
+
+	it('hands back the toggled value', () => {
+		const { control, onToggle } = mountList();
+
+		control.update({ options: ['Austin ISD'], selected: []});
+		queryOrThrow<HTMLInputElement>(control.element, 'input').click();
+
+		expect(onToggle).toHaveBeenCalledWith('Austin ISD');
+	});
+
+	it('shows projected counts on unselected rows only, and disables a dead end with its reason', () => {
+		const { control } = mountList(true);
+		const exclusion = new Map([
+			['Austin ISD', { projectedCount: 1204, wouldBeEmpty: false }],
+			['Round Rock ISD', { projectedCount: 0, wouldBeEmpty: true }],
+			['Leander ISD', { projectedCount: 9, wouldBeEmpty: false }],
+		]);
+
+		control.update({ exclusion, options: ['Austin ISD', 'Round Rock ISD', 'Leander ISD'], selected: ['Leander ISD']});
+
+		const [austin, roundRock, leander] = rowsOf(control.element);
+
+		expect(austin?.querySelector('.fe-checkbox-list__count')?.textContent).toBe('1,204');
+		expect(roundRock?.querySelector('input')?.disabled).toBe(true);
+		expect(roundRock?.className).toContain('fe-checkbox-list__row--unavailable');
+		expect(roundRock?.getAttribute('title')).toBe('No matches for Round Rock ISD given your other filters');
+		expect(roundRock?.querySelector('.fe-checkbox-list__count')?.className).toBe(
+			'fe-checkbox-list__count fe-checkbox-list__count--unavailable',
+		);
+		expect(leander?.querySelector('.fe-checkbox-list__count')).toBeNull();
+	});
+
+	it('keeps the focused box through a repaint, and drops a count it no longer shows', () => {
+		const { control } = mountList(true);
+		const exclusion = new Map([['Austin ISD', { projectedCount: 12, wouldBeEmpty: false }]]);
+
+		control.update({ exclusion, options: ['Austin ISD'], selected: []});
+
+		const box = queryOrThrow<HTMLInputElement>(control.element, 'input');
+
+		box.focus();
+		control.update({ exclusion, options: ['Austin ISD'], selected: ['Austin ISD']});
+
+		expect(document.activeElement).toBe(box);
+		expect(control.element.querySelector('.fe-checkbox-list__count')).toBeNull();
+		expect(rowsOf(control.element)[0]?.hasAttribute('title')).toBe(false);
+	});
+
+	it('never shows counts when the column is off', () => {
+		const { control } = mountList();
+		const exclusion = new Map([['Austin ISD', { projectedCount: 12, wouldBeEmpty: false }]]);
+
+		control.update({ exclusion, options: ['Austin ISD'], selected: []});
+
+		expect(control.element.querySelector('.fe-checkbox-list__count')).toBeNull();
 	});
 });

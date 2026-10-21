@@ -2,10 +2,11 @@
  * `<ChipFilterSection />` — parameterized container for an exclusion-aware `InSetRule` chip group.
  *
  * @remarks
- * One generic container for the Color / Body / Sweetness sections, which are identical save for rule
- * id, vocabulary, and label formatting. Varietal is NOT covered here — it's
- * a high-cardinality `CheckboxList` with a data-derived vocabulary, so it keeps its own
- * `<VarietalFilterSection />`.
+ * One generic container for the Color / Varietal / Body / Sweetness sections, which differ only in
+ * rule id, vocabulary and heading. Labels are the raw values (`medium-full`, `bone-dry`), as in every
+ * other app. Varietal is the one long vocabulary: it passes `visibleOptions` (the shared
+ * `visibleVarietalChips`, the most-reviewed sixty plus anything selected) and `scrollable`, and shows
+ * no counts.
  *
  * **Seed and adopt.** The selection is SEEDED from the committed rule (so a `?f` restore or a JSON
  * config arrives with the right chips lit) and RE-ADOPTED whenever that rule changes from outside, so
@@ -20,6 +21,10 @@
  * adoption fires on engine-side changes alone, where an `$effect` that read `selected` would re-run
  * on a local click, see the still-stale engine value, and snap the chip straight back.
  *
+ * **Deselecting the last chip removes the rule** through the shared `commitSelection`, rather than
+ * writing an empty `inSet`, so the engine, the `?f=` link and the devtools log all read "no filter
+ * here", as in every other app.
+ *
  * @packageDocumentation
  */
 
@@ -28,12 +33,13 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import { inSet, type InSetRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { ChipToggleGroup } from '@filter-enginez/react-ui';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useSeedAndAdopt } from '../../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { toggleSetValue } from '../../selection/index.js';
 import { markUserAction } from '../engineBusy.js';
+import { commitSelection } from '../wine-domain/commit.js';
 import { useBundleChipExclusion } from './filterBundle.js';
 import { EMPTY_SELECTION, sameSelection } from './filterConfig.js';
 import { SectionHeader } from './SectionHeader.js';
@@ -43,14 +49,19 @@ import { useLeaveExpressionMode } from './smartFilterSelection.js';
  * Props for `<ChipFilterSection />`.
  */
 export interface ChipFilterSectionProps<T extends string> {
-	/** Rule id + bundle chip-group key (`color` / `body` / `sweetness`). */
-	readonly ruleId: 'body' | 'color' | 'sweetness';
+	/** Rule id + bundle chip-group key, which is also the `Wine` field the rule constrains. */
+	readonly ruleId: 'body' | 'color' | 'sweetness' | 'varietal';
 	/** Section label. */
 	readonly label: string;
-	/** The full, hand-ordered vocabulary of selectable values. */
+	/** The selectable values, in display order. */
 	readonly options: readonly T[];
-	/** Optional per-chip label formatter (e.g. `medium-full` → `medium full`). */
-	readonly formatLabel?: (value: T) => string;
+	/**
+	 * Narrow `options` to the chips actually rendered, given the current selection. Varietal passes
+	 * `visibleVarietalChips`; the short vocabularies render every option.
+	 */
+	readonly visibleOptions?: (options: readonly T[], selected: readonly T[]) => readonly T[];
+	/** Cap the group's height and let it scroll. Varietal only; the other three fit. */
+	readonly scrollable?: boolean;
 	/** Show projected-count badges on unselected chips. */
 	readonly showCount?: boolean;
 }
@@ -59,7 +70,14 @@ export interface ChipFilterSectionProps<T extends string> {
  * An exclusion-aware InSet chip-toggle section.
  */
 export const ChipFilterSection = <T extends string>(props: ChipFilterSectionProps<T>): React.ReactElement => {
-	const { formatLabel, label, options, ruleId, showCount: shouldShowCount = false } = props;
+	const {
+		label,
+		options,
+		ruleId,
+		scrollable: isScrollable = false,
+		showCount: shouldShowCount = false,
+		visibleOptions,
+	} = props;
 	const engine = useFilterEngine<Wine>();
 	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
 	const leaveExpressionMode = useLeaveExpressionMode();
@@ -67,6 +85,10 @@ export const ChipFilterSection = <T extends string>(props: ChipFilterSectionProp
 	const engineSelected: readonly T[] = rule?.config.set ?? EMPTY_SELECTION;
 	const [selected, setSelected] = useSeedAndAdopt<readonly T[]>(engineSelected, sameSelection);
 	const exclusion = useBundleChipExclusion(ruleId);
+	const renderedOptions = useMemo(
+		() => (visibleOptions === undefined ? options : visibleOptions(options, selected)),
+		[options, selected, visibleOptions],
+	);
 
 	const handleToggle = useCallback((value: T): void => {
 		const next = toggleSetValue(selected, value);
@@ -74,7 +96,9 @@ export const ChipFilterSection = <T extends string>(props: ChipFilterSectionProp
 		leaveExpressionMode();
 		// Paint the chip's new state first, then disable+loader, then the engine — each its own frame.
 		commitFilterMutation({
-			callEngine: () => engine.core.addRule(ruleId, inSet<T>(ruleId, next)),
+			callEngine: () => {
+				commitSelection(engine, ruleId, next, (values) => inSet<T>(ruleId, values));
+			},
 			markBusy: markUserAction,
 			paintOptimisticUi: () => setSelected(next),
 		});
@@ -84,12 +108,12 @@ export const ChipFilterSection = <T extends string>(props: ChipFilterSectionProp
 		<section>
 			<SectionHeader label={label} />
 			<ChipToggleGroup<T>
-				options={options}
+				options={renderedOptions}
 				selected={selected}
 				onToggle={handleToggle}
 				exclusion={exclusion}
+				scrollable={isScrollable}
 				showCount={shouldShowCount}
-				{...(formatLabel !== undefined ? { formatLabel } : {})}
 			/>
 		</section>
 	);

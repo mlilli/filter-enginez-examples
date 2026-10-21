@@ -37,6 +37,7 @@ import { GEO_RADIUS_RULE_ID, milesToKm, writeGeoRadius } from '@filter-enginez/e
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createBusyCore } from '../busy/engineBusy.js';
 import { installMatchMedia, type MediaQueryController } from '../test-support/matchMedia.js';
 import { createRealEstateView, type RealEstateView } from './view.js';
 
@@ -165,7 +166,7 @@ function mountView(data: readonly Listing[] = DATA): {
 	root: HTMLElement;
 } {
 	const core = createFilterEngine<Listing>({ sourceData: data });
-	const view = createRealEstateView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
+	const view = createRealEstateView(core, { busy: createBusyCore(), footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -291,8 +292,8 @@ describe('framework-less real-estate view parity', () => {
 
 	it('REMOVES the rule rather than writing an empty one when the last chip is deselected', () => {
 		// The single most likely thing to get wrong in this panel. An `InSetRule` with an empty set
-		// still ANDs and matches nothing, so a facet that writes one filters to zero on
-		// deselect-everything — and the call looks perfectly reasonable in review.
+		// matches every item, so a facet that writes one looks cleared while a rule stays registered,
+		// in the `?f=` link and the action log — and the call looks perfectly reasonable in review.
 		const { core, root } = mountView();
 
 		chipByText(root, 'condo').click();
@@ -363,16 +364,85 @@ describe('framework-less real-estate view parity', () => {
 	});
 });
 
+describe('busy marking + the shared results copy', () => {
+	it('marks busy for Clear all, lights the header and the panel body, and clears on resolve', () => {
+		const core = createFilterEngine<Listing>({ sourceData: DATA });
+		const busy = createBusyCore();
+		const view = createRealEstateView(core, { busy, footnote: 'test', subtitle: appHeaderSubtitle('test') });
+
+		document.body.append(view.element);
+		core.subscribe(() => {
+			view.setRules(core.getRules(), null, null);
+		});
+		view.setResults(core.getResults());
+		view.setRules(core.getRules(), null, null);
+		chipByText(view.element, 'pending').click();
+		busy.markResolvedAtLeast(busy.captureCurrentVersion());
+		view.element.querySelector<HTMLElement>('.fe-active-filters__clear')?.click();
+
+		expect(core.getRules().size).toBe(0);
+		expect(view.element.querySelector('.fe-computing-indicator')?.getAttribute('aria-label')).toBe('Engine computing');
+		expect(view.element.querySelector('.fe-filter-panel__body')?.getAttribute('aria-busy')).toBe('true');
+
+		busy.markResolvedAtLeast(busy.captureCurrentVersion());
+		expect(view.element.querySelector('.fe-filter-panel__body')?.getAttribute('aria-busy')).toBe('false');
+		expect(view.element.querySelector('[role="list"]')?.getAttribute('aria-label')).toBe(
+			`${String(DATA.length)} matching listings`,
+		);
+		view.dispose();
+	});
+
+	it('mounts the route\'s header controls into the header\'s control cluster', () => {
+		// The route passes its URL-format toggle, copy-link and compare buttons here; every other case in
+		// this file takes the empty default.
+		const core = createFilterEngine<Listing>({ sourceData: DATA });
+		const control = document.createElement('button');
+
+		control.textContent = 'Copy link';
+
+		const view = createRealEstateView(core, {
+			busy: createBusyCore(),
+			footnote: 'test',
+			headerControls: [control],
+			subtitle: appHeaderSubtitle('test'),
+		});
+
+		expect(view.element.querySelector('.fe-books-app__url-controls')?.contains(control)).toBe(true);
+		view.dispose();
+	});
+});
+
 describe('the distance section', () => {
-	it('starts collapsed, with the map frame present but hidden', () => {
+	it('starts collapsed, with NO map frame until the filter is switched on', () => {
 		const { root } = mountView();
-		const map = root.querySelector<HTMLElement>('.fe-geo__map');
 
 		expect(geoToggle(root).checked).toBe(false);
-		// Present in the DOM so enabling does not have to build it, hidden so Leaflet is never asked to
-		// measure a container the user has not opened.
-		expect(map).not.toBeNull();
-		expect(map?.parentElement?.style.display).toBe('none');
+		// Unmounted rather than hidden, as in every vertical: a disabled section holds no map at all.
+		expect(root.querySelector('.fe-geo__map')).toBeNull();
+	});
+
+	it('destroys the map when switched off and builds a FRESH one when switched back on', async () => {
+		const { root } = mountView();
+		const toggle = geoToggle(root);
+
+		toggle.click();
+		await vi.waitFor(() => {
+			expect(mapLog.createdCount).toBe(1);
+		});
+
+		const firstFrame = root.querySelector('.fe-geo__map');
+
+		toggle.click();
+		expect(mapLog.destroyedCount).toBe(1);
+		expect(root.querySelector('.fe-geo__map')).toBeNull();
+
+		toggle.click();
+		await vi.waitFor(() => {
+			expect(mapLog.createdCount).toBe(2);
+		});
+		expect(root.querySelector('.fe-geo__map')).not.toBe(firstFrame);
+		// The frame sits where it always has: between the metro row and the radius slider.
+		expect(root.querySelector('.fe-geo__map')?.nextElementSibling?.querySelector('.fe-geo__radius')).not.toBeNull();
 	});
 
 	it('writes a GeoProximityRule when enabled and removes it when switched back off', () => {
@@ -522,7 +592,7 @@ function mountForTeardown(isDesktopInitially: boolean): {
 } {
 	const media = installMatchMedia(DESKTOP_MEDIA_QUERY, isDesktopInitially);
 	const core = createFilterEngine<Listing>({ sourceData: DATA });
-	const view = createRealEstateView(core, { footnote: 'test', subtitle: appHeaderSubtitle('test') });
+	const view = createRealEstateView(core, { busy: createBusyCore(), footnote: 'test', subtitle: appHeaderSubtitle('test') });
 	const root = document.createElement('div');
 
 	root.append(view.element);
@@ -598,7 +668,7 @@ describe('route teardown + the breakpoint subscription', () => {
 
 		await enableMapAndWait(root);
 
-		// Mobile with the drawer shut: the panel is hidden, and Leaflet has never been asked to measure.
+		// Mobile with the collapse shut: the panel is hidden, and Leaflet has never been asked to measure.
 		expect(collapseIn(root).hasAttribute('hidden')).toBe(true);
 		expect(mapLog.measuredWhileHidden).toHaveLength(0);
 

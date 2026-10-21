@@ -7,16 +7,15 @@
  * each fetch only their own page: a module is the unit a chunk is cut from. See `datasets.tsx` for why
  * the registry may only reach it through `import()`.
  *
+ * No progress hooks, deliberately: every app's books boot screen is the inline idle caption alone
+ * (`BOOKS_BOOT_IDLE_CAPTION`, set on the registry entry), so there is no live count to follow.
+ *
  * @packageDocumentation
  */
 
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import {
-	bootBooksConfigEngine,
-	getBooksConfigBootProgressSnapshot,
-	subscribeBooksConfigBootProgress,
-} from '@filter-enginez/examples-shared/books';
+import { bootBooksConfigEngine } from '@filter-enginez/examples-shared/books';
 
 import type { BootedDataset, DatasetModule } from '../datasets.js';
 
@@ -34,6 +33,4 @@ export const booksConfigDataset: DatasetModule = {
 		return { engine: bundle.engine as unknown as SignalsEngine<unknown> };
 	},
 	Component: BooksConfigApp,
-	getProgressSnapshot: getBooksConfigBootProgressSnapshot,
-	subscribeProgress: subscribeBooksConfigBootProgress,
 };

@@ -3,16 +3,17 @@
  * layout switch.
  *
  * @remarks
- * Both React shells (RTK + plain) render the filter controls as an off-canvas `<FilterDrawer />` on
- * small viewports and as a static inline sidebar at the two-column breakpoint and up. Rendering
- * *one* of the two (rather than both, toggled by CSS) keeps a single engine-connected panel
- * instance in the tree — no duplicate subscriptions, no ambiguous e2e selectors — so the shell needs
- * to know the current breakpoint in JS. That's what these hooks provide.
+ * Both React shells (RTK + plain) render the filter controls in react-ui's `<FilterCollapse />`: an
+ * inline "Filters" / "Hide filters" disclosure on small viewports and a static sidebar at the
+ * two-column breakpoint and up. The one engine-connected panel instance stays in the tree at every
+ * width — no duplicate subscriptions, no ambiguous e2e selectors — and only the button and the
+ * region's `hidden` attribute depend on the breakpoint, so the shell needs to know it in JS. That's
+ * what these hooks provide.
  *
  * Implemented on `useSyncExternalStore` (the same store-subscription primitive the engine-busy
  * tracker uses): tear-free under concurrent React and SSR-safe. The server snapshot is `false`
  * (mobile-first — assume the small viewport until the client can measure), so first paint favors the
- * drawer layout and never assumes desktop.
+ * collapsed layout and never assumes desktop.
  *
  * Lives in `examples-shared` rather than `react-ui` because it touches `window.matchMedia`, a
  * browser global that the dumb-presentational `react-ui` layer forbids. It's app-shell plumbing, not
@@ -59,8 +60,8 @@ export function useMediaQuery(query: string): boolean {
 }
 
 /**
- * `true` at or above the two-column breakpoint (desktop). Drives the React shells' choice between the
- * inline sidebar (desktop) and the off-canvas `<FilterDrawer />` (mobile).
+ * `true` at or above the two-column breakpoint (desktop). Drives the React shells' `<FilterCollapse />`:
+ * an always-open sidebar on desktop, a "Filters" disclosure on mobile.
  */
 export function useIsDesktop(): boolean {
 	return useMediaQuery(DESKTOP_MEDIA_QUERY);

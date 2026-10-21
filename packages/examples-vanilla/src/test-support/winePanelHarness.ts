@@ -86,7 +86,7 @@ export function createWinePanelMounter(data: readonly Wine[]): WinePanelMounter 
 		const panel = createWinePanel(core);
 		const root = document.createElement('div');
 		const repaint = (rules: ReadonlyMap<RuleId, FilterRule> = core.getRules()): void => {
-			panel.update({ bundle: null, expression: null, isComputing: false, rules });
+			panel.update({ bundle: null, expression: null, rules });
 		};
 
 		root.append(panel.element);

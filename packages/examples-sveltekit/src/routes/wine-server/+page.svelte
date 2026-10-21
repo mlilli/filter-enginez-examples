@@ -28,6 +28,7 @@
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+	import { SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 	import {
 		deriveWineFacets,
 		FALLBACK_BOUNDS,
@@ -133,7 +134,11 @@
 {:else if isMounted && bootError === null}
 	<!-- JS on + booting: the branded cold-start loader, matching `/wine`. No progress stream on the
 	     server tier (one corpus fetch), so `progress` stays null and the caption names the real step. -->
-	<WineBootScreen progress={null} idleCaption="Connecting to the filter server" />
+	<WineBootScreen
+		progress={null}
+		idleCaption={SERVER_ROUTE_SCREEN_COPY.connectingCaption}
+		loaderLabel={SERVER_ROUTE_SCREEN_COPY.connectingLoaderLabel}
+	/>
 {:else}
 	<!-- SSR / no-JS (server-filtered form) and the boot-error state, which keeps the working no-JS form. -->
 	<WineServerFallback

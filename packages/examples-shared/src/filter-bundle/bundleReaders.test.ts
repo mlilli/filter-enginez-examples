@@ -15,11 +15,17 @@
  * covered from `books-domain/bundle.test.ts`.
  */
 
-import type { FilterBundle, FilterBundleFieldMeta } from '@filter-enginez/core';
-
+import { bool, type FilterBundle, type FilterBundleFieldMeta } from '@filter-enginez/core';
 import { describe, expect, it } from 'vitest';
 
-import { bundleHistogramToBuckets, chipDisabledSet, chipProjectedCounts, fieldHistogram } from './bundleReaders.js';
+import {
+	bundleHistogramToBuckets,
+	chipDisabledSet,
+	chipProjectedCounts,
+	fieldHistogram,
+	isToggleDisabled,
+	toggleWouldBeEmpty,
+} from './bundleReaders.js';
 
 /**
  * A histogram in the typed-array shape the engine returns.
@@ -192,5 +198,24 @@ describe('fieldHistogram', () => {
 		// overlay of nothing", and the second is 38px of blank space above the track that collapses a
 		// frame later. Three different absences, one honest answer.
 		expect(fieldHistogram(bundle, ruleId, 0, 100)).toBeUndefined();
+	});
+});
+
+describe('isToggleDisabled', () => {
+	const inPrint = bool('isInPrint', true);
+	const rows = [{ isInPrint: false }, { isInPrint: true }];
+
+	it('disables an unchecked toggle that would empty the results', () => {
+		expect(isToggleDisabled(false, [{ isInPrint: false }], inPrint)).toBe(true);
+	});
+
+	it('leaves an unchecked toggle enabled while some result passes it', () => {
+		expect(isToggleDisabled(false, rows, inPrint)).toBe(false);
+	});
+
+	it('never disables a checked toggle, even over an empty result set', () => {
+		// `toggleWouldBeEmpty` alone says `true` here, which would leave the box checked and impossible to uncheck.
+		expect(toggleWouldBeEmpty([], inPrint)).toBe(true);
+		expect(isToggleDisabled(true, [], inPrint)).toBe(false);
 	});
 });

@@ -24,8 +24,10 @@
  *   2. **Every wine route's results header writes through `clearAllWineFilters` and
  *      `removeWineFilterChip`**, so "Clear all" and the smart-filter chip's × do the same in each app.
  *   3. **No wine route source calls `setExpression`, `commitExpression` or `clearRules` directly.**
- *      Leaving expression mode is `exitExpressionMode`, which also drops the leaves a restored preset
- *      registers as flat rules; a direct `setExpression(null)` would let them start filtering.
+ *      Leaving expression mode is `exitExpressionMode` and clearing is `clearAllWineFilters`, so each
+ *      marks the action busy first and every app logs the same engine actions. The one allowed form
+ *      of `clearRules` outside the helpers is the Redux app's `forwardToEngine('clearRules')` intent,
+ *      and only in a file that hands it to `clearAllWineFilters` as the clear seam.
  *   4. **Every facet section that writes a rule drops an active preset first** (`leaveExpressionMode`).
  *
  * Comments are stripped before matching, so a docblock that names a forbidden call does not fail the
@@ -161,11 +163,14 @@ function discoverPresetRows(): ReadonlyMap<string, string> {
  * @returns The forbidden calls present, by name.
  */
 function forbiddenWrites(code: string): readonly string[] {
+	// A forwarded `clearRules` is the Redux app's clear seam: allowed only where the same file passes a
+	// seam to `clearAllWineFilters`, which marks the action busy before calling it.
+	const isClearSeamPassed = /\bclearAllWineFilters\(\s*\w+\s*,\s*\w+\s*\)/u.test(code);
 	const patterns: Readonly<Record<string, RegExp>> = {
 		'.clearRules(': /\.clearRules\(/u,
 		'.setExpression(': /\.setExpression\(/u,
 		'commitExpression(': /\bcommitExpression\(/u,
-		"forwardToEngine('clearRules'": /forwardToEngine\(\s*'clearRules'/u,
+		...(isClearSeamPassed ? {} : { "forwardToEngine('clearRules'": /forwardToEngine\(\s*'clearRules'/u }),
 		"forwardToEngine('setExpression'": /forwardToEngine\(\s*'setExpression'/u,
 	};
 

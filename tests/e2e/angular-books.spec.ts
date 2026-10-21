@@ -20,7 +20,9 @@
 
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 
+import { BOOKS_SEARCH_COPY } from '../../packages/examples-shared/src/books/books-domain/panelCopy.js';
 import { angularUrl } from './angularBase.js';
+import { describeBooksParity } from './booksParity.js';
 import {
 	expectPanelScrollsToLastControl,
 	isMobileProject,
@@ -32,9 +34,9 @@ import {
 import { subtitle } from './subtitles.js';
 
 /**
- * What "open" means in this vertical: Angular's mobile filter panel is an inline collapse, not a
- * `dialog`, so it has no role and no accessible name — the panel element appearing IS the readiness
- * signal. (The React verticals wait for react-ui's named off-canvas drawer instead.)
+ * What "open" means in this vertical: Angular's mobile filter panel sits in an inline collapse with no
+ * role and no accessible name, kept mounted under `hidden` — the panel element turning visible IS the
+ * readiness signal.
  *
  * @remarks
  * Never a boot signal: at phone width the panel sits behind the "Filters" collapse, so asserting
@@ -61,9 +63,9 @@ const SETTLED: SettledCountOptions = {
  * Wait for the books route to finish booting.
  *
  * @remarks
- * The boot signal is the results header, NOT the filter panel: the panel is hidden behind the drawer
- * at phone width, so waiting on it would conflate "the route has not booted" with "the drawer is
- * closed" — and only one of those is a failure.
+ * The boot signal is the results header, NOT the filter panel: the panel is hidden behind the
+ * "Filters" toggle at phone width, so waiting on it would conflate "the route has not booted" with
+ * "the collapse is shut" — and only one of those is a failure.
  */
 async function gotoBooks(page: Page, testInfo: TestInfo): Promise<void> {
 	await page.goto(angularUrl('/books'));
@@ -80,7 +82,7 @@ test.describe('Angular app — routing', () => {
 		await page.goto(angularUrl('/books'));
 
 		// The subtitle, not the filter panel: at phone width the panel is behind the "Filters"
-		// drawer, and this test is about WHICH ROUTE rendered rather than about the drawer.
+		// toggle, and this test is about WHICH ROUTE rendered rather than about the panel.
 		await expect(page.locator('.fe-books-app__subtitle')).toHaveText(subtitle('Books', 'angular'));
 		await expect(page.locator('.fe-landing__grid')).toHaveCount(0);
 		expect(new URL(page.url()).pathname).toBe('/books');
@@ -187,7 +189,7 @@ test.describe('Angular app — shareable URL state', () => {
 		await expect(page.locator('.fe-results-header')).toBeVisible();
 
 		expect(await settledCount(page, SETTLED)).toBe(filtered);
-		// Reopen the drawer: a reload closes it at phone width, and the chip assertion below is the
+		// Reopen the collapse: a reload shuts it at phone width, and the chip assertion below is the
 		// whole point of this test — it proves controls derive from engine state, not local mirrors.
 		await openFilterPanel(page, testInfo, page.locator(BOOKS_PANEL));
 		await expect(page.locator('.fe-chip--selected', { hasText: 'fantasy' })).toBeVisible();
@@ -199,7 +201,7 @@ test.describe('Angular app — shareable URL state', () => {
 		await gotoBooks(page, testInfo);
 		// Without `fe-filter-panel__scroller` the panel stops scrolling and the PAGE scrolls instead,
 		// which nothing else notices. See the helper.
-		await expectPanelScrollsToLastControl(page, 'input[aria-label="Filter by ISBN-13 pattern (regular expression)"]');
+		await expectPanelScrollsToLastControl(page, `input[aria-label="${BOOKS_SEARCH_COPY.isbn.ariaLabel}"]`);
 	});
 
 	test('cycling the URL format keeps the link working', async ({ page }, testInfo) => {
@@ -221,3 +223,5 @@ test.describe('Angular app — shareable URL state', () => {
 		expect(await settledCount(page, SETTLED)).toBe(filtered);
 	});
 });
+
+describeBooksParity({ id: 'angular', label: 'Angular' });

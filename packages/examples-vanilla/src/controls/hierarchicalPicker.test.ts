@@ -181,10 +181,72 @@ describe('createHierarchicalPicker', () => {
 
 		expect(labels(picker.element)).toEqual(['Italy', 'Piedmont', 'Veneto', 'France']);
 
-		// The row is rebuilt on every paint, so the second click has to come from a fresh query —
-		// and its label has flipped, which is the other half of the state being announced.
+		// Same button, relabelled — the other half of the state being announced.
 		picker.element.querySelector<HTMLButtonElement>('[aria-label="Collapse Italy"]')?.click();
 
 		expect(labels(picker.element)).toEqual(['Italy', 'France']);
+	});
+
+	it('keeps keyboard focus on the disclosure that opened a branch, and on a row through an update', () => {
+		const picker = mount();
+
+		document.body.replaceChildren(picker.element);
+		picker.update(stateOf());
+
+		const disclosure = picker.element.querySelector<HTMLButtonElement>('[aria-label="Expand Italy"]');
+
+		disclosure?.focus();
+		disclosure?.click();
+
+		expect(document.activeElement).toBe(disclosure);
+		expect(disclosure?.getAttribute('aria-expanded')).toBe('true');
+		expect(disclosure?.querySelector('.fe-tree__pm')?.className).toBe('fe-tree__pm fe-tree__pm--open');
+
+		const piedmont = picker.element.querySelectorAll<HTMLButtonElement>('[role="checkbox"]')[1];
+
+		piedmont?.focus();
+		picker.update(stateOf({ counts: new Map([['IT-PIE', 3]]), selected: ['IT-PIE']}));
+
+		expect(document.activeElement).toBe(piedmont);
+		expect(piedmont?.getAttribute('aria-checked')).toBe('true');
+		expect(piedmont?.querySelector('.fe-tree__count')?.textContent).toBe('3');
+		document.body.replaceChildren();
+	});
+
+	it('toggles from the LATEST selection, not the one the row was first drawn under', () => {
+		const picker = mount();
+
+		picker.update(stateOf());
+
+		const france = picker.element.querySelectorAll<HTMLButtonElement>('[role="checkbox"]')[1];
+
+		picker.update(stateOf({ selected: ['IT']}));
+		france?.click();
+
+		expect(emissions.at(-1)).toEqual(['IT', 'FR']);
+	});
+
+	it('drops a count and a dead-end title once the bundle stops supplying them', () => {
+		const picker = mount();
+
+		picker.update(stateOf({ counts: new Map([['FR', 5]]), disabled: new Set(['FR']) }));
+
+		const france = picker.element.querySelectorAll<HTMLButtonElement>('[role="checkbox"]')[1];
+
+		expect(france?.getAttribute('title')).toBe('No matches for France given your other filters');
+
+		picker.update(stateOf());
+
+		expect(france?.hasAttribute('title')).toBe(false);
+		expect(france?.querySelector('.fe-tree__count')).toBeNull();
+	});
+
+	it('rebuilds its rows for a different tree', () => {
+		const picker = mount();
+
+		picker.update(stateOf());
+		picker.update(stateOf({ tree: { children: [{ id: 'ES', label: 'Spain' }], id: 'root2', label: 'All' }}));
+
+		expect(labels(picker.element)).toEqual(['Spain']);
 	});
 });

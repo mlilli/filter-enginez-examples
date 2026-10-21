@@ -10,6 +10,12 @@
  * **A selected chip is never unavailable.** Deselecting must always stay possible, or a person who
  * filters themselves into a corner has no way out. That rule is load-bearing, not cosmetic.
  *
+ * **No whitespace between a chip's tags, its label and its badge.** Angular keeps one space for every
+ * line break beside an interpolation, so a chip laid out over several lines would read
+ * ` red (86,914) `.
+ * Written tight, its text is `red(86,914)` and starts with its value, as in every other app
+ * (`tests/tooling/filterPanelMarkupParity.test.ts`).
+ *
  * @packageDocumentation
  */
 
@@ -32,17 +38,10 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 					[attr.aria-pressed]="isSelected(option)"
 					[attr.title]="titleFor(option)"
 					(click)="toggled.emit(option)"
-				>
-					{{ labelFor(option) }}
-					@if (shouldShowCount() && projectedCountFor(option) !== null && !isSelected(option)) {
-						<span
+				>{{ labelFor(option) }}@if (shouldShowCount() && projectedCountFor(option) !== null && !isSelected(option)) {<span
 							class="fe-chip__count"
 							[class.fe-chip__count--unavailable]="isUnavailable(option)"
-						>
-							({{ projectedCountFor(option)?.toLocaleString() }})
-						</span>
-					}
-				</button>
+						>({{ projectedCountFor(option)?.toLocaleString() }})</span>}</button>
 			}
 		</div>
 	`,

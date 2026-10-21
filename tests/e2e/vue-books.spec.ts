@@ -5,15 +5,12 @@
  * @remarks
  * This app renders `<BooksView>` over `vue-signals` binding a
  * main-thread engine and reuses the shared `ui-styles` `fe-*` classes, so the selectors are identical to
- * the React, Svelte and Angular books specs. Three Vue-specific differences from `svelte-books.spec.ts`:
+ * the React, Svelte and Angular books specs. Two notes:
  *
- *   - **No off-canvas drawer.** The mobile filter panel is toggled by a "Filters" button rather than
- *     rendered as react-ui's named `dialog`, so `openFilterPanel` just reveals it and there is nothing
- *     to close.
- *   - **The panel is `v-if`'d out while closed**, not merely hidden — unlike Vue's own `/real-estate`,
- *     which keeps its collapse mounted so the Leaflet map survives. So at phone width the chips do not
- *     exist in the DOM until the drawer is opened, and every chip assertion below must be preceded by an
- *     `openFilterPanel` — including after a reload.
+ *   - **The mobile collapse.** The filter panel sits behind a "Filters" toggle and stays mounted under
+ *     `hidden` while closed, as in every app, so `openFilterPanel` just reveals it and there is nothing
+ *     to close. The chips are in the DOM but hidden until it opens, so every chip assertion below is
+ *     preceded by an `openFilterPanel` — including after a reload, which shuts the collapse again.
  *   - **Absolute URLs.** Playwright's `baseURL` is the React app; these navigate to the Vue origin via
  *     `vueUrl(...)`.
  *
@@ -39,6 +36,8 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { BOOKS_SEARCH_COPY } from '../../packages/examples-shared/src/books/books-domain/panelCopy.js';
+import { describeBooksParity } from './booksParity.js';
 import {
 	ACTIVE_CHIP,
 	expectPanelScrollsToLastControl,
@@ -70,9 +69,8 @@ const SPARSE_GENRE = 'poetry';
  * string the round-trip test exists to restore from.
  *
  * The signal is the header subtitle plus the result count — both in the results column, both OUTSIDE the
- * filter panel. On this route that is not merely a good habit: the panel is unmounted while the drawer is
- * closed, so a panel-based boot signal would time out on every mobile run for a page that had booted
- * perfectly.
+ * filter panel. A panel-based boot signal would wait on a control that stays hidden while the collapse
+ * is shut, and time out on every mobile run for a page that had booted perfectly.
  */
 async function waitForBooksBoot(page: Page): Promise<void> {
 	await expect(page.getByText(subtitle('Books', 'vue'))).toBeVisible({ timeout: 30_000 });
@@ -168,8 +166,7 @@ test.describe('Vue books app — filter flow', () => {
 		await expect(page.locator(ACTIVE_CHIP).first()).toBeVisible();
 		expect(await settledCount(page)).toBe(narrowed);
 
-		// Reopen the drawer — a reload closes it, and at phone width the panel is unmounted while closed
-		// — then assert the CONTROL, which is the point of this test: the chip's selected state derives
+		// Reopen the collapse — a reload shuts it at phone width — then assert the CONTROL, which is the point of this test: the chip's selected state derives
 		// from the hydrated engine's rule map, so a lit pill over an unselected chip would mean hydration
 		// reached the engine and never reached the panel.
 		await openFilterPanel(page, testInfo, page.locator(TOGGLEABLE_CHIP).first());
@@ -184,7 +181,7 @@ test.describe('Vue books app — filter flow', () => {
 
 		// Without `fe-filter-panel__scroller` the panel stops scrolling and the PAGE scrolls instead,
 		// which nothing else notices. See the helper.
-		await expectPanelScrollsToLastControl(page, 'input[aria-label="Filter by ISBN-13 pattern (regular expression)"]');
+		await expectPanelScrollsToLastControl(page, `input[aria-label="${BOOKS_SEARCH_COPY.isbn.ariaLabel}"]`);
 	});
 
 	test('has no serious or critical accessibility violations', async ({ page }, testInfo) => {
@@ -208,3 +205,5 @@ test.describe('Vue books app — filter flow', () => {
 		expect(blocking, `axe found blocking a11y violations:\n${summary}`).toEqual([]);
 	});
 });
+
+describeBooksParity({ id: 'vue', label: 'Vue' });

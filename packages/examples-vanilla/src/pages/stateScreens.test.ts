@@ -17,6 +17,7 @@
 
 import type * as Core from '@filter-enginez/core';
 
+import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** The boots the pages call, each replaced by a case. */
@@ -107,7 +108,7 @@ describe('booting', () => {
 		boots.wineServer.mockImplementation(pending);
 		void renderWineServerPage(container);
 
-		expect(onlyMain().querySelector('.fe-boot-caption')?.textContent).toBe('Fetching corpus from the filter API');
+		expect(onlyMain().querySelector('.fe-boot-caption')?.textContent).toBe(SERVER_ROUTE_SCREEN_COPY.connectingCaption);
 	});
 });
 
@@ -116,7 +117,11 @@ describe('an unreachable server', () => {
 		boots.wineServer.mockRejectedValue(new Error('fetch failed'));
 		const teardown = await renderWineServerPage(container);
 
-		expect(onlyMain().querySelector('h1')?.textContent).toBe('The filter API is not running');
+		const alert = onlyMain().querySelector('[role="alert"]');
+
+		expect(alert?.querySelector('.fe-server-offline__title')?.textContent).toBe(SERVER_ROUTE_SCREEN_COPY.offlineTitle);
+		expect(alert?.textContent).toContain('fetch failed');
+		expect(alert?.querySelector('code')?.textContent).toBe(EXAMPLES_SERVER_START_COMMAND);
 		teardown();
 	});
 });

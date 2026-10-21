@@ -7,9 +7,11 @@
  *
  * @remarks
  * Deliberately built over `createHttpFilterEngine` + `createSignalsEngineFromAsync` (a stubbed-`fetch`
- * stand-in for `/wine-server`), NOT a main-thread engine: the failure ONLY reproduces on the debounced
- * async tier, where a clear-all's `removeRule × N` + `setExpression(null)` burst coalesces to one
- * delivered event. A main-thread engine emits each event separately and would pass regardless.
+ * stand-in for `/wine-server`), NOT a main-thread engine: the debounced async tier delivers one event
+ * per burst, so the pills clear only if that event is one that refreshes the rules. "Clear all" is one
+ * `clearRules`, whose `reset` refreshes every mirror; a clear that delivered only an `expression` event
+ * would leave the pills standing. A main-thread engine emits each event separately and would pass
+ * regardless.
  *
  * @packageDocumentation
  */
@@ -57,7 +59,7 @@ afterEach(() => {
 
 describe('<WineView> over a server-backed engine — clear all', () => {
 	it('clearing all filters removes the header active-filter chips', async () => {
-		// Small debounce (not 0): the clear-all burst must still coalesce, which is the whole point.
+		// Small debounce (not 0): the events must still coalesce, which is the whole point.
 		const engine = await createSignalsEngineFromAsync<Wine>(createHttpFilterEngine<Wine>({ dataset: 'wine', debounceMs: 20 }));
 
 		const { container, getByRole } = render(WineView, {
@@ -79,7 +81,7 @@ describe('<WineView> over a server-backed engine — clear all', () => {
 		});
 
 		// Clear all → the header pills MUST disappear (the failure mode: they survive on the debounced
-		// server tier if the coalesced burst delivers only an `expression` event, which never refreshes rules).
+		// server tier if the delivered event is an `expression` one, which never refreshes rules).
 		await fireEvent.click(getByRole('button', { name: 'Clear all' }));
 		await waitFor(() => {
 			expect(container.querySelectorAll('.fe-filter-chip')).toHaveLength(0);

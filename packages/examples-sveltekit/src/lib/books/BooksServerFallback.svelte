@@ -9,11 +9,19 @@
 	 *
 	 * All data (match count, sample grid, genre vocabulary, current selections) comes from the server
 	 * `load`; this component holds no engine and no reactivity beyond the `booting` status hint.
+	 *
+	 * While the live engine connects, and when it cannot, the status line uses the words every app's
+	 * `/books-server` shows for those two states: "Filtering on the Node server · fetching corpus +
+	 * initial state", and "Can't reach the filter server" with the error and how to start the server.
+	 * The server-rendered form stays usable below either.
 	 */
 
 	import type { AppliedParams } from '$lib/server/booksServerParams.js';
 
+	import { BOOKS_SEARCH_COPY } from '@filter-enginez/examples-shared/books-domain';
+	import { SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 	import AppHeaderBrand from '$lib/shell/AppHeaderBrand.svelte';
+	import { SVELTEKIT_SERVER_START_COMMAND } from '$lib/shell/serverStartCommand.js';
 
 	import type { SsrBookCard } from '../../routes/books-server/+page.server.js';
 
@@ -63,11 +71,18 @@
 	</header>
 
 	{#if bootError !== null}
-		<p class="fe-server-fallback__error" role="alert">
-			The live engine could not start ({bootError}). The server-rendered filters below still work.
-		</p>
+		<div class="fe-server-fallback__error" role="alert">
+			<p class="fe-server-offline__title">{SERVER_ROUTE_SCREEN_COPY.offlineTitle}</p>
+			<p class="fe-server-offline__detail">{bootError}</p>
+			<p class="fe-server-offline__hint">
+				{SERVER_ROUTE_SCREEN_COPY.offlineHintLead}<code class="fe-server-offline__command">{SVELTEKIT_SERVER_START_COMMAND}</code
+				>{SERVER_ROUTE_SCREEN_COPY.offlineHintTail}
+			</p>
+		</div>
 	{:else if booting}
-		<p class="fe-server-fallback__status" aria-live="polite">Connecting to the live engine…</p>
+		<p class="fe-server-fallback__status" aria-live="polite">
+			{SERVER_ROUTE_SCREEN_COPY.connectingCaption}
+		</p>
 	{/if}
 
 	<form class="fe-server-fallback__form" method="GET" action="/books-server">
@@ -95,7 +110,7 @@
 			</label>
 
 			<label class="fe-server-fallback__field fe-server-fallback__field--grow">
-				<span class="fe-server-fallback__label">Search descriptions</span>
+				<span class="fe-server-fallback__label">{BOOKS_SEARCH_COPY.description.ariaLabel}</span>
 				<input
 					type="search"
 					name="q"

@@ -326,7 +326,44 @@ describe('the exact-color select', () => {
 	});
 });
 
+describe('canonical option order', () => {
+	// `dessert` streams first and `sparkling` before `red`, so raw vocabulary order and alphabetical
+	// order would both put them ahead of red; the canonical order does not.
+	const mountMixed = createWinePanelMounter([
+		makeWine({ color: 'dessert', id: 'x1' }),
+		makeWine({ color: 'sparkling', id: 'x2' }),
+		makeWine({ color: 'red', id: 'x3' }),
+	]);
+
+	it('lists the single-color menu in COLOR_ORDER, like the chips above it', () => {
+		const { root } = mountMixed();
+		const select = root.querySelector<HTMLSelectElement>('select[aria-label="Filter by exact wine color"]');
+		const values = [...(select?.options ?? [])].map((option) => option.value).filter((entry) => entry !== '');
+
+		expect(values).toEqual(['red', 'sparkling', 'dessert']);
+	});
+
+	it('lists the color chips in the same order', () => {
+		const { root } = mountMixed();
+		const colorSection = [...root.querySelectorAll('section')].find(
+			(node) => node.querySelector('.fe-filter-section-label')?.textContent === 'Color',
+		);
+		const chips = [...(colorSection?.querySelectorAll('.fe-chip') ?? [])].map((chip) => chip.firstChild?.textContent);
+
+		expect(chips).toEqual(['red', 'sparkling', 'dessert']);
+	});
+});
+
 describe('the origin picker', () => {
+	it('is the shared origin tree: its group name and its viewport height', () => {
+		const { root } = mountPanel();
+		const tree = root.querySelector<HTMLElement>('.fe-tree');
+
+		expect(tree?.getAttribute('role')).toBe('group');
+		expect(tree?.getAttribute('aria-label')).toBe('Origin');
+		expect(tree?.style.getPropertyValue('--fe-tree-max-height')).toBe('16rem');
+	});
+
 	it('commits a country as the set of origin ids at and beneath it', () => {
 		// One click covers a whole subtree without the rule understanding hierarchy: the set-of-sets is
 		// what flattens the tree for the engine. The result count is asserted alongside the field

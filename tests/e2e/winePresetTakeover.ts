@@ -26,8 +26,8 @@
  * `describeWineVertical` registers these cases, so importing its helpers back from here would be an
  * import cycle — the same reason `wineOpenRange.ts` takes one.
  *
- * Every click here is a PANEL control, so React's mobile drawer never has to close: the count and the
- * pills are read, not clicked, and Playwright's visibility checks are not occlusion-aware.
+ * Every click here is a PANEL control. At phone width the panel is an inline collapse above the
+ * results, so the count and the pills below it are read without closing anything.
  *
  * @packageDocumentation
  */
@@ -127,6 +127,11 @@ export function describePresetTakeover(harness: PresetTakeoverHarness): void {
 			await expect.poll(() => new URL(page.url()).searchParams.get('f'), { timeout: 5_000 }).not.toBeNull();
 			await page.reload();
 			await waitForBoot(page);
+			// The preset's pill first: on the worker tier the restored expression lands a round trip after
+			// the boot, and until it does the page shows the whole corpus with the engine idle. The pill
+			// and the count come from the same mirror refresh, so the count that settles after it is the
+			// restored one.
+			await expect(page.locator(ACTIVE_CHIP), 'the restored preset never reached the engine').toHaveCount(1);
 			expect(await settledCount(page, settled)).toBe(applied);
 
 			await openPanel(page, testInfo);

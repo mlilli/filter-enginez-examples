@@ -33,7 +33,7 @@ import {
 	type EngineBusyStream,
 	type RxJsEngine,
 } from '@filter-enginez/reactive-rxjs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResultsHeaderComponent, type RuleSummarizer } from './results-header.component.js';
 
@@ -173,6 +173,24 @@ describe('<fe-results-header> write paths', () => {
 			clearAllButton().click();
 
 			expect(engine.core.getRules().size).toBe(0);
+		});
+
+		it('clears through ONE clearRules, with the busy mark first (the shared clearAllFilters)', () => {
+			// One `RULES_CLEARED` in the devtools log, one Undo, one `reset` — never a removeRule per id.
+			engine.core.addRule('format', new InSetRule<string>('format', ['ebook']));
+			fixture.detectChanges();
+
+			const order: string[] = [];
+			const clearRules = vi.spyOn(engine.core, 'clearRules').mockImplementation(() => {
+				order.push(busy.getIsBusy() ? 'clearRules after the busy mark' : 'clearRules before the busy mark');
+			});
+			const removeRule = vi.spyOn(engine.core, 'removeRule');
+
+			clearAllButton().click();
+
+			expect(clearRules).toHaveBeenCalledTimes(1);
+			expect(removeRule).not.toHaveBeenCalled();
+			expect(order).toEqual(['clearRules after the busy mark']);
 		});
 	});
 

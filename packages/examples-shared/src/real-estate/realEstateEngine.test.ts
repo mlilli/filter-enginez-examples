@@ -65,6 +65,26 @@ describe('bootRealEstateEngine', () => {
 		expect(a).toBe(b);
 	});
 
+	it('hands the next visit a live facade when a route that left disposed the cached one', async () => {
+		// Svelte, Vue and vanilla dispose the facade on unmount. Reusing that disposed facade would render
+		// the revisited route over signals that never move, so filters would change nothing on screen.
+		const { engine } = await bootRealEstateEngine();
+		const total = engine.resultCount.value;
+
+		engine.dispose();
+
+		const { engine: revisited } = await bootRealEstateEngine();
+
+		expect(revisited).not.toBe(engine);
+		expect(revisited.core).toBe(engine.core);
+		expect((await bootRealEstateEngine()).engine).toBe(revisited);
+
+		revisited.core.addRule('probe', inSet<string>('id', ['no-such-listing-id']));
+		expect(revisited.resultCount.value).toBe(0);
+		revisited.core.removeRule('probe');
+		expect(revisited.resultCount.value).toBe(total);
+	});
+
 	it('keeps rule state shared across boots', async () => {
 		// The consequence that actually reaches the user. Separate engines would leave a filter applied
 		// in one component invisible to another — the chip looks pressed, the grid ignores it.

@@ -49,6 +49,7 @@ import {
 import { computed, onMounted, onUnmounted, shallowRef } from 'vue';
 
 import BrainSynapse from '../brand/BrainSynapse.vue';
+import BootFailureScreen from '../shell/BootFailureScreen.vue';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 import WineView from '../wine/WineView.vue';
 
@@ -168,16 +169,12 @@ onUnmounted(() => {
 		:vocabularies="vocabularies"
 	/>
 
-	<!-- Each state below is a `<main>`: until the engine boots, it is the page's main content. -->
-	<main v-else-if="bootError" class="fe-boot-error">
-		<p class="fe-boot-error__title">The wine engine could not start.</p>
-		<p class="fe-boot-error__detail">{{ bootError }}</p>
-		<p class="fe-boot-error__detail">
-			The 150,000 wines are generated inside a Web Worker, so a failure here almost always means the
-			worker could not start. Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default
-			tier on the main thread instead.
-		</p>
-	</main>
+	<!-- Each state below is a `<main>`: until the engine boots, it is the page's main content. The
+	     failure's title and hint are `BOOT_FAILURE_COPY.wine`; the sentence after them is how THIS
+	     build selects the main-thread tier. -->
+	<BootFailureScreen v-else-if="bootError !== null" dataset="wine" :message="bootError">
+		Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default tier on the main thread instead.
+	</BootFailureScreen>
 
 	<main v-else class="vue-wine__booting">
 		<BrainSynapse loader-label="Loading wine reviews" :width="520" />

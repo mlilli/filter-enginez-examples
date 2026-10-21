@@ -60,6 +60,23 @@ function linkFor(presetIds: readonly string[]): string {
 }
 
 /**
+ * The `?f=` value engine 0.0.3 wrote for the same selection: its inline rules carry no `inline` mark
+ * and are named only by the reserved `__inline_<n>` ids the expression references.
+ *
+ * @param presetIds - The presets to select.
+ * @returns The encoded engine state, without the marks.
+ */
+function legacyLinkFor(presetIds: readonly string[]): string {
+	const donor = createFilterEngine<Wine>({ sourceData: CORPUS });
+
+	donor.setExpression(buildSmartFilterExpression(presetIds));
+
+	const config = donor.exportConfig();
+
+	return SERIALIZER.encode({ ...config, rules: config.rules.map(({ id, rule }) => ({ id, rule })) });
+}
+
+/**
  * A core whose expression writes arrive late: `setExpression` and `loadConfig` are queued until
  * `deliver` runs them, the way a worker-backed engine answers a round trip after the call.
  *
@@ -290,12 +307,17 @@ describe('<SmartFilterPresets /> — a preset replaces the manual filters', () =
 		expect(deriveSelectedPresetIds(core.getExpression())).toEqual(['cellar-picks']);
 	});
 
-	it('leaving a RESTORED preset drops the leaves the restore registered, so nothing keeps filtering', () => {
-		// `loadConfig` registers a restored preset's leaves as flat rules under minted ids. "Pinot" is
-		// an OR of two varietals, so those leaves ANDed together match nothing at all.
-		const core = renderPresets({ link: linkFor(['pinot-any']) });
+	it.each([
+		['a link written today', linkFor],
+		['a link written by engine 0.0.3', legacyLinkFor],
+	])('leaving a preset restored from %s gives back the full corpus', (_label, link) => {
+		// A restore registers none of the preset's leaves: they live in the expression only. "Pinot" is
+		// an OR of two varietals, so its leaves left behind as flat rules would AND together and match
+		// nothing at all, with no pill to explain it.
+		const core = renderPresets({ link: link(['pinot-any']) });
 
-		expect(core.getRules().size).toBeGreaterThan(0);
+		expect(pressedLabels()).toEqual(['Pinot']);
+		expect(core.getRules().size).toBe(0);
 		fireEvent.click(screen.getByRole('button', { name: 'Clear smart filters' }));
 
 		expect(core.getExpression()).toBeNull();

@@ -59,6 +59,7 @@ import {
 	deriveSelectedPresetIds,
 	EMPTY_SELECTION,
 	exitExpressionMode,
+	orderedPresentOptions,
 	type OriginNodeSpec,
 	type PickerTreeNode,
 	SWEETNESS_ORDER,
@@ -132,24 +133,19 @@ const DRAG_STEPS = { abv: 0.1, points: 1, price: 1, vintage: 1 } as const;
 				<div
 					class="fe-filter-panel__body"
 					[class.fe-filter-panel__body--busy]="isComputing() && !isExpressionMode()"
+					[attr.aria-busy]="isComputing() && !isExpressionMode()"
 					[class.fe-filter-panel__body--expression]="isExpressionMode()"
 					[attr.inert]="isExpressionMode() ? '' : null"
 				>
 					<fe-wine-range-section
-						field="priceUsd"
-						label="Price (USD)"
 						[leaveExpressionMode]="leaveExpressionMode"
 						ruleId="price"
-						sliderLabel="Filter by price"
 						[step]="dragSteps.price"
 					/>
 
 					<fe-wine-range-section
-						field="points"
-						label="Points"
 						[leaveExpressionMode]="leaveExpressionMode"
 						ruleId="points"
-						sliderLabel="Filter by points"
 						[step]="dragSteps.points"
 					/>
 
@@ -165,7 +161,7 @@ const DRAG_STEPS = { abv: 0.1, points: 1, price: 1, vintage: 1 } as const;
 
 					<fe-single-color-section
 						[leaveExpressionMode]="leaveExpressionMode"
-						[options]="vocabularies().color"
+						[options]="colorOptions()"
 					/>
 
 					<fe-wine-chip-section
@@ -188,11 +184,8 @@ const DRAG_STEPS = { abv: 0.1, points: 1, price: 1, vintage: 1 } as const;
 					/>
 
 					<fe-wine-range-section
-						field="abv"
-						label="ABV (%)"
 						[leaveExpressionMode]="leaveExpressionMode"
 						ruleId="abv"
-						sliderLabel="Filter by ABV"
 						[step]="dragSteps.abv"
 					/>
 
@@ -275,17 +268,18 @@ export class WineFilterPanelComponent {
 		source: this._committedPresets,
 	});
 
-	/** The color chips the corpus actually contains, in canonical order. */
-	protected readonly bodyOptions = computed(() =>
-		BODY_ORDER.filter((entry) => this.vocabularies().body.includes(entry)),
-	);
+	/** The body chips the corpus actually contains, in the hand-set order (`light … full`). */
+	protected readonly bodyOptions = computed(() => orderedPresentOptions(BODY_ORDER, this.vocabularies().body));
 
-	protected readonly colorOptions = computed(() =>
-		COLOR_ORDER.filter((entry) => this.vocabularies().color.includes(entry)),
-	);
+	/**
+	 * The colors the corpus actually contains, in the hand-set order (`red, white, rosé…`): the color
+	 * chips and the single-color menu list the same options in the same order.
+	 */
+	protected readonly colorOptions = computed(() => orderedPresentOptions(COLOR_ORDER, this.vocabularies().color));
 
+	/** The sweetness chips the corpus actually contains, in the hand-set order (`bone-dry … dessert`). */
 	protected readonly sweetnessOptions = computed(() =>
-		SWEETNESS_ORDER.filter((entry) => this.vocabularies().sweetness.includes(entry)),
+		orderedPresentOptions(SWEETNESS_ORDER, this.vocabularies().sweetness),
 	);
 
 	/**

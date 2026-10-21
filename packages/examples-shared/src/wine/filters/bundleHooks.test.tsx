@@ -34,6 +34,7 @@ import {
 	useBundleChipExclusion,
 	useBundleFieldMeta,
 	useBundleOriginDisabledSet,
+	useBundleSliderHistogram,
 	useFetchFilterBundle,
 } from './filterBundle.js';
 
@@ -156,6 +157,42 @@ describe('useBundleFieldMeta', () => {
 		const { result } = renderHook(() => useBundleFieldMeta('abv'), { wrapper: withBundle(makeBundle()) });
 
 		expect(result.current).toBeNull();
+	});
+});
+
+describe('useBundleSliderHistogram', () => {
+	const POINTS_BASELINE = { max: 100, min: 80 };
+
+	it('returns the field\'s bars once the bundle carries its histogram', () => {
+		const bundle = {
+			chipGroups: [],
+			fields: [
+				{
+					bounds: { max: 100, min: 80 },
+					fieldKey: 'points',
+					histogram: { bucketEdges: Float64Array.from([80, 90, 100]), counts: Uint32Array.from([3, 5]) },
+					ruleId: 'points',
+				},
+			],
+		} as unknown as FilterBundle;
+		const { result } = renderHook(() => useBundleSliderHistogram('points', POINTS_BASELINE, 80, 100), {
+			wrapper: withBundle(bundle),
+		});
+
+		expect(result.current?.map((bar) => bar.count)).toEqual([3, 5]);
+	});
+
+	it.each([
+		['the bundle has not arrived', withBundle(null)],
+		['there is no provider', undefined],
+	])('returns undefined, not an empty bar list, when %s', (_label, wrapper) => {
+		// `undefined` is what makes the slider skip its overlay; an empty list would draw an empty strip.
+		const { result } = renderHook(
+			() => useBundleSliderHistogram('points', POINTS_BASELINE, 80, 100),
+			wrapper ? { wrapper } : undefined,
+		);
+
+		expect(result.current).toBeUndefined();
 	});
 });
 

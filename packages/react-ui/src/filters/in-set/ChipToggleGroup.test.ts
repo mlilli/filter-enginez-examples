@@ -44,6 +44,17 @@ function renderChips(overrides: Record<string, unknown> = {}): HTMLButtonElement
 }
 
 describe('ChipToggleGroup', () => {
+	it('caps and scrolls the group only when asked to', () => {
+		const { container: plain } = render(createElement(ChipToggleGroup, { onToggle: vi.fn(), options: OPTIONS, selected: []}));
+
+		expect(plain.querySelector('.fe-chip-toggle')?.className).toBe('fe-chip-toggle');
+
+		cleanup();
+		const { container: capped } = render(createElement(ChipToggleGroup, { onToggle: vi.fn(), options: OPTIONS, scrollable: true, selected: []}));
+
+		expect(capped.querySelector('.fe-chip-toggle')?.className).toBe('fe-chip-toggle fe-chip-toggle--capped');
+	});
+
 	it('marks the selected chip and leaves it enabled (no badge on a selected chip)', () => {
 		const [red] = renderChips();
 

@@ -41,8 +41,8 @@ export type { FilterSummary, ResultsHeaderViewProps } from './results/ResultsHea
 export { DevtoolsPanelView } from './devtools/DevtoolsPanelView.js';
 export type { DevtoolsLogEntry, DevtoolsPanelViewProps } from './devtools/DevtoolsPanelView.js';
 
-export { FilterDrawer } from './overlays/FilterDrawer.js';
-export type { FilterDrawerProps } from './overlays/FilterDrawer.js';
+export { FilterCollapse } from './overlays/FilterCollapse.js';
+export type { FilterCollapseProps } from './overlays/FilterCollapse.js';
 
 export { ScrollRegion } from './shared/ScrollRegion.js';
 export type { ScrollRegionProps } from './shared/ScrollRegion.js';

@@ -67,7 +67,7 @@ export const FilterSectionGuard = ({ children, topSlot }: { readonly children: R
 			    order, so the modifier class handles the pointer and this handles the keyboard. React 19
 			    renders a boolean `inert` as the bare attribute, which is byte-identical to what the other
 			    four verticals emit — the shared e2e suite asserts `inert=""` on all five. */}
-			<div className={`fe-filter-panel__body${modifier}`} inert={isExpressionMode}>
+			<div className={`fe-filter-panel__body${modifier}`} inert={isExpressionMode} aria-busy={isComputing}>
 				{children}
 			</div>
 		</div>

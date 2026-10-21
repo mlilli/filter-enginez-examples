@@ -34,8 +34,8 @@ export interface ConfigDrivenPanelProps {
 	/** The declarative config the panel renders (and the engine was booted from). */
 	readonly config: FilterEngineConfig;
 	/**
-	 * Whether to render the panel's own "Filters" title. `true` for the desktop sidebar; the mobile
-	 * drawer passes `false` (the drawer supplies its own titled header).
+	 * Whether to render the panel's own "Filters" title. Defaults to `true`, which every app's sidebar
+	 * uses on every viewport; a host that supplies its own titled header passes `false`.
 	 */
 	readonly isHeaderVisible?: boolean;
 	/** Override / extend the rule-type → control mapping. Defaults to {@link defaultControlRegistry}. */

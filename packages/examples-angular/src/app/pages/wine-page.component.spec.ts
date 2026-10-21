@@ -5,13 +5,16 @@
  * An accessibility audit often runs while the 150,000 wines are still being generated, and a page
  * with no `<main>` fails it however good the booted view is; the booted view carries its own. The
  * page's store is replaced with one whose signals the test sets, so no worker or engine is involved:
- * what is under test is the markup each state renders.
+ * what is under test is the markup each state renders. The failure screen is the one every app shows:
+ * `BOOT_FAILURE_COPY.wine`'s title, the error and the hint inside a `role="alert"` within the `<main>`,
+ * followed by this app's own way to boot the main-thread tier.
  *
  * @packageDocumentation
  */
 
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { BOOT_FAILURE_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { WineBootStore } from '../wine/wine-boot-store.js';
@@ -67,5 +70,20 @@ describe('<fe-wine-page>', () => {
 		fixture.detectChanges();
 
 		expect(onlyMain().textContent).toContain('the worker died');
+	});
+
+	it('words the failure from BOOT_FAILURE_COPY inside an alert, then names the main-thread switch', () => {
+		store.error.set('the worker died');
+		fixture.detectChanges();
+
+		const alert = onlyMain().querySelector('[role="alert"]');
+		const text = alert?.textContent ?? '';
+
+		expect(onlyMain().getAttribute('role')).toBeNull();
+		expect(alert?.querySelector('.fe-boot-error__title')?.textContent).toBe(BOOT_FAILURE_COPY.wine.title);
+		expect(text).toContain('the worker died');
+		expect(text).toContain(BOOT_FAILURE_COPY.wine.hint);
+		expect(text).toContain('WINE_DATASET_SIZE');
+		expect(text.indexOf(BOOT_FAILURE_COPY.wine.hint)).toBeLessThan(text.indexOf('WINE_DATASET_SIZE'));
 	});
 });

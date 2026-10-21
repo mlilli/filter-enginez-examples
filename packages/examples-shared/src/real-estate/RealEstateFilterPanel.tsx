@@ -37,6 +37,7 @@ import {
 } from './real-estate-domain/filterConfig.js';
 import { formatListingPrice } from './real-estate-domain/formatters.js';
 import { deriveMetroCenters } from './real-estate-domain/metroCenters.js';
+import { REAL_ESTATE_DESCRIPTION_SEARCH } from './real-estate-domain/panelCopy.js';
 import { CheckboxSection, ChipSection, FeatureSection, RangeSection, TextSection } from './RealEstateFilterSections.js';
 
 /** Whole-dollar USD formatter for the price slider readout. */
@@ -45,8 +46,8 @@ import { CheckboxSection, ChipSection, FeatureSection, RangeSection, TextSection
  */
 export interface RealEstateFilterPanelProps {
 	/**
-	 * Whether to render the panel's own "Filters" title. `true` for the desktop sidebar; the mobile
-	 * drawer passes `false` (it supplies its own titled header).
+	 * Whether to render the panel's own "Filters" title. Defaults to `true`, which every app's sidebar
+	 * uses on every viewport; a host that supplies its own titled header passes `false`.
 	 */
 	readonly isHeaderVisible?: boolean;
 }
@@ -131,7 +132,7 @@ export const RealEstateFilterPanel = (props: RealEstateFilterPanelProps = {}): R
 					<RangeSection ruleId="lot-size" field="lotSizeAcres" label="Lot size" ariaLabel="Lot-size range" baseline={baselines['lot-size']} step={SLIDER_STEPS['lot-size']} format={(n) => `${n.toFixed(2)} ac`} parse={(raw) => parseFloat(raw.replace(/[^0-9.]/g, ''))} />
 					<FeatureSection ruleId="must-have-features" label="Must-have features" options={features} formatLabel={replaceHyphens} />
 					<ListedDateSection />
-					<TextSection ruleId="text-search" field="description" label="Description search" placeholder="waterfront, remodeled, cul-de-sac..." ariaLabel="Search listing descriptions" />
+					<TextSection ruleId="text-search" field="description" label="Description search" placeholder={REAL_ESTATE_DESCRIPTION_SEARCH.placeholder} ariaLabel={REAL_ESTATE_DESCRIPTION_SEARCH.ariaLabel} />
 				</FilterBundleContext>
 			</div>
 		</div>
@@ -139,8 +140,8 @@ export const RealEstateFilterPanel = (props: RealEstateFilterPanelProps = {}): R
 };
 
 /**
- * Panel title — fixed at the aside's top (outside the scroller). Suppressed in the mobile drawer,
- * which supplies its own titled header.
+ * Panel title — fixed at the aside's top (outside the scroller), shown at every width. Suppressed
+ * only when the host passes `isHeaderVisible={false}`.
  *
  * @internal
  */

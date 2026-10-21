@@ -78,6 +78,21 @@ function renderPicker(overrides: Record<string, unknown> = {}): ReturnType<typeo
 }
 
 describe('HierarchicalPicker', () => {
+	it('is a group named by groupLabel, scrolling within maxHeight', () => {
+		renderPicker({ groupLabel: 'Origin', maxHeight: '16rem' });
+
+		const group = screen.getByRole('group', { name: 'Origin' });
+
+		expect(group.className).toBe('fe-tree');
+		expect(group.style.getPropertyValue('--fe-tree-max-height')).toBe('16rem');
+	});
+
+	it('leaves the height to the stylesheet when no maxHeight is given', () => {
+		const { container } = renderPicker();
+
+		expect(container.querySelector('.fe-tree')?.getAttribute('style')).toBeNull();
+	});
+
 	it('renders checked-via-own-id, indeterminate-via-descendant, and unchecked states', () => {
 		renderPicker({ selected: ['napa']});
 

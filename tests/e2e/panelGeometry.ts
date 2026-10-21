@@ -8,7 +8,7 @@
  *
  * **Re-exported from `filterFlow.ts` rather than imported directly by the nine specs that use it.**
  * That keeps one seam for spec authors — `filterFlow.js` is the shared-helper barrel every spec
- * already reaches for, and `e2eDrawerChipClicks.test.ts` asserts as much for the drawer specs.
+ * already reaches for, and `e2eDrawerChipClicks.test.ts` asserts as much for the chip clicks.
  *
  * @packageDocumentation
  */
@@ -53,7 +53,8 @@ const SCROLL_PROBE_INTERVALS = [50, 100, 200, 400];
  * below the app header, so its bottom edge sits below the fold until the PAGE scrolls, and a viewport
  * assertion fails on a page-scroll position that has nothing to do with this test.
  *
- * Desktop only — the caller skips on mobile, where the panel is a drawer rather than a capped card.
+ * Desktop only — the caller skips on mobile, where the panel is an inline collapse rather than a
+ * capped card.
  *
  * @param page - The page under test.
  * @param lastControlSelector - A CSS selector, relative to the scroller, for the control that sits

@@ -9,6 +9,11 @@
  * removes the rule; the threshold is mirrored in local state so it survives the off state (so the
  * number the user typed is still there when they later pick an operator).
  *
+ * **Both controls answer at once, as in every other app.** The operator is seeded from the rule and
+ * re-adopted when it changes from outside (`useSeedAndAdopt`), and a pick paints immediately rather
+ * than snapping back to the old operator while the worker answers. The threshold field commits on
+ * change (blur, Enter or a spinner step), never per keystroke.
+ *
  * @packageDocumentation
  */
 
@@ -19,6 +24,7 @@ import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { NumberField, SelectMenu, type SelectOption } from '@filter-enginez/react-ui';
 import { useCallback, useState } from 'react';
 
+import { useSeedAndAdopt } from '../../optimistic/useSeedAndAdopt.js';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
 import { SectionHeader } from './SectionHeader.js';
@@ -48,7 +54,9 @@ export const PointsCompareFilterSection = (): React.ReactElement => {
 	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
 	const leaveExpressionMode = useLeaveExpressionMode();
 	const rule = useRule(POINTS_COMPARE_RULE_ID) as NumericComparisonRule | undefined;
-	const activeOp: string = rule?.config.op ?? '';
+	const engineOp: string = rule?.config.op ?? '';
+	// The painted operator: seeded from the rule, written by a pick, re-adopted on an outside change.
+	const [activeOp, setActiveOp] = useSeedAndAdopt(engineOp);
 	const ruleThreshold = rule?.config.value;
 	const [threshold, setThreshold] = useState<number>(ruleThreshold ?? DEFAULT_POINTS_THRESHOLD);
 	const [lastSeenRuleThreshold, setLastSeenRuleThreshold] = useState(ruleThreshold);
@@ -76,8 +84,9 @@ export const PointsCompareFilterSection = (): React.ReactElement => {
 				}
 			},
 			markBusy: markUserAction,
+			paintOptimisticUi: () => setActiveOp(nextOp),
 		});
-	}, [engine, threshold, leaveExpressionMode]);
+	}, [engine, threshold, leaveExpressionMode, setActiveOp]);
 
 	const handleThresholdChange = useCallback((nextValue: number): void => {
 		setThreshold(nextValue);

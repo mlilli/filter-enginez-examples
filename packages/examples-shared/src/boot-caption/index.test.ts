@@ -16,6 +16,7 @@ import * as realEstateDomain from '../real-estate/real-estate-domain/index.js';
 import {
 	BOOKS_BOOT_IDLE_CAPTION,
 	BOOKS_RECORD_NOUN,
+	BOOT_FAILURE_COPY,
 	bootCaptionParts,
 	bootCaptionText,
 	DEFAULT_IDLE_CAPTION,
@@ -168,5 +169,21 @@ describe('bootCaptionText', () => {
 
 	it('is empty for an empty caption', () => {
 		expect(bootCaptionText([])).toBe('');
+	});
+});
+
+describe('BOOT_FAILURE_COPY', () => {
+	it.each([
+		['books', 'The books engine could not start.'],
+		['real-estate', 'The real-estate engine could not start.'],
+		['wine', 'The wine engine could not start.'],
+	] as const)('names %s in the headline', (dataset, title) => {
+		expect(BOOT_FAILURE_COPY[dataset].title).toBe(title);
+	});
+
+	it('explains the worker for wine, and asks for a reload elsewhere', () => {
+		expect(BOOT_FAILURE_COPY.wine.hint).toMatch(/Web Worker/u);
+		expect(BOOT_FAILURE_COPY.books.hint).toBe('Refresh the page to retry.');
+		expect(BOOT_FAILURE_COPY['real-estate'].hint).toBe('Refresh the page to retry.');
 	});
 });

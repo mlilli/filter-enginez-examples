@@ -21,12 +21,12 @@
 	>
 		<!-- 1 · location → HierarchicalRule -->
 		<section>
-			<fe-section-header label="Location" />
+			<fe-section-header [label]="locationTreeCopy.groupLabel" />
 			<fe-hierarchical-picker
-				groupLabel="Location"
+				[groupLabel]="locationTreeCopy.groupLabel"
 				[counts]="locationCounts()"
 				[disabled]="locationDisabled()"
-				[maxHeight]="locationTreeMaxHeight"
+				[maxHeight]="locationTreeCopy.maxHeight"
 				[selected]="selectedLocations()"
 				[tree]="locationTree"
 				(selectionChange)="commitLocation($event)"
@@ -126,24 +126,26 @@
 
 		<!-- 13 · listed-date → DateRangeRule. Single-select with a real "off" option. -->
 		<section>
-			<fe-section-header label="Listed within" />
+			<fe-section-header [label]="listedDateLabel" />
 			<fe-date-preset-group
 				anyLabel="Any time"
-				groupLabel="Listed within"
+				[groupLabel]="listedDateLabel"
 				[presets]="datePresets"
 				[selected]="selectedDatePreset()"
 				(presetSelected)="commitDatePreset($event)"
 			/>
 		</section>
 
-		<!-- 14 · text-search → TextSearchRule. Commits on blur / Enter, never per keystroke. -->
+		<!--
+			14 · text-search → TextSearchRule. Debounced while typing, at once on blur / Enter / clear,
+			never an unchanged query.
+		-->
 		<section>
 			<fe-section-header label="Description search" />
 			<fe-search-input
-				ariaLabel="Search listing descriptions"
-				placeholder="waterfront, remodeled, cul-de-sac…"
-				[value]="descriptionText()"
-				(valueChange)="descriptionText.set($event)"
+				[ariaLabel]="descriptionSearchCopy.ariaLabel"
+				[placeholder]="descriptionSearchCopy.placeholder"
+				[query]="committedDescription()"
 				(commit)="commitDescription($event)"
 			/>
 		</section>

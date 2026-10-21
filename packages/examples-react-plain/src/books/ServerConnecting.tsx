@@ -12,6 +12,7 @@
  */
 
 import { BrainSynapse } from '@filter-enginez/brand';
+import { SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 
 /** Full-screen "talking to the server" loader — the brand `<BrainSynapse>` + a server caption. */
 export const ServerConnecting = (): React.ReactElement => {
@@ -21,12 +22,12 @@ export const ServerConnecting = (): React.ReactElement => {
 			className="min-h-screen flex flex-col items-center justify-center gap-6 px-6"
 			style={{ background: 'var(--gray-0)' }}
 		>
-			<BrainSynapse width={520} ariaLabel="Connecting to the filter server" className="fe-boot-loader" />
+			<BrainSynapse width={520} ariaLabel={SERVER_ROUTE_SCREEN_COPY.connectingLoaderLabel} className="fe-boot-loader" />
 			<p
 				className="text-xs uppercase"
 				style={{ color: 'var(--gray-8)', fontFamily: 'var(--font-mono)', letterSpacing: '0.16em' }}
 			>
-				Filtering on the Node server · fetching corpus + initial state
+				{SERVER_ROUTE_SCREEN_COPY.connectingCaption}
 			</p>
 		</main>
 	);

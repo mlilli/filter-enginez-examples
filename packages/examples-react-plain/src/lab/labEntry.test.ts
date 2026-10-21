@@ -39,6 +39,7 @@ const booksModule: DatasetModule = {
 /** A stand-in for the app's books entry, whose `load` resolves to {@link booksModule}. */
 function makeBooksEntry(overrides?: Partial<DatasetEntry>): DatasetEntry {
 	return {
+		bootFailure: 'books',
 		id: 'books',
 		label: 'Books',
 		load: vi.fn(async () => {

@@ -5,13 +5,14 @@
  * The same contract as SvelteKit's `WineFilterPanel.presets.test.ts` and React's
  * `WineFilterPanel.test.tsx`, over this panel: the preset row writes through the shared
  * `commitSmartFilterSelection`, the manual chip goes out on its own, only the expression is left, and
- * the action is marked busy on the click's own frame. "Clear smart filters" on a RESTORED preset drops
- * the leaves the restore registered as flat rules, so nothing keeps filtering once the expression goes.
+ * the action is marked busy on the click's own frame. "Clear smart filters" on a preset RESTORED from a
+ * link, written today or by engine 0.0.3, gives back the full corpus: the restore registers none of the
+ * preset's leaves, so nothing is left behind to keep filtering once the expression goes.
  */
 
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { createFilterEngine, type FilterEngine, inSet } from '@filter-enginez/core';
+import { createFilterEngine, type FilterEngine, type FilterEngineConfig, inSet } from '@filter-enginez/core';
 import {
 	buildSmartFilterExpression,
 	deriveSelectedPresetIds,
@@ -109,16 +110,20 @@ describe('<WineFilterPanel> — a preset replaces the manual filters', () => {
 		expect(wineBusyCore.getIsEngineBusy()).toBe(true);
 	});
 
-	it('"Clear smart filters" on a restored preset leaves no rule behind to keep filtering', async () => {
+	it.each([
+		['a link written today', (config: FilterEngineConfig): FilterEngineConfig => config],
+		['a link written by engine 0.0.3', (config: FilterEngineConfig): FilterEngineConfig => ({ ...config, rules: config.rules.map(({ id, rule }) => ({ id, rule })) })],
+	])('"Clear smart filters" on a preset restored from %s gives back the full corpus', async (_label, link) => {
 		const donor = createFilterEngine<Wine>({ sourceData: ROWS as unknown as Wine[] });
 
 		donor.setExpression(buildSmartFilterExpression(['pinot-any']));
 
 		const { core, wrapper } = await mountPanel((seeded) => {
-			seeded.loadConfig(donor.exportConfig());
+			seeded.loadConfig(link(donor.exportConfig()));
 		});
 
-		expect(core.getRules().size).toBeGreaterThan(0);
+		expect(core.getRules().size).toBe(0);
+		expect(deriveSelectedPresetIds(core.getExpression())).toEqual(['pinot-any']);
 		await button(wrapper, 'Clear smart filters').trigger('click');
 
 		expect(core.getExpression()).toBeNull();

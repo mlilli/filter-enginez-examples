@@ -16,7 +16,8 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { HEADER_PAGE_LABELS } from '@filter-enginez/examples-shared/app-header-core';
 import {
 	NOT_FOUND_CHIPS,
@@ -24,9 +25,20 @@ import {
 	notFoundBody,
 	toggleNotFoundChip,
 } from '@filter-enginez/examples-shared/notfound-core';
+import { filter, map } from 'rxjs';
 
 import { NeuralClusterComponent } from '../brand/neural-cluster.component.js';
 import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
+
+/**
+ * The pathname of a router URL: everything before its query or fragment.
+ *
+ * @param url - The router's serialized URL, e.g. `/no-such-route?f=x#top`.
+ * @returns The pathname, e.g. `/no-such-route`.
+ */
+export function urlPathname(url: string): string {
+	return url.replace(/[?#].*$/su, '');
+}
 
 /** Loader size on the 404 — large enough to read as the centerpiece it is. */
 const LOADER_SIZE = 168;
@@ -72,6 +84,21 @@ const LOADER_SIZE = 168;
 export class NotFoundPageComponent {
 	private readonly _router = inject(Router);
 
+	/**
+	 * The router's URL, re-read after each navigation.
+	 *
+	 * @remarks
+	 * A signal rather than a read of `router.url`: the catch-all route reuses this component from one
+	 * unmatched URL to the next, and a `computed` over a plain property would keep quoting the first.
+	 */
+	private readonly _url = toSignal(
+		this._router.events.pipe(
+			filter((event) => event instanceof NavigationEnd),
+			map(() => this._router.url),
+		),
+		{ initialValue: this._router.url },
+	);
+
 	/** The dead-end chip vocabulary. */
 	protected readonly chips = NOT_FOUND_CHIPS;
 
@@ -87,10 +114,14 @@ export class NotFoundPageComponent {
 	/** Which dead-end chips are lit. Purely cosmetic; the count never moves off zero. */
 	protected readonly selected = signal<readonly string[]>([]);
 
-	/** Body copy, naming the path that matched nothing. */
-	protected readonly body = computed<string>(() =>
-		notFoundBody(this._router.url === '' ? null : this._router.url),
-	);
+	/**
+	 * Body copy, naming the path that matched nothing.
+	 *
+	 * @remarks
+	 * The pathname only, as every app quotes it (the browser's `location.pathname`): `router.url` also
+	 * carries the query and the fragment, which are not part of what failed to match.
+	 */
+	protected readonly body = computed<string>(() => notFoundBody(urlPathname(this._url())));
 
 	/** Toggle a chip. There is nothing to recompute — that is the joke, and the truth. */
 	protected toggle(id: string): void {

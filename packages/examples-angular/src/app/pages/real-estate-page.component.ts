@@ -49,6 +49,7 @@ import {
 	buildRuleSummaries,
 	type FilterSummary,
 } from '@filter-enginez/examples-shared/real-estate-domain';
+import { RESULT_COPY } from '@filter-enginez/examples-shared/verticals';
 import { type Observable } from 'rxjs';
 
 import { REAL_ESTATE_ROUTE_DATA_KEY, type RealEstateRouteData } from '../app.routes.js';
@@ -154,7 +155,7 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 				</aside>
 
 				<div class="fe-sidebar-app__results">
-					<fe-results-header noun="listings" [summarize]="summarizeListingRules" />
+					<fe-results-header [noun]="resultNoun" [summarize]="summarizeListingRules" />
 
 					<!--
 						An inline card in the document flow, not an overlay: it pushes the grid down rather
@@ -173,11 +174,7 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 							[results]="results"
 							[card]="listingCard"
 							[itemKey]="listingKey"
-							emptyTitle="No listings match the current filters."
-							emptyHint="Try widening the price range or clearing a location."
-							listLabel="Matching listings"
-							scrollRegionLabel="Listing results"
-							noun="listings"
+							dataset="real-estate"
 						/>
 						<ng-template #listingCard [feResultCardOf]="results" let-listing>
 							<fe-listing-card [listing]="listing" />
@@ -195,6 +192,9 @@ function injectRealEstateRouteData(): RealEstateRouteData {
 })
 export class RealEstatePageComponent {
 	private readonly _busy = injectEngineBusy();
+
+	/** The word after the results-header count, the same in every app. */
+	protected readonly resultNoun = RESULT_COPY['real-estate'].noun;
 
 	/** Devtools panel visibility. Hidden by default so a first visit gets a clean page. */
 	protected readonly isDevtoolsOpen = signal(false);
@@ -219,7 +219,7 @@ export class RealEstatePageComponent {
 	/** The full result set. `<fe-result-grid>` owns the paging. */
 	protected readonly results$: Observable<readonly Listing[]> = this._engine.results$;
 
-	/** Sidebar-or-drawer, and the drawer's open state. */
+	/** Sidebar-or-collapse, and the collapse's open state. */
 	protected readonly breakpoint = trackDesktopBreakpoint();
 
 	/** Stable card key — a bound method, so the grid's input identity is stable across ticks. */

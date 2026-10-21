@@ -4,8 +4,10 @@
 	 * of `react-ui`'s `SearchInput`, reusing the `fe-search-input*` classes verbatim so it's visually
 	 * identical. Pure presentational + stateless: the caller owns `value` + `onChange`.
 	 *
-	 * `onChange` fires per keystroke (parent mirrors the text); `onCommit` fires on blur / Enter / clear
-	 * (so expensive engine work runs once, not per keystroke). The focus border-swap + halo and the
+	 * `onChange` fires per keystroke (parent mirrors the text); `onCommit` fires on blur / Enter / clear.
+	 * What each one does to the engine is the caller's: every search field in the app renders this
+	 * through `<TypeaheadSearch>`, which turns keystrokes into a debounced commit and the other three
+	 * into an immediate one, never committing an unchanged query. The focus border-swap + halo and the
 	 * clear-X hover are pure CSS (`:focus-within` / `:hover`), so this holds no state.
 	 */
 
@@ -55,7 +57,7 @@
 		<circle cx="11" cy="11" r="8" />
 		<path d="m21 21-4.3-4.3" />
 	</svg>
-	<!-- Input — commits on blur / Enter (not per keystroke). -->
+	<!-- Input — keystrokes go to `onChange`; blur and Enter go to `onCommit`. -->
 	<input
 		type="search"
 		class="fe-search-input__field"

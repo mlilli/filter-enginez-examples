@@ -6,10 +6,11 @@
  * — the same gap that can hide reduced-motion behavior in `brand` and `react-ui` from their tests.
  * Without a stub these hooks are not merely untested, they throw.
  *
- * The listener lifecycle is the part worth protecting. This drives whether the filter panel renders
- * inline or behind a mobile drawer, so a subscription that never fires leaves the layout stuck at
- * whatever the viewport was on mount — rotating a tablet, or dragging a window across the breakpoint,
- * would leave the drawer open over a desktop layout with no way to notice from the code.
+ * The listener lifecycle is the part worth protecting. This drives whether the filter panel is an
+ * open sidebar or collapsed behind a "Filters" button, so a subscription that never fires leaves the
+ * layout stuck at whatever the viewport was on mount — rotating a tablet, or dragging a window across
+ * the breakpoint, would leave a collapsed panel and its button on a desktop layout with no way to
+ * notice from the code.
  */
 
 import { act, cleanup, renderHook } from '@testing-library/react';
@@ -144,7 +145,7 @@ describe('server rendering', () => {
 		//
 		// The value is a deliberate mobile-first default: the server cannot measure a viewport, so it
 		// assumes the small one. Returning `true` would make every SSR pass emit the desktop layout and
-		// then snap to the drawer on hydration — a visible jump on exactly the devices least able to
+		// then snap to the collapsed panel on hydration — a visible jump on exactly the devices least able to
 		// absorb it. Returning `window.matchMedia(...)` would instead throw, since there is no window.
 		const Probe = (): React.ReactElement => <span>{String(useIsDesktop())}</span>;
 
@@ -175,8 +176,8 @@ describe('useIsDesktop', () => {
 	});
 
 	it('uses a min-width query, so the desktop layout is the wider one', () => {
-		// A max-width query here would inverse the whole layout: the drawer would appear on desktop and
-		// the inline panel on phones. Both render fine, which is what makes it worth pinning.
+		// A max-width query here would inverse the whole layout: the collapsed panel would appear on
+		// desktop and the open sidebar on phones. Both render fine, which is what makes it worth pinning.
 		stubMatchMedia();
 		renderHook(() => useIsDesktop());
 

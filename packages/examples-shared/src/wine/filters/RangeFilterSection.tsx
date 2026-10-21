@@ -3,22 +3,22 @@
  *
  * @remarks
  * One config-driven container for the Price / Points / ABV sections, which are near-identical save
- * for field, step, and price's open-ended upper bound. Readout formatting and typed-text parsing
- * come from the shared `WINE_SLIDER_TEXT`, which every app's wine panel reads. Vintage
- * is intentionally NOT covered here — it's a discrete InSet-of-years masquerading as a slider, so
- * it has its own `<VintageFilterSection />`.
+ * for field and step. Every piece of copy and every commit decision comes from the shared wine
+ * domain, as in every other app's panel: the label and the thumbs' accessible-name stem from
+ * `WINE_SLIDER_COPY`, the readout format and typed-text parser from `WINE_SLIDER_TEXT`, and the rule
+ * from `wineRangeRule`. Vintage is intentionally NOT covered here — it's a discrete InSet-of-years
+ * masquerading as a slider, so it has its own `<VintageFilterSection />`.
  *
- * **`openEnded` (price only).** When true, an un-set or maxed-out upper bound is the "no upper
- * limit" sentinel `+Infinity`: the rule defaults its max to Infinity, dragging the thumb to the
- * baseline max re-commits Infinity, and the histogram's selection overlap uses the baseline max in
- * place of Infinity. When false (points / abv) the max is an ordinary finite bound.
+ * **Price's open top.** `wineRangeRule` commits `max: Infinity` when price's top thumb sits at the
+ * top of the track (`WINE_OPEN_ENDED_SLIDERS`). An infinite max displays as the top of the track,
+ * and the histogram's selection overlap uses the baseline max in its place.
  *
  * @packageDocumentation
  */
 
+import type { RangeRule } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
-import { range, type RangeRule } from '@filter-enginez/core';
 import { useFilterEngine, useRule } from '@filter-enginez/react-signals';
 import { type NumericBounds, RangeSlider } from '@filter-enginez/react-ui';
 import { useCallback, useMemo } from 'react';
@@ -26,8 +26,9 @@ import { useCallback, useMemo } from 'react';
 import { commitFilterMutation } from '../../scheduling/index.js';
 import { markUserAction } from '../engineBusy.js';
 import { WINE_SLIDER_TEXT, wineSliderScale } from '../wine-domain/filterConfig.js';
+import { WINE_SLIDER_COPY, wineRangeRule, type WineRangeSliderId } from '../wine-domain/panelCopy.js';
 import { useBundleFieldMeta, useBundleSliderHistogram } from './filterBundle.js';
-import { type SliderFieldId, useBaselineBounds } from './filterConfig.js';
+import { useBaselineBounds } from './filterConfig.js';
 import { useLeaveExpressionMode } from './smartFilterSelection.js';
 
 /**
@@ -35,25 +36,18 @@ import { useLeaveExpressionMode } from './smartFilterSelection.js';
  */
 export interface RangeFilterSectionProps {
 	/** Rule id + bundle key for this slider (`price` / `points` / `abv`). */
-	readonly ruleId: SliderFieldId;
-	/** The `Wine` data field the `RangeRule` constrains (e.g. `priceUsd`). */
-	readonly fieldKey: string;
-	/** Slider label. */
-	readonly label: string;
-	/** Accessible name for the slider group. */
-	readonly ariaLabel: string;
+	readonly ruleId: WineRangeSliderId;
 	/** Step granularity. */
 	readonly step: number;
-	/** When true (price), the upper bound is open-ended (`+Infinity` sentinel). */
-	readonly openEnded?: boolean;
 }
 
 /**
  * A continuous range-rule slider section.
  */
 export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactElement => {
-	const { ariaLabel, fieldKey, label, openEnded: isOpenEnded = false, ruleId, step } = props;
+	const { ruleId, step } = props;
 	const { format, parse } = WINE_SLIDER_TEXT[ruleId];
+	const { label, sliderLabel } = WINE_SLIDER_COPY[ruleId];
 	const engine = useFilterEngine<Wine>();
 	// A facet edit drops any active preset first: see `smartFilterSelection.ts`.
 	const leaveExpressionMode = useLeaveExpressionMode();
@@ -69,32 +63,27 @@ export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactE
 		: baseline;
 
 	const min = rule?.config.min ?? baseline.min;
-	const max = rule?.config.max ?? (isOpenEnded ? Number.POSITIVE_INFINITY : baseline.max);
-	// For the open-ended (price) case the histogram's selection overlap uses the baseline max in
-	// place of the Infinity sentinel; otherwise the finite max is used directly.
-	const selectionMax = isOpenEnded ? (Number.isFinite(max) ? max : baseline.max) : max;
+	const max = rule?.config.max ?? baseline.max;
+	// An open (infinite) max overlaps the histogram as the baseline max.
+	const selectionMax = Number.isFinite(max) ? max : baseline.max;
 	// The field's declared scale (log for price, linear for points and ABV) and the bars sliced for it,
 	// both from the declarations every app's wine panel reads.
 	const scale = useMemo(() => wineSliderScale(ruleId, baseline), [ruleId, baseline]);
 	const histogram = useBundleSliderHistogram(ruleId, baseline, min, selectionMax);
 
 	const handleChange = useCallback((next: { max: number; min: number; }): void => {
-		// Open-ended: translate a maxed-out drag back into the Infinity sentinel so downstream code
-		// keeps the "no upper bound" semantic.
-		const ruleMax = isOpenEnded && next.max >= baseline.max ? Number.POSITIVE_INFINITY : next.max;
-
 		leaveExpressionMode();
 		// The slider already painted its committed thumb position (internal state), so no optimistic
 		// paint here — just flip the loader, then call the engine a frame later.
 		commitFilterMutation({
-			callEngine: () => engine.core.addRule(ruleId, range(fieldKey, { max: ruleMax, min: next.min })),
+			callEngine: () => engine.core.addRule(ruleId, wineRangeRule(ruleId, next, baseline)),
 			markBusy: markUserAction,
 		});
-	}, [engine, ruleId, fieldKey, isOpenEnded, baseline.max, leaveExpressionMode]);
+	}, [engine, ruleId, baseline, leaveExpressionMode]);
 
 	// Wrapped in a <section>, like every other facet. The shared panel CSS targets
-	// `.fe-filter-panel section` for the rhythm between filters, so a bare slider silently
-	// opts out of it — which is exactly how React ended up tighter than Svelte here.
+	// `.fe-filter-panel section` for the rhythm between filters, so a bare slider would silently
+	// opt out of it.
 	return (
 		<section>
 			<RangeSlider
@@ -109,7 +98,7 @@ export const RangeFilterSection = (props: RangeFilterSectionProps): React.ReactE
 				parse={parse}
 				histogram={histogram}
 				scale={scale}
-				ariaLabel={ariaLabel}
+				ariaLabel={sliderLabel}
 			/>
 		</section>
 	);

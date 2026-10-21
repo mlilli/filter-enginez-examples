@@ -2,7 +2,7 @@
  * @filter-enginez/ui-styles — dataset view: the chrome inside a dataset route's shell.
  *
  * The filter panel (its mobile-collapse wrapper, header, typography, scroller and sections), the
- * checkbox control, the result grid with its empty, cap and load-more states, the header's
+ * checkbox control, the result grid with its empty and cap states, the header's
  * shareable-URL and compare controls, the wine smart-search mode and the server-backed route's
  * fallback form.
  *
@@ -494,16 +494,13 @@
 	accent-color: var(--accent);
 }
 
-/* ── Result grid + empty / cap / load-more states ─────────────────────────────
+/* ── Result grid + empty / cap states ─────────────────────────────────────────
  * ONE grid for every dataset in every vertical: one `grid-template-columns`, one empty state, one
- * cap notice.
+ * cap notice. Every grid grows on an IntersectionObserver sentinel at the end of the scroller, so
+ * there is no "load more" button to style.
  *
  * The empty state is a dashed card with a bounded hint: an unbounded hint runs the full measure of a
- * wide results column, which is a line length nobody reads.
- *
- * `__more*` is the "Show N more" button, which only the wine grid renders — the other grids batch on
- * an IntersectionObserver sentinel. It lives here rather than in a wine block because it is part of
- * this component's vocabulary. */
+ * wide results column, which is a line length nobody reads. */
 .fe-result-grid__scroller {
 	flex: 1 1 0%;
 	min-height: 0;
@@ -558,26 +555,6 @@
 }
 .fe-result-grid__cap-total {
 	color: var(--gray-9);
-}
-.fe-result-grid__more {
-	display: flex;
-	justify-content: center;
-	padding: 2rem 0;
-}
-.fe-result-grid__more-btn {
-	padding: 0.625rem 1.25rem;
-	border: 1px solid var(--gray-5);
-	border-radius: 0.5rem;
-	background: transparent;
-	color: var(--accent);
-	font-size: 0.875rem;
-	cursor: pointer;
-}
-.fe-result-grid__more-btn:hover {
-	border-color: var(--accent);
-}
-.fe-result-grid__more-rest {
-	color: var(--gray-8);
 }
 
 /* ── Shareable-URL controls (UrlFormatToggle / CopyLinkButton) ───────────── */
