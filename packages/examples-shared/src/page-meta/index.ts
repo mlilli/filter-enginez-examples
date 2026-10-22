@@ -12,9 +12,14 @@
 export { applyPageMeta } from './applyPageMeta.js';
 export {
 	BRAND_NAME,
-	DOCS_BASE_PATH,
+	DOCS_APP_BASE_PATH,
+	DOCS_HOME_PATH,
 	DOCS_ORIGIN,
+	DOCS_SITE_BASE_PATH,
+	type DocsBasePath,
 	docsCanonicalUrl,
+	docsPathUnder,
+	docsSitePath,
 	isDocsPath,
 	notFoundPageMeta,
 	type PageMeta,

@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import { verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { DOCS_SITE_BASE_PATH, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
 import { docsPageMeta, docsPagePaths } from '@filter-enginez/examples-shared/page-meta-docs';
 import { VERTICALS } from '@filter-enginez/examples-shared/verticals';
 import { describe, expect, it } from 'vitest';
@@ -71,7 +71,8 @@ describe('the pages the sitemap lists', () => {
 		const docsUrls = urls.filter((url) => url.startsWith(`${DOCS}/`));
 
 		expect(urls.filter((url) => !url.startsWith(`${DOCS}/`))).toEqual(NON_DOCS_URLS);
-		expect(docsUrls).toEqual(docsPagePaths().map((path) => `${DOCS}${path}`));
+		expect(docsUrls).toEqual(docsPagePaths(DOCS_SITE_BASE_PATH).map((path) => `${DOCS}${path}`));
+		expect(docsUrls[0], 'the documentation home, at the site’s root').toBe(`${DOCS}/`);
 		// Non-vacuous: the home, sixteen rules, eight algorithms, the playground and the API reference.
 		expect(docsUrls.length).toBeGreaterThan(20);
 	});
@@ -86,7 +87,8 @@ describe('the pages the sitemap lists', () => {
 			expect(parsed.search + parsed.hash).toBe('');
 		}
 		expect(urls.filter((url) => /\/(about|compare)$/u.test(url) && !url.startsWith('https://filterenginez.com/'))).toEqual([]);
-		expect(urls).not.toContain(`${DOCS}/`);
+		// The documentation site's `/docs` addresses are redirects to its root.
+		expect(urls.filter((url) => url.startsWith(`${DOCS}/docs`))).toEqual([]);
 	});
 
 	it('leaves out the documentation the React apps also serve, which is canonical on the documentation site', () => {
@@ -100,7 +102,7 @@ describe('the pages the sitemap lists', () => {
 			}
 		}
 		for (const url of urls.filter((candidate) => candidate.startsWith(`${DOCS}/`))) {
-			expect(docsPageMeta(new URL(url).pathname).canonicalUrl).toBe(url);
+			expect(docsPageMeta(new URL(url).pathname, DOCS_SITE_BASE_PATH).canonicalUrl).toBe(url);
 		}
 	});
 
@@ -112,8 +114,8 @@ describe('the pages the sitemap lists', () => {
 		expect(priorityOf('https://filterenginez.com/compare')).toBe(0.8);
 		expect(priorityOf('https://vue.filterenginez.com/')).toBe(0.7);
 		expect(priorityOf('https://vue.filterenginez.com/wine')).toBe(0.6);
-		expect(priorityOf(`${DOCS}/docs`)).toBe(0.6);
-		expect(priorityOf(`${DOCS}/docs/api`)).toBe(0.5);
+		expect(priorityOf(`${DOCS}/`)).toBe(0.6);
+		expect(priorityOf(`${DOCS}/api`)).toBe(0.5);
 		expect(entries.filter((entry) => entry.changefreq === 'weekly').map((entry) => entry.loc)).toEqual([
 			'https://filterenginez.com/',
 			...VERTICALS.map((descriptor) => `${descriptor.productionOrigin}/`),

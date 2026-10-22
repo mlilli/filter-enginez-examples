@@ -192,7 +192,7 @@ test.describe('the header brand — every app', () => {
 
 test.describe('the header brand — the documentation site', () => {
 	test('carries the brand, with no hub link — it belongs to no app', async ({ page }, testInfo) => {
-		await page.goto(docsUrl('/docs'));
+		await page.goto(docsUrl('/'));
 
 		const brand = await expectHeaderBrand(page, testInfo);
 

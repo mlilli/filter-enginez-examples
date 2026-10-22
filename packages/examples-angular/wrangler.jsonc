@@ -13,13 +13,16 @@
     // `@angular/build:application` writes the browser bundle under `<outputPath>/browser` (angular.json).
     "directory": "./dist/browser",
     "binding": "ASSETS",
-    // Client-side routing (the Angular router's path location strategy): any other path gets index.html.
-    "not_found_handling": "single-page-application",
+    // Every page this app routes is a file: the build writes one HTML shell per page, and a 404.html,
+    // from the page catalog (scripts/write-route-shells.mjs). The default `html_handling`
+    // ("auto-trailing-slash") serves `wine.html` at /wine, and any other path gets 404.html, the app's
+    // not-found page, with status 404.
+    "not_found_handling": "404-page",
     // The Worker answers `/api/*`, except `/api/corpus/*`: each dataset's corpus is a static file there
     // (`<dataset>.json`, written by the deploy job from examples-server's own route), so serving it
     // costs no Worker CPU. The Workers Free plan allows 10 ms per request, less than serializing a
-    // corpus takes. It also answers `/.well-known/*`, with a 404: the site publishes nothing there, and
-    // the fallback above would answer with index.html and a 200 (examples-server's src/wellKnown.ts).
+    // corpus takes. It also answers `/.well-known/*`, with a plain-text 404: the site publishes nothing
+    // there, and the not-found page would boot the whole app to say so (examples-server's src/wellKnown.ts).
     "run_worker_first": ["/api/*", "!/api/corpus/*", "/.well-known/*"]
   },
   "routes": [{ "pattern": "angular.filterenginez.com", "custom_domain": true }],

@@ -4,11 +4,11 @@
  * catalogs, so adding a page is a data edit, never a nav edit.
  *
  * @remarks
- * Lives in the shared `examples-shared/docs` slice and is mounted as a layout route (`/docs`) in each
- * React app and as the standalone documentation site. Its sticky topbar carries the header brand every
- * demo page carries, naming the page `Docs`: inside a React app it names that app (read from
- * `AppVerticalContext`) and links back to the app's hub; on the documentation site, which is not one
- * of the apps, it names the page alone.
+ * Lives in the shared `examples-shared/docs` slice and is mounted as a layout route, at `/docs` in each
+ * React app and at the root of the standalone documentation site; its links follow that base path
+ * (`./docsBasePath.ts`). Its sticky topbar carries the header brand every demo page carries, naming
+ * the page `Docs`: inside a React app it names that app (read from `AppVerticalContext`) and links back
+ * to the app's hub; on the documentation site, which is not one of the apps, it names the page alone.
  *
  * @packageDocumentation
  */
@@ -21,6 +21,7 @@ import { HEADER_PAGE_LABELS } from '../app-header/core.js';
 import { ALGORITHM_DOCS } from './content/algorithmsContent.js';
 import { RULE_DOCS } from './content/rulesContent.js';
 import { type RuleGroup } from './content/types.js';
+import { useDocsPath } from './docsBasePath.js';
 
 /** Human labels + order for the rule groups in the sidebar. */
 const RULE_GROUP_LABELS: readonly { group: RuleGroup; label: string }[] = [
@@ -38,6 +39,7 @@ const RULE_GROUP_LABELS: readonly { group: RuleGroup; label: string }[] = [
  */
 export const DocsLayout = (): React.ReactElement => {
 	const [isNavOpen, setIsNavOpen] = useState(false);
+	const docsPath = useDocsPath();
 
 	const closeNav = (): void => {
 		setIsNavOpen(false);
@@ -63,7 +65,7 @@ export const DocsLayout = (): React.ReactElement => {
 
 			<div className="fe-docs__body">
 				<nav className={`fe-docs__nav${isNavOpen ? ' is-open' : ''}`} aria-label="Documentation">
-					<NavLink to="/docs" end className={navLinkClass} onClick={closeNav}>
+					<NavLink to={docsPath('/')} end className={navLinkClass} onClick={closeNav}>
 						Overview
 					</NavLink>
 
@@ -79,7 +81,7 @@ export const DocsLayout = (): React.ReactElement => {
 							<div key={group} className="fe-docs__nav-group">
 								<p className="fe-docs__nav-subheading">{label}</p>
 								{rules.map((rule) => (
-									<NavLink key={rule.id} to={`/docs/rules/${rule.id}`} className={navLinkClass} onClick={closeNav}>
+									<NavLink key={rule.id} to={docsPath(`/rules/${rule.id}`)} className={navLinkClass} onClick={closeNav}>
 										{rule.name}
 									</NavLink>
 								))}
@@ -89,16 +91,16 @@ export const DocsLayout = (): React.ReactElement => {
 
 					<p className="fe-docs__nav-heading">Algorithms</p>
 					{ALGORITHM_DOCS.map((algorithm) => (
-						<NavLink key={algorithm.id} to={`/docs/algorithms/${algorithm.id}`} className={navLinkClass} onClick={closeNav}>
+						<NavLink key={algorithm.id} to={docsPath(`/algorithms/${algorithm.id}`)} className={navLinkClass} onClick={closeNav}>
 							{algorithm.name}
 						</NavLink>
 					))}
 
 					<p className="fe-docs__nav-heading">Try &amp; reference</p>
-					<NavLink to="/docs/playground" className={navLinkClass} onClick={closeNav}>
+					<NavLink to={docsPath('/playground')} className={navLinkClass} onClick={closeNav}>
 						Playground
 					</NavLink>
-					<NavLink to="/docs/api" className={navLinkClass} onClick={closeNav}>
+					<NavLink to={docsPath('/api')} className={navLinkClass} onClick={closeNav}>
 						API reference
 					</NavLink>
 				</nav>

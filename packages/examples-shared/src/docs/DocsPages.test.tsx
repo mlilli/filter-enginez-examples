@@ -1,6 +1,7 @@
 /**
  * Render tests for the docs page templates — home, API reference, the layout shell + nav + header,
- * the param-routed rule + algorithm pages (including their not-found redirects), and the CodeBlock.
+ * the param-routed rule + algorithm pages (including their not-found redirects), the links between
+ * them under either base path, and the CodeBlock.
  *
  * @packageDocumentation
  */
@@ -11,26 +12,47 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { AppVerticalContext } from '../app-header/appVerticalContext.js';
 import { HEADER_PAGE_LABELS, SITE_HOME_LABEL } from '../app-header/core.js';
+import { DOCS_SITE_BASE_PATH } from '../page-meta/pageMeta.js';
 import { verticalSubtitle } from '../verticals/verticals.js';
 import { AlgorithmDocPage } from './AlgorithmDocPage.js';
 import { CodeBlock } from './CodeBlock.js';
 import { DocsApiPage } from './DocsApiPage.js';
+import { DocsBasePathContext } from './docsBasePath.js';
 import { DocsHomePage } from './DocsHomePage.js';
 import { DocsLayout } from './DocsLayout.js';
 import { RuleDocPage } from './RuleDocPage.js';
 
 afterEach(cleanup);
 
-/** Render a param-routed page at `path` behind a `routePath`, with a `/docs` fallback for redirects. */
-function renderRoute(path: string, routePath: string, element: React.ReactElement): void {
+/**
+ * Render a param-routed page at `path` behind a `routePath`, with a fallback at the docs home for
+ * redirects: `/docs` by default, `/` on the documentation site.
+ *
+ * @param path - Where the visit starts.
+ * @param routePath - The page's route pattern.
+ * @param element - The page.
+ * @param isOnDocsSite - Mount it at the documentation site's root rather than a demo app's `/docs`.
+ */
+function renderRoute(path: string, routePath: string, element: React.ReactElement, isOnDocsSite = false): void {
 	render(
-		<MemoryRouter initialEntries={[path]}>
-			<Routes>
-				<Route path={routePath} element={element} />
-				<Route path="/docs" element={<div>docs-home-fallback</div>} />
-			</Routes>
-		</MemoryRouter>,
+		<DocsBasePathContext value={isOnDocsSite ? DOCS_SITE_BASE_PATH : '/docs'}>
+			<MemoryRouter initialEntries={[path]}>
+				<Routes>
+					<Route path={routePath} element={element} />
+					<Route path={isOnDocsSite ? '/' : '/docs'} element={<div>docs-home-fallback</div>} />
+				</Routes>
+			</MemoryRouter>
+		</DocsBasePathContext>,
 	);
+}
+
+/**
+ * The `href` of every link in the document.
+ *
+ * @returns The hrefs, in document order.
+ */
+function linkTargets(): readonly string[] {
+	return [...document.querySelectorAll('a')].map((link) => link.getAttribute('href') ?? '');
 }
 
 describe('DocsHomePage', () => {
@@ -44,6 +66,38 @@ describe('DocsHomePage', () => {
 		expect(container.textContent).toContain('Quick start');
 		expect(container.querySelector('.fe-doc-code')).not.toBeNull();
 		expect(container.querySelectorAll('.fe-doc-card').length).toBeGreaterThan(0);
+	});
+});
+
+describe('the links between pages', () => {
+	it.each([
+		['/docs', '/docs', '/docs/', true],
+		[DOCS_SITE_BASE_PATH, '/', '/', false],
+	] as const)('follow the base path %j: the home at %s, every other page under %s', (basePath, home, prefix, isUnderDocs) => {
+		render(
+			<DocsBasePathContext value={basePath}>
+				<MemoryRouter initialEntries={[home]}>
+					<Routes>
+						<Route path={home} element={<DocsLayout />}>
+							<Route index element={<DocsHomePage />} />
+						</Route>
+					</Routes>
+				</MemoryRouter>
+			</DocsBasePathContext>,
+		);
+		const nav = screen.getByRole('navigation', { name: 'Documentation' });
+		const navTargets = within(nav).getAllByRole('link').map((link) => link.getAttribute('href') ?? '');
+		const cardTargets = [...document.querySelectorAll('.fe-doc-card')].map((card) => card.getAttribute('href') ?? '');
+
+		expect(navTargets.length).toBeGreaterThan(20);
+		expect(navTargets[0]).toBe(home);
+		expect(navTargets.slice(1).filter((href) => !href.startsWith(prefix))).toEqual([]);
+		expect(cardTargets).toHaveLength(4);
+		expect(cardTargets.filter((href) => !href.startsWith(prefix))).toEqual([]);
+		// Every link of the section sits under `/docs` in an app, and none of them does on the site.
+		const targets = [...navTargets, ...cardTargets];
+
+		expect(targets.filter((href) => href.startsWith('/docs'))).toEqual(isUnderDocs ? targets : []);
 	});
 });
 
@@ -136,6 +190,24 @@ describe('RuleDocPage', () => {
 
 		expect(screen.getByText('docs-home-fallback')).toBeTruthy();
 	});
+
+	it('redirects an unknown rule to the documentation site’s home, at its root', () => {
+		renderRoute('/rules/nope', '/rules/:ruleId', <RuleDocPage />, true);
+
+		expect(screen.getByText('docs-home-fallback')).toBeTruthy();
+	});
+
+	it.each([
+		[false, '/docs/rules/in-set', '/docs/rules/:ruleId', '/docs'],
+		[true, '/rules/in-set', '/rules/:ruleId', ''],
+	])('links within the documentation under its base path (on the documentation site: %s)', (isOnDocsSite, path, routePath, base) => {
+		renderRoute(path, routePath, <RuleDocPage />, isOnDocsSite);
+		const internal = linkTargets().filter((href) => href.startsWith('/'));
+
+		expect(internal).toContain(`${base}/playground`);
+		expect(internal.some((href) => href.startsWith(`${base}/rules/`))).toBe(true);
+		expect(internal.filter((href) => !href.startsWith(`${base}/`))).toEqual([]);
+	});
 });
 
 describe('AlgorithmDocPage', () => {
@@ -149,6 +221,16 @@ describe('AlgorithmDocPage', () => {
 		renderRoute('/docs/algorithms/nope', '/docs/algorithms/:algoId', <AlgorithmDocPage />);
 
 		expect(screen.getByText('docs-home-fallback')).toBeTruthy();
+	});
+
+	it('redirects an unknown algorithm to the documentation site’s home, and links its neighbors at the root', () => {
+		renderRoute('/algorithms/nope', '/algorithms/:algoId', <AlgorithmDocPage />, true);
+
+		expect(screen.getByText('docs-home-fallback')).toBeTruthy();
+		cleanup();
+		renderRoute('/algorithms/roaring-bitmaps', '/algorithms/:algoId', <AlgorithmDocPage />, true);
+		expect(linkTargets().filter((href) => href.startsWith('/algorithms/')).length).toBeGreaterThan(0);
+		expect(linkTargets().filter((href) => href.startsWith('/docs'))).toEqual([]);
 	});
 });
 

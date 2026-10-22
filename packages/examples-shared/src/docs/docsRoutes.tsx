@@ -1,15 +1,17 @@
 /**
- * The `/docs` route subtree, shared by both React apps and the standalone docs site so the docs section is defined once.
+ * The documentation's route subtree, shared by both React apps and the standalone docs site so the docs section is defined once.
  *
  * @remarks
  * A react-router `RouteObject`: a `<DocsLayout>` parent (sidebar + `<Outlet />`) with the overview,
- * per-rule, per-algorithm, playground, and API-reference children. Each app puts `docsRoute` in the
- * route table it gives `AppRouter` (`examples-shared/app-router`), keeping the docs identical across
- * the RTK + plain apps.
+ * per-rule, per-algorithm, playground, and API-reference children. {@link docsRouteAt} mounts it at a
+ * base path: the documentation site's root, where the documentation is the whole site, or `/docs` in
+ * each React app, beside its datasets. Each puts the route in the table it gives `AppRouter`
+ * (`examples-shared/app-router`), so the docs are identical wherever they are served, and every link
+ * between their pages follows the base path (`./docsBasePath.ts`).
  *
  * ### Every page is loaded on demand
  *
- * Nothing under `/docs` is in an app's startup bundle. The layout and each page are `React.lazy`
+ * Nothing in the section is in an app's startup bundle. The layout and each page are `React.lazy`
  * components, each its own chunk, so a visitor who never opens the docs never downloads them, and one
  * who does fetches only the layout and the page they asked for. The playground is the page that most
  * needs it: it runs a real engine, so its chunk carries `@filter-enginez/core`, which no other docs
@@ -42,14 +44,13 @@
 import { type ComponentType, lazy, type LazyExoticComponent, Suspense, useEffect } from 'react';
 import { matchPath, type RouteObject, useLocation } from 'react-router';
 
+import { type DocsBasePath, docsPathUnder } from '../page-meta/pageMeta.js';
+import { DocsBasePathContext } from './docsBasePath.js';
 import { DocsLoadingScreen } from './DocsLoadingScreen.js';
 
-/** The path the docs section is mounted at. */
-const DOCS_PATH = '/docs';
-
-/** One docs page: where it sits under `/docs`, how its code is fetched, and the component that waits for it. */
+/** One docs page: where it sits in the section, how its code is fetched, and the component that waits for it. */
 export interface DocsPageRoute {
-	/** The child path under `/docs`; `''` for the overview, the section's index. */
+	/** The child path in the section; `''` for the overview, the section's index. */
 	readonly path: string;
 	/** Fetch the page's chunk, resolving to its component. Calling it again reuses the same module. */
 	readonly load: () => Promise<ComponentType>;
@@ -60,7 +61,7 @@ export interface DocsPageRoute {
 /**
  * A docs page, from its path and its loader.
  *
- * @param path - The child path under `/docs`; `''` for the index.
+ * @param path - The child path in the section; `''` for the index.
  * @param load - Fetches the page's component.
  * @returns The page's route entry.
  */
@@ -93,10 +94,17 @@ const DocsLayoutPage = lazy(async () => ({ default: await loadDocsLayout() }));
  * The docs page a path shows, matched the way the router matches the section's children.
  *
  * @param pathname - A path.
+ * @param basePath - Where the section is mounted.
  * @returns The page's route entry, or `undefined` for a path no docs page answers.
  */
-export function docsPageFor(pathname: string): DocsPageRoute | undefined {
-	return DOCS_PAGE_ROUTES.find(({ path }) => matchPath(`${DOCS_PATH}/${path}`, pathname) !== null);
+export function docsPageFor(pathname: string, basePath: DocsBasePath): DocsPageRoute | undefined {
+	return DOCS_PAGE_ROUTES.find(({ path }) => matchPath(docsPathUnder(basePath, `/${path}`), pathname) !== null);
+}
+
+/** Props for {@link DocsSection}. */
+interface DocsSectionProps {
+	/** Where the section is mounted. */
+	readonly basePath: DocsBasePath;
 }
 
 /**
@@ -104,29 +112,44 @@ export function docsPageFor(pathname: string): DocsPageRoute | undefined {
  *
  * @remarks
  * On mount it starts fetching the current page's chunk, which the layout would otherwise ask for only
- * once its own chunk had arrived and rendered the outlet.
+ * once its own chunk had arrived and rendered the outlet. It provides its base path to every page it
+ * renders, for their links.
  *
+ * @param props - See {@link DocsSectionProps}.
  * @returns The section.
  */
-const DocsSection = (): React.ReactElement => {
+const DocsSection = ({ basePath }: DocsSectionProps): React.ReactElement => {
 	const { pathname } = useLocation();
 
 	useEffect(() => {
 		// Fetch only, and settle quietly: a chunk that fails to load fails again where the page renders,
 		// through its lazy component, and the app's error boundary reports it there.
-		void Promise.allSettled([docsPageFor(pathname)?.load()]);
-	}, [pathname]);
+		void Promise.allSettled([docsPageFor(pathname, basePath)?.load()]);
+	}, [basePath, pathname]);
 
 	return (
-		<Suspense fallback={<DocsLoadingScreen />}>
-			<DocsLayoutPage />
-		</Suspense>
+		<DocsBasePathContext value={basePath}>
+			<Suspense fallback={<DocsLoadingScreen />}>
+				<DocsLayoutPage />
+			</Suspense>
+		</DocsBasePathContext>
 	);
 };
 
-/** The `/docs` layout route + its children, each loaded on first visit. */
-export const docsRoute: RouteObject = {
-	children: DOCS_PAGE_ROUTES.map(({ Page, path }) => (path === '' ? { element: <Page />, index: true } : { element: <Page />, path })),
-	element: <DocsSection />,
-	path: DOCS_PATH,
-};
+/**
+ * The docs layout route and its children, each loaded on first visit, mounted at a base path.
+ *
+ * @remarks
+ * Call it once per app, at module level, as every route table `AppRouter` takes is a module-level
+ * constant.
+ *
+ * @param basePath - Where to mount the section: `''` (the documentation site's root) or `/docs` (a demo app).
+ * @returns The route object.
+ */
+export function docsRouteAt(basePath: DocsBasePath): RouteObject {
+	return {
+		children: DOCS_PAGE_ROUTES.map(({ Page, path }) => (path === '' ? { element: <Page />, index: true } : { element: <Page />, path })),
+		element: <DocsSection basePath={basePath} />,
+		path: docsPathUnder(basePath, '/'),
+	};
+}

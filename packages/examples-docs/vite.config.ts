@@ -20,7 +20,7 @@ import { SIDE_EFFECT_FREE_BARRELS } from '../../scripts/lib/tree-shaking.mjs';
 
 /**
  * The modules every first visit to this site renders, by the end of their source path: the docs
- * layout, the docs home (where `/` redirects), and the page catalog the head tags are written from.
+ * layout, the docs home (the site's root), and the page catalog the head tags are written from.
  */
 const DOCS_SHELL_MODULES: readonly string[] = [
 	'/src/docs/DocsLayout.tsx',
@@ -33,7 +33,7 @@ const DOCS_SHELL_MODULES: readonly string[] = [
  * did not already start.
  *
  * @remarks
- * The site mounts the shared `docsRoute`, whose layout and pages are lazy: the React apps serve the
+ * The site mounts the shared documentation route, whose layout and pages are lazy: the React apps serve the
  * docs under `/docs` beside their own pages, and a static import there would put the docs in their
  * startup bundles. Here the docs are the whole site, so lazy alone costs a round trip — the browser
  * learns it needs the layout and the home page only once the entry has run and the router has matched

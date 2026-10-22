@@ -19,7 +19,7 @@ describe('docsHostedPageMeta', () => {
 	it('points a documentation path at the documentation site', async () => {
 		const meta = await resolve('/docs/playground');
 
-		expect(meta.canonicalUrl).toBe('https://docs.filterenginez.com/docs/playground');
+		expect(meta.canonicalUrl).toBe('https://docs.filterenginez.com/playground');
 		expect(meta.title).toBe('Playground — Filter EngineZ docs');
 	});
 });

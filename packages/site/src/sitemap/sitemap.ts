@@ -19,12 +19,12 @@
  * - each demo app: its hub, its dataset routes and the lab where it is served, from the verticals
  *   registry through `verticalIndexablePaths`, the same list that gives each of those pages its
  *   canonical URL (`examples-shared/page-meta`);
- * - the documentation: its home and every page in its catalogs (`docsPagePaths`), on the
- *   documentation site only. The React apps' copies under `/docs` declare the documentation site's
+ * - the documentation: its home and every page in its catalogs (`docsPagePaths`), at the root of
+ *   the documentation site only. The React apps' copies under `/docs` declare the documentation site's
  *   URL as their canonical and are not listed.
  *
  * Only canonical URLs appear: no `?f=` filter states, no redirects (each app's `/about` and `/compare`,
- * the documentation site's `/`), no not-found pages.
+ * the documentation site's `/docs` addresses), no not-found pages.
  *
  * ### The three optional fields
  *
@@ -36,7 +36,7 @@
  * @packageDocumentation
  */
 
-import { DOCS_BASE_PATH, DOCS_ORIGIN, verticalIndexablePaths } from '@filter-enginez/examples-shared/page-meta';
+import { DOCS_HOME_PATH, DOCS_SITE_BASE_PATH, docsCanonicalUrl, verticalIndexablePaths } from '@filter-enginez/examples-shared/page-meta';
 import { docsPagePaths } from '@filter-enginez/examples-shared/page-meta-docs';
 import { SITE, VERTICALS } from '@filter-enginez/examples-shared/verticals';
 
@@ -101,10 +101,10 @@ export function sitemapEntries(apexPagePaths: readonly string[] = PAGE_PATHS): r
 			? { changefreq: 'weekly', loc: `${productionOrigin}/`, priority: HUB_PRIORITY }
 			: { changefreq: 'monthly', loc: `${productionOrigin}${path}`, priority: DATASET_PRIORITY })),
 	);
-	const docsPages = docsPagePaths().map((path): SitemapEntry => ({
+	const docsPages = docsPagePaths(DOCS_SITE_BASE_PATH).map((path): SitemapEntry => ({
 		changefreq: 'monthly',
-		loc: `${DOCS_ORIGIN}${path}`,
-		priority: path === DOCS_BASE_PATH ? DOCS_HOME_PRIORITY : DOCS_PAGE_PRIORITY,
+		loc: docsCanonicalUrl(path),
+		priority: path === DOCS_HOME_PATH ? DOCS_HOME_PRIORITY : DOCS_PAGE_PRIORITY,
 	}));
 
 	return [{ changefreq: 'weekly', loc: `${SITE.productionOrigin}/`, priority: 1 }, ...apexPages, ...demoPages, ...docsPages];

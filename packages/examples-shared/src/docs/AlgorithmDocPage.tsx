@@ -1,5 +1,5 @@
 /**
- * `<AlgorithmDocPage />` — renders one `AlgorithmDoc` (`/docs/algorithms/:algoId`): the simple →
+ * `<AlgorithmDocPage />` — renders one `AlgorithmDoc` (`algorithms/:algoId` in the docs section): the simple →
  * advanced explanation and the animated illustration, the same figure the how-it-works page on
  * filterenginez.com animates. Pure template over the `ALGORITHM_DOCS` catalog.
  *
@@ -18,16 +18,18 @@ import { Link, Navigate, useParams } from 'react-router';
 
 import { howItWorksUrl } from '../compare/origins.js';
 import { ALGORITHM_DOCS, findAlgorithmDoc } from './content/algorithmsContent.js';
+import { useDocsPath } from './docsBasePath.js';
 
 /**
  * A single algorithm's documentation page.
  */
 export const AlgorithmDocPage = (): React.ReactElement => {
 	const { algoId } = useParams();
+	const docsPath = useDocsPath();
 	const algorithm = findAlgorithmDoc(algoId);
 
 	if (algorithm === undefined) {
-		return <Navigate to="/docs" replace />;
+		return <Navigate to={docsPath('/')} replace />;
 	}
 
 	const index = ALGORITHM_DOCS.findIndex((candidate) => candidate.id === algorithm.id);
@@ -61,8 +63,8 @@ export const AlgorithmDocPage = (): React.ReactElement => {
 			</p>
 
 			<nav className="fe-doc-pager" aria-label="Algorithm pages">
-				{previous === undefined ? <span /> : <Link to={`/docs/algorithms/${previous.id}`}>← {previous.name}</Link>}
-				{next === undefined ? <span /> : <Link to={`/docs/algorithms/${next.id}`}>{next.name} →</Link>}
+				{previous === undefined ? <span /> : <Link to={docsPath(`/algorithms/${previous.id}`)}>← {previous.name}</Link>}
+				{next === undefined ? <span /> : <Link to={docsPath(`/algorithms/${next.id}`)}>{next.name} →</Link>}
 			</nav>
 		</article>
 	);

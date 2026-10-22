@@ -5,9 +5,8 @@
  * @remarks
  * Lighthouse's `llms-txt` audit fetches `/llms.txt` from the page's origin. A 4xx makes it not
  * applicable; a file it is served must have an H1 (`/^\s*#\s+.+/m`), at least one Markdown link and
- * at least 50 characters. These hosts are single-page apps, which answer a missing file with their
- * `index.html` and a 200, so a host without a real file would be served its HTML shell and fail all
- * three. The checks are restated here, from the audit, rather than imported from the generator.
+ * at least 50 characters. These hosts answer a missing file with their not-found page and a 404, so a
+ * host without a real file would leave the audit not applicable rather than passed. The checks are restated here, from the audit, rather than imported from the generator.
  *
  * Each host's file is generated from the route registries and committed in its static directory,
  * which its build copies as-is; `packages/site/src/sitemap/llmsTxt.test.ts` holds every copy to the

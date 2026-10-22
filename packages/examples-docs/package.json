@@ -1,7 +1,7 @@
 {
   "name": "@filter-enginez/examples-docs",
   "version": "0.0.1",
-  "description": "Filter EngineZ — standalone documentation site. Mounts the shared `/docs` route (per-rule + per-algorithm reference, the live in-browser playground, the API index) as its own deployable Vite app, decoupled from the demo apps.",
+  "description": "Filter EngineZ — standalone documentation site. Mounts the shared documentation route (per-rule + per-algorithm reference, the live in-browser playground, the API index) at its root, as its own deployable Vite app, decoupled from the demo apps.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "dev": "vite",
     "dev:fresh": "vite --force",
     "typecheck": "tsc --noEmit",
-    "build": "vite build && node ../../scripts/check-startup-budget.mjs dist --max-kb 345 && node ../../scripts/check-font-preloads.mjs dist/index.html && node ../../scripts/strip-local-corpus.mjs dist",
+    "build": "vite build && node ../../scripts/check-startup-budget.mjs dist --max-kb 345 && node ../../scripts/check-font-preloads.mjs dist/index.html && node ../../scripts/write-route-shells.mjs dist --host docs && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
     "test": "vitest --watch=false --passWithNoTests",
     "lint": "eslint --color --no-error-on-unmatched-pattern .",

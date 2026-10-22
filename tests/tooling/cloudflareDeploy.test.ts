@@ -273,8 +273,11 @@ describe('deploy targets', () => {
 					expect(posix.dirname(posix.normalize(target.config.main ?? '')), 'main must sit in the assets directory').toBe(packageRelativeAssets(target));
 					expect(target.config.compatibility_flags).toContain('nodejs_compat');
 				} else {
-					// Every other app routes on the client, from browser history.
-					expect(assets?.not_found_handling).toBe('single-page-application');
+					// Every other app routes on the client, from browser history, and its build writes a shell
+					// per page and a 404.html (`routeShells.test.ts`): a known page is a file, any other path
+					// the not-found page with a 404. The default `html_handling` serves `wine.html` at /wine.
+					expect(assets?.not_found_handling).toBe('404-page');
+					expect(assets?.html_handling, 'keep the default html_handling, "auto-trailing-slash"').toBeUndefined();
 				}
 			});
 
@@ -293,7 +296,7 @@ describe('deploy targets', () => {
 					// (`wellKnownNotFound.test.ts`), and no page, asset or `/api` request is a billed invocation.
 					expect(target.config.main).toBe(STATIC_WORKER_ENTRY);
 					expect(target.config.assets?.run_worker_first).toEqual(['/.well-known/*']);
-					for (const path of ['/', '/books', '/docs/rules/value', '/assets/index-abc123.js', '/api/query', '/llms.txt']) {
+					for (const path of ['/', '/books', '/rules/value', '/docs/rules/value', '/assets/index-abc123.js', '/api/query', '/llms.txt']) {
 						expect(workerRunsFirstFor(target.config.assets?.run_worker_first, path), `the Worker must not run first for ${path}`).toBe(false);
 					}
 				}

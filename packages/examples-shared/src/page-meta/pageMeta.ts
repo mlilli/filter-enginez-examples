@@ -3,22 +3,23 @@
  * engine should index it under.
  *
  * @remarks
- * Every demo app is a single-page app (SvelteKit renders on the server as well), so one static HTML
- * shell answers every route. A `<link rel="canonical">` written into that shell would name the hub for
- * every route, and a search engine would fold the dataset pages into the hub and drop them. So the
- * shell carries only the hub's title and description, and each app writes the route's own title,
- * description and canonical URL as it navigates — the SPAs with {@link applyPageMeta}, SvelteKit in its
- * root layout's `<svelte:head>`, server-side. This module decides what they are, once, for all six.
+ * Every demo app is a single-page app (SvelteKit renders on the server as well). Each one's build writes
+ * an HTML shell per route it serves, with that route's title, description and canonical URL in its
+ * head, and a `404.html` the host answers every other path with, status 404
+ * (`scripts/write-route-shells.mjs`, from `./hostPages.ts`). Each app also writes the route's head as it
+ * navigates — the SPAs with {@link applyPageMeta}, SvelteKit in its root layout's `<svelte:head>`,
+ * server-side — so the head follows a client-side navigation too. This module decides what they are,
+ * once, for all six.
  *
- * - **The hub** keeps the title and description its shell carries: the registry's `pageTitle` and
- *   `pageDescription` (`../verticals/verticals.ts`).
+ * - **The hub** keeps the title and description its source shell carries: the registry's `pageTitle`
+ *   and `pageDescription` (`../verticals/verticals.ts`).
  * - **A dataset route** is named by its landing card (`../landing/landingCards.ts`) and described by
  *   its blurb, the same words the hub shows for it.
- * - **The documentation** that the two React apps also serve under `/docs` is canonical on the
- *   documentation site, `docs.filterenginez.com`; those apps read its titles from
- *   `./docsPageMeta.ts`, on demand, and point the canonical there (see {@link docsCanonicalUrl}).
- * - **Anything else** is the app's not-found page: no canonical, and `noindex`, because a single-page
- *   app answers an unknown path with status 200.
+ * - **The documentation** is served at the root of its own site, `docs.filterenginez.com`, and under
+ *   `/docs` by the two React apps ({@link DOCS_SITE_BASE_PATH}, {@link DOCS_APP_BASE_PATH}). Every copy
+ *   is canonical on the documentation site; the React apps read its titles from `./docsPageMeta.ts`, on
+ *   demand, and point the canonical there (see {@link docsCanonicalUrl}).
+ * - **Anything else** is the app's not-found page: no canonical, and `noindex`.
  *
  * The same lists feed the sitemap the landing site generates (`packages/site/src/sitemap/sitemap.ts`),
  * via {@link verticalIndexablePaths}, so a page is in the sitemap exactly when it has a canonical URL.
@@ -37,8 +38,20 @@ export const BRAND_NAME = 'Filter EngineZ';
 /** The documentation site's origin, where every documentation page is canonical. */
 export const DOCS_ORIGIN = 'https://docs.filterenginez.com';
 
-/** The path the documentation lives under, on the documentation site and in the React apps. */
-export const DOCS_BASE_PATH = '/docs';
+/**
+ * Where the documentation site serves the documentation: at its root, so each page's path there is
+ * its path in the catalog (`/rules/range`), and its home is `/`.
+ */
+export const DOCS_SITE_BASE_PATH = '';
+
+/** Where a demo app that serves the documentation beside its own pages mounts it: under `/docs`. */
+export const DOCS_APP_BASE_PATH = '/docs';
+
+/** A base path the documentation is served under: the documentation site's root, or a demo app's `/docs`. */
+export type DocsBasePath = typeof DOCS_APP_BASE_PATH | typeof DOCS_SITE_BASE_PATH;
+
+/** The documentation home's path on the documentation site. */
+export const DOCS_HOME_PATH = '/';
 
 /** A page's head metadata. */
 export interface PageMeta {
@@ -61,23 +74,58 @@ const LAB_META = {
 } as const;
 
 /**
- * Whether a path is under the documentation's base path.
+ * A documentation page's path where the documentation is served under a base path.
+ *
+ * @param basePath - Where the documentation is served.
+ * @param sitePath - The page's path on the documentation site, e.g. `/rules/range`, or `/` for the home.
+ * @returns The path under the base path: `/docs/rules/range` and `/docs` in a demo app,
+ *   `/rules/range` and `/` on the documentation site.
+ */
+export function docsPathUnder(basePath: DocsBasePath, sitePath: string): string {
+	if (sitePath !== DOCS_HOME_PATH) {
+		return `${basePath}${sitePath}`;
+	}
+
+	return basePath === DOCS_SITE_BASE_PATH ? DOCS_HOME_PATH : basePath;
+}
+
+/**
+ * The documentation-site path a path under a base path names: the inverse of {@link docsPathUnder}.
+ *
+ * @param basePath - Where the documentation is served.
+ * @param pathname - A URL path.
+ * @returns The path on the documentation site (`/` for the home), or `null` when `pathname` is not
+ *   under `basePath`. Every path is under the documentation site's root.
+ */
+export function docsSitePath(basePath: DocsBasePath, pathname: string): string | null {
+	if (basePath === DOCS_SITE_BASE_PATH) {
+		return pathname;
+	}
+	if (pathname === basePath) {
+		return DOCS_HOME_PATH;
+	}
+
+	return pathname.startsWith(`${basePath}/`) ? pathname.slice(basePath.length) : null;
+}
+
+/**
+ * Whether a demo app's path is one of its documentation pages' paths, under {@link DOCS_APP_BASE_PATH}.
  *
  * @param pathname - A URL path.
  * @returns `true` for `/docs` and every path beneath it.
  */
 export function isDocsPath(pathname: string): boolean {
-	return pathname === DOCS_BASE_PATH || pathname.startsWith(`${DOCS_BASE_PATH}/`);
+	return docsSitePath(DOCS_APP_BASE_PATH, pathname) !== null;
 }
 
 /**
- * The documentation site's URL for a documentation path, wherever it is served.
+ * The documentation site's URL for a documentation page, wherever it is served.
  *
- * @param pathname - A path under `/docs`.
+ * @param sitePath - The page's path on the documentation site, e.g. `/rules/range`, or `/` for the home.
  * @returns The absolute URL on the documentation site.
  */
-export function docsCanonicalUrl(pathname: string): string {
-	return `${DOCS_ORIGIN}${pathname}`;
+export function docsCanonicalUrl(sitePath: string): string {
+	return `${DOCS_ORIGIN}${sitePath}`;
 }
 
 /**

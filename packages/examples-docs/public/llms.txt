@@ -6,39 +6,39 @@ Filter EngineZ is a generic, isomorphic, framework-agnostic TypeScript data filt
 
 ## Documentation
 
-- [Filter EngineZ — Documentation](https://docs.filterenginez.com/docs): A quick start, and the way into the rule catalog, the algorithms, the playground and the API reference.
-- [Playground](https://docs.filterenginez.com/docs/playground): Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.
-- [API reference](https://docs.filterenginez.com/docs/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.
+- [Filter EngineZ — Documentation](https://docs.filterenginez.com/): A quick start, and the way into the rule catalog, the algorithms, the playground and the API reference.
+- [Playground](https://docs.filterenginez.com/playground): Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.
+- [API reference](https://docs.filterenginez.com/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.
 
 ## Rules
 
-- [ValueRule](https://docs.filterenginez.com/docs/rules/value): Passes records whose field exactly equals a single configured value.
-- [BooleanRule](https://docs.filterenginez.com/docs/rules/boolean): A boolean-field convenience: passes records whose flag equals the configured value.
-- [RangeRule](https://docs.filterenginez.com/docs/rules/range): Passes records whose numeric field falls within an inclusive [min, max] range.
-- [NumericComparisonRule](https://docs.filterenginez.com/docs/rules/numeric-comparison): Passes records whose numeric field satisfies a single comparison operator against a value.
-- [DateRangeRule](https://docs.filterenginez.com/docs/rules/date-range): Passes records whose date field falls in a range — with live relative presets like "last 7 days".
-- [InSetRule](https://docs.filterenginez.com/docs/rules/in-set): Passes records whose field value is in a configured set (a multi-select facet).
-- [InSetofSetsRule](https://docs.filterenginez.com/docs/rules/in-set-of-sets): Passes records whose value is in ANY of several configured subsets (super-groups).
-- [HierarchicalRule](https://docs.filterenginez.com/docs/rules/hierarchical): Passes records under a selected category — including all of its descendants in the tree.
-- [TextSearchRule](https://docs.filterenginez.com/docs/rules/text-search): Passes records whose text field matches a query in one of six modes (substring, whole-word, …).
-- [FuzzySearchRule](https://docs.filterenginez.com/docs/rules/fuzzy-search): Passes records whose text field is a close (typo-tolerant) match for the query.
-- [RegexRule](https://docs.filterenginez.com/docs/rules/regex): Passes records whose string field matches a regular expression.
-- [GeoProximityRule](https://docs.filterenginez.com/docs/rules/geo-proximity): Passes records whose coordinates fall within a radius of a center point.
-- [ExistsRule](https://docs.filterenginez.com/docs/rules/exists): Passes records whose field has a non-null value (a "has a value" gate).
-- [PredicateRule](https://docs.filterenginez.com/docs/rules/predicate): The escape hatch: passes records for which an arbitrary function returns true.
-- [BloomMembershipRule](https://docs.filterenginez.com/docs/rules/bloom-membership): A probabilistic pre-screen: "definitely not" or "probably yes" membership from a compact bit-array.
-- [CompositeRule](https://docs.filterenginez.com/docs/rules/composite): Combines other rules with AND / OR / NOT into a full Boolean expression tree.
+- [ValueRule](https://docs.filterenginez.com/rules/value): Passes records whose field exactly equals a single configured value.
+- [BooleanRule](https://docs.filterenginez.com/rules/boolean): A boolean-field convenience: passes records whose flag equals the configured value.
+- [RangeRule](https://docs.filterenginez.com/rules/range): Passes records whose numeric field falls within an inclusive [min, max] range.
+- [NumericComparisonRule](https://docs.filterenginez.com/rules/numeric-comparison): Passes records whose numeric field satisfies a single comparison operator against a value.
+- [DateRangeRule](https://docs.filterenginez.com/rules/date-range): Passes records whose date field falls in a range — with live relative presets like "last 7 days".
+- [InSetRule](https://docs.filterenginez.com/rules/in-set): Passes records whose field value is in a configured set (a multi-select facet).
+- [InSetofSetsRule](https://docs.filterenginez.com/rules/in-set-of-sets): Passes records whose value is in ANY of several configured subsets (super-groups).
+- [HierarchicalRule](https://docs.filterenginez.com/rules/hierarchical): Passes records under a selected category — including all of its descendants in the tree.
+- [TextSearchRule](https://docs.filterenginez.com/rules/text-search): Passes records whose text field matches a query in one of six modes (substring, whole-word, …).
+- [FuzzySearchRule](https://docs.filterenginez.com/rules/fuzzy-search): Passes records whose text field is a close (typo-tolerant) match for the query.
+- [RegexRule](https://docs.filterenginez.com/rules/regex): Passes records whose string field matches a regular expression.
+- [GeoProximityRule](https://docs.filterenginez.com/rules/geo-proximity): Passes records whose coordinates fall within a radius of a center point.
+- [ExistsRule](https://docs.filterenginez.com/rules/exists): Passes records whose field has a non-null value (a "has a value" gate).
+- [PredicateRule](https://docs.filterenginez.com/rules/predicate): The escape hatch: passes records for which an arbitrary function returns true.
+- [BloomMembershipRule](https://docs.filterenginez.com/rules/bloom-membership): A probabilistic pre-screen: "definitely not" or "probably yes" membership from a compact bit-array.
+- [CompositeRule](https://docs.filterenginez.com/rules/composite): Combines other rules with AND / OR / NOT into a full Boolean expression tree.
 
 ## Algorithms
 
-- [Roaring bitmaps](https://docs.filterenginez.com/docs/algorithms/roaring-bitmaps): One compressed bitmap per rule; combining filters is a single bitwise AND.
-- [Mutual-exclusion graph](https://docs.filterenginez.com/docs/algorithms/mutual-exclusion-graph): Precomputed zero-overlap pairs let the engine skip combinations that can only return nothing.
-- [Memoized simulation](https://docs.filterenginez.com/docs/algorithms/memoized-simulation): Every "what if I added this filter?" answer is memoized in an LRU cache.
-- [R-tree spatial index](https://docs.filterenginez.com/docs/algorithms/r-tree): A bounding-box tree prunes whole regions before any exact distance is computed.
-- [Bayesian suggestions](https://docs.filterenginez.com/docs/algorithms/bayesian-suggestions): A co-occurrence model ranks the filters most likely to be selected next.
-- [MinHash + LSH similarity](https://docs.filterenginez.com/docs/algorithms/minhash-lsh): MinHash signatures + LSH bucketing turn "find similar" into a bucket lookup.
-- [Bloom membership](https://docs.filterenginez.com/docs/algorithms/bloom-filter): A bit-array + k hashes: "definitely not" or "probably yes", in a handful of bit checks.
-- [Inverted text index](https://docs.filterenginez.com/docs/algorithms/inverted-text-index): A word→postings index turns whole-word search into a posting-list intersection.
+- [Roaring bitmaps](https://docs.filterenginez.com/algorithms/roaring-bitmaps): One compressed bitmap per rule; combining filters is a single bitwise AND.
+- [Mutual-exclusion graph](https://docs.filterenginez.com/algorithms/mutual-exclusion-graph): Precomputed zero-overlap pairs let the engine skip combinations that can only return nothing.
+- [Memoized simulation](https://docs.filterenginez.com/algorithms/memoized-simulation): Every "what if I added this filter?" answer is memoized in an LRU cache.
+- [R-tree spatial index](https://docs.filterenginez.com/algorithms/r-tree): A bounding-box tree prunes whole regions before any exact distance is computed.
+- [Bayesian suggestions](https://docs.filterenginez.com/algorithms/bayesian-suggestions): A co-occurrence model ranks the filters most likely to be selected next.
+- [MinHash + LSH similarity](https://docs.filterenginez.com/algorithms/minhash-lsh): MinHash signatures + LSH bucketing turn "find similar" into a bucket lookup.
+- [Bloom membership](https://docs.filterenginez.com/algorithms/bloom-filter): A bit-array + k hashes: "definitely not" or "probably yes", in a handful of bit checks.
+- [Inverted text index](https://docs.filterenginez.com/algorithms/inverted-text-index): A word→postings index turns whole-word search into a posting-list intersection.
 
 ## Demos
 

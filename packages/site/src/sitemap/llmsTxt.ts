@@ -36,7 +36,7 @@
  * @packageDocumentation
  */
 
-import { BRAND_NAME, DOCS_BASE_PATH, DOCS_ORIGIN, verticalPages } from '@filter-enginez/examples-shared/page-meta';
+import { BRAND_NAME, DOCS_HOME_PATH, DOCS_ORIGIN, docsCanonicalUrl, verticalPages } from '@filter-enginez/examples-shared/page-meta';
 import { DOCS_HOME_DESCRIPTION, DOCS_HOME_TITLE, type DocsPage, docsPages } from '@filter-enginez/examples-shared/page-meta-docs';
 import { SITE, vertical, type VerticalDescriptor, type VerticalId, VERTICALS } from '@filter-enginez/examples-shared/verticals';
 
@@ -112,11 +112,11 @@ const APEX_PAGES: ReadonlyMap<string, Omit<LlmsTxtLink, 'url'>> = new Map([
 	],
 ]);
 
-/** The documentation's own path, the home every other host links to. */
-const DOCS_HOME_URL = `${DOCS_ORIGIN}${DOCS_BASE_PATH}`;
+/** The documentation's home, at the documentation site's root, which every other host links to. */
+const DOCS_HOME_URL = docsCanonicalUrl(DOCS_HOME_PATH);
 
 /** The documentation pages a host other than the documentation site links to, besides the home. */
-const DOCS_ENTRY_PATHS: ReadonlySet<string> = new Set([`${DOCS_BASE_PATH}/playground`, `${DOCS_BASE_PATH}/api`]);
+const DOCS_ENTRY_PATHS: ReadonlySet<string> = new Set(['/playground', '/api']);
 
 /**
  * The hosts that serve an `llms.txt`, in the sitemap's order: the apex, the six demo apps, the
@@ -176,7 +176,7 @@ function siteSection(apexPagePaths: readonly string[]): LlmsTxtSection {
  * @returns The link.
  */
 function docsLink({ name, path, summary }: DocsPage): LlmsTxtLink {
-	return { note: summary, title: name, url: `${DOCS_ORIGIN}${path}` };
+	return { note: summary, title: name, url: docsCanonicalUrl(path) };
 }
 
 /**
@@ -279,7 +279,7 @@ function verticalDocument(descriptor: VerticalDescriptor, apexPagePaths: readonl
 function docsDocument(apexPagePaths: readonly string[]): LlmsTxtDocument {
 	const pages = docsPages();
 	const under = (directory: string): readonly LlmsTxtLink[] =>
-		pages.filter((page) => page.path.startsWith(`${DOCS_BASE_PATH}/${directory}/`)).map(docsLink);
+		pages.filter((page) => page.path.startsWith(`/${directory}/`)).map(docsLink);
 
 	return {
 		details: [

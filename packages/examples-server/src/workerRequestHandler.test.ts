@@ -80,8 +80,8 @@ describe('handleWorkerRequest', () => {
 	});
 
 	it('serves an unknown API route as a JSON 404 rather than falling through to the app shell', async () => {
-		// The SPA fallback answers any unmatched path with `index.html` and a 200. Were `/api/*` allowed
-		// to reach it, a client expecting JSON would get HTML and fail somewhere far from the cause.
+		// The assets answer any unmatched path with the app's HTML. Were `/api/*` allowed to reach them, a
+		// client expecting JSON would get HTML and fail somewhere far from the cause.
 		const { assetsFetch, environment } = fakeEnvironment();
 		const response = await handleWorkerRequest(new Request(`${ORIGIN}${API_PATH_PREFIX}/nope`), environment);
 
@@ -90,8 +90,8 @@ describe('handleWorkerRequest', () => {
 	});
 
 	it('answers a well-known URI with a 404 rather than the app shell', async () => {
-		// The SPA fallback would answer `/.well-known/ai-catalog.json` with `index.html` and a 200: a
-		// catalog that exists and fails to parse, where the truth is that there is none.
+		// The assets would answer `/.well-known/ai-catalog.json` with the app's HTML not-found page; the
+		// truth, that there is no catalog, takes a plain 404.
 		const { assetsFetch, environment } = fakeEnvironment();
 		const response = await handleWorkerRequest(new Request(`${ORIGIN}/.well-known/ai-catalog.json`), environment);
 

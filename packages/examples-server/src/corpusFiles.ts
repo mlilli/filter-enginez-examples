@@ -12,8 +12,8 @@
  * the route it stands in for cannot disagree: each file is `JSON.stringify` of the route's response
  * body, which is what the Worker's `Response.json` sends. {@link findCorpusFileProblems} re-reads a
  * directory and compares, so a deploy cannot upload a missing or stale file. A missing file is the
- * failure that matters: these apps answer unknown paths with `index.html` (the single-page-application
- * fallback), so a browser asking for a missing corpus could get a page of HTML instead of an error.
+ * failure that matters: these apps answer unknown paths with their not-found page, so a browser asking
+ * for a missing corpus would get a page of HTML where it expects JSON.
  *
  * Node-only (`node:fs`): imported by the `write-corpus.ts` CLI and its tests, never by the Worker.
  *

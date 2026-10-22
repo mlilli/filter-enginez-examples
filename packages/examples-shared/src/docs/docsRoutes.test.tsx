@@ -1,6 +1,6 @@
 /**
- * Test for the shared `/docs` route subtree — its shape, that every page loads the component its
- * module exports, and what a visit sees while the code arrives.
+ * Test for the shared documentation route subtree — its shape under either base path, that every page
+ * loads the component its module exports, and what a visit sees while the code arrives.
  *
  * @remarks
  * The loaders are the part a typo breaks silently: a loader resolving to `undefined` (a misspelled
@@ -21,11 +21,17 @@ import { DocsApiPage } from './DocsApiPage.js';
 import { DocsHomePage } from './DocsHomePage.js';
 import { DocsLayout } from './DocsLayout.js';
 import { DocsPlaygroundPage } from './DocsPlaygroundPage.js';
-import { DOCS_PAGE_ROUTES, docsPageFor, type DocsPageRoute, docsRoute, loadDocsLayout } from './docsRoutes.js';
+import { DOCS_PAGE_ROUTES, docsPageFor, type DocsPageRoute, docsRouteAt, loadDocsLayout } from './docsRoutes.js';
 import { RuleDocPage } from './RuleDocPage.js';
 
 // No `globals: true`, so Testing Library registers no auto-cleanup.
 afterEach(cleanup);
+
+/** The section where the React apps mount it. */
+const docsRoute = docsRouteAt('/docs');
+
+/** The section where the documentation site mounts it. */
+const docsSiteRoute = docsRouteAt('');
 
 /**
  * The docs section alone, at a path.
@@ -33,6 +39,13 @@ afterEach(cleanup);
  * @returns The matched routes.
  */
 const DocsOnly = (): React.ReactElement | null => useRoutes([docsRoute]);
+
+/**
+ * The docs section alone, at the documentation site's root.
+ *
+ * @returns The matched routes.
+ */
+const SiteDocsOnly = (): React.ReactElement | null => useRoutes([docsSiteRoute]);
 
 /**
  * Render the docs section at a path.
@@ -53,6 +66,11 @@ describe('docsRoute', () => {
 		expect(docsRoute.children).toHaveLength(5);
 		expect(docsRoute.children?.filter((child) => child.index === true)).toHaveLength(1);
 		expect(docsRoute.children?.[0]?.index).toBe(true);
+	});
+
+	it('mounts the same children at the documentation site’s root', () => {
+		expect(docsSiteRoute.path).toBe('/');
+		expect(docsSiteRoute.children?.map((child) => child.path ?? '')).toEqual(docsRoute.children?.map((child) => child.path ?? ''));
 	});
 
 	it('renders each page through its lazy component, so no page is in an app’s startup bundle', () => {
@@ -86,11 +104,25 @@ describe('docsPageFor', () => {
 		['/docs/playground', 'playground'],
 		['/docs/api', 'api'],
 	])('matches %s to its page', (pathname, path) => {
-		expect(docsPageFor(pathname)?.path).toBe(path);
+		expect(docsPageFor(pathname, '/docs')?.path).toBe(path);
 	});
 
 	it.each(['/docs/nope', '/docs/rules', '/wine', '/'])('matches no page for %s', (pathname) => {
-		expect(docsPageFor(pathname)).toBeUndefined();
+		expect(docsPageFor(pathname, '/docs')).toBeUndefined();
+	});
+
+	it.each([
+		['/', ''],
+		['/rules/value', 'rules/:ruleId'],
+		['/algorithms/bitmap-index', 'algorithms/:algoId'],
+		['/playground', 'playground'],
+		['/api', 'api'],
+	])('matches %s to its page at the documentation site’s root', (pathname, path) => {
+		expect(docsPageFor(pathname, '')?.path).toBe(path);
+	});
+
+	it.each(['/docs', '/docs/rules/value', '/nope'])('matches no page for %s at the documentation site’s root', (pathname) => {
+		expect(docsPageFor(pathname, '')).toBeUndefined();
 	});
 });
 
@@ -105,6 +137,21 @@ describe('a visit that opens the docs', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'API reference' })).toBeDefined();
 		expect(screen.queryByLabelText('Loading the documentation')).toBeNull();
 		expect(screen.getAllByRole('main')).toHaveLength(1);
+	});
+
+	it('serves a page at the documentation site’s root, linking every page there', async () => {
+		render(
+			<MemoryRouter initialEntries={['/api']}>
+				<SiteDocsOnly />
+			</MemoryRouter>,
+		);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'API reference' })).toBeDefined();
+		const nav = screen.getByRole('navigation', { name: 'Documentation' });
+
+		expect(nav.querySelector('a[href="/"]')).not.toBeNull();
+		expect(nav.querySelector('a[href="/api"]')).not.toBeNull();
+		expect(nav.querySelector('a[href^="/docs"]')).toBeNull();
 	});
 
 	it('asks for the page’s code as it mounts, alongside the layout’s, not after it', () => {

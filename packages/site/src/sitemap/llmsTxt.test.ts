@@ -131,13 +131,13 @@ describe('each host’s document', () => {
 		const docsUrls = linkedUrls(docs).filter((url) => url.startsWith('https://docs.filterenginez.com/'));
 
 		expect(headings(docs)).toEqual(['Documentation', 'Rules', 'Algorithms', 'Demos', 'Landing site', 'Source']);
-		expect(docsUrls.slice().sort()).toEqual(['/docs', ...docsPages().map((page) => page.path)].map((path) => `https://docs.filterenginez.com${path}`).sort());
+		expect(docsUrls.slice().sort()).toEqual(['/', ...docsPages().map((page) => page.path)].map((path) => `https://docs.filterenginez.com${path}`).sort());
 		expect(docs.sections[1]?.links.length).toBeGreaterThan(10);
 		expect(docs.sections[2]?.links.length).toBeGreaterThan(5);
 		expect(linkedUrls(llmsTxtDocument('vue')).filter((url) => url.startsWith('https://docs.filterenginez.com/'))).toEqual([
-			'https://docs.filterenginez.com/docs',
-			'https://docs.filterenginez.com/docs/playground',
-			'https://docs.filterenginez.com/docs/api',
+			'https://docs.filterenginez.com/',
+			'https://docs.filterenginez.com/playground',
+			'https://docs.filterenginez.com/api',
 		]);
 	});
 

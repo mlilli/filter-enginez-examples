@@ -7,15 +7,16 @@
  * in `robots.txt`, a `<link rel="ai-catalog">` in the page, a `Link` header with `rel=ai-catalog`, and
  * `/.well-known/ai-catalog.json`. None found makes the audit not applicable; a catalog that fails the
  * schema fails it. These sites offer no agents, tools or services, so the honest answer to each is
- * none — and for the last, a 404. A single-page app's assets answer that path with `index.html` and a
- * 200 instead: a catalog that exists and is not JSON.
+ * none — and for the last, a 404.
  *
  * Each host gets its 404 one of three ways, and this guard holds each to one of them:
  *
  * - **A single-page app** (React, Angular, vanilla, Vue, the documentation site) sends
  *   `/.well-known/*` to a Worker first, examples-server's API Worker or its static-sites Worker, and
- *   both answer it from `wellKnown.ts` (whose own suite pins the response).
- * - **The landing site** answers unknown paths with its `404.html` and a 404 (`404-page`).
+ *   both answer it from `wellKnown.ts` (whose own suite pins the response) with a plain-text 404. Its
+ *   assets would answer with the app's not-found page (`404-page`): the right status, in an HTML
+ *   document that boots the whole app.
+ * - **The landing site** answers unknown paths with its static `404.html` and a 404 (`404-page`).
  * - **SvelteKit** answers a path no route matches with its error page and a 404, as long as no route
  *   or static file claims the path.
  *
@@ -35,6 +36,9 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 /** A well-known URI a client asks for. */
 const AI_CATALOG_PATH = '/.well-known/ai-catalog.json';
 
+/** The landing site's package directory. */
+const SITE_PACKAGE = 'site';
+
 /** The two examples-server Worker entries, relative to the repository root; both answer `/.well-known/*` from `wellKnown.ts`. */
 const WELL_KNOWN_WORKER_ENTRIES: ReadonlySet<string> = new Set([
 	'packages/examples-server/src/cloudflareWorker.ts',
@@ -51,6 +55,17 @@ const TARGETS = listDeployTargets();
  */
 function isSvelteKit(packageDirectory: string): boolean {
 	return existsSync(resolve(REPO_ROOT, 'packages', packageDirectory, 'svelte.config.js'));
+}
+
+/**
+ * Whether a package is one of the single-page apps: a deployed site that is neither the landing site
+ * nor the SvelteKit app.
+ *
+ * @param packageDirectory - The package directory under `packages/`.
+ * @returns `true` for the five client-routed demo apps and the documentation site.
+ */
+function isSinglePageApp(packageDirectory: string): boolean {
+	return packageDirectory !== SITE_PACKAGE && !isSvelteKit(packageDirectory);
 }
 
 /**
@@ -72,7 +87,7 @@ function htmlShells(packageDirectory: string): readonly string[] {
 describe('/.well-known/*', () => {
 	it('finds the deployed sites, so the cases below are not vacuous', () => {
 		expect(TARGETS.length).toBeGreaterThanOrEqual(8);
-		expect(TARGETS.filter((target) => target.config.assets?.not_found_handling === 'single-page-application').length).toBeGreaterThanOrEqual(6);
+		expect(TARGETS.filter((target) => isSinglePageApp(target.packageDirectory)).length).toBeGreaterThanOrEqual(6);
 	});
 
 	for (const target of TARGETS) {
@@ -80,13 +95,14 @@ describe('/.well-known/*', () => {
 		const { assets, main } = target.config;
 
 		it(`${target.packageDirectory}: answers ${AI_CATALOG_PATH} with a 404`, () => {
-			if (assets?.not_found_handling === 'single-page-application') {
-				// The fallback would answer with index.html and a 200, so the Worker must answer first.
+			if (isSinglePageApp(target.packageDirectory)) {
+				// The assets would answer with the app's not-found page, so the Worker answers first.
 				const entry = main === undefined ? '' : posix.join(posix.dirname(target.configPath), main);
 
-				expect(workerRunsFirstFor(assets.run_worker_first, AI_CATALOG_PATH), 'add "/.well-known/*" to assets.run_worker_first').toBe(true);
+				expect(workerRunsFirstFor(assets?.run_worker_first, AI_CATALOG_PATH), 'add "/.well-known/*" to assets.run_worker_first').toBe(true);
 				expect(WELL_KNOWN_WORKER_ENTRIES.has(entry), `main must be one of ${[...WELL_KNOWN_WORKER_ENTRIES].join(', ')}, not "${entry}"`).toBe(true);
-				expect(assets.binding).toBe('ASSETS');
+				expect(assets?.not_found_handling).toBe('404-page');
+				expect(assets?.binding).toBe('ASSETS');
 			} else if (isSvelteKit(target.packageDirectory)) {
 				// No fallback: what no file and no route claims, SvelteKit's router answers with a 404.
 				expect(assets?.not_found_handling).toBeUndefined();

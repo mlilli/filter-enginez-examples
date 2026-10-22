@@ -22,8 +22,8 @@
  *
  * Like `server.ts`, this is a thin adapter: it strips `/api`, reads the body, calls
  * {@link handleRequest}, and writes the JSON. The other path it is sent, `/.well-known/*`, gets a 404,
- * because these sites publish nothing there and the assets would answer it with the app shell and a
- * 200 (`wellKnown.ts`). Anything else is handed to the static-assets binding, so a request that
+ * because these sites publish nothing there and the assets would answer it with the app's HTML
+ * not-found page (`wellKnown.ts`). Anything else is handed to the static-assets binding, so a request that
  * reaches the Worker by some other path is answered exactly as the assets-only configuration would
  * answer it.
  *
@@ -52,8 +52,8 @@ export const API_PATH_PREFIX = '/api';
 /** The one method of the Workers static-assets binding this Worker calls. */
 export interface StaticAssetsBinding {
 	/**
-	 * Answer a request from the deployed static assets (including the single-page-application
-	 * fallback configured in `wrangler.jsonc`).
+	 * Answer a request from the deployed static assets (including the not-found page configured in
+	 * `wrangler.jsonc`).
 	 */
 	fetch(request: Request): Promise<Response>;
 }

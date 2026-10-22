@@ -1,2 +1,7 @@
-# The documentation home is /docs: the root answers with a permanent redirect there, so the home has one address.
-/ /docs 301
+# Workers static-assets redirects (https://developers.cloudflare.com/workers/static-assets/redirects/).
+# The documentation is served at this site's root: the home is /, a rule is /rules/<id>. Every /docs
+# address answers with a permanent redirect to the same path without the prefix. A destination with no
+# query string of its own keeps the request's, so /docs/playground?x=1 arrives at /playground?x=1.
+# tests/tooling/cloudflareDeploy.test.ts checks both rules.
+/docs / 301
+/docs/* /:splat 301

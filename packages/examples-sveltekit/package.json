@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node ../../scripts/check-startup-budget.mjs .svelte-kit/output/client --html .svelte-kit/output/prerendered/pages/index.html --max-kb 125 && node ../../scripts/check-font-preloads.mjs .svelte-kit/output/prerendered/pages/index.html --root .svelte-kit/output/client && node ../../scripts/strip-local-corpus.mjs build .svelte-kit/output",
+    "build": "vite build && node ../../scripts/check-startup-budget.mjs .svelte-kit/output/client --html .svelte-kit/output/prerendered/pages/index.html --max-kb 125 && node ../../scripts/check-font-preloads.mjs .svelte-kit/output/prerendered/pages/index.html --root .svelte-kit/output/client && node ../../scripts/check-app-routes.mjs --host sveltekit && node ../../scripts/strip-local-corpus.mjs build .svelte-kit/output",
     "preview": "vite preview",
     "prepare": "svelte-kit sync",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

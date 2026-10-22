@@ -1,15 +1,18 @@
 /**
- * Every app's HTML shell names its hub, carries no canonical of its own, and every app writes each
- * route's head as it navigates.
+ * Every app's source HTML shell names its hub and carries no canonical of its own, and every app
+ * writes each route's head as it navigates.
  *
  * @remarks
- * Each demo app is a single-page app: one HTML shell answers every route (SvelteKit renders on the
- * server too). Two failures here are silent in every other gate:
+ * Each demo app is a single-page app (SvelteKit renders on the server too). Its build copies the one
+ * source shell into a shell per page, writing that page's title, description and canonical into each
+ * (`scripts/write-route-shells.mjs`, checked by `routeShells.test.ts`). Two failures here are silent
+ * in every other gate:
  *
- * - **A static `<link rel="canonical">` in a shell** would name the hub as the canonical page for
- *   every route, and a search engine would fold the dataset pages into the hub and drop them.
- * - **An app that stops writing the route's head** would show every route under the hub's title and
- *   no canonical, which nothing but a crawler notices.
+ * - **A static `<link rel="canonical">` in the source shell** would be copied into every page's shell,
+ *   naming the hub as the canonical page for every route, and a search engine would fold the dataset
+ *   pages into the hub and drop them. (The build refuses such a shell, too.)
+ * - **An app that stops writing the route's head** would show the first page's head after every
+ *   client-side navigation, which nothing but a crawler notices.
  *
  * So this pins that each shell carries the hub's title and description exactly as the verticals
  * registry spells them (the documentation site's, as `page-meta-docs` spells them) and no canonical,
@@ -140,15 +143,15 @@ describe('the documentation site', () => {
 		expect(stated, `the shell must say "${String(ruleCount)}-rule", the catalog's size`).toEqual([ruleCount, ruleCount]);
 	});
 
-	it('writes each route’s head as it navigates, and answers / with a redirect to /docs', () => {
+	it('writes each route’s head as it navigates, for the documentation at the site’s root', () => {
 		const app = readRepoFile('packages/examples-docs/src/App.tsx');
 
 		expect(app).toContain('<AppRouter pageMeta={docsPageMetaFor} routes={ROUTES} />');
 		// On demand, as the React apps load it: a static import would pin the catalog into the entry
 		// chunk and leave every dynamic import of it ineffective.
-		expect(app).toContain("(await import('@filter-enginez/examples-shared/page-meta-docs')).docsPageMeta(pathname)");
+		expect(app).toContain("(await import('@filter-enginez/examples-shared/page-meta-docs')).docsPageMeta(pathname, DOCS_SITE_BASE_PATH)");
 		expect(app).not.toMatch(/^import [^;]*from '@filter-enginez\/examples-shared\/page-meta-docs';$/mu);
-		expect(readRepoFile('packages/examples-docs/public/_redirects').split('\n')).toContain('/ /docs 301');
+		expect(app).toContain('docsRouteAt(DOCS_SITE_BASE_PATH)');
 	});
 });
 

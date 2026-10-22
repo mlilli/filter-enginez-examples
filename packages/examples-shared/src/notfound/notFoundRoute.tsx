@@ -1,5 +1,5 @@
 /**
- * The catch-all 404 `RouteObject`, shared by both React apps (the `docsRoute` precedent).
+ * The catch-all 404 `RouteObject`, shared by both React apps (the `docsRouteAt` precedent).
  *
  * @remarks
  * Each app puts `notFoundRoute` in its route table (`AppRouter`'s `routes`) as the **final** entry, so an

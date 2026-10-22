@@ -271,9 +271,9 @@ jobs:
       # `run_worker_first`. The account is on the Workers Free plan, 10 ms of CPU per request, and
       # serializing a corpus takes several times that, so the Worker must never answer it. `corpus:write`
       # writes the exact bytes the route sends; `corpus:check` then fails the deploy if any registered
-      # dataset's file is missing or differs — the assets would answer a missing one with the
-      # single-page-application fallback, `index.html` and a 200. `apiCorpus` is empty for every other
-      # site (scripts/list-deploy-targets.mjs).
+      # dataset's file is missing or differs — the assets would answer a missing one with the app's
+      # not-found page, HTML where the browser expects JSON. `apiCorpus` is empty for every other site
+      # (scripts/list-deploy-targets.mjs).
       - name: Write the API corpus files into the static assets
         working-directory: filter-enginez-examples
         run: |

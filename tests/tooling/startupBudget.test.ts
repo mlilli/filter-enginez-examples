@@ -8,7 +8,7 @@
  * Every app loads its dataset pages on demand: the React apps through their registry entries' `load`,
  * Vue through lazy route components, vanilla through a dynamic `import()` in each route's `render`,
  * Angular through `loadComponent` and resolvers that `import()` their boot, SvelteKit through its
- * per-route nodes, and the docs through `docsRoute`'s lazy routes. The split lasts only while nothing
+ * per-route nodes, and the docs through `docsRouteAt`'s lazy routes. The split lasts only while nothing
  * on the startup graph imports a page statically, and breaking it is silent — the build succeeds,
  * every test passes, every screen renders, and the hub now downloads the engine. So each app's `build`
  * runs `scripts/check-startup-budget.mjs` on its built first page, which fails the build when the

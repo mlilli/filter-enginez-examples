@@ -1,5 +1,5 @@
 /**
- * `<DocsLoadingScreen />` — what a cold load onto a `/docs` URL shows while the docs code arrives.
+ * `<DocsLoadingScreen />` — what a cold load onto a documentation URL shows while the docs code arrives.
  *
  * @remarks
  * The docs are lazy components (see `docsRoutes.tsx`), so a visit that opens a docs URL has a moment

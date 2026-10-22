@@ -1,5 +1,5 @@
 /**
- * `<DocsHomePage />` — the `/docs` overview: what the engine is, how the docs are organized, a
+ * `<DocsHomePage />` — the documentation's overview, its home: what the engine is, how the docs are organized, a
  * quick-start snippet, and cards into the major sections.
  *
  * @packageDocumentation
@@ -11,6 +11,7 @@ import { howItWorksUrl } from '../compare/origins.js';
 import { CodeBlock } from './CodeBlock.js';
 import { ALGORITHM_DOCS } from './content/algorithmsContent.js';
 import { RULE_DOCS } from './content/rulesContent.js';
+import { useDocsPath } from './docsBasePath.js';
 
 const QUICK_START = `import { createFilterEngine, inSet, range } from '@filter-enginez/core';
 
@@ -25,6 +26,8 @@ engine.getResultCount();  // …or just the count`;
  * The docs overview page.
  */
 export const DocsHomePage = (): React.ReactElement => {
+	const docsPath = useDocsPath();
+
 	return (
 		<div className="fe-doc">
 			<p className="fe-doc-eyebrow">documentation</p>
@@ -44,7 +47,7 @@ export const DocsHomePage = (): React.ReactElement => {
 
 			<h2 className="fe-doc-h2">Explore the docs</h2>
 			<div className="fe-doc-cards">
-				<Link to={`/docs/rules/${RULE_DOCS[0]?.id ?? 'value'}`} className="fe-doc-card">
+				<Link to={docsPath(`/rules/${RULE_DOCS[0]?.id ?? 'value'}`)} className="fe-doc-card">
 					<span className="fe-doc-card__title">Filter rules</span>
 					<span className="fe-doc-card__body">
 						All {RULE_DOCS.length} rules — equality, ranges, sets, hierarchy, text, geo, membership, and Boolean
@@ -52,7 +55,7 @@ export const DocsHomePage = (): React.ReactElement => {
 					</span>
 					<span className="fe-doc-card__go">Browse the rule catalog →</span>
 				</Link>
-				<Link to={`/docs/algorithms/${ALGORITHM_DOCS[0]?.id ?? 'roaring-bitmaps'}`} className="fe-doc-card">
+				<Link to={docsPath(`/algorithms/${ALGORITHM_DOCS[0]?.id ?? 'roaring-bitmaps'}`)} className="fe-doc-card">
 					<span className="fe-doc-card__title">Algorithms</span>
 					<span className="fe-doc-card__body">
 						The {ALGORITHM_DOCS.length} data structures behind the speed — Roaring bitmaps, the exclusion graph,
@@ -60,7 +63,7 @@ export const DocsHomePage = (): React.ReactElement => {
 					</span>
 					<span className="fe-doc-card__go">See how it&apos;s fast →</span>
 				</Link>
-				<Link to="/docs/playground" className="fe-doc-card">
+				<Link to={docsPath('/playground')} className="fe-doc-card">
 					<span className="fe-doc-card__title">Playground</span>
 					<span className="fe-doc-card__body">
 						Edit a JSON <code>FilterEngineConfig</code> against a real dataset and run the engine live in your
@@ -68,7 +71,7 @@ export const DocsHomePage = (): React.ReactElement => {
 					</span>
 					<span className="fe-doc-card__go">Try it live →</span>
 				</Link>
-				<Link to="/docs/api" className="fe-doc-card">
+				<Link to={docsPath('/api')} className="fe-doc-card">
 					<span className="fe-doc-card__title">API reference</span>
 					<span className="fe-doc-card__body">
 						The public surface — <code>createFilterEngine</code>, the rule factories, the config layer, and the

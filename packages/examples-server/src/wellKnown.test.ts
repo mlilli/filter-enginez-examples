@@ -15,8 +15,8 @@ import { handleStaticAssetsRequest, isWellKnownPath, WELL_KNOWN_PATH, wellKnownN
 const ORIGIN = 'https://docs.filterenginez.com';
 
 /**
- * A fake `env` whose assets binding answers every request with the app shell and a 200, as the
- * single-page-application fallback does.
+ * A fake `env` whose assets binding answers every request with the app shell and a 200, the answer
+ * that must never reach a well-known URI.
  *
  * @returns The environment and the spy behind its binding.
  */

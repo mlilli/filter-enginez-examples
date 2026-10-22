@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build && node ../../scripts/check-startup-budget.mjs dist --max-kb 130 && node ../../scripts/check-font-preloads.mjs dist/index.html && node ../../scripts/strip-local-corpus.mjs dist",
+    "build": "vue-tsc --noEmit && vite build && node ../../scripts/check-startup-budget.mjs dist --max-kb 130 && node ../../scripts/check-font-preloads.mjs dist/index.html && node ../../scripts/write-route-shells.mjs dist --host vue && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest --watch=false --passWithNoTests",

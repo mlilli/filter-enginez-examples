@@ -2,15 +2,14 @@
  * `<App />` — the standalone documentation site's router.
  *
  * @remarks
- * The whole site IS the docs: it mounts the shared `docsRoute` (defined once in
- * `@filter-enginez/examples-shared/docs` and also in both React apps' route tables) verbatim, so the
- * rule / algorithm reference, the live playground, and the API index render identically to how they
- * appear inside the React apps. `docsRoute` is anchored at `/docs` and every internal link is an
- * absolute `/docs/...` path, so the app keeps that mount point and simply redirects `/` (and anything
- * unknown) to the docs home rather than rewriting the shared route — one source of truth for the docs
- * subtree. The Worker answers `/` itself with a 301 to `/docs` (`public/_redirects`), so a crawler
- * meets one address for the home; the client-side redirect covers the dev server and any other
- * unknown path.
+ * The whole site IS the docs: it mounts the shared documentation route (defined once in
+ * `@filter-enginez/examples-shared/docs`, which both React apps mount under `/docs`) at the site's
+ * root, so the rule / algorithm reference, the live playground, and the API index render identically
+ * to how they appear inside the React apps, and every link between them stays on this site's paths
+ * (`/rules/range`, `/playground`). Any other path is the shared not-found page, as in the React apps;
+ * deployed, the host answers it with status 404 (`scripts/write-route-shells.mjs`). The host also
+ * answers every `/docs` address with a permanent redirect to the same path without the prefix, query
+ * string kept (`public/_redirects`).
  *
  * The router is the one the React apps mount (`AppRouter`, React Router's declarative mode): the head
  * follows the route, and a page that fails to load or render shows the shared page-error screen. Each
@@ -25,15 +24,33 @@
  */
 
 import { AppRouter } from '@filter-enginez/examples-shared/app-router';
-import { docsRoute } from '@filter-enginez/examples-shared/docs';
-import { type PageMeta } from '@filter-enginez/examples-shared/page-meta';
-import { Navigate, type RouteObject } from 'react-router';
+import { docsRouteAt } from '@filter-enginez/examples-shared/docs';
+import { DOCS_SITE_BASE_PATH, type PageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { lazy, Suspense } from 'react';
+import { type RouteObject } from 'react-router';
 
-/** `/` and any unmatched path land on the docs home; everything else is served by `docsRoute`. */
+/**
+ * The shared not-found page, loaded when an unknown path is first shown.
+ *
+ * @remarks
+ * On demand rather than static, unlike in the React apps: every visit here starts on a documentation
+ * page, whose first screen has no use for the page's loader animation and header, and the build holds
+ * that first screen to a startup budget.
+ */
+const NotFoundPage = lazy(async () => ({ default: (await import('@filter-enginez/examples-shared/notfound')).NotFoundPage }));
+
+/** The documentation at the site's root, then the shared not-found page for every other path. */
 const ROUTES: RouteObject[] = [
-	{ element: <Navigate to="/docs" replace />, path: '/' },
-	docsRoute,
-	{ element: <Navigate to="/docs" replace />, path: '*' },
+	docsRouteAt(DOCS_SITE_BASE_PATH),
+	{
+		element: (
+			// The page's own `<main>` is the landmark; an empty one stands in while its code arrives.
+			<Suspense fallback={<main className="fe-notfound" />}>
+				<NotFoundPage />
+			</Suspense>
+		),
+		path: '*',
+	},
 ];
 
 /**
@@ -43,7 +60,7 @@ const ROUTES: RouteObject[] = [
  * @returns Its title, description and canonical URL.
  */
 async function docsPageMetaFor(pathname: string): Promise<PageMeta> {
-	return (await import('@filter-enginez/examples-shared/page-meta-docs')).docsPageMeta(pathname);
+	return (await import('@filter-enginez/examples-shared/page-meta-docs')).docsPageMeta(pathname, DOCS_SITE_BASE_PATH);
 }
 
 /**

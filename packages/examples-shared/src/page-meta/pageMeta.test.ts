@@ -4,7 +4,7 @@
  * @remarks
  * The claim worth pinning is the one a search engine acts on: every page a vertical serves has a
  * canonical URL of its own on that vertical's host (so no route is folded into the hub), and every other
- * path is `noindex` with no canonical (so an SPA's status-200 not-found page is never indexed).
+ * path is `noindex` with no canonical (so a not-found page is never indexed).
  *
  * @packageDocumentation
  */
@@ -14,7 +14,11 @@ import { describe, expect, it } from 'vitest';
 import { DATASET_ROUTES } from '../landing/landingCards.js';
 import { LAB_ROUTE_PATH, vertical, VERTICALS } from '../verticals/verticals.js';
 import {
+	DOCS_APP_BASE_PATH,
+	DOCS_SITE_BASE_PATH,
 	docsCanonicalUrl,
+	docsPathUnder,
+	docsSitePath,
 	isDocsPath,
 	notFoundPageMeta,
 	verticalIndexablePaths,
@@ -111,8 +115,28 @@ describe('the documentation', () => {
 		expect(isDocsPath(path)).toBe(expected);
 	});
 
-	it('is canonical on the documentation site', () => {
-		expect(docsCanonicalUrl('/docs/api')).toBe('https://docs.filterenginez.com/docs/api');
+	it('is canonical on the documentation site, at its root', () => {
+		expect(docsCanonicalUrl('/api')).toBe('https://docs.filterenginez.com/api');
+		expect(docsCanonicalUrl('/')).toBe('https://docs.filterenginez.com/');
+	});
+
+	it.each([
+		[DOCS_SITE_BASE_PATH, '/', '/'],
+		[DOCS_SITE_BASE_PATH, '/rules/range', '/rules/range'],
+		[DOCS_APP_BASE_PATH, '/', '/docs'],
+		[DOCS_APP_BASE_PATH, '/rules/range', '/docs/rules/range'],
+	] as const)('places the page %#: base %j, site path %s → %s', (basePath, sitePath, expected) => {
+		expect(docsPathUnder(basePath, sitePath)).toBe(expected);
+		expect(docsSitePath(basePath, expected)).toBe(sitePath);
+	});
+
+	it.each([
+		[DOCS_APP_BASE_PATH, '/docs/', '/'],
+		[DOCS_APP_BASE_PATH, '/wine', null],
+		[DOCS_APP_BASE_PATH, '/documents', null],
+		[DOCS_SITE_BASE_PATH, '/anything/at/all', '/anything/at/all'],
+	] as const)('reads the site path back out of a path %#: base %j, %s → %s', (basePath, pathname, expected) => {
+		expect(docsSitePath(basePath, pathname)).toBe(expected);
 	});
 
 	it('names a not-found page after its site, with no canonical and no description', () => {

@@ -1,5 +1,5 @@
 /**
- * `<RuleDocPage />` — renders one `RuleDoc` (`/docs/rules/:ruleId`): the simple → advanced
+ * `<RuleDocPage />` — renders one `RuleDoc` (`rules/:ruleId` in the docs section): the simple → advanced
  * explanation, the animated rule figure, real code, and prev/next navigation. Pure template over the
  * `RULE_DOCS` catalog.
  *
@@ -18,6 +18,7 @@ import { Link, Navigate, useParams } from 'react-router';
 
 import { CodeBlock } from './CodeBlock.js';
 import { findRuleDoc, RULE_DOCS } from './content/rulesContent.js';
+import { useDocsPath } from './docsBasePath.js';
 import { RuleFigure } from './figures/RuleFigure.js';
 
 /**
@@ -25,10 +26,11 @@ import { RuleFigure } from './figures/RuleFigure.js';
  */
 export const RuleDocPage = (): React.ReactElement => {
 	const { ruleId } = useParams();
+	const docsPath = useDocsPath();
 	const rule = findRuleDoc(ruleId);
 
 	if (rule === undefined) {
-		return <Navigate to="/docs" replace />;
+		return <Navigate to={docsPath('/')} replace />;
 	}
 
 	const index = RULE_DOCS.findIndex((candidate) => candidate.id === rule.id);
@@ -65,7 +67,7 @@ export const RuleDocPage = (): React.ReactElement => {
 			))}
 
 			<p className="fe-doc-p">
-				<Link to="/docs/playground">Try the engine live in the playground →</Link>
+				<Link to={docsPath('/playground')}>Try the engine live in the playground →</Link>
 			</p>
 
 			{rule.seeAlso === undefined || rule.seeAlso.length === 0 ? null : (
@@ -77,7 +79,7 @@ export const RuleDocPage = (): React.ReactElement => {
 
 							return related === undefined ? null : (
 								<li key={relatedId}>
-									<Link to={`/docs/rules/${related.id}`}>{related.name}</Link> — {related.tagline}
+									<Link to={docsPath(`/rules/${related.id}`)}>{related.name}</Link> — {related.tagline}
 								</li>
 							);
 						})}
@@ -86,8 +88,8 @@ export const RuleDocPage = (): React.ReactElement => {
 			)}
 
 			<nav className="fe-doc-pager" aria-label="Rule pages">
-				{previous === undefined ? <span /> : <Link to={`/docs/rules/${previous.id}`}>← {previous.name}</Link>}
-				{next === undefined ? <span /> : <Link to={`/docs/rules/${next.id}`}>{next.name} →</Link>}
+				{previous === undefined ? <span /> : <Link to={docsPath(`/rules/${previous.id}`)}>← {previous.name}</Link>}
+				{next === undefined ? <span /> : <Link to={docsPath(`/rules/${next.id}`)}>{next.name} →</Link>}
 			</nav>
 		</article>
 	);

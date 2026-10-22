@@ -86,11 +86,11 @@ build it and run `corpus:write` into its assets first.
 
 - [`src/workerRequestHandler.ts`](./src/workerRequestHandler.ts) strips the `/api` prefix (as the dev proxies do), calls
   `handleRequest`, and hands every other path to the static assets, except `/.well-known/*`.
-- **`/.well-known/*` is a 404.** The sites publish nothing there (no agent or tool catalog, nothing else), and an app's
-  assets would answer such a path with its `index.html` and a 200, so [`src/wellKnown.ts`](./src/wellKnown.ts) answers
-  it instead. The documentation site and the Vue app, which have no server-backed route, run
-  [`src/staticAssetsWorker.ts`](./src/staticAssetsWorker.ts) for that path alone: that module and nothing else, no
-  engine.
+- **`/.well-known/*` is a plain-text 404.** The sites publish nothing there (no agent or tool catalog, nothing else),
+  and an app's assets would answer such a path with its not-found page, an HTML document that boots the whole app, so
+  [`src/wellKnown.ts`](./src/wellKnown.ts) answers it instead. The documentation site and the Vue app, which have no
+  server-backed route, run [`src/staticAssetsWorker.ts`](./src/staticAssetsWorker.ts) for that path alone: that module
+  and nothing else, no engine.
 - The entry module exports only its default handler: the Workers runtime treats every named export of the main module as
   an entry point.
 - Workers do not compile WebAssembly from bytes at runtime, so the Roaring-Bitmap acceleration stays off there; the

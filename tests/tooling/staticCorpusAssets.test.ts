@@ -14,8 +14,8 @@
  *   The excluded path must be where the browser looks (`/api` + `/corpus/`) and where the deploy job
  *   writes.
  * - **The deploy job writes and checks the files** for exactly those apps, before `wrangler deploy`.
- *   These apps answer unknown paths with `index.html` and a 200, so a missing file would not fail
- *   loudly; the check is what makes it fail.
+ *   These apps answer unknown paths with their HTML not-found page, so a missing file would surface
+ *   as a JSON parse error in a browser, far from its cause; the check is what makes it fail loudly.
  * - **SvelteKit's corpus routes are prerendered**, each with `entries` naming the dataset its page
  *   filters, so `vite build` writes the files and adapter-cloudflare serves them as assets.
  * - **Nothing deletes or commits them**: the local-only-corpus strip step leaves them alone, and the

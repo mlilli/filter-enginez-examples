@@ -14,6 +14,7 @@ export interface WranglerConfig {
 	readonly assets?: {
 		readonly binding?: string;
 		readonly directory?: string;
+		readonly html_handling?: string;
 		readonly not_found_handling?: string;
 		readonly run_worker_first?: boolean | readonly string[];
 	};

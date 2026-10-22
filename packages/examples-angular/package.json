@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "ng serve",
-    "build": "ng build && node ../../scripts/preload-fonts.mjs dist/browser/index.html && node ../../scripts/check-font-preloads.mjs dist/browser/index.html && node ../../scripts/check-startup-budget.mjs dist/browser --max-kb 320 && node ../../scripts/strip-local-corpus.mjs dist",
+    "build": "ng build && node ../../scripts/preload-fonts.mjs dist/browser/index.html && node ../../scripts/check-font-preloads.mjs dist/browser/index.html && node ../../scripts/check-startup-budget.mjs dist/browser --max-kb 320 && node ../../scripts/write-route-shells.mjs dist/browser --host angular && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "ng serve --configuration production",
     "typecheck": "ngc -p tsconfig.json",
     "test": "ng test --watch=false",

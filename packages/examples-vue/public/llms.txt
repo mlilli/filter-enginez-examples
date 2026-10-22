@@ -15,9 +15,9 @@ Vue is built with Vue 3 and @filter-enginez/vue-signals. Holds the engine in sha
 
 ## Documentation
 
-- [Filter EngineZ — Documentation](https://docs.filterenginez.com/docs): Filter EngineZ documentation — the 16-rule filter catalog, the acceleration algorithms, a live in-browser playground, and the API reference.
-- [Playground](https://docs.filterenginez.com/docs/playground): Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.
-- [API reference](https://docs.filterenginez.com/docs/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.
+- [Filter EngineZ — Documentation](https://docs.filterenginez.com/): Filter EngineZ documentation — the 16-rule filter catalog, the acceleration algorithms, a live in-browser playground, and the API reference.
+- [Playground](https://docs.filterenginez.com/playground): Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.
+- [API reference](https://docs.filterenginez.com/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.
 
 ## Other demos
 

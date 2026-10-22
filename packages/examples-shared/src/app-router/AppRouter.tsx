@@ -3,7 +3,7 @@
  *
  * @remarks
  * React Router in declarative mode: a `<BrowserRouter>` over the app's route table (`useRoutes`, the
- * hook `<Routes>` is built on, so the table stays plain route objects that `docsRoute` and
+ * hook `<Routes>` is built on, so the table stays plain route objects that `docsRouteAt` and
  * `notFoundRoute` slot into). The apps use nothing of the data router's (no loaders, actions or
  * fetchers), and declarative mode leaves that machinery out of every app's startup bundle.
  *

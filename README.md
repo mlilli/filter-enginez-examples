@@ -147,9 +147,15 @@ On every push to `main`, after the CI gates pass, the `deploy` job builds each o
 checks that none of the local-only wine corpus is in the output, writes the corpus files the API Worker sites serve (and
 fails if one is missing), and adds the bundled fonts' licenses.
 
-- The single-page apps fall back to `index.html` for client-side routes. The four with a server-filtered route answer
-  their same-origin `/api/*` with [`examples-server`'s Worker entry](./packages/examples-server/README.md), the deployed
-  counterpart of the dev-server proxy.
+- Every page a single-page app serves is a file: its build writes one HTML shell per page, each with that page's title,
+  description and canonical URL, and a `404.html`, from the page catalog the sitemap reads
+  (`scripts/write-route-shells.mjs`), after checking the app's router against that catalog. So a known page answers 200,
+  and any other path the app's not-found page with a 404. The four with a server-filtered route answer their same-origin
+  `/api/*` with [`examples-server`'s Worker entry](./packages/examples-server/README.md), the deployed counterpart of
+  the dev-server proxy.
+- The documentation site serves the documentation at its root (`/`, `/rules/<id>`, `/algorithms/<id>`, `/playground`,
+  `/api`), and answers every `/docs` address with a permanent redirect to the same path without the prefix, query string
+  kept. The two React apps serve the same pages under their own `/docs`.
 - Every server-filtered route boots by fetching its whole corpus once, from `…/corpus/<dataset>.json`, and that file is
   always a static asset: the account is on the Workers Free plan, which allows 10 ms of CPU per request, and serializing
   a corpus takes several times that. The four `/api` apps exclude `/api/corpus/*` from `run_worker_first` and the deploy
@@ -171,9 +177,9 @@ fails if one is missing), and adds the bundled fonts' licenses.
   in its `public/` (`static/` for SvelteKit); `vitest run packages/site/src/sitemap/llmsTxt.test.ts --update` rewrites
   them after a page list changes.
 - Every host answers `/.well-known/*` with a 404: the sites publish no agent or tool catalog, or anything else, there.
-  The single-page apps send that path to a Worker first, which answers it (`examples-server`'s `src/wellKnown.ts`); the
-  documentation site and the Vue app run a Worker for that path alone. The landing site's assets and SvelteKit's router
-  answer it with their 404 pages.
+  The single-page apps send that path to a Worker first, which answers it with a plain-text 404 (`examples-server`'s
+  `src/wellKnown.ts`); the documentation site and the Vue app run a Worker for that path alone. The landing site's
+  assets and SvelteKit's router answer it with their 404 pages.
 
 To try a deployed build locally, build the package and run
 `pnpm exec wrangler dev --config packages/<name>/wrangler.jsonc` from the repository root. For one of the four `/api`

@@ -6,7 +6,7 @@
  *   - `/`             → `<LandingPage>` (the dataset hub).
  *   - `/books-server` → `<BooksServerRoute>` (the SAME `<BooksApp>` as `/books`, but filtering runs
  *                       on the Node server via the HTTP-backed engine).
- *   - `/docs/*`       → the shared documentation subtree (`docsRoute`).
+ *   - `/docs/*`       → the shared documentation subtree (`docsRouteAt`, under `/docs`).
  *   - `/lab`          → `<LabRoute>` (the engine-capability demonstrations, over the books engine).
  *   - `/:datasetId`   → `<DatasetRoute>` for a registered dataset (unknown ids → the 404).
  *   - `*`             → `<NotFoundPage>` (the shared "filtered to zero" 404) for any other dead route.
@@ -21,7 +21,7 @@
  * it is held to the first screen: the hub, the route shells that show a loader the moment a route
  * opens, the 404 and the page-error screen. Every page behind those shells is its own chunk, fetched on
  * the route's first visit — the datasets and the lab through their registry entries (`datasets.tsx`,
- * `lab/labEntry.ts`), the docs through `docsRoute`'s lazy pages, and `/books-server` through
+ * `lab/labEntry.ts`), the docs through the documentation route's lazy pages, and `/books-server` through
  * `React.lazy` below. The router is React Router's declarative mode (`AppRouter`), which leaves the
  * data router's loaders, actions and fetchers out of the bundle. The build checks the result against a
  * budget (`scripts/check-startup-budget.mjs`).
@@ -31,8 +31,9 @@
 
 import { AppVerticalContext } from '@filter-enginez/examples-shared/app-header';
 import { AppRouter } from '@filter-enginez/examples-shared/app-router';
-import { docsHostedPageMeta, docsRoute } from '@filter-enginez/examples-shared/docs';
+import { docsHostedPageMeta, docsRouteAt } from '@filter-enginez/examples-shared/docs';
 import { NotFoundPage, notFoundRoute } from '@filter-enginez/examples-shared/notfound';
+import { DOCS_APP_BASE_PATH } from '@filter-enginez/examples-shared/page-meta';
 import { LAB_ROUTE_PATH } from '@filter-enginez/examples-shared/verticals';
 import { lazy, Suspense } from 'react';
 import { type RouteObject, useParams } from 'react-router';
@@ -85,8 +86,8 @@ const ROUTES: RouteObject[] = [
 		),
 		path: '/books-server',
 	},
-	docsRoute,
-	// Before `/:datasetId`, like `docsRoute`, and the failure mode is why it is worth stating rather than
+	docsRouteAt(DOCS_APP_BASE_PATH),
+	// Before `/:datasetId`, like the documentation route, and the failure mode is why it is worth stating rather than
 	// trusting the router's ranking: `/lab` losing to `/:datasetId` does not error, it renders a
 	// plausible 404. The path is the one the how-it-works page on filterenginez.com links to, read from
 	// the same constant.
