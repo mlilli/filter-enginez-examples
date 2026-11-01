@@ -43,7 +43,7 @@ export interface HowItWorksSection {
 export const HOW_IT_WORKS_SECTIONS: readonly HowItWorksSection[] = [
 	{
 		body: 'Every active rule becomes one compressed Roaring bitmap — a bit per item, set where the item matches. Combining filters is then a single bitwise AND across those bitmaps rather than a walk over the dataset. Roaring stores long runs as compact containers, so the bitmaps stay small and the AND stays sub-millisecond even as the corpus grows into the millions. This is the floor the rest of the stack builds on: once intersection is a bitmap operation, everything downstream — simulating a filter, checking whether two rules can coexist — becomes cheap.',
-		code: "createFilterEngine({ acceleration: { bitmap: 'on' } })\n// one compressed bitmap per active rule; the result\n// set is a single bitwise AND across them",
+		code: "// npm install roaring-wasm (an optional peer)\nawait initializeBitmapAcceleration()\ncreateFilterEngine({ acceleration: { bitmap: 'on' } })\n// one compressed bitmap per active rule; the result\n// set is a single bitwise AND across them",
 		eyebrow: '01 · intersection',
 		group: 'core',
 		id: 'roaring',

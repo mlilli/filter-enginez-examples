@@ -33,7 +33,7 @@ export interface AlgorithmText extends Omit<AlgorithmDoc, 'Figure' | 'id'> {
 export const ALGORITHM_TEXTS: readonly AlgorithmText[] = [
 	{
 		advanced:
-			'Every active rule becomes one compressed Roaring bitmap — a bit per item, set where the item matches. Combining filters is a single bitwise AND across those bitmaps rather than a per-item walk. Roaring stores long runs as compact containers, so the bitmaps stay small and the AND stays sub-millisecond into the millions of rows. This is the floor the rest of the stack builds on: once intersection is a bitmap op, simulating a filter or checking rule compatibility becomes cheap.',
+			'Every active rule becomes one compressed Roaring bitmap — a bit per item, set where the item matches. Combining filters is a single bitwise AND across those bitmaps rather than a per-item walk. Roaring stores long runs as compact containers, so the bitmaps stay small and the AND stays sub-millisecond into the millions of rows. This is the floor the rest of the stack builds on: once intersection is a bitmap op, simulating a filter or checking rule compatibility becomes cheap. The bitmaps come from `roaring-wasm`, CRoaring compiled to WebAssembly, an optional peer dependency of `@filter-enginez/core`: install it beside core (`npm install roaring-wasm`) and `await initializeBitmapAcceleration()` once at boot. Until that resolves, or without the package, the engine answers every filter through its predicate path, with the same results.',
 		id: 'roaring-bitmaps',
 		name: 'Roaring bitmaps',
 		simple: 'One compressed bitmap per rule; combining filters is a single bitwise AND.',

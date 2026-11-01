@@ -4,8 +4,9 @@
  * @remarks
  * Loaded on demand by the route's resolver in `app.routes.ts` (a dynamic `import()`), never imported
  * statically by anything on the startup graph. This module is what carries the engine — the
- * surface-neutral boot, the core and the WebAssembly bitmap library it initializes — so a static
- * import of it would put all of that in the landing page's startup chunks.
+ * surface-neutral boot and the core, which fetches its WebAssembly bitmap library when the boot
+ * initializes it — so a static import of it would put all of that in the landing page's startup
+ * chunks.
  *
  * ### Why `/books-boot-core` and not `/books-core`
  *

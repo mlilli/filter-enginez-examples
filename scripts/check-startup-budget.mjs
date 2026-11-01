@@ -52,11 +52,13 @@
  * ### The budgets
  *
  * Each app passes its own, set from what its hub measures plus modest headroom, and well below what
- * the engine alone costs: the core with the WebAssembly bitmap library it carries is about 350 kB, so
- * a static import that drags it onto a first screen cannot fit under any of them. The React apps and
- * the documentation site start with React, ReactDOM and React Router in its declarative mode (about
- * 300 kB of each first screen; the documentation site also preloads its layout and home page); Vue,
- * Angular and SvelteKit with their own runtimes; the framework-free app with nothing but itself.
+ * the engine alone costs: the core with the libraries it bundles is about 45 to 130 kB as these apps
+ * build it, more than any app's headroom, so a static import that drags it onto a first screen cannot
+ * fit under any of them. (Its WebAssembly bitmap library, about 260 kB more, stays a chunk of its own
+ * whatever imports the core, fetched when a boot calls `initializeBitmapAcceleration()`.) The React
+ * apps and the documentation site start with React, ReactDOM and React Router in its declarative mode
+ * (about 300 kB of each first screen; the documentation site also preloads its layout and home page);
+ * Vue, Angular and SvelteKit with their own runtimes; the framework-free app with nothing but itself.
  *
  * @packageDocumentation
  */

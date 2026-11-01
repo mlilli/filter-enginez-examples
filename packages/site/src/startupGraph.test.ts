@@ -33,7 +33,6 @@ const ERROR_MODULE = `${NODE_MODULES}/@filter-enginez/core/dist/errors/FilterEng
 /** One module of each deferred group, so a build holding these satisfies every group's vacuity check. */
 const ONE_OF_EACH = [
 	ENGINE_MODULE,
-	`${NODE_MODULES}/roaring-wasm/browser/index.mjs`,
 	`${NODE_MODULES}/fuse.js/dist/fuse.mjs`,
 	`${NODE_MODULES}/rbush/index.js`,
 	`${NODE_MODULES}/@filter-enginez/mock-data/dist/wine/generate.js`,

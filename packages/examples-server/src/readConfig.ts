@@ -1,6 +1,7 @@
 /**
  * Read + light-validate a JSON `FilterEngineConfig` from disk. The engine's `loadConfig` does the
- * authoritative (zod) validation; this just yields a friendly error for the obvious mistakes.
+ * authoritative validation (the config's version, then each rule through the rule registry); this
+ * just yields a friendly error for the obvious mistakes.
  *
  * @packageDocumentation
  */

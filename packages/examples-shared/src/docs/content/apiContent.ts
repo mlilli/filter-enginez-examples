@@ -38,6 +38,7 @@ export const API_GROUPS: readonly ApiGroup[] = [
 		blurb: 'Construct an engine and read results. The engine holds the rules, composes them, and keeps the result set current.',
 		entries: [
 			{ description: 'Create an engine over source data (and/or an initial JSON config + acceleration options).', name: 'createFilterEngine', signature: 'createFilterEngine<T>(options?: FilterEngineOptions<T>): FilterEngine<T>' },
+			{ description: 'Turn on bitmap acceleration: loads `roaring-wasm`, an optional peer dependency to install beside core (`npm install roaring-wasm`), and its WebAssembly. Await it once at boot; without the package it rejects with `MODE_ACCELERATION_PEER_MISSING`, and the engine keeps filtering through its predicate path with the same results.', name: 'initializeBitmapAcceleration', signature: 'initializeBitmapAcceleration(): Promise<void>' },
 			{ description: 'Add (or replace) a rule under an id — implicitly ANDed with the others (flat-map mode).', name: 'engine.addRule', signature: 'addRule(id: RuleId, rule: FilterRule): void' },
 			{ description: 'Remove a rule by id.', name: 'engine.removeRule', signature: 'removeRule(id: RuleId): void' },
 			{ description: 'Enter expression mode: filter by a Boolean tree instead of implicit-AND.', name: 'engine.setExpression', signature: 'setExpression(expression: CompositeRule): void' },
@@ -97,7 +98,7 @@ export const API_GROUPS: readonly ApiGroup[] = [
 	{
 		blurb: 'Independently toggle the acceleration layers (all default to sensible auto-engaging modes).',
 		entries: [
-			{ description: 'Roaring-bitmap intersection.', name: 'bitmap', signature: "bitmap?: 'auto' | 'on' | 'off'" },
+			{ description: 'Roaring-bitmap intersection, once `initializeBitmapAcceleration()` has resolved.', name: 'bitmap', signature: "bitmap?: 'auto' | 'on' | 'off'" },
 			{ description: 'Mutual-exclusion-graph short-circuit.', name: 'exclusionGraph', signature: "exclusionGraph?: 'lazy' | 'eager' | 'off'" },
 			{ description: 'LRU memoization of simulate().', name: 'simulationCache', signature: 'simulationCache?: boolean' },
 			{ description: 'R-tree spatial index for geo rules.', name: 'spatialIndex', signature: "spatialIndex?: 'auto' | 'off'" },

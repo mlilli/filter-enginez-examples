@@ -66,9 +66,10 @@ export default defineConfig({
 	 * **No transitive deps.** Listing transitive (non-direct-dep) packages in
 	 * `optimizeDeps.include` produces a "Failed to resolve dependency" warning under
 	 * Rolldown's stricter resolver. `debug` needs no entry because the top-level `define`
-	 * block handles `process.env` at substitution time; `roaring-wasm` is core's dependency,
-	 * loaded through `initializeBitmapAcceleration()` (inside `wine.worker.ts` for the wine
-	 * worker tier, where Vite's worker-bundle pipeline resolves + ships the WASM asset).
+	 * block handles `process.env` at substitution time. `roaring-wasm` needs none either: core
+	 * reaches it only through the `import()` inside `initializeBitmapAcceleration()`, so the
+	 * pre-bundle of `@filter-enginez/core` already carries it as a chunk of its own, for the
+	 * main thread and the wine worker alike.
 	 *
 	 * **No `esbuildOptions`.** Deprecated in favor of `rolldownOptions` since Vite 8 adopted
 	 * Rolldown for the pre-bundle pass; the top-level `define` block already covers
@@ -105,10 +106,11 @@ export default defineConfig({
 		criticalCssPlugin({ runnerImport }),
 	],
 	// Workspace deps are linked via pnpm — Vite's deduplication keeps a single React copy.
-	// Bitmap acceleration is provided by `roaring-wasm` (browser + Node + Deno via WASM);
-	// no per-app shim is needed — core wires the WASM library directly via its `roaringInit`
-	// adapter, and each engine boot awaits `initializeBitmapAcceleration()` until the WASM
-	// module is ready.
+	// Bitmap acceleration needs `roaring-wasm`, an optional peer dependency of core that this app
+	// installs itself. Core loads it with an `import()` inside `initializeBitmapAcceleration()`,
+	// which every engine boot awaits (the wine worker in its own scope), so the build emits the
+	// library as a chunk of its own, fetched when a dataset page boots rather than at startup. No
+	// alias or shim is needed.
 	resolve: {
 		// `comlink` deduplication is LOAD-BEARING for the worker-bridge. Comlink uses
 		// `Symbol("Comlink.proxy")` (a private, per-module-instance symbol) to mark

@@ -7,7 +7,7 @@
  * easy to undo without noticing: a static import of the workload anywhere on a page's import graph, a
  * barrel that re-exports it, or a bundler setting that stops treating the engine's modules as free of
  * side effects. Each still builds, passes every test and renders the same page; the only symptom is
- * some 350 kB more JavaScript at startup, which Vite also lists as `<link rel="modulepreload">`.
+ * some 100 kB more JavaScript at startup, which Vite also lists as `<link rel="modulepreload">`.
  *
  * So the site's build (`vite.config.ts`) runs {@link findDeferredModulesAtStartup} over what it wrote,
  * and fails when a page's startup graph holds one of the {@link DEFERRED_MODULES}. A page's startup
@@ -58,13 +58,16 @@ export interface StartupViolation {
  * The engine's error classes (`@filter-enginez/core/dist/errors/`) are left out: the comparison page
  * decodes shared links with url-state-router's serializer, which throws one of them on a malformed
  * link, so a few hundred bytes of the engine rightly start with that page.
+ *
+ * `roaring-wasm` is not a group, because the site does not install it: the benchmark never calls
+ * `initializeBitmapAcceleration()`, so no page of the site can load the library at all, and a group
+ * for it would match no module in the build.
  */
 export const DEFERRED_MODULES: readonly DeferredModules[] = [
 	{
 		name: 'the engine (@filter-enginez/core, apart from its error classes)',
 		pattern: /[/\\]node_modules[/\\]@filter-enginez[/\\]core[/\\]dist[/\\](?!errors[/\\])/u,
 	},
-	{ name: 'roaring-wasm, the engine’s WebAssembly bitmaps', pattern: /[/\\]node_modules[/\\]roaring-wasm[/\\]/u },
 	{ name: 'fuse.js, the engine’s fuzzy search', pattern: /[/\\]node_modules[/\\]fuse\.js[/\\]/u },
 	{ name: 'rbush, the engine’s R-tree', pattern: /[/\\]node_modules[/\\]rbush[/\\]/u },
 	{ name: 'the wine corpus (@filter-enginez/mock-data)', pattern: /[/\\]node_modules[/\\]@filter-enginez[/\\]mock-data[/\\]/u },

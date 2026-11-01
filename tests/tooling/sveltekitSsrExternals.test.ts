@@ -5,16 +5,19 @@
  * `examples-sveltekit` is the only vertical that renders server-side, so it is the only one whose
  * Vite config decides what gets BUNDLED into a Node bundle rather than left for Node to load. Two of
  * its entries are load-bearing, and both failure modes are production-build-only: the dev server never
- * reproduces either, so a change that breaks one looks healthy locally and fails only at `pnpm build`.
+ * reproduces either, so a change that breaks one looks healthy locally and fails only in what `pnpm build`
+ * produces.
  * This guard reports it at unit-test speed and names the setting at fault.
  *
  * ### `roaring-wasm` must stay EXTERNAL
  *
  * A CommonJS package whose Node entry calls `require('fs')` at module scope. `noExternal` on
- * `@filter-enginez/*` pulls `core` in, `core` imports this, and bundled, it lands where the bundler's
- * CJS `__require` shim is **self-recursive**: once `__require` is the Proxy, its own `get` trap reads
- * `__require[b]`, so the first property access recurses until the stack dies. The build fails with
- * `RangeError: Maximum call stack size exceeded` and a stack of nothing but `Object.get`.
+ * `@filter-enginez/*` pulls `core` in, and `core` loads this with an `import()` inside
+ * `initializeBitmapAcceleration()`. Bundled, it lands where the bundler's CJS `__require` shim is
+ * **self-recursive**: once `__require` is the Proxy, its own `get` trap reads `__require[b]`, so the
+ * first property access recurses until the stack dies with `RangeError: Maximum call stack size
+ * exceeded`. That happens inside the initializer, which the server catches, so the only symptom is
+ * every query running without bitmaps.
  *
  * Externalizing hands it to Node, which loads CommonJS natively. It is also semantically right: the
  * package `readFileSync`s its WASM binary from disk, which needs the package ON disk.
@@ -69,8 +72,9 @@ describe('examples-sveltekit SSR externals', () => {
 
 	it('declares roaring-wasm as a dependency, since externalizing means Node must resolve it', () => {
 		// The other half of the arrangement, and the half a config-only assertion would miss.
-		// `roaring-wasm` is `core`'s dependency; the built server chunk lives in THIS package and imports
-		// it by bare specifier, so under pnpm's strict layout it has to be declared here too.
+		// `roaring-wasm` is an optional peer dependency of `core`, so nothing installs it unless this
+		// package declares it; the built server chunk lives in THIS package and imports it by bare
+		// specifier, so under pnpm's strict layout Node resolves it from here.
 		const pkg = JSON.parse(
 			readFileSync(resolve(REPO_ROOT, 'packages/examples-sveltekit/package.json'), 'utf8'),
 		) as { dependencies?: Record<string, string> };

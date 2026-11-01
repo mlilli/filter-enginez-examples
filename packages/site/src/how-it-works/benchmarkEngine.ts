@@ -3,9 +3,8 @@
  * demand.
  *
  * @remarks
- * The workload builds a real engine (`@filter-enginez/core`, with the WebAssembly bitmap library, the
- * fuzzy-search and R-tree libraries it carries: about 350 kB minified) and runs it over the 10,000-wine
- * corpus. None of that is needed to read the page, and the widget shows the committed reference
+ * The workload builds a real engine (`@filter-enginez/core`, with the fuzzy-search and R-tree libraries
+ * it carries: about 100 kB minified) and runs it over the 10,000-wine corpus. None of that is needed to read the page, and the widget shows the committed reference
  * numbers until a live measurement replaces them. So the widget imports this module with a dynamic
  * `import()` when it nears the viewport or is used (`benchmarkWidget.ts`), and the build puts the
  * engine in a chunk of its own that no page loads at startup. The build checks that it stays out of

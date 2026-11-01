@@ -19,8 +19,8 @@
  * The landing hub is the one eager page (`component:`), so the first screen needs no request beyond
  * the startup chunks. Every other page is a `loadComponent`, and every resolver `import()`s the module
  * that does its work — `books/books-route-data.ts`, `books/books-server-route-data.ts`,
- * `real-estate/real-estate-route-data.ts`. Those modules carry the engine (the core plus the
- * WebAssembly bitmap library it initializes) and the RxJS surface, so this file imports nothing from
+ * `real-estate/real-estate-route-data.ts`. Those modules carry the engine (the core, which fetches
+ * its WebAssembly bitmap library when the boot initializes it) and the RxJS surface, so this file imports nothing from
  * them but types: a static import of one would put the engine on the landing page's startup graph.
  * `tests/tooling/startupBudget.test.ts` holds the build to that through its startup budget.
  *

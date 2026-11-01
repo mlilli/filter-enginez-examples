@@ -20,7 +20,7 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootBooksServerEngine } from '@filter-enginez/examples-shared/books-server-core';
 import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
-import { useUrlSyncBindings } from '@filter-enginez/examples-shared/url';
+import { useLinkSerializer } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
 import { useEffect, useState } from 'react';
@@ -91,19 +91,19 @@ export const BooksServerRoute = (): React.ReactElement => {
  * The booted page: `<BooksApp />` inside the Redux and engine providers, with URL sync.
  *
  * @remarks
- * Its own component so the URL bindings are built only once an engine exists. They are the same as
- * `<DatasetView>`'s (`useUrlSyncBindings`).
+ * Its own component so the URL sync is built only once an engine exists. It is the same as
+ * `<DatasetView>`'s: the engine core and `useLinkSerializer`.
  *
  * @param props - The booted handle.
  * @returns The provider tree.
  */
 const ServerBooksView = ({ booted }: { readonly booted: BootedServer }): React.ReactElement => {
-	const urlSync = useUrlSyncBindings(booted.engine.core);
+	const serializer = useLinkSerializer();
 
 	return (
 		<Provider store={booted.store}>
 			<FilterEngineProvider engine={booted.engine}>
-				<FilterEngineUrlSync engine={urlSync.engine} asyncConfig={booted.engine.asyncEngine} serializer={urlSync.serializer} />
+				<FilterEngineUrlSync engine={booted.engine.core} asyncConfig={booted.engine.asyncEngine} serializer={serializer} />
 				<BooksApp engineLabel="server engine over HTTP" tier="server" />
 			</FilterEngineProvider>
 		</Provider>

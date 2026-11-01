@@ -54,7 +54,7 @@ describe('parseConfig', () => {
 	});
 
 	it('preserves sibling fields it does not validate', () => {
-		// The zod validation in the engine's loadConfig is authoritative; this function must not
+		// The validation in the engine's loadConfig is authoritative; this function must not
 		// quietly drop anything on the way there.
 		const config = parseConfig('{"rules":[],"expression":{"op":"and","children":[]},"mode":"expression"}');
 

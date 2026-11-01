@@ -26,8 +26,8 @@ import { type Route, startRouter } from './router.js';
  *
  * **Every dataset route loads its page module on demand**, through a dynamic `import()` inside its
  * `render`; only the landing hub and the 404, which hold no engine, are static imports. A dataset page
- * brings the engine (the core plus the WebAssembly bitmap library it initializes) and its own panel
- * and controls, so a static import puts all of it on the hub's first screen. Loaded on demand, each
+ * brings the engine (the core, which fetches its WebAssembly bitmap library when the page boots) and
+ * its own panel and controls, so a static import puts all of it on the hub's first screen. Loaded on demand, each
  * page arrives with the route that shows it, and `startupBudget.test.ts` holds the hub to that through
  * the build's startup budget.
  *

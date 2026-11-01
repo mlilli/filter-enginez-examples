@@ -5,15 +5,14 @@
  * @remarks
  * The render half of `<DatasetRoute>`, split from it because of what it imports. The providers and the
  * URL sync come from `react-redux`, `react-signals` and `url-state-router`, and the last two import
- * `@filter-enginez/core`, whose bitmap index brings a WebAssembly build of CRoaring with it — about as
- * much code as the whole first screen. `<DatasetRoute>` renders the hub's boot screen and loads this
- * module with the dataset's own, so none of that is in the startup bundle and all of it arrives before
- * the first dataset renders.
+ * `@filter-enginez/core`, the engine itself. `<DatasetRoute>` renders the hub's boot screen and loads
+ * this module with the dataset's own, so none of that is in the startup bundle and all of it arrives
+ * before the first dataset renders.
  *
  * @packageDocumentation
  */
 
-import { useUrlSyncBindings } from '@filter-enginez/examples-shared/url';
+import { useLinkSerializer } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
 import { Provider } from 'react-redux';
@@ -55,16 +54,15 @@ export const DatasetView = ({ booted, Component, supportsUrlState }: DatasetView
  *
  * @remarks
  * It takes the shared link serializer for the format the header toggle chose (its decode reads the
- * origin rule as every app commits it, `examples-shared/src/url/linkSerializer.ts`) and the engine
- * core, paired by `useUrlSyncBindings` so the sync never loads one of its own earlier writes back over
- * a newer state (`examples-shared/src/url/ownUrlWrites.ts`). Both stay stable across renders, as the
- * sync keys its effects on them. Its own component, so a route without URL state builds neither.
+ * origin rule as every app commits it, `examples-shared/src/url/linkSerializer.ts`) from
+ * `useLinkSerializer`, and the engine core as it is. Both stay stable across renders, as the sync keys
+ * its effects on them. Its own component, so a route without URL state builds neither.
  *
  * @param props - The booted dataset.
  * @returns The sync.
  */
 const UrlSync = ({ booted }: { readonly booted: BootedDataset }): React.ReactElement => {
-	const urlSync = useUrlSyncBindings(booted.engine.core);
+	const serializer = useLinkSerializer();
 
-	return <FilterEngineUrlSync engine={urlSync.engine} asyncConfig={booted.engine.asyncEngine} serializer={urlSync.serializer} />;
+	return <FilterEngineUrlSync engine={booted.engine.core} asyncConfig={booted.engine.asyncEngine} serializer={serializer} />;
 };

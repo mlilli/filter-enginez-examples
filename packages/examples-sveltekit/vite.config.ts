@@ -54,15 +54,17 @@ export default defineConfig({
 		 * named-export interop.
 		 */
 		/**
-		 * `roaring-wasm` must stay EXTERNAL, and leaving it to the default is not enough.
+		 * `roaring-wasm` must stay EXTERNAL, so it is named here rather than left to the default.
 		 *
 		 * @remarks
 		 * It is a CommonJS package whose Node entry calls `require('fs')` and `require('path')` at
 		 * module scope. `noExternal` on `@filter-enginez/*` pulls `core` into the SSR bundle, and
-		 * `core` imports this — so it came along and was CJS-shimmed by the bundler.
+		 * `core` loads this with an `import()` inside `initializeBitmapAcceleration()`. The default
+		 * leaves that import external only because this package declares `roaring-wasm` itself; a
+		 * `noExternal` entry that matched it would bundle it, CJS-shimmed by the bundler.
 		 *
 		 * **The shim rolldown emits for it is self-recursive**, which is a production-build-only
-		 * infinite loop rather than a warning:
+		 * infinite loop rather than a warning (the dev server never bundles it):
 		 *
 		 * ```js
 		 * var __require = ((x) => "u" > typeof __require ? __require : new Proxy(x, {
@@ -72,8 +74,10 @@ export default defineConfig({
 		 *
 		 * Once `__require` IS the proxy, `typeof __require` is `'function'`, the guard passes, and the
 		 * trap reads `__require[b]` — itself. The target's own `__require.apply(...)` is a property
-		 * GET, so calling it recurses too. The build died with `RangeError: Maximum call stack size
-		 * exceeded` and a stack of nothing but `Object.get`.
+		 * GET, so calling it recurses too. Loading the bundled copy fails with `RangeError: Maximum
+		 * call stack size exceeded` and a stack of nothing but `Object.get`; since that happens inside
+		 * `initializeBitmapAcceleration()`, `datasetFilterService` logs it once and every query runs
+		 * without bitmaps, so nothing but the server log shows it.
 		 *
 		 * Externalizing hands it back to Node, which loads CommonJS natively and needs no shim. The
 		 * WASM binary is `readFileSync`'d from disk at runtime, which only works when the package is

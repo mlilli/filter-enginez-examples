@@ -74,14 +74,15 @@ Every package listed keeps its own license. Reproduced here because several are 
 requirement applies to redistribution — relevant to any deployed build of an example app.
 
 **The engine.** Every example app bundles the `@filter-enginez/*` engine packages, and with them the engine's own
-runtime dependencies (`roaring-wasm`, `fuse.js`, `comlink`, `@preact/signals-core`, `rbush`, `zod` and others). Those
-are attributed in the engine repository's [`NOTICE.md`](https://github.com/mlilli/filter-enginez/blob/main/NOTICE.md),
-which ships inside each engine package.
+runtime dependencies (`fuse.js`, `comlink`, `@preact/signals-core`, `rbush`, `lz-string` and others). Those are
+attributed in the engine repository's [`NOTICE.md`](https://github.com/mlilli/filter-enginez/blob/main/NOTICE.md), which
+ships inside each engine package.
 
 **Apache License 2.0** — full text in [`LICENSE.md`](./LICENSE.md), which is also this project's license:
 
 - `rxjs` — the Angular app's reactive surface
-- `roaring-wasm` — a direct dependency of the SvelteKit app's server tier, besides reaching every app through the engine
+- `roaring-wasm` — the engine's Roaring-bitmap acceleration, an optional peer dependency of `@filter-enginez/core` that
+  each of the six demo apps and the Node API server installs (the documentation and landing sites do not)
 
 **MIT** — each project's own license text ships in its npm package under `node_modules/<pkg>/LICENSE`; copyright remains
 with each project.

@@ -5,9 +5,9 @@
  * @remarks
  * ### What is protected
  *
- * The how-it-works page's live benchmark runs the real engine (about 350 kB minified, most of it the
- * WebAssembly bitmap library) over the wine corpus. It fetches both on demand, through one dynamic
- * `import()` of `packages/site/src/how-it-works/benchmarkEngine.ts`. The pages that import a constant or
+ * The how-it-works page's live benchmark runs the real engine (about 100 kB minified) over the wine
+ * corpus. It fetches both on demand, through one dynamic `import()` of
+ * `packages/site/src/how-it-works/benchmarkEngine.ts`. The pages that import a constant or
  * an error class from next to it do not pull in the rest because the bundler may drop what they leave
  * unused: the engine's packages declare `"sideEffects": false`, and the site's `vite.config.ts` declares
  * the same of examples-shared's how-it-works subpath, whose barrel re-exports the workload. Undoing

@@ -18,9 +18,9 @@ import NotFoundPage from './pages/NotFoundPage.vue';
  * `/:pathMatch(.*)*` — the SPA counterpart to React's `path: '*'` and SvelteKit's `+error.svelte`).
  *
  * **Every dataset route is lazy** (`() => import(...)`), and only the landing hub and the 404 are
- * static imports. A dataset page carries the engine — the core plus the WebAssembly bitmap library
- * it initializes, the largest dependency in the app — and its own panel and controls, while the hub
- * is a header and three links. A static import here would put all of that on the first screen of
+ * static imports. A dataset page carries the engine — the core, which fetches its WebAssembly bitmap
+ * library when the page boots — and its own panel and controls, while the hub is a header and three
+ * links. A static import here would put all of that on the first screen of
  * every visitor, including the ones who only came for the hub; lazy, the hub loads the router, the
  * header and the cards, and each dataset arrives with the route that shows it.
  * `startupBudget.test.ts` holds the hub to that through the build's startup budget.

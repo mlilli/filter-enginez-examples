@@ -416,9 +416,8 @@ describe('DatasetRoute', () => {
 			expect(urlSyncRenders).toHaveLength(1);
 			// Bracketed because the recorder is typed as an index signature — `noPropertyAccessFromIndexSignature`
 			// is on, and the point of recording raw props is that the stub asserts nothing about their shape.
-			// The core itself, seen through the guard that keeps the sync from loading its own writes
-			// (`useUrlSyncBindings`): every member reads through to the core.
-			expect(urlSyncRenders[0]?.['engine']).toEqual(engineCore);
+			// The core itself, not a copy or a wrapper.
+			expect(urlSyncRenders[0]?.['engine']).toBe(engineCore);
 			expect(urlSyncRenders[0]?.['asyncConfig']).toBe(engineAsync);
 			expect(urlSyncRenders[0]?.['serializer']).toBeDefined();
 		});
