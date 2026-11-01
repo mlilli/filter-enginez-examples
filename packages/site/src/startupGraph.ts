@@ -59,9 +59,11 @@ export interface StartupViolation {
  * decodes shared links with url-state-router's serializer, which throws one of them on a malformed
  * link, so a few hundred bytes of the engine rightly start with that page.
  *
- * `roaring-wasm` is not a group, because the site does not install it: the benchmark never calls
- * `initializeBitmapAcceleration()`, so no page of the site can load the library at all, and a group
- * for it would match no module in the build.
+ * `roaring-wasm` is a group of its own: the benchmark initializes the engine's bitmaps before it
+ * measures, and core loads the library with an `import()` inside `initializeBitmapAcceleration()`, so
+ * it is a chunk of its own, fetched only when the benchmark's engine runs. Its pattern matching a
+ * module is also what proves the library is in the build at all, rather than the empty module a
+ * bundler substitutes for an optional peer it cannot resolve.
  */
 export const DEFERRED_MODULES: readonly DeferredModules[] = [
 	{
@@ -70,6 +72,7 @@ export const DEFERRED_MODULES: readonly DeferredModules[] = [
 	},
 	{ name: 'fuse.js, the engine’s fuzzy search', pattern: /[/\\]node_modules[/\\]fuse\.js[/\\]/u },
 	{ name: 'rbush, the engine’s R-tree', pattern: /[/\\]node_modules[/\\]rbush[/\\]/u },
+	{ name: 'roaring-wasm, the engine’s bitmap library', pattern: /[/\\]node_modules[/\\]roaring-wasm[/\\]/u },
 	{ name: 'the wine corpus (@filter-enginez/mock-data)', pattern: /[/\\]node_modules[/\\]@filter-enginez[/\\]mock-data[/\\]/u },
 ];
 

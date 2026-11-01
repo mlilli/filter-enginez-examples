@@ -16,6 +16,14 @@
  * values `examples-shared/page-meta` decides for all six apps. It listens for `NavigationEnd`, which
  * also ends the first navigation, and reads the path after redirects.
  *
+ * ### A navigation that keeps the page keeps its engine
+ *
+ * The router reuses a route's component when only the query changes, and query changes re-run no
+ * resolver, so the page and its engine stay. A `NavigationEnd` on the path the previous one ended on
+ * tells the page's URL follower to look at the URL (`examples-shared/url-state-follower`), which loads
+ * a changed `?f=` into that engine in place (`url/url-state.ts`). Back and Forward reach the follower
+ * through `popstate` as well; it loads a value once however many times it is told.
+ *
  * ### A first frame before the engine boots
  *
  * `/books` and `/real-estate` boot their engines in route resolvers, and the router renders nothing
@@ -63,6 +71,7 @@ import {
 	RoutesRecognized,
 } from '@angular/router';
 import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { notifyUrlNavigation } from '@filter-enginez/examples-shared/url-state-follower';
 import { filter } from 'rxjs';
 
 import { ROUTE_BOOT_CAPTION_KEY, ROUTE_BOOT_LOADER_KEY } from './app.routes.js';
@@ -201,10 +210,19 @@ export class AppComponent {
 			}
 		});
 
+		// The path the last navigation ended on, so a navigation that keeps it is recognized as one.
+		let endedPath: string | null = null;
+
 		events
 			.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
 			.subscribe((event) => {
-				applyPageMeta(document, verticalPageMeta('angular', new URL(event.urlAfterRedirects, URL_BASE).pathname));
+				const path = new URL(event.urlAfterRedirects, URL_BASE).pathname;
+
+				applyPageMeta(document, verticalPageMeta('angular', path));
+				if (path === endedPath) {
+					notifyUrlNavigation();
+				}
+				endedPath = path;
 			});
 	}
 }

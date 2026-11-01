@@ -1,6 +1,6 @@
 /**
- * Tests for `benchmarkLive.ts` — when the live benchmark fetches its engine, fetching it once, and
- * where its bar ends.
+ * Tests for `benchmarkLive.ts` — when the live benchmark fetches its engine, fetching it once with
+ * its bitmaps initialized, and where its bar ends.
  *
  * @remarks
  * jsdom has no `IntersectionObserver`, which exercises {@link whenNearViewport}'s no-observer path; the
@@ -95,6 +95,11 @@ function fakeEngine(corpusLength = 3): typeof BenchmarkEngine {
 			return Array.from({ length: corpusLength }, () => ({}) as Wine);
 		}),
 		measureConfig: vi.fn(),
+		prepareBitmapAcceleration: vi.fn<typeof BenchmarkEngine.prepareBitmapAcceleration>(async () => {
+			await Promise.resolve();
+
+			return { status: 'ready' };
+		}),
 	};
 }
 
@@ -168,6 +173,28 @@ describe('createLiveBenchmarkLoader', () => {
 		expect(live.measureConfig).toBe(engine.measureConfig);
 	});
 
+	it('initializes bitmaps before handing back the workload, and reports whether they are available', async () => {
+		const engine = fakeEngine();
+		let isInitialized = false;
+
+		vi.mocked(engine.prepareBitmapAcceleration).mockImplementation(async () => {
+			await Promise.resolve();
+			isInitialized = true;
+
+			return { reason: 'peer-missing', status: 'unavailable' };
+		});
+
+		const live = await createLiveBenchmarkLoader(async () => {
+			await Promise.resolve();
+
+			return engine;
+		})();
+
+		expect(isInitialized, 'the loader resolved before bitmap init settled').toBe(true);
+		expect(engine.prepareBitmapAcceleration).toHaveBeenCalledTimes(1);
+		expect(live.bitmap).toEqual({ reason: 'peer-missing', status: 'unavailable' });
+	});
+
 	it('fetches once, however many callers ask, during the fetch and after it', async () => {
 		const engine = fakeEngine();
 		const importEngine = vi.fn(async () => {
@@ -182,6 +209,7 @@ describe('createLiveBenchmarkLoader', () => {
 
 		expect(importEngine).toHaveBeenCalledTimes(1);
 		expect(engine.loadWineCorpus).toHaveBeenCalledTimes(1);
+		expect(engine.prepareBitmapAcceleration).toHaveBeenCalledTimes(1);
 		expect(second).toBe(first);
 		expect(third).toBe(first);
 	});

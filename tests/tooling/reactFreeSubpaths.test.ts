@@ -86,6 +86,9 @@ const REACT_FREE_SUBPATHS = [
 	// When a search field commits: every app's search fields bind it, four of them with no React.
 	'./search-core',
 	'./selection',
+	// The half of the URL binding `<FilterEngineUrlSync>` gives the React apps: following `?f=` through
+	// Back, Forward and in-app navigations. Vue, SvelteKit, Angular and the framework-free app use it.
+	'./url-state-follower',
 	'./verticals',
 	'./viewport-core',
 	// The dataset-neutral chip-vocabulary derivation. Every dataset's panel needs it, React or not,

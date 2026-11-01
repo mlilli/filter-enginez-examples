@@ -14,12 +14,19 @@
  * its format (`<tag>~<payload>`) and `decode` auto-detects it, so a shared link keeps working across a
  * format switch.
  *
+ * While a route's sync runs, its engine also follows the URL: Back, Forward, or an in-app navigation
+ * to the same route with another `?f=` loads that state into the route's existing engine, in place,
+ * through `@filter-enginez/examples-shared/url-state-follower` — what `<FilterEngineUrlSync>` does for
+ * the React apps. The router (`router.ts`) keeps the route mounted for such a navigation and reports
+ * its own to the follower; the app's own writes report themselves too, so they are never loaded back.
+ *
  * @packageDocumentation
  */
 
 import type { FilterEngine, FilterEngineConfig } from '@filter-enginez/core';
 
 import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { createUrlStateFollower, noteUrlStateWrite, readUrlStateParam } from '@filter-enginez/examples-shared/url-state-follower';
 import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
 /** The URL query key holding the encoded filter state. */
@@ -219,6 +226,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 
 		url.searchParams.set(URL_STATE_PARAM, reEncoded);
 		window.history.replaceState(window.history.state, '', url);
+		noteUrlStateWrite(reEncoded);
 		publishSerializedFilterState(reEncoded);
 	} catch {
 		// Current param isn't a tagged value we can re-encode — leave it as-is.
@@ -249,7 +257,8 @@ export interface UrlSyncSource<T> {
 
 /**
  * Start syncing engine state → URL: subscribe, debounce, and serialize the config in the
- * currently-selected format on each settle.
+ * currently-selected format on each settle. And URL → engine: a navigation that brings another `?f=`
+ * to the route loads it into this engine in place (see the module remarks).
  *
  * @remarks
  * Uses `history.replaceState` (not `pushState`) so filter changes don't pollute the back stack.
@@ -269,7 +278,7 @@ export interface UrlSyncSource<T> {
  *
  * @param source - The route's engine. Pass the reactive facade where there is one; `{ core }` on
  * `/books-raw`, which has none.
- * @returns A teardown clearing the pending write + detaching the subscription.
+ * @returns A teardown clearing the pending write + detaching the subscription and the follower.
  */
 export function startEngineUrlSync<T>(source: UrlSyncSource<T>): () => void {
 	const { asyncEngine, core } = source;
@@ -292,9 +301,18 @@ export function startEngineUrlSync<T>(source: UrlSyncSource<T>): () => void {
 
 				url.searchParams.set(URL_STATE_PARAM, serialized);
 				window.history.replaceState(window.history.state, '', url);
+				noteUrlStateWrite(serialized);
 				publishSerializedFilterState(serialized);
 			});
 		}, WRITE_DEBOUNCE_MS);
+	});
+	// URL → engine, for the life of the route: the route restored the engine from the URL it booted on,
+	// and the follower loads every later `?f=` a navigation brings into this same engine.
+	const follower = createUrlStateFollower({
+		decode: (serialized) => createLinkSerializer(urlFormat).decode(serialized),
+		engine: core,
+		onExternal: publishSerializedFilterState,
+		read: () => readUrlStateParam(),
 	});
 
 	return () => {
@@ -302,5 +320,6 @@ export function startEngineUrlSync<T>(source: UrlSyncSource<T>): () => void {
 			clearTimeout(timer);
 		}
 		off();
+		follower.dispose();
 	};
 }

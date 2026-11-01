@@ -7,7 +7,9 @@
  * SvelteKit's `$app/*` modules come from its own Vite plugin, which this config does not load, so
  * `$app/stores` is mapped to `test/appStores.ts`: a `page` store over jsdom's location, so a component
  * that reads `$page.url` (the header brand, the Compare button, the hub and error routes) mounts in a
- * test exactly as written. No other `$app/*` module is mapped; the app reads none in a component.
+ * test exactly as written. `$app/navigation` is mapped to `test/appNavigation.ts`, whose
+ * `afterNavigate` lets a test play the navigations the root layout reacts to. No other `$app/*`
+ * module is mapped; the app reads none in a component.
  */
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +19,7 @@ export default defineConfig({
 	plugins: [svelte({ hot: false })],
 	resolve: {
 		alias: {
+			'$app/navigation': fileURLToPath(new URL('./test/appNavigation.ts', import.meta.url)),
 			'$app/stores': fileURLToPath(new URL('./test/appStores.ts', import.meta.url)),
 			$lib: fileURLToPath(new URL('./src/lib', import.meta.url)),
 		},

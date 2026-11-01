@@ -5,13 +5,14 @@
  * @remarks
  * The widget (`benchmarkWidget.ts`) renders at once on the committed reference numbers. The engine and
  * the corpus a live measurement needs are fetched only when the widget is about to be seen or is used:
- * {@link whenNearViewport} says when, {@link createLiveBenchmarkLoader} fetches both once and lets a
- * failed fetch be retried. {@link liveBarStyle} places the timing bar with a transform, which the
+ * {@link whenNearViewport} says when, {@link createLiveBenchmarkLoader} fetches both once, initializes
+ * the engine's bitmaps alongside, and lets a failed fetch be retried. {@link liveBarStyle} places the timing bar with a transform, which the
  * browser animates on the compositor, rather than with a width, which it would lay out every frame.
  *
  * @packageDocumentation
  */
 
+import type { BitmapAvailability } from '@filter-enginez/examples-shared/how-it-works';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import type * as BenchmarkEngine from './benchmarkEngine.js';
@@ -22,8 +23,13 @@ import type * as BenchmarkEngine from './benchmarkEngine.js';
  */
 export const LIVE_LOAD_MARGIN = '0px 0px 100% 0px';
 
-/** What a live measurement needs: the engine's workload and the corpus it runs over. */
+/** What a live measurement needs: the engine's workload, the corpus it runs over, and whether bitmaps can run. */
 export interface LiveBenchmark {
+	/**
+	 * Whether `initializeBitmapAcceleration()` resolved, so a configuration with bitmaps on runs on the
+	 * bitmap path; when it did not, why.
+	 */
+	readonly bitmap: BitmapAvailability;
 	/** The 10,000 wines the workload filters. */
 	readonly corpus: readonly Wine[];
 	/** Build an engine for a configuration and time the facet sweep (`benchmarkEngine.ts`). */
@@ -68,13 +74,18 @@ export function whenNearViewport(element: Element, onNear: () => void): () => vo
 }
 
 /**
- * A function that fetches the engine and then the corpus, once.
+ * A function that fetches the engine, then the corpus and the bitmap library together, once.
  *
  * @remarks
  * Every call while a fetch is in flight, or after it has succeeded, returns the same promise, so the
  * engine is fetched once however many things ask for it. A failed fetch (a network error, a chunk the
  * server no longer has) is forgotten, so the next call tries again: that is what the widget's "retry
  * live" does.
+ *
+ * Bitmap acceleration is initialized here, before anything is measured, because the engine engages
+ * its bitmap path only once `initializeBitmapAcceleration()` has resolved. Its outcome is part of the
+ * result rather than a failure of the load: without bitmaps, the configurations that do not use them
+ * still measure live, and the widget says why the others do not.
  *
  * @param importEngine - Load `benchmarkEngine.ts`. The widget passes a dynamic `import()`, which is
  *   what keeps the engine out of the page's startup JavaScript.
@@ -83,7 +94,7 @@ export function whenNearViewport(element: Element, onNear: () => void): () => vo
  * @example
  * ```ts
  * const loadLive = createLiveBenchmarkLoader(async () => import('./benchmarkEngine.js'));
- * const { corpus, measureConfig } = await loadLive();
+ * const { bitmap, corpus, measureConfig } = await loadLive();
  * ```
  */
 export function createLiveBenchmarkLoader(importEngine: () => Promise<typeof BenchmarkEngine>): () => Promise<LiveBenchmark> {
@@ -92,8 +103,9 @@ export function createLiveBenchmarkLoader(importEngine: () => Promise<typeof Ben
 	return async () => {
 		pending ??= (async () => {
 			const engine = await importEngine();
+			const [corpus, bitmap] = await Promise.all([engine.loadWineCorpus(), engine.prepareBitmapAcceleration()]);
 
-			return { corpus: await engine.loadWineCorpus(), measureConfig: engine.measureConfig };
+			return { bitmap, corpus, measureConfig: engine.measureConfig };
 		})().catch((error: unknown) => {
 			pending = null;
 

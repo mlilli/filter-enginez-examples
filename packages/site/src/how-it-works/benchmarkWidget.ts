@@ -14,7 +14,14 @@
  * place, in boxes that are already laid out, so nothing on the page moves when it arrives. The engine
  * is not part of the page's startup JavaScript: it is fetched when the widget comes within a viewport
  * height of the screen, or as soon as a reader uses it (`benchmarkLive.ts`, `benchmarkEngine.ts`). A
- * fetch that fails leaves the reference numbers standing, and "retry live" fetches again. The state is
+ * fetch that fails leaves the reference numbers standing, and "retry live" fetches again.
+ *
+ * A configuration with bitmaps on is measured live only on the bitmap path. The loader initializes the
+ * engine's Roaring bitmaps before the first measurement, and every measurement reports the path its
+ * engine ran on. When init failed (the library is not installed, or did not load in this browser), or
+ * a bitmap configuration still ran on the predicate path, the widget shows that configuration's
+ * reference number, which was measured with bitmaps, and says why in the status line: a predicate
+ * timing is never shown under the bitmap label. The state is
  * plain closure-local `let` bindings plus a single `render()` that re-applies every derived string —
  * the framework-less equivalent of a reactive re-render.
  *
@@ -29,6 +36,9 @@ import { el, setHidden } from '@filter-enginez/examples-shared/dom';
 import {
 	assessSamples,
 	type BenchmarkConfig,
+	BITMAP_REFERENCE_SUBLINE,
+	type BitmapUnavailableReason,
+	bitmapUnavailableStatus,
 	computeSpeedup,
 	configKey,
 	formatDuration,
@@ -70,6 +80,9 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	let config: BenchmarkConfig = { ...ALL_ON };
 	let displayMs: number = referenceMsFor(ALL_ON);
 	let measurementMode: 'live' | 'reference' = 'reference';
+	// Set while the number on screen is a bitmap configuration's reference number, shown because the
+	// bitmap path is unavailable here; `null` otherwise.
+	let bitmapUnavailable: BitmapUnavailableReason | null = null;
 	let resultCount: number | null = null;
 	let isMeasuring = false;
 	let passCount = 0;
@@ -211,6 +224,29 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 
 	const element = el('div', { children: [rail, pane], className: 'fe-bench' });
 
+	/**
+	 * The line under the number: how many passes it is the median of, or, for a bitmap configuration
+	 * that cannot be measured here, that it is the reference number.
+	 *
+	 * @returns The text.
+	 */
+	function subline(): string {
+		return bitmapUnavailable === null ? `median of ${passCount || '—'} passes` : BITMAP_REFERENCE_SUBLINE;
+	}
+
+	/**
+	 * The status line: where the number comes from, and why a bitmap configuration is not live.
+	 *
+	 * @returns The text.
+	 */
+	function status(): string {
+		if (bitmapUnavailable !== null) {
+			return bitmapUnavailableStatus(bitmapUnavailable);
+		}
+
+		return measurementMode === 'live' ? 'measured on your machine' : REFERENCE_LABEL;
+	}
+
 	/** Re-apply every derived string / class / width in place. */
 	function render(): void {
 		corpusCount.textContent = resultCount === null ? '10,000' : resultCount.toLocaleString();
@@ -234,7 +270,7 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 		numberLabel.className = isMeasuring ? 'fe-bench__number is-measuring' : 'fe-bench__number';
 		numberLabel.textContent = formatDuration(displayMs);
 		badge.textContent = `${formatSpeedup(computeSpeedup(NAIVE_BASELINE_MS, displayMs))} faster than naive scan`;
-		numberSub.textContent = isMeasuring ? 'measuring…' : `median of ${passCount || '—'} passes`;
+		numberSub.textContent = isMeasuring ? 'measuring…' : subline();
 
 		const barStyle = liveBarStyle(logBarWidthPercent(displayMs));
 
@@ -243,13 +279,28 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 		liveValue.textContent = formatDuration(displayMs);
 
 		statusDot.className = `fe-bench__status-dot is-${measurementMode}`;
-		statusText.textContent = measurementMode === 'live' ? 'measured on your machine' : REFERENCE_LABEL;
-		setHidden(retryButton, measurementMode !== 'reference');
+		statusText.textContent = status();
+		// Retrying cannot bring bitmaps back: the engine's init is final, whether it worked or not.
+		setHidden(retryButton, measurementMode !== 'reference' || bitmapUnavailable !== null);
 	}
 
 	/**
-	 * Measure `next` live if the engine and the corpus are ready; otherwise fall back to the reference
-	 * number.
+	 * Show `next`'s reference number.
+	 *
+	 * @param next - The configuration on screen.
+	 * @param reason - Why a bitmap configuration is not measured live, or `null` for the plain
+	 *   fallback (nothing loaded yet, or a reading too noisy to trust).
+	 */
+	function showReference(next: BenchmarkConfig, reason: BitmapUnavailableReason | null): void {
+		measurementMode = 'reference';
+		bitmapUnavailable = reason;
+		displayMs = referenceMsFor(next);
+		render();
+	}
+
+	/**
+	 * Measure `next` live if the engine and the corpus are ready, and on the bitmap path when `next` asks
+	 * for bitmaps; otherwise fall back to the reference number.
 	 *
 	 * @param next - The configuration to time.
 	 * @param isHeavy - Run the 20-pass sweep and bypass the cache.
@@ -258,9 +309,13 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 		const localToken = (requestToken += 1);
 
 		if (live === null) {
-			measurementMode = 'reference';
-			displayMs = referenceMsFor(next);
-			render();
+			showReference(next, null);
+
+			return;
+		}
+
+		if (next.bitmap && live.bitmap.status === 'unavailable') {
+			showReference(next, live.bitmap.reason);
 
 			return;
 		}
@@ -269,6 +324,7 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 
 		if (cached !== undefined) {
 			measurementMode = 'live';
+			bitmapUnavailable = null;
 			displayMs = cached;
 			render();
 
@@ -288,19 +344,26 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 		}
 
 		resultCount = measurement.resultCount;
-		passCount = measurement.samples.length;
 		isMeasuring = false;
+
+		if (next.bitmap && measurement.path !== 'bitmap') {
+			// Init resolved, yet the engine ran its predicates: that timing is not a bitmap timing.
+			showReference(next, 'not-engaged');
+
+			return;
+		}
+
+		passCount = measurement.samples.length;
 
 		if (assessment.mode === 'live') {
 			measuredMsByKey[configKey(next)] = assessment.medianMs;
 			measurementMode = 'live';
+			bitmapUnavailable = null;
 			displayMs = assessment.medianMs;
+			render();
 		} else {
-			measurementMode = 'reference';
-			displayMs = referenceMsFor(next);
+			showReference(next, null);
 		}
-
-		render();
 	}
 
 	/**
@@ -326,8 +389,8 @@ export function createBenchmarkWidget(): BenchmarkWidget {
 	}
 
 	/**
-	 * Fetch the engine and the corpus (each a chunk of its own, loaded once), then measure the current
-	 * config live. A failed fetch leaves the reference numbers on screen, and "retry live" calls this
+	 * Fetch the engine and the corpus (each a chunk of its own, loaded once) and initialize bitmaps, then
+	 * measure the current config live. A failed fetch leaves the reference numbers on screen, and "retry live" calls this
 	 * again.
 	 */
 	function goLive(): void {

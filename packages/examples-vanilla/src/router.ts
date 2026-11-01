@@ -16,8 +16,18 @@
  * A route whose `render` throws or rejects shows the shared page-error screen in its mount
  * (`shell/pageErrorScreen.ts`), so a page whose code fails to load is never a blank page.
  *
+ * **A navigation that keeps the path keeps the page.** Back, Forward, or a link to the page already
+ * shown, with another query or none, does not render the route again: the page, its engine and its
+ * panel stay, as a framework router keeps a route's component. Only the query changed, and the one
+ * query a page reads after it boots is `?f=`, which its URL follower loads into the page's engine in
+ * place (`url/urlState.ts`). The follower hears Back and Forward through `popstate` itself; this
+ * router tells it about its own same-path navigations with `notifyUrlNavigation`, since `pushState`
+ * fires no event.
+ *
  * @packageDocumentation
  */
+
+import { notifyUrlNavigation } from '@filter-enginez/examples-shared/url-state-follower';
 
 import { createPageErrorScreen } from './shell/pageErrorScreen.js';
 
@@ -51,7 +61,7 @@ export interface Route {
 
 /** Handle returned by {@link startRouter} so callers (and tests) can navigate + tear down. */
 export interface RouterHandle {
-	/** Programmatically navigate (pushes history, then renders). */
+	/** Programmatically navigate: push history, then render the route, unless the path is the one shown. */
 	readonly navigate: (path: string) => void;
 	/** Detach every listener and tear down the current route. */
 	readonly dispose: () => void;
@@ -126,6 +136,8 @@ export function startRouter(container: HTMLElement, routes: readonly Route[], op
 	// Monotonic token so a superseded render's TEARDOWN can't overwrite the live route's. Its paint
 	// is handled separately, and structurally, by the per-render mount — see `createRouteMount`.
 	let renderToken = 0;
+	// The path of the route on screen (or rendering), so a navigation that keeps it keeps the page.
+	let renderedPathname: string | null = null;
 
 	/** Pick the route for a pathname: exact match first, then the `'*'` catch-all. */
 	function resolve(pathname: string): Route | undefined {
@@ -136,6 +148,7 @@ export function startRouter(container: HTMLElement, routes: readonly Route[], op
 	async function renderPath(pathname: string): Promise<void> {
 		const token = (renderToken += 1);
 
+		renderedPathname = pathname;
 		teardown?.();
 		teardown = undefined;
 		onNavigate?.(pathname);
@@ -178,8 +191,15 @@ export function startRouter(container: HTMLElement, routes: readonly Route[], op
 	}
 
 	function navigate(path: string): void {
-		if (path !== window.location.pathname) {
+		const { hash, pathname, search } = window.location;
+
+		if (path !== `${pathname}${search}${hash}`) {
 			window.history.pushState({}, '', path);
+		}
+		if (window.location.pathname === renderedPathname) {
+			notifyUrlNavigation();
+
+			return;
 		}
 		void renderPath(window.location.pathname);
 	}
@@ -204,7 +224,11 @@ export function startRouter(container: HTMLElement, routes: readonly Route[], op
 		navigate(href);
 	}
 
+	/** Render the route Back or Forward reached, unless it is the one on screen (see the module remarks). */
 	function handlePopState(): void {
+		if (window.location.pathname === renderedPathname) {
+			return;
+		}
 		void renderPath(window.location.pathname);
 	}
 

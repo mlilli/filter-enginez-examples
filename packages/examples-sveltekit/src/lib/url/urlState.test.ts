@@ -77,9 +77,8 @@ describe('startEngineUrlSync — async (server-backed) engine', () => {
 	it('reads config from the async engine (its sync `.core.exportConfig` throws)', async () => {
 		vi.useFakeTimers();
 		const config: FilterEngineConfig = { rules: [{ id: 'genre', rule: inSet<string>('genre', ['mystery']).serialize() }], version: 1 };
-		// A holder object (not a bare `let`) so TS doesn't narrow the captured listener to `never` at the
-		// call site — it can't see the `subscribe` closure reassign it synchronously.
-		const captured: { listener: ChangeListener | null } = { listener: null };
+		// Every subscriber, as the shim keeps them: the sync's writer and its URL follower both subscribe.
+		const listeners = new Set<ChangeListener>();
 		// Faithful to the async core shim: `.core.exportConfig` throws `unsupported`, `.core.subscribe`
 		// fans out change events, and the real config is only reachable via `asyncEngine.exportConfig`.
 		const coreExportConfig = vi.fn(() => {
@@ -95,10 +94,10 @@ describe('startEngineUrlSync — async (server-backed) engine', () => {
 			core: {
 				exportConfig: coreExportConfig,
 				subscribe: (listener: ChangeListener) => {
-					captured.listener = listener;
+					listeners.add(listener);
 
 					return () => {
-						captured.listener = null;
+						listeners.delete(listener);
 					};
 				},
 			},
@@ -106,8 +105,10 @@ describe('startEngineUrlSync — async (server-backed) engine', () => {
 
 		const stop = startEngineUrlSync(fakeEngine);
 
-		expect(captured.listener).not.toBeNull();
-		captured.listener?.({ rule: inSet<string>('genre', ['mystery']), ruleId: 'genre', type: 'rule:added' });
+		expect(listeners.size).toBeGreaterThan(0);
+		for (const listener of listeners) {
+			listener({ rule: inSet<string>('genre', ['mystery']), ruleId: 'genre', type: 'rule:added' });
+		}
 		await vi.advanceTimersByTimeAsync(300);
 
 		// The write came from the ASYNC engine, never the throwing sync shim.
@@ -120,6 +121,7 @@ describe('startEngineUrlSync — async (server-backed) engine', () => {
 		expect(readConfigFromUrl()?.rules.map((entry) => entry.id)).toEqual(['genre']);
 
 		stop();
+		expect(listeners.size, 'the teardown left a subscription behind').toBe(0);
 	});
 });
 

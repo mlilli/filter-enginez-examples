@@ -20,7 +20,8 @@
     "@filter-enginez/brand": "workspace:*",
     "@filter-enginez/examples-shared": "workspace:*",
     "@filter-enginez/mock-data": "0.2.3",
-    "@filter-enginez/ui-styles": "workspace:*"
+    "@filter-enginez/ui-styles": "workspace:*",
+    "roaring-wasm": "^1.1.0"
   },
   "devDependencies": {
     "@filter-enginez/eslint": "0.0.4",

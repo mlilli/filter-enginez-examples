@@ -21,9 +21,12 @@
  *
  * A package NEEDS the library when its own source calls `initializeBitmapAcceleration()`, or when it
  * imports a subpath of `@filter-enginez/examples-shared` whose module graph reaches such a call (the
- * shared boots and the wine worker). Each such package declares `roaring-wasm` in the same manifest
- * field as `@filter-enginez/core`, with one version range everywhere. A package that does not need it
- * does not declare it either — the documentation site and the landing site run the engine without
+ * shared boots, the wine worker, and the how-it-works benchmark, which initializes bitmaps before it
+ * measures one). Each such package declares `roaring-wasm` in the same manifest field as
+ * `@filter-enginez/core`, with one version range everywhere. A package that names no core of its own,
+ * because it reaches the engine only through an `examples-shared` subpath that its build bundles (the
+ * landing site), declares it in `dependencies`, the field examples-shared declares core in. A package
+ * that does not need it does not declare it either — the documentation site runs the engine without
  * bitmaps, and a stale declaration is a claim nobody checks.
  *
  * The subpath graph is followed through static imports, re-exports, `import()`, Vite `?worker`
@@ -246,20 +249,27 @@ describe('roaring-wasm is installed by exactly the packages that enable bitmap a
 		expect(subpathEntries.size).toBeGreaterThan(0);
 		expect(reachingSubpaths.size, 'no examples-shared subpath reaches initializeBitmapAcceleration() — the graph walk found nothing').toBeGreaterThan(0);
 		expect(reachingSubpaths.has(`${SHARED_NAME}/wine-worker`), 'the wine worker initializes the bitmaps in its own scope').toBe(true);
+		expect(reachingSubpaths.has(`${SHARED_NAME}/how-it-works`), 'the how-it-works benchmark initializes the bitmaps before it measures').toBe(true);
 	});
 
-	it('every package that needs the library declares it beside core', () => {
+	it('every package that needs the library declares it beside core, or in dependencies when core comes through examples-shared', () => {
 		const needing = verdicts.filter(({ reason }) => reason !== undefined);
 
 		expect(needing.length).toBeGreaterThan(0);
+		expect(
+			needing.map(({ candidate }) => candidate.directory),
+			'the landing site measures bitmaps in its how-it-works benchmark',
+		).toContain('packages/site');
 		for (const { candidate, reason } of needing) {
 			const coreField = fieldNaming(candidate.manifest, CORE_NAME);
+			const sharedField = fieldNaming(candidate.manifest, SHARED_NAME);
+			const expectedField = coreField ?? (sharedField === undefined ? undefined : 'dependencies');
+			const where = coreField === undefined ? `"dependencies", since it reaches ${CORE_NAME} through ${SHARED_NAME}` : `"${coreField}", beside ${CORE_NAME}`;
 
-			expect(coreField, `${candidate.directory} enables bitmaps (${String(reason)}) but declares no ${CORE_NAME}`).toBeDefined();
-			expect(
-				fieldNaming(candidate.manifest, PEER_NAME),
-				`${candidate.directory}/package.json must declare ${PEER_NAME} in "${String(coreField)}", beside ${CORE_NAME}: ${String(reason)}`,
-			).toBe(coreField);
+			expect(expectedField, `${candidate.directory} enables bitmaps (${String(reason)}) but declares neither ${CORE_NAME} nor ${SHARED_NAME}`).toBeDefined();
+			expect(fieldNaming(candidate.manifest, PEER_NAME), `${candidate.directory}/package.json must declare ${PEER_NAME} in ${where}: ${String(reason)}`).toBe(
+				expectedField,
+			);
 		}
 	});
 

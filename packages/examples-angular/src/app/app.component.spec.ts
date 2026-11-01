@@ -5,7 +5,8 @@
  * @remarks
  * `examples-shared/page-meta` decides each route's title, description and canonical URL and has its own
  * suite; this pins that the root component applies them after every navigation, the not-found route's
- * `noindex` included, and reads the path without its query.
+ * `noindex` included, and reads the path without its query. And that a navigation which keeps the
+ * path tells the page's URL follower to look at the URL (`examples-shared/url-state-follower`).
  *
  * The boot caption cases drive a route whose resolver is held open by the test, which is the state a
  * direct visit to `/books` is in while its engine downloads and boots: recognized, not yet activated.
@@ -28,6 +29,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { BOOT_FAILURE_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { URL_NAVIGATION_EVENT } from '@filter-enginez/examples-shared/url-state-follower';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppComponent } from './app.component.js';
@@ -163,6 +165,25 @@ function captionText(): string | null {
 }
 
 describe('<fe-root>', () => {
+	it('tells the URL follower about a navigation that keeps the path, and only about that', async () => {
+		const heard = vi.fn();
+		const router = TestBed.inject(Router);
+
+		window.addEventListener(URL_NAVIGATION_EVENT, heard);
+		try {
+			await router.navigateByUrl('/wine?f=one');
+			expect(heard).not.toHaveBeenCalled();
+
+			await router.navigateByUrl('/wine?f=two');
+			expect(heard).toHaveBeenCalledTimes(1);
+
+			await router.navigateByUrl('/page');
+			expect(heard).toHaveBeenCalledTimes(1);
+		} finally {
+			window.removeEventListener(URL_NAVIGATION_EVENT, heard);
+		}
+	});
+
 	it('writes each route’s title and canonical URL after the navigation, ignoring the query', async () => {
 		await TestBed.inject(Router).navigateByUrl('/wine?f=h~%7B%7D');
 

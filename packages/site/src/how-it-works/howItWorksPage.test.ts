@@ -30,10 +30,15 @@ vi.mock('@filter-enginez/examples-shared/how-it-works', async (importActual) => 
 
 			return [];
 		}),
-		measureConfig: vi.fn(async (): Promise<{ resultCount: number; samples: number[] }> => {
+		measureConfig: vi.fn(async (): Promise<{ path: 'bitmap'; resultCount: number; samples: number[] }> => {
 			await Promise.resolve();
 
-			return { resultCount: 0, samples: []};
+			return { path: 'bitmap', resultCount: 0, samples: []};
+		}),
+		prepareBitmapAcceleration: vi.fn(async (): Promise<{ status: 'ready' }> => {
+			await Promise.resolve();
+
+			return { status: 'ready' };
 		}),
 	};
 });

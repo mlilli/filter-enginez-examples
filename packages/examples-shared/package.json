@@ -44,6 +44,7 @@
     "./search-core": "./src/search/typeaheadController.ts",
     "./selection": "./src/selection/index.ts",
     "./url": "./src/url/index.ts",
+    "./url-state-follower": "./src/url/urlStateFollower.ts",
     "./verticals": "./src/verticals/verticals.ts",
     "./viewport": "./src/viewport/index.ts",
     "./viewport-core": "./src/viewport/viewportCore.ts",

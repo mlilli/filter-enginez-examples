@@ -5,10 +5,9 @@
  * The SvelteKit port of the React `DatasetRoute` + `<UrlFormatToggle>` + `<CopyLinkButton>` URL-state
  * behavior, but framework-neutral: it drives the address bar through native `window.location` +
  * `history.replaceState` rather than `$app/navigation`. Two reasons: (1) it's SSR-guardable with a
- * single `typeof window` check, and (2) the components that consume it render inside `<BooksView>`,
- * which the component tests mount bare — and the plain-`svelte` vitest config maps only
- * `$app/stores` (to a test double), so `$app/navigation` has no module there and importing it would
- * break the suite.
+ * single `typeof window` check, and (2) the Vue, Angular and framework-free ports write the address
+ * bar the same way, so the four share one set of write-and-follow semantics
+ * (`examples-shared/url-state-follower`) rather than one per router.
  *
  * The serializer is `@filter-enginez/examples-shared/link-serializer`'s, the one all six apps share:
  * the framework-neutral tagged serializer from `@filter-enginez/url-state-router` (its `/serializers`
@@ -17,6 +16,12 @@
  * self-identifies its format (`<tag>~<payload>`) and `decode` auto-detects it, so a shared link keeps
  * working across a format switch — the same guarantee the React toggle relies on.
  *
+ * While a route's sync runs, its engine also follows the URL: Back, Forward, or an in-app navigation
+ * to the same route with another `?f=` loads that state into the route's existing engine, in place,
+ * through `@filter-enginez/examples-shared/url-state-follower` — what `<FilterEngineUrlSync>` does for
+ * the React apps. The root layout reports SvelteKit's own same-route navigations to it. The app's own
+ * writes report themselves too, so they are never loaded back.
+ *
  * @packageDocumentation
  */
 
@@ -24,6 +29,7 @@ import type { FilterEngineConfig } from '@filter-enginez/core';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { createUrlStateFollower, noteUrlStateWrite, readUrlStateParam } from '@filter-enginez/examples-shared/url-state-follower';
 import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 import { get, writable } from 'svelte/store';
 
@@ -164,6 +170,7 @@ function writeConfigToUrl(config: FilterEngineConfig, format: UrlFormat): void {
 
 	url.searchParams.set(URL_STATE_PARAM, serialized);
 	window.history.replaceState(window.history.state, '', url);
+	noteUrlStateWrite(serialized);
 	serializedFilterState.set(serialized);
 }
 
@@ -191,6 +198,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 
 		url.searchParams.set(URL_STATE_PARAM, reEncoded);
 		window.history.replaceState(window.history.state, '', url);
+		noteUrlStateWrite(reEncoded);
 		serializedFilterState.set(reEncoded);
 	} catch {
 		// Current param isn't a tagged value we can re-encode — leave it as-is.
@@ -199,11 +207,12 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 
 /**
  * Start syncing engine state → URL: subscribe to the engine, debounce writes, and serialize
- * `exportConfig()` in the currently-selected format on each settle. Returns an unsubscribe. No-op in
- * SSR (returns a no-op teardown).
+ * `exportConfig()` in the currently-selected format on each settle. Also start following the URL, so
+ * Back, Forward and same-route navigations load their `?f=` into this engine in place. Returns an
+ * unsubscribe. No-op in SSR (returns a no-op teardown).
  *
- * @param engine - The signals engine whose `.core` is subscribed + exported.
- * @returns A teardown that clears the pending write + detaches the subscription.
+ * @param engine - The signals engine whose `.core` is subscribed + exported, and loaded on navigation.
+ * @returns A teardown that clears the pending write + detaches the subscription and the follower.
  */
 export function startEngineUrlSync<T>(engine: SignalsEngine<T>): () => void {
 	if (typeof window === 'undefined') {
@@ -235,11 +244,22 @@ export function startEngineUrlSync<T>(engine: SignalsEngine<T>): () => void {
 			});
 		}, WRITE_DEBOUNCE_MS);
 	});
+	// URL → engine, for the life of the route: the route restored the engine from the URL it booted on,
+	// and the follower loads every later `?f=` a navigation brings into this same engine.
+	const follower = createUrlStateFollower({
+		decode: (serialized) => createLinkSerializer(get(urlFormat)).decode(serialized),
+		engine: engine.core,
+		onExternal: (serialized) => {
+			serializedFilterState.set(serialized);
+		},
+		read: () => readUrlStateParam(),
+	});
 
 	return () => {
 		if (timer !== null) {
 			clearTimeout(timer);
 		}
 		off();
+		follower.dispose();
 	};
 }

@@ -932,6 +932,9 @@ importers:
       '@filter-enginez/ui-styles':
         specifier: workspace:*
         version: link:../ui-styles
+      roaring-wasm:
+        specifier: ^1.1.0
+        version: 1.1.0
     devDependencies:
       '@filter-enginez/eslint':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.4.tgz

@@ -30,12 +30,16 @@ const ENGINE_MODULE = `${NODE_MODULES}/@filter-enginez/core/dist/createFilterEng
 /** The engine's error class, which the comparison page legitimately loads at startup. */
 const ERROR_MODULE = `${NODE_MODULES}/@filter-enginez/core/dist/errors/FilterEngineConfigError.js`;
 
+/** The bitmap library's browser build, which core imports on demand. */
+const ROARING_MODULE = `${NODE_MODULES}/roaring-wasm/browser/index.mjs`;
+
 /** One module of each deferred group, so a build holding these satisfies every group's vacuity check. */
 const ONE_OF_EACH = [
 	ENGINE_MODULE,
 	`${NODE_MODULES}/fuse.js/dist/fuse.mjs`,
 	`${NODE_MODULES}/rbush/index.js`,
 	`${NODE_MODULES}/@filter-enginez/mock-data/dist/wine/generate.js`,
+	ROARING_MODULE,
 ];
 
 /** Just the engine, as one deferred group. */
@@ -139,6 +143,20 @@ describe('findDeferredModulesAtStartup', () => {
 		const violations = findDeferredModulesAtStartup(new Map([['compare.html', page('assets/page.js', 'assets/engine.js')]]), build(), ENGINE_ONLY);
 
 		expect(violations).toEqual([{ chunk: 'assets/engine.js', group: 'the engine', moduleId: ENGINE_MODULE, page: 'compare.html' }]);
+	});
+
+	it('reports the bitmap library when a page preloads its chunk', () => {
+		const withRoaringChunk = new Map(build());
+
+		withRoaringChunk.set('assets/engine.js', { imports: ['assets/errors.js'], moduleIds: ONE_OF_EACH.filter((moduleId) => moduleId !== ROARING_MODULE) });
+		withRoaringChunk.set('assets/roaring.js', { imports: [], moduleIds: [ROARING_MODULE]});
+
+		const violations = findDeferredModulesAtStartup(new Map([['how-it-works.html', page('assets/page.js', 'assets/roaring.js')]]), withRoaringChunk);
+
+		expect(violations).toEqual([
+			{ chunk: 'assets/roaring.js', group: 'roaring-wasm, the engine’s bitmap library', moduleId: ROARING_MODULE, page: 'how-it-works.html' },
+		]);
+		expect(findDeferredModulesAtStartup(new Map([['how-it-works.html', page('assets/page.js')]]), withRoaringChunk)).toEqual([]);
 	});
 
 	it('checks every page', () => {

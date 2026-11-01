@@ -6,6 +6,7 @@
  */
 
 import { applyPageMeta, verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
+import { notifyUrlNavigation } from '@filter-enginez/examples-shared/url-state-follower';
 import { shallowRef } from 'vue';
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
@@ -66,9 +67,17 @@ router.onError((error) => {
 // included: one static shell serves every route, so the head has to follow the route
 // (`examples-shared/page-meta`). A change of query alone (a filter state in `?f=`) keeps the path, and
 // writing the same tags again is harmless.
-router.afterEach((to, _from, failure) => {
+//
+// A navigation that keeps the path keeps the page, and its engine: Vue reuses the route's component.
+// It may carry another `?f=`, which the page's URL follower then loads into that engine in place
+// (`url/urlState.ts`). Back and Forward reach the follower through `popstate` as well; the follower
+// loads a value once however many times it is told.
+router.afterEach((to, from, failure) => {
 	if (failure === undefined) {
 		pageFailure.value = null;
+		if (to.path === from.path) {
+			notifyUrlNavigation();
+		}
 	}
 	applyPageMeta(document, verticalPageMeta('vue', to.path));
 });

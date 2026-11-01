@@ -39,6 +39,7 @@ import type { RxJsEngine } from '@filter-enginez/reactive-rxjs';
 
 import { signal } from '@angular/core';
 import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { createUrlStateFollower, noteUrlStateWrite, readUrlStateParam } from '@filter-enginez/examples-shared/url-state-follower';
 import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 
 /** Query-string key holding the serialized filter state. Matches the router package's default. */
@@ -202,6 +203,7 @@ function writeConfigToUrl(config: FilterEngineConfig, format: UrlFormat): void {
 
 	url.searchParams.set(URL_STATE_PARAM, serialized);
 	window.history.replaceState(window.history.state, '', url);
+	noteUrlStateWrite(serialized);
 	serializedFilterState.set(serialized);
 }
 
@@ -233,6 +235,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 
 		url.searchParams.set(URL_STATE_PARAM, reEncoded);
 		window.history.replaceState(window.history.state, '', url);
+		noteUrlStateWrite(reEncoded);
 		serializedFilterState.set(reEncoded);
 	} catch {
 		// Not a tagged value — leave the URL alone rather than clobbering someone's link.
@@ -240,16 +243,22 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 }
 
 /**
- * Mirror engine state into the URL for as long as the returned teardown is uncalled.
+ * Mirror engine state into the URL, and the URL into the engine, for as long as the returned teardown
+ * is uncalled.
  *
  * @remarks
  * The `asyncEngine` branch matters even though `/books` never takes it: an async engine's synchronous
  * `.core` shim throws on `exportConfig`, so the reader has to be chosen up front rather than per
- * emission. Keeping the branch here is what will let the server-backed and worker tiers reuse this
- * module unchanged.
+ * emission. Keeping the branch here is what lets the server-backed and worker tiers reuse this module
+ * unchanged.
  *
- * @param engine - The booted engine to observe.
- * @returns Teardown that cancels any pending write and unsubscribes.
+ * The other direction is the URL follower (`examples-shared/url-state-follower`): Back, Forward, or an
+ * in-app navigation to the same route with another `?f=` loads that state into this engine in place,
+ * as `<FilterEngineUrlSync>` does in the React apps. Every write above reports itself to it, so the
+ * app's own writes are never loaded back.
+ *
+ * @param engine - The booted engine to observe, and to load on navigation.
+ * @returns Teardown that cancels any pending write, unsubscribes, and stops following the URL.
  */
 export function startEngineUrlSync<T>(engine: RxJsEngine<T>): () => void {
 	if (typeof window === 'undefined') {
@@ -273,11 +282,22 @@ export function startEngineUrlSync<T>(engine: RxJsEngine<T>): () => void {
 			});
 		}, WRITE_DEBOUNCE_MS);
 	});
+	// URL → engine, for the life of the route: the route restored the engine from the URL it booted on,
+	// and the follower loads every later `?f=` a navigation brings into this same engine.
+	const follower = createUrlStateFollower({
+		decode: (serialized) => createLinkSerializer(urlFormat()).decode(serialized),
+		engine: engine.core,
+		onExternal: (serialized) => {
+			serializedFilterState.set(serialized);
+		},
+		read: () => readUrlStateParam(),
+	});
 
 	return () => {
 		if (timer !== null) {
 			clearTimeout(timer);
 		}
 		off();
+		follower.dispose();
 	};
 }

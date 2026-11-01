@@ -7,11 +7,16 @@
  * `examples-shared/page-meta` decides the values and has its own suite; this pins that the router
  * applies them.
  *
+ * It also pins the router's half of following `?f=`: a navigation that keeps the path tells the page's
+ * URL follower to look at the URL (`examples-shared/url-state-follower`), and one that changes the
+ * path does not, since the page it leaves is going away.
+ *
  * @packageDocumentation
  */
 
 import { verticalPageMeta } from '@filter-enginez/examples-shared/page-meta';
-import { describe, expect, it } from 'vitest';
+import { URL_NAVIGATION_EVENT } from '@filter-enginez/examples-shared/url-state-follower';
+import { describe, expect, it, vi } from 'vitest';
 
 import { router } from './router.js';
 
@@ -25,5 +30,25 @@ describe('the router’s page metadata', () => {
 		expect(document.title).toBe(verticalPageMeta('vue', '/no-such-page').title);
 		expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
 		expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
+	});
+});
+
+describe('the router’s same-route navigations', () => {
+	it('tells the URL follower about a navigation that keeps the path, and only about that', async () => {
+		const heard = vi.fn();
+
+		window.addEventListener(URL_NAVIGATION_EVENT, heard);
+		try {
+			await router.push('/no-such-page?f=one');
+			heard.mockClear();
+
+			await router.push('/no-such-page?f=two');
+			expect(heard).toHaveBeenCalledTimes(1);
+
+			await router.push('/');
+			expect(heard).toHaveBeenCalledTimes(1);
+		} finally {
+			window.removeEventListener(URL_NAVIGATION_EVENT, heard);
+		}
 	});
 });

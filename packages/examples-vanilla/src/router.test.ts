@@ -25,7 +25,8 @@
  */
 
 import { el } from '@filter-enginez/examples-shared/dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { URL_NAVIGATION_EVENT } from '@filter-enginez/examples-shared/url-state-follower';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Route, type RouterHandle, startRouter } from './router.js';
 
@@ -173,8 +174,9 @@ describe('route resolution', () => {
 		expect(container.childNodes).toHaveLength(0);
 	});
 
-	it('pushes history on navigate, and re-renders without pushing when already there', async () => {
-		const { container, handle } = await mountRouter('/books', [wordRoute('/books', 'BOOKS'), wordRoute('/wine', 'WINE')]);
+	it('pushes history on navigate, and keeps the page without pushing when already there', async () => {
+		const log: string[] = [];
+		const { container, handle } = await mountRouter('/books', [wordRoute('/books', 'BOOKS'), wordRoute('/wine', 'WINE', log)]);
 
 		handle.navigate('/wine');
 		await flush();
@@ -189,6 +191,49 @@ describe('route resolution', () => {
 
 		expect(window.history.length).toBe(lengthBeforeReNavigate);
 		expect(container.textContent).toBe('WINE');
+		expect(log, 'the page on screen was rendered again').toEqual(['render:WINE']);
+	});
+});
+
+describe('a navigation that keeps the path', () => {
+	it('pushes the new query, keeps the page, and tells the URL follower', async () => {
+		const log: string[] = [];
+		const heard = vi.fn();
+		const { container, handle } = await mountRouter('/books', [wordRoute('/books', 'BOOKS', log)]);
+
+		window.addEventListener(URL_NAVIGATION_EVENT, heard);
+		try {
+			const lengthBefore = window.history.length;
+
+			handle.navigate('/books?f=linked');
+			await flush();
+
+			expect(`${window.location.pathname}${window.location.search}`).toBe('/books?f=linked');
+			expect(window.history.length).toBe(lengthBefore + 1);
+			expect(heard).toHaveBeenCalledTimes(1);
+			expect(log).toEqual(['render:BOOKS']);
+			expect(container.textContent).toBe('BOOKS');
+		} finally {
+			window.removeEventListener(URL_NAVIGATION_EVENT, heard);
+		}
+	});
+
+	it('keeps the page on Back and Forward within it, and renders the route Back reaches on another path', async () => {
+		const log: string[] = [];
+		const { container } = await mountRouter('/books', [wordRoute('/books', 'BOOKS', log), wordRoute('/wine', 'WINE', log)]);
+
+		window.history.replaceState({}, '', '/books?f=earlier');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+		await flush();
+
+		expect(log).toEqual(['render:BOOKS']);
+		expect(container.textContent).toBe('BOOKS');
+
+		window.history.replaceState({}, '', '/wine');
+		window.dispatchEvent(new PopStateEvent('popstate'));
+		await flush();
+
+		expect(log).toEqual(['render:BOOKS', 'teardown:BOOKS', 'render:WINE']);
 	});
 });
 

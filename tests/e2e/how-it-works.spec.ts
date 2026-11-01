@@ -15,7 +15,9 @@
  *   - **axe** finds nothing serious, scanned in the settled, reduced-motion state.
  *
  * The widget's live measurement is best-effort and never asserted numerically — in-browser timing is
- * environment-dependent by design, which is why the widget falls back to reference numbers.
+ * environment-dependent by design, which is why the widget falls back to reference numbers. What IS
+ * asserted is that its bitmaps load: the opening configuration has bitmaps on, and the widget measures
+ * it only after `roaring-wasm` has loaded and the engine has run it on the bitmap path.
  *
  * **Selectors:** `.fe-fig-*` (the eight figures), `.fe-about__toc` (the table of contents),
  * `role="switch"` (the three acceleration layers), `.fe-bench__number` (the timing readout),
@@ -26,6 +28,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 import { APP_HUB_PATH, SITE_HOME_LABEL } from '../../packages/examples-shared/src/app-header/core.js';
+import { BITMAP_REFERENCE_SUBLINE, BITMAP_UNAVAILABLE_COPY } from '../../packages/examples-shared/src/how-it-works/benchmark/benchmarkBitmapCopy.js';
 import { VERTICALS } from '../../packages/examples-shared/src/verticals/verticals.js';
 import { reactPlainUrl } from './reactPlainBase.js';
 import { siteUrl } from './siteBase.js';
@@ -117,6 +120,20 @@ test.describe('how-it-works · enhanced', () => {
 		// The timing readout always shows a duration (live or reference), never empty.
 		await expect(page.locator('.fe-bench__number')).toContainText('ms');
 		await expect(page.getByText(/faster than naive scan/u)).toBeVisible();
+	});
+
+	test('loads the bitmap library on demand and measures the bitmap configuration on bitmaps', async ({ page }) => {
+		const widget = page.locator('.fe-bench');
+
+		await widget.scrollIntoViewIfNeeded();
+		// Settled: a median of real passes, or the bitmap configuration's reference number with the reason.
+		await expect(widget.locator('.fe-bench__number-sub')).toHaveText(new RegExp(`^(?:median of \\d+ passes|${BITMAP_REFERENCE_SUBLINE})$`, 'u'), {
+			timeout: 30_000,
+		});
+		await expect(widget.locator('.fe-bench__number-sub')).not.toHaveText(BITMAP_REFERENCE_SUBLINE);
+		for (const reason of Object.values(BITMAP_UNAVAILABLE_COPY)) {
+			await expect(widget.locator('.fe-bench__status')).not.toContainText(reason);
+		}
 	});
 
 	test('links the three demonstrated capabilities to the local lab, and only those', async ({ page }) => {

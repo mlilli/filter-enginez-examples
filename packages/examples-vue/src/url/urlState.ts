@@ -20,6 +20,11 @@
  * self-identifies its format (`<tag>~<payload>`) and `decode` auto-detects it, so a shared link keeps
  * working across a format switch — the same guarantee the React/Svelte toggle relies on.
  *
+ * While a route's sync runs, its engine also follows the URL: Back, Forward, or an in-app navigation
+ * to the same route with another `?f=` loads that state into the route's existing engine, in place,
+ * through `@filter-enginez/examples-shared/url-state-follower` — what `<FilterEngineUrlSync>` does for
+ * the React apps. The app's own writes report themselves to it, so they are never loaded back.
+ *
  * @packageDocumentation
  */
 
@@ -27,6 +32,7 @@ import type { FilterEngineConfig } from '@filter-enginez/core';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { createUrlStateFollower, noteUrlStateWrite, readUrlStateParam } from '@filter-enginez/examples-shared/url-state-follower';
 import { type BuiltInSerializerName } from '@filter-enginez/url-state-router/serializers';
 import { ref } from 'vue';
 
@@ -170,6 +176,7 @@ function writeConfigToUrl(config: FilterEngineConfig, format: UrlFormat): void {
 
 	url.searchParams.set(URL_STATE_PARAM, serialized);
 	window.history.replaceState(window.history.state, '', url);
+	noteUrlStateWrite(serialized);
 	serializedFilterState.value = serialized;
 }
 
@@ -197,6 +204,7 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 
 		url.searchParams.set(URL_STATE_PARAM, reEncoded);
 		window.history.replaceState(window.history.state, '', url);
+		noteUrlStateWrite(reEncoded);
 		serializedFilterState.value = reEncoded;
 	} catch {
 		// Current param isn't a tagged value we can re-encode — leave it as-is.
@@ -205,11 +213,12 @@ export function reEncodeUrlFormat(nextFormat: UrlFormat): void {
 
 /**
  * Start syncing engine state → URL: subscribe to the engine, debounce writes, and serialize
- * `exportConfig()` in the currently-selected format on each settle. Returns an unsubscribe. No-op in
- * SSR (returns a no-op teardown).
+ * `exportConfig()` in the currently-selected format on each settle. Also start following the URL, so
+ * Back, Forward and same-route navigations load their `?f=` into this engine in place. Returns an
+ * unsubscribe. No-op in SSR (returns a no-op teardown).
  *
- * @param engine - The signals engine whose `.core` is subscribed + exported.
- * @returns A teardown that clears the pending write + detaches the subscription.
+ * @param engine - The signals engine whose `.core` is subscribed + exported, and loaded on navigation.
+ * @returns A teardown that clears the pending write + detaches the subscription and the follower.
  */
 export function startEngineUrlSync<T>(engine: SignalsEngine<T>): () => void {
 	if (typeof window === 'undefined') {
@@ -241,11 +250,22 @@ export function startEngineUrlSync<T>(engine: SignalsEngine<T>): () => void {
 			});
 		}, WRITE_DEBOUNCE_MS);
 	});
+	// URL → engine, for the life of the route: the route restored the engine from the URL it booted on,
+	// and the follower loads every later `?f=` a navigation brings into this same engine.
+	const follower = createUrlStateFollower({
+		decode: (serialized) => createLinkSerializer(urlFormat.value).decode(serialized),
+		engine: engine.core,
+		onExternal: (serialized) => {
+			serializedFilterState.value = serialized;
+		},
+		read: () => readUrlStateParam(),
+	});
 
 	return () => {
 		if (timer !== null) {
 			clearTimeout(timer);
 		}
 		off();
+		follower.dispose();
 	};
 }

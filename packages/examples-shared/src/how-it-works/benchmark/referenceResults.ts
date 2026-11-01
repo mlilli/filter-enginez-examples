@@ -8,8 +8,11 @@
  * 2026-10-13, over the 10,000-wine default tier of the realistic synthetic generator. That scenario
  * sweeps all three toggles the widget exposes — bitmap × exclusion-graph × memoization — so the eight
  * cells map one-to-one onto the widget's eight reachable configurations. The all-off cell (≈38.5 ms)
- * is the naive baseline; the all-on cell (≈0.092 ms) is the fully-stacked result, a ~418× span. If
- * the harness is re-run, refresh these from its output.
+ * is the naive baseline; the all-on cell (≈0.092 ms) is the fully-stacked result, a ~418× span. The
+ * harness awaits `initializeBitmapAcceleration()` before it measures anything, so every `bitmap:on`
+ * cell ran on Roaring bitmaps; that is why the bitmap-only cell (≈16.6 ms) sits well below the naive
+ * one, where an engine without init would time its predicate path twice. If the harness is re-run,
+ * refresh these from its output.
  *
  * @packageDocumentation
  */
