@@ -1,5 +1,5 @@
 /**
- * Packages that pin each other's exact version are installed at the versions they pin.
+ * Packages that must share one version are installed at it.
  *
  * @remarks
  * ## Why this exists
@@ -14,6 +14,13 @@
  * and not the others produces exactly that install. This checks the lockfile it leaves: wherever a package pins a
  * peer exactly and that peer is installed beside it, the installed version is the pinned one. The pins come from the
  * lockfile, so a family is covered from the day it is installed, without a list to keep.
+ *
+ * Some families are lockstep at RUNTIME while their peer ranges allow more: `react-dom` declares `react` as a caret
+ * range, then throws at load ("Incompatible React versions") unless `react` is its own exact version. The lockfile
+ * cannot reveal those, so they are listed ({@link RUNTIME_LOCKSTEP}) and checked twice: each peer is installed at its
+ * dependent's own version, and a workspace package that depends on the dependent (in `dependencies` or
+ * `devDependencies`) depends on the peer there too, so a bump of the package's own manifest names both. A peer that
+ * pnpm merely auto-installs stays where it is while its twin moves.
  *
  * Read as TEXT, like the other guards over this file. `pnpm-lock.yaml` is a two-document YAML stream (pnpm's own
  * environment first, then the workspace), each with its own `packages` and `snapshots`; every section of both
@@ -43,8 +50,21 @@ interface ResolvedPin {
 	readonly snapshot: string;
 }
 
+/** The dependency kinds a workspace manifest declares. */
+interface Manifest {
+	readonly dependencies?: Readonly<Record<string, string>>;
+	readonly devDependencies?: Readonly<Record<string, string>>;
+	readonly peerDependencies?: Readonly<Record<string, string>>;
+}
+
 /** A peer range that admits exactly one version. */
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/u;
+
+/**
+ * Families whose dependent requires the peer at its OWN exact version at runtime, though its peer range admits more.
+ * As `[dependent, peer]`.
+ */
+const RUNTIME_LOCKSTEP: readonly (readonly [dependent: string, peer: string])[] = [['react-dom', 'react']];
 
 /**
  * Remove one pair of matching quotes.
@@ -116,7 +136,73 @@ function resolvedPins(lockfile: string): readonly ResolvedPin[] {
 					})));
 }
 
-const PINS = resolvedPins(readFileSync(resolve(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8'));
+/**
+ * The package name in a lockfile key.
+ *
+ * @param key - `name@version`, optionally followed by a peer suffix in parentheses.
+ * @returns The name.
+ */
+function packageName(key: string): string {
+	const withoutPeers = key.replace(/\(.*$/u, '');
+
+	return withoutPeers.slice(0, withoutPeers.lastIndexOf('@'));
+}
+
+/**
+ * Every runtime-lockstep peer installed beside its dependent, required at the dependent's own version.
+ *
+ * @param lockfile - The text of `pnpm-lock.yaml`.
+ * @param families - The `[dependent, peer]` pairs to check.
+ * @returns One record per snapshot of a dependent that has the peer installed.
+ */
+function runtimePins(lockfile: string, families: readonly (readonly [string, string])[]): readonly ResolvedPin[] {
+	return sections(lockfile, 'snapshots').flatMap(entries).flatMap(([snapshot, body]) => {
+		const withoutPeers = snapshot.replace(/\(.*$/u, '');
+		const required = withoutPeers.slice(withoutPeers.lastIndexOf('@') + 1);
+
+		return families.filter(([dependent]) => packageName(snapshot) === dependent).flatMap(([, peer]) => {
+			const installed = mapping(body, 'dependencies').find(([name]) => name === peer)?.[1];
+
+			return installed === undefined ? [] : [{ installed: installed.replace(/\(.*$/u, ''), peer, required, snapshot }];
+		});
+	});
+}
+
+/**
+ * The workspace packages, as the lockfile's importers name them.
+ *
+ * @param lockfile - The text of `pnpm-lock.yaml`.
+ * @returns Each importer's directory relative to the repo root (`.` for the root), once.
+ */
+function importerDirectories(lockfile: string): readonly string[] {
+	return [...new Set(sections(lockfile, 'importers').flatMap((body) =>
+		[...body.matchAll(/^ {2}(?<directory>\S[^\n]*?):$/gmu)].map((match) => unquote(match.groups?.['directory'] ?? ''))))];
+}
+
+/**
+ * The manifests that list a runtime-lockstep dependent outside `peerDependencies`, without its peer beside it.
+ *
+ * @param manifests - Each workspace manifest, by directory.
+ * @param families - The `[dependent, peer]` pairs to check.
+ * @returns One line per manifest and family that misses the peer.
+ */
+function manifestsMissingPeer(
+	manifests: Readonly<Record<string, Manifest>>,
+	families: readonly (readonly [string, string])[],
+): readonly string[] {
+	return Object.entries(manifests).flatMap(([directory, manifest]) => {
+		const bumped = { ...manifest.dependencies, ...manifest.devDependencies };
+
+		return families.filter(([dependent, peer]) => dependent in bumped && !(peer in bumped))
+			.map(([dependent, peer]) => `${directory}/package.json lists ${dependent} but not ${peer}`);
+	});
+}
+
+const LOCKFILE = readFileSync(resolve(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8');
+const PINS = resolvedPins(LOCKFILE);
+const RUNTIME_PINS = runtimePins(LOCKFILE, RUNTIME_LOCKSTEP);
+const MANIFESTS: Readonly<Record<string, Manifest>> = Object.fromEntries(importerDirectories(LOCKFILE)
+	.map((directory) => [directory, JSON.parse(readFileSync(resolve(REPO_ROOT, directory, 'package.json'), 'utf8')) as Manifest]));
 
 describe('exactly pinned peers in pnpm-lock.yaml', () => {
 	it('finds exactly pinned peers installed beside their dependents, Angular among them', () => {
@@ -157,5 +243,55 @@ describe('exactly pinned peers in pnpm-lock.yaml', () => {
 		expect(resolvedPins(lockfile)).toEqual([
 			{ installed: '1.0.0', peer: '@f/b', required: '1.0.1', snapshot: '@f/a@1.0.1(@f/b@1.0.0)(c@2.1.0)' },
 		]);
+	});
+});
+
+describe('runtime-lockstep families', () => {
+	it('finds every listed family installed, and the workspace manifests', () => {
+		// The vacuity check: with no snapshot paired or no manifest read, the cases below would pass on any input.
+		expect(RUNTIME_LOCKSTEP.filter(([dependent]) => !RUNTIME_PINS.some((pin) => packageName(pin.snapshot) === dependent)))
+			.toEqual([]);
+		expect(Object.keys(MANIFESTS)).toEqual(expect.arrayContaining(['.', 'packages/examples-react-plain', 'packages/react-ui']));
+	});
+
+	it('installs each peer at its dependent\'s own version', () => {
+		expect(
+			RUNTIME_PINS.filter((pin) => pin.installed !== pin.required)
+				.map((pin) => `${pin.snapshot} needs ${pin.peer} ${pin.required} at runtime, installed ${pin.installed}`),
+			'a runtime-lockstep family moved in halves. Bump every member to the same version in one change.',
+		).toEqual([]);
+	});
+
+	it('lists each peer beside its dependent in every manifest', () => {
+		expect(
+			manifestsMissingPeer(MANIFESTS, RUNTIME_LOCKSTEP),
+			'a peer that is only auto-installed stays behind while its twin moves. Add the peer to devDependencies at the '
+			+ 'same range as the dependent.',
+		).toEqual([]);
+	});
+
+	it('reports a peer at another version, and a manifest without the peer — the controls for the cases above', () => {
+		// Without them, a parser that never paired a snapshot or never read a manifest would pass on any input.
+		const lockfile = [
+			'snapshots:',
+			'',
+			'  d@1.0.1(p@1.0.0):',
+			'    dependencies:',
+			'      p: 1.0.0',
+			'      s: 0.1.0',
+			'',
+			'  d@2.0.0(p@2.0.0):',
+			'    dependencies:',
+			'      p: 2.0.0',
+			'',
+		].join('\n');
+
+		expect(runtimePins(lockfile, [['d', 'p']]).filter((pin) => pin.installed !== pin.required)).toEqual([
+			{ installed: '1.0.0', peer: 'p', required: '1.0.1', snapshot: 'd@1.0.1(p@1.0.0)' },
+		]);
+		expect(manifestsMissingPeer({
+			'packages/both': { devDependencies: { d: '^1.0.1', p: '^1.0.1' }},
+			'packages/peer-only': { devDependencies: { d: '^1.0.1' }, peerDependencies: { p: '^1.0.0' }},
+		}, [['d', 'p']])).toEqual(['packages/peer-only/package.json lists d but not p']);
 	});
 });
