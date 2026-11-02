@@ -46,6 +46,7 @@ import {
 	type Wine,
 } from '@filter-enginez/mock-data/wine/generator';
 
+import { deriveWineFacets, type WineFacets } from './wine-domain/facets.js';
 import { type WineCorpusSource, type WineWorkerTier } from './wineCorpusTier.js';
 
 /**
@@ -90,10 +91,44 @@ export interface WineWorkerCallbacks {
 	 *   whose total is {@link EXPECTED_REAL_CORPUS_SIZE} until the stream ends.
 	 */
 	readonly onProgress?: (loaded: number, total: number, source: WineCorpusSource, isTotalEstimated: boolean) => void;
+
+	/**
+	 * Receive the panel facets the worker derived from the corpus it built.
+	 *
+	 * @remarks
+	 * Returns a promise on the worker's side, because Comlink answers once the main thread has run it;
+	 * see {@link deliverWineFacets}.
+	 *
+	 * @param facets - The corpus's facets.
+	 */
+	readonly onFacets?: (facets: WineFacets) => Promise<void> | void;
 }
 
 /** A progress reporter, once narrowed out of the callbacks bag. */
 type ProgressReporter = WineWorkerCallbacks['onProgress'];
+
+/**
+ * Derive the corpus's panel facets here, in the worker, and hand them to the main thread.
+ *
+ * @remarks
+ * Every wine panel needs the slider baselines, chip vocabularies and origin tree of the whole corpus.
+ * Derived on the main thread they cost about a second of blocked input at mobile speed on the
+ * 150,000-wine tier (≈210 ms on a fast machine); here they cost the worker the same while the boot
+ * screen animates, and the result crosses in a few milliseconds (≈0.5 MB against the corpus's tens).
+ *
+ * **Awaited, so the facets land before the engine.** The callback travels on its own Comlink channel,
+ * not the one that returns the engine, and two channels keep no order between them. Awaiting the call
+ * waits for the main thread's answer, so the boot holds the facets by the time the engine reaches it.
+ *
+ * @param wines - The corpus the worker's engine holds.
+ * @param onFacets - The main thread's receiver, if the boot sent one.
+ */
+export async function deliverWineFacets(wines: readonly Wine[], onFacets: WineWorkerCallbacks['onFacets']): Promise<void> {
+	if (onFacets === undefined) {
+		return;
+	}
+	await onFacets(deriveWineFacets(wines));
+}
 
 /**
  * Stream the NDJSON real corpus from `/data-real-full.ndjson`.

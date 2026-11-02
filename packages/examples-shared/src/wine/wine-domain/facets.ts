@@ -224,3 +224,46 @@ export function deriveWineFacets(corpus: readonly Wine[]): WineFacets {
 		},
 	};
 }
+
+/** Facets already derived, by the corpus array they describe. Weak, so a dropped corpus takes its facets with it. */
+const facetsByCorpus = new WeakMap<readonly Wine[], WineFacets>();
+
+/**
+ * Record facets derived elsewhere for a corpus, so {@link wineFacetsFor} hands them back rather than
+ * deriving them again.
+ *
+ * @remarks
+ * The boot calls this. On the worker tier the corpus worker derives the facets beside the engine and
+ * delivers them with it (`wineCorpusLoader.ts`'s `deliverWineFacets`), so the main thread never walks
+ * the 150,000 records for them; the boot files them here against the main thread's copy of the corpus.
+ *
+ * @param corpus - The corpus array the engine facade holds (`core.getSourceData()`).
+ * @param facets - The facets of exactly that corpus.
+ */
+export function rememberWineFacets(corpus: readonly Wine[], facets: WineFacets): void {
+	facetsByCorpus.set(corpus, facets);
+}
+
+/**
+ * The facets of a corpus: the ones the boot recorded for it, else derived here once and kept.
+ *
+ * @remarks
+ * For the panels that hold the engine but not the boot's bundle (React's hooks, vanilla's panel). Keyed
+ * on the array's identity, which is the engine's own, so a panel over a different corpus — a test's
+ * engine, say — derives its own facets instead of borrowing another corpus's.
+ *
+ * @param corpus - The records the engine actually holds.
+ * @returns The facets of that corpus.
+ */
+export function wineFacetsFor(corpus: readonly Wine[]): WineFacets {
+	const known = facetsByCorpus.get(corpus);
+
+	if (known !== undefined) {
+		return known;
+	}
+	const facets = deriveWineFacets(corpus);
+
+	facetsByCorpus.set(corpus, facets);
+
+	return facets;
+}

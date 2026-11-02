@@ -14,6 +14,7 @@
 import type { PickerTreeNode } from '@filter-enginez/react-ui';
 
 import { createFilterEngine } from '@filter-enginez/core';
+import { wines } from '@filter-enginez/mock-data/wine';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { createSignalsEngine } from '@filter-enginez/reactive-signals';
 import { renderHook } from '@testing-library/react';
@@ -145,7 +146,9 @@ describe('useBaselineBounds', () => {
 	it('derives real bounds once the corpus is present', () => {
 		// And the fallback is a PLACEHOLDER, not a ceiling: a $650 bottle stays reachable even though
 		// FALLBACK_BOUNDS.price caps at 400. Clamping here is what would quietly hide the expensive tail.
-		const bounds = boundsOver([{ priceUsd: 12 }, { priceUsd: 650 }]);
+		// Whole wines, priced to the two extremes: the hook reads the corpus's facets, which need every
+		// field a wine carries, not just the slider's.
+		const bounds = boundsOver(wines.slice(0, 2).map((wine, index) => ({ ...wine, priceUsd: index === 0 ? 12 : 650 })));
 
 		expect(bounds.max).toBeGreaterThanOrEqual(650);
 		expect(bounds.min).toBeLessThanOrEqual(12);

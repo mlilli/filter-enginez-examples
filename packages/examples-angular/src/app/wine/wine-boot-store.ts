@@ -46,7 +46,7 @@ import {
 import { createRxJsEngineFromAsync } from '@filter-enginez/reactive-rxjs/worker';
 
 import { readConfigFromUrl } from '../url/url-state.js';
-import { deriveWineFacets, type WineFacets } from './wine-facets.js';
+import { type WineFacets } from './wine-facets.js';
 import { spawnWineWorker, WINE_DATASET_SIZE } from './wineBoot.js';
 
 @Injectable()
@@ -143,11 +143,11 @@ export class WineBootStore {
 	 * boot screen at zero — on a fast connection, that is the entire boot. Every vertical's page does
 	 * this in the same order for the same reason.
 	 *
-	 * **The corpus is read from the RESIDENT MIRROR, never re-fetched.** `createRxJsEngineFromAsync`
-	 * pulls the whole corpus across the Comlink boundary exactly once at boot and keeps it — that is
-	 * the adapter's stated bandwidth contract. Calling `asyncEngine.getSourceData()` here would be a
-	 * SECOND full structured-clone of 150k records, which does not fail: it just doubles an already
-	 * multi-second boot, and it is invisible in code review because the call reads perfectly sensibly.
+	 * **The facets come from the worker, never from the corpus here.** The corpus worker derives them
+	 * from the records it holds and the boot delivers them with the engine, so the main thread neither
+	 * walks the 150k records for them nor asks the worker for the corpus a second time — an
+	 * `asyncEngine.getSourceData()` here would be a SECOND full structured-clone of 150k records, which
+	 * does not fail: it just doubles an already multi-second boot.
 	 *
 	 * **A `?f` link is loaded BEFORE the engine is wrapped**, matching every other route: `loadConfig`
 	 * fires its change, and restoring first avoids an immediate redundant write straight back to the
@@ -164,7 +164,7 @@ export class WineBootStore {
 		});
 
 		try {
-			const { asyncEngine, meta } = await bootWineAsyncEngine({
+			const { asyncEngine, facets, meta } = await bootWineAsyncEngine({
 				datasetSize: WINE_DATASET_SIZE,
 				spawnWorker: spawnWineWorker,
 			});
@@ -181,11 +181,9 @@ export class WineBootStore {
 
 			const engine = await createRxJsEngineFromAsync<Wine>(asyncEngine);
 
-			// `engine.core.getSourceData()`, NOT `asyncEngine.getSourceData()`. The adapter above already
-			// pulled the whole corpus across the Comlink boundary exactly once and holds a resident
-			// mirror — its own comment calls that the bandwidth contract. Asking the WORKER again is a
-			// second full structured-clone of 150k records, which does not fail, it just doubles the boot.
-			this.facets.set(deriveWineFacets(engine.core.getSourceData()));
+			// The facets the corpus worker derived from its corpus and delivered with the engine, so the
+			// main thread never walks the 150k records for them.
+			this.facets.set(facets);
 			this.wineCount.set(meta.wineCount);
 			this.bootMs.set(meta.bootMs);
 			this.corpusTier.set(describeWineCorpusTier(meta.source));

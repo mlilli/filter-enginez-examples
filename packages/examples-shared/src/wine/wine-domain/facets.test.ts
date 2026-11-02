@@ -32,6 +32,8 @@ import {
 	deriveWineFacets,
 	ORIGIN_TREE_ROOT_ID,
 	rankWineVarietals,
+	rememberWineFacets,
+	wineFacetsFor,
 } from './facets.js';
 import {
 	FALLBACK_BOUNDS,
@@ -223,6 +225,35 @@ function comparableLevel(nodes: readonly { readonly id: string; readonly childre
 		}))
 		.sort((a, b) => a.id.localeCompare(b.id));
 }
+
+describe('wineFacetsFor', () => {
+	it('derives a corpus\'s facets once and hands back the same object after', () => {
+		const corpus = [...FIXTURE_WINES];
+		const facets = wineFacetsFor(corpus);
+
+		expect(facets).toEqual(deriveWineFacets(corpus));
+		expect(wineFacetsFor(corpus)).toBe(facets);
+	});
+
+	it('hands back the facets recorded for a corpus instead of deriving them', () => {
+		// The boot records the worker's facets this way; a derivation here would walk the corpus on the
+		// main thread, which is the cost the worker-side derivation exists to remove.
+		const corpus = [...FIXTURE_WINES];
+		const recorded = deriveWineFacets(corpus);
+
+		rememberWineFacets(corpus, recorded);
+
+		expect(wineFacetsFor(corpus)).toBe(recorded);
+	});
+
+	it('keys on the corpus array itself, so another corpus with the same records derives its own', () => {
+		const recorded = deriveWineFacets(FIXTURE_WINES);
+
+		rememberWineFacets([...FIXTURE_WINES], recorded);
+
+		expect(wineFacetsFor([...FIXTURE_WINES])).not.toBe(recorded);
+	});
+});
 
 describe('buildOriginTreeFromOriginIds', () => {
 	it('builds the same nodes as the dataset’s own buildOriginTree over the 150,000-wine tier', () => {

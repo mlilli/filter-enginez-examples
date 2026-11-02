@@ -50,9 +50,9 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import { el } from '@filter-enginez/examples-shared/dom';
 import {
 	buildWineBundleQuery,
-	deriveWineFacets,
 	exitExpressionMode,
 	type WineBundleQuery,
+	wineFacetsFor,
 } from '@filter-enginez/examples-shared/wine-domain';
 
 import { panelHeader } from '../controls/sections.js';
@@ -120,10 +120,11 @@ export function createWinePanel(core: FilterEngine<Wine>): WinePanel {
 	// The commit helpers take the structural minimum — `{ core }` — so the same functions serve the
 	// signals verticals, Angular's RxJS facade and this one unchanged.
 	const host = { core };
-	// The corpus is resident and immutable post-boot, so the facets and the query are derived once.
-	// From the ENGINE's corpus, never a fresh import: `buildOriginTree()` defaults to the bundled 10k
-	// tier, which would build an origin picker for a corpus the engine is not filtering.
-	const facets = deriveWineFacets(core.getSourceData());
+	// The corpus is resident and immutable post-boot, so the facets and the query are settled once:
+	// the facets the corpus worker derived, which the boot recorded against the engine's corpus. From the
+	// ENGINE's corpus, never a fresh import: `buildOriginTree()` defaults to the bundled 10k tier, which
+	// would build an origin picker for a corpus the engine is not filtering.
+	const facets = wineFacetsFor(core.getSourceData());
 	const query = buildWineBundleQuery(facets.baselines, facets.vocabularies, facets.originSpecs);
 
 	const smartFilters = createWineSmartFilters({ host });

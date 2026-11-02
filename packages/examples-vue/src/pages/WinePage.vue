@@ -24,8 +24,9 @@
  *
  * Not from the bundled default tier. `buildOriginTree()` defaults to the 10k import, which would
  * produce a tree that does not match the 150k the worker actually holds — so a region present in the
- * booted corpus would be missing from the picker, silently. `deriveWineFacets` also ranks what it
- * derives: varietals most-reviewed first, and every level of the origin tree by wine count.
+ * booted corpus would be missing from the picker, silently. The corpus worker derives them from the
+ * records it holds (`deriveWineFacets`) and the boot hands them over as `bundle.facets`, ranked:
+ * varietals most-reviewed first, and every level of the origin tree by wine count.
  *
  * `FALLBACK_BOUNDS` is a pre-boot PLACEHOLDER, not a ceiling. It matches the extents of the 150,000
  * synthetic wines, but the local real corpus, when linked, has extents of its own; using the
@@ -38,7 +39,6 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 import {
-	deriveWineFacets,
 	FALLBACK_BOUNDS,
 	type NumericBounds,
 	type OriginNodeSpec,
@@ -118,11 +118,9 @@ onMounted(async () => {
 		const booted = bundle.engine;
 
 		corpusTier.value = wineCore.describeWineCorpusTier(bundle.meta.source);
-		const corpus = booted.core.getSourceData();
-
-		// One shared derivation from `examples-shared/wine-domain`, the same one SvelteKit's route and
-		// Angular use, rather than a per-app copy.
-		const facets = deriveWineFacets(corpus);
+		// The facets the corpus worker derived (the shared `deriveWineFacets`, the same one every wine
+		// route receives), so this page never walks the corpus for them.
+		const { facets } = bundle;
 
 		vocabularies.value = facets.vocabularies;
 		originTree.value = facets.originTree;

@@ -11,8 +11,8 @@
  *   1. Publish progress through a small pub/sub so the boot screen can show
  *      "Loaded N of 150,000 bottles" as the worker reports it.
  *   2. Call `wrapInWorker<Wine>({ worker: spawnWorker(), factoryName: 'wineEngine',
- *      factoryCallbacks: { onProgress } })`. Comlink proxies the `onProgress` callback so the
- *      worker can invoke it across the postMessage boundary.
+ *      factoryCallbacks: { onFacets, onProgress } })`. Comlink proxies both callbacks so the
+ *      worker can invoke them across the postMessage boundary.
  *
  *      ⚠ `factoryCALLBACKS`, not `factoryOptions` — and a pre-spawned `worker`, not a `workerUrl`.
  *      `wrapInWorker` has no `workerUrl` option, and a function nested inside `factoryOptions` is
@@ -21,9 +21,9 @@
  *      (https://github.com/mlilli/filter-enginez) holds every such example in the engine packages
  *      to the declared option set; this file is outside its walk, so keep this step in step with
  *      the call site below by hand.
- *   3. The worker's factory builds the corpus in chunks, then the engine. During this, the main
- *      thread is fully idle — the BrainSynapse loader animates smoothly + progress copy
- *      updates per chunk.
+ *   3. The worker's factory builds the corpus in chunks, derives the panel facets and hands them
+ *      over through `onFacets`, then builds the engine. During this, the main thread is fully idle —
+ *      the BrainSynapse loader animates smoothly + progress copy updates per chunk.
  *   4. `wrapInWorker` resolves to a `FilterEngineAsync<Wine>`. Wrap it via
  *      `createSignalsEngineFromAsync` to get the `SignalsEngine<Wine>` the shared wine
  *      components consume unchanged.
@@ -43,6 +43,7 @@ import { type FilterEngineAsync, type WorkerLike, wrapInWorker } from '@filter-e
 import { loadCorpusPaged } from '../data/loadCorpusPaged.js';
 import { reviveSignalsEngineOverWorker } from '../data/reviveSignalsEngine.js';
 import { buildWineEngine } from './buildWineEngine.js';
+import { deriveWineFacets, rememberWineFacets, type WineFacets } from './wine-domain/facets.js';
 import { describeWineCorpusTier, type WineCorpusSource } from './wineCorpusTier.js';
 import { resolveWineWorkerTier } from './wineMemoryTier.js';
 
@@ -140,6 +141,12 @@ export interface WineBootProgress {
  */
 export interface WineEngineBundle {
 	readonly engine: SignalsEngine<Wine>;
+	/**
+	 * The panel facets of the corpus the engine holds — derived in the worker on the worker tier, on the
+	 * main thread over the default tier. Also recorded against `engine.core.getSourceData()`, so
+	 * `wineFacetsFor` finds them from the engine alone.
+	 */
+	readonly facets: WineFacets;
 	readonly meta: {
 		readonly bootMs: number;
 		readonly source: WineBootProgress['source'];
@@ -158,6 +165,8 @@ type ProgressListener = (progress: WineBootProgress | null) => void;
 let currentProgress: WineBootProgress | null = null;
 const progressListeners = new Set<ProgressListener>();
 let cachedBoot: Promise<WineEngineBundle> | null = null;
+/** The facets the boot received — from the worker's `onFacets`, or derived on the main-thread tier. */
+let deliveredFacets: WineFacets | null = null;
 
 /**
  * Subscribe to wine boot progress updates. The listener is invoked with the current
@@ -266,6 +275,33 @@ function reportProgress(loaded: number, total: number, source: WineCorpusSource,
 }
 
 /**
+ * Keep the facets the worker delivers (or the main-thread tier derives) for the boot to hand out.
+ *
+ * @param facets - The corpus's facets.
+ */
+function receiveFacets(facets: WineFacets): void {
+	deliveredFacets = facets;
+}
+
+/**
+ * The facets received during this boot.
+ *
+ * @returns The facets.
+ * @throws When none arrived: a worker that returns its engine without calling `onFacets` is out of step
+ *   with this module, and the panels would otherwise have to walk the corpus on the main thread.
+ */
+function takeDeliveredFacets(): WineFacets {
+	if (deliveredFacets === null) {
+		throw new Error(
+			'bootWineEngine: the corpus worker returned its engine without delivering the panel facets. '
+				+ 'Its factory must call `deliverWineFacets` (wineCorpusLoader.ts) before it returns.',
+		);
+	}
+
+	return deliveredFacets;
+}
+
+/**
  * Spawn the corpus worker and Comlink-wrap it.
  *
  * @remarks
@@ -298,7 +334,7 @@ async function spawnWineAsyncEngine(options: WineBootOptions): Promise<FilterEng
 	}
 
 	return wrapInWorker<Wine>({
-		factoryCallbacks: { onProgress: reportProgress },
+		factoryCallbacks: { onFacets: receiveFacets, onProgress: reportProgress },
 		factoryName: 'wineEngine',
 		factoryOptions: { tier: resolveWineWorkerTier() },
 		worker: spawnWorker(),
@@ -352,8 +388,11 @@ export async function bootWineEngine(options: WineBootOptions = {}): Promise<Win
 		return bundle;
 	}
 	// A route that left disposed the cached facade; hand the next visit a live one over the same engine
-	// (the worker's, when it runs in one).
+	// (the worker's, when it runs in one). A new facade over a worker holds a new copy of the corpus, so
+	// the facets are recorded against that copy too.
 	const revived = { ...bundle, engine };
+
+	rememberWineFacets(engine.core.getSourceData(), bundle.facets);
 
 	cachedBoot = Promise.resolve(revived);
 
@@ -385,6 +424,8 @@ async function bootInternal(options: WineBootOptions): Promise<WineEngineBundle>
 				tier: 'default',
 			});
 
+			receiveFacets(deriveWineFacets(corpus));
+
 			return buildWineEngine(corpus);
 		},
 		size: options.datasetSize ?? resolveDatasetSize(),
@@ -403,9 +444,13 @@ async function bootInternal(options: WineBootOptions): Promise<WineEngineBundle>
 	   ignored ternary: pulling an expression into a callback moves it out from under any ignore that
 	   covered it. */
 	const progressMeta = readProgressMeta(() => engine.sourceData.value.length);
+	const facets = takeDeliveredFacets();
+
+	rememberWineFacets(engine.core.getSourceData(), facets);
 
 	return {
 		engine,
+		facets,
 		meta: { bootMs, mode, ...progressMeta },
 	};
 }
@@ -420,6 +465,8 @@ async function bootInternal(options: WineBootOptions): Promise<WineEngineBundle>
 export interface WineAsyncEngineBundle {
 	/** The worker-hosted engine, ready to be wrapped in whichever reactive surface the caller uses. */
 	readonly asyncEngine: FilterEngineAsync<Wine>;
+	/** The panel facets the worker derived from its corpus — see {@link WineEngineBundle.facets}. */
+	readonly facets: WineFacets;
 	readonly meta: {
 		readonly bootMs: number;
 		readonly source: WineBootProgress['source'];
@@ -471,6 +518,7 @@ export async function bootWineAsyncEngine(
 
 		return {
 			asyncEngine,
+			facets: takeDeliveredFacets(),
 			meta: { bootMs, ...readProgressMeta(() => 0) },
 		};
 	})();

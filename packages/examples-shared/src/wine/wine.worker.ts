@@ -10,7 +10,10 @@
  *      synthetic wines from the seeded generator — reporting progress after every chunk to a
  *      `Comlink.proxy`-wrapped `onProgress` callback. The main-thread loader keeps animating
  *      throughout. The chain lives in `wineCorpusLoader.ts`, where it can be tested.
- *   2. It hosts the `FilterEngine` for its lifetime. Every consumer call (addRule, removeRule,
+ *   2. It derives the panel facets — slider baselines, chip vocabularies, origin tree — from that
+ *      corpus and hands them to the main thread through the `onFacets` callback, so no page walks the
+ *      whole corpus for them. See `deliverWineFacets`.
+ *   3. It hosts the `FilterEngine` for its lifetime. Every consumer call (addRule, removeRule,
  *      getResults, simulate, …) round-trips via Comlink, so the main thread stays free to render and
  *      handle input however heavy the filter computation is.
  *
@@ -26,7 +29,7 @@ import type { Wine } from '@filter-enginez/mock-data/wine/generator';
 import { createFilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
 import { exposeFilterEngineWorker, type WorkerEngineFactory } from '@filter-enginez/worker-bridge';
 
-import { loadWineCorpus, type WineWorkerCallbacks } from './wineCorpusLoader.js';
+import { deliverWineFacets, loadWineCorpus, type WineWorkerCallbacks } from './wineCorpusLoader.js';
 import { type WineWorkerTier } from './wineCorpusTier.js';
 
 /**
@@ -64,7 +67,10 @@ const wineEngineFactory: WorkerEngineFactory<Wine> = async (options, callbacks) 
 	// Phase 2 — the corpus.
 	const { wines } = await loadWineCorpus(readRequestedTier(options), onProgress);
 
-	// Phase 3 — the engine, which lives here for the worker's lifetime; the main thread holds a Comlink
+	// Phase 3 — the panel facets, derived here rather than on the main thread (see `deliverWineFacets`).
+	await deliverWineFacets(wines, cbs?.onFacets);
+
+	// Phase 4 — the engine, which lives here for the worker's lifetime; the main thread holds a Comlink
 	// proxy.
 	//
 	// **No pre-loaded rules.** Passing a config would start the engine with every filter rule already

@@ -91,7 +91,7 @@ vi.mock('@filter-enginez/examples-shared/wine-core', () => ({
 			bootControls = {
 				reject,
 				resolve: () => {
-					resolve({ asyncEngine: {}, meta: { source: 'synthetic-full-tier' }});
+					resolve({ asyncEngine: {}, facets: {}, meta: { source: 'synthetic-full-tier' }});
 				},
 			};
 		});
@@ -117,7 +117,9 @@ vi.mock('@filter-enginez/reactive-signals/worker', () => ({
 	createSignalsEngineFromAsync: async (): Promise<unknown> => {
 		await Promise.resolve();
 
-		return {};
+		// Only what the page reads before it hands the engine to the (mocked) shell: the corpus its
+		// facets are filed against.
+		return { core: { getSourceData: (): readonly never[] => []}};
 	},
 }));
 

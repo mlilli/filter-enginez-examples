@@ -28,7 +28,6 @@
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 	import {
-		deriveWineFacets,
 		FALLBACK_BOUNDS,
 		type NumericBounds,
 		type OriginNodeSpec,
@@ -98,11 +97,9 @@
 			const booted = bundle.engine;
 
 			corpusTier = describeWineCorpusTier(bundle.meta.source);
-			const corpus = booted.core.getSourceData();
-
-			// One shared derivation from `examples-shared/wine-domain`, the same one the Vue and Angular
-			// wine routes use.
-			const facets = deriveWineFacets(corpus);
+			// The facets the corpus worker derived (the shared `deriveWineFacets`, the same one every wine
+			// route receives), so this page never walks the corpus for them.
+			const { facets } = bundle;
 
 			vocabularies = facets.vocabularies;
 			originTree = facets.originTree;

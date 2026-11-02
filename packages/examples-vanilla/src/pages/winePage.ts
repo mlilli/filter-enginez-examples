@@ -52,6 +52,7 @@ import {
 	subscribeWineBootProgress,
 	type WineBootProgress,
 } from '@filter-enginez/examples-shared/wine-core';
+import { rememberWineFacets } from '@filter-enginez/examples-shared/wine-domain';
 import { spawnWineWorker } from '@filter-enginez/examples-shared/wine-worker-spawn';
 import { createSignalsEngineFromAsync } from '@filter-enginez/reactive-signals/worker';
 
@@ -93,11 +94,16 @@ export async function renderWinePage(container: HTMLElement): Promise<RouteTeard
 	try {
 		// `.finally` rather than a plain line after the await: a failed boot rejects past this line,
 		// and the listener would otherwise stay in a module-level set for the life of the page.
-		const { asyncEngine, meta } = await bootWineAsyncEngine({ spawnWorker: spawnWineWorker }).finally(
+		const { asyncEngine, facets, meta } = await bootWineAsyncEngine({ spawnWorker: spawnWineWorker }).finally(
 			stopProgress,
 		);
+		const engine = await createSignalsEngineFromAsync(asyncEngine);
 
-		booted = { engine: await createSignalsEngineFromAsync(asyncEngine), source: meta.source };
+		// The facets the corpus worker derived, filed against this facade's copy of the corpus. The panel
+		// looks them up there (`wineFacetsFor`); without this, it would walk the 150k records to derive
+		// them again on the main thread.
+		rememberWineFacets(engine.core.getSourceData(), facets);
+		booted = { engine, source: meta.source };
 	} catch (error) {
 		console.error('[wine] boot failed:', error);
 		container.replaceChildren(createWineBootFailure(error instanceof Error ? error.message : String(error)));

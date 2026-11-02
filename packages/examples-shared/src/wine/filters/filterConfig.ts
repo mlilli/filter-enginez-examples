@@ -21,10 +21,11 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { useFilterEngine } from '@filter-enginez/react-signals';
-import { deriveBaselineBounds, type NumericBounds } from '@filter-enginez/react-ui';
+import { type NumericBounds } from '@filter-enginez/react-ui';
 import { useMemo } from 'react';
 
-import { FALLBACK_BOUNDS, SLIDER_FIELD_GETTERS, SLIDER_STEPS, type SliderFieldId } from '../wine-domain/filterConfig.js';
+import { wineFacetsFor } from '../wine-domain/facets.js';
+import { FALLBACK_BOUNDS, type SliderFieldId } from '../wine-domain/filterConfig.js';
 
 export {
 	BODY_ORDER,
@@ -39,9 +40,10 @@ export {
 } from '../wine-domain/filterConfig.js';
 
 /**
- * Derive the baseline (full-corpus) bounds for a specific slider's field. Cheap — one pass over
- * sourceData per field. Memoized on the sourceData reference so it only re-runs when the engine
- * swaps source data (typically never, post-boot).
+ * The baseline (full-corpus) bounds for a specific slider's field, read from the corpus's facets
+ * (`wineFacetsFor`): derived once per corpus — in the corpus worker on the full tier — however many
+ * sliders ask. Memoized on the sourceData reference so it only re-reads when the engine swaps source
+ * data (typically never, post-boot).
  *
  * **Why a hook rather than a one-shot module constant.** sourceData is async-loaded inside the
  * worker boot path; the panel mounts BEFORE boot completes. Pulling baseline through a memoized
@@ -59,11 +61,11 @@ export function useBaselineBounds(fieldId: SliderFieldId): NumericBounds {
 		if (sourceData.length === 0) {
 			return FALLBACK_BOUNDS[fieldId];
 		}
-		const getter = SLIDER_FIELD_GETTERS[fieldId];
-		const values = sourceData.map(getter);
 
-		// FALLBACK_BOUNDS is a pre-boot placeholder, not a ceiling — `deriveBaselineBounds` does
-		// not clamp to it, which is what keeps the $800 wines and the 1945 vintages reachable.
-		return deriveBaselineBounds(values, FALLBACK_BOUNDS[fieldId], SLIDER_STEPS[fieldId]);
+		// The corpus's facets carry every slider's baseline, derived once for the corpus (in the worker on
+		// the full tier) rather than once per slider here. FALLBACK_BOUNDS is a pre-boot placeholder, not
+		// a ceiling — the derivation does not clamp to it, which is what keeps the $800 wines and the
+		// 1945 vintages reachable.
+		return wineFacetsFor(sourceData).baselines[fieldId];
 	}, [fieldId, sourceData]);
 }

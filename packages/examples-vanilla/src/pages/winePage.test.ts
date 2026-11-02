@@ -37,6 +37,7 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 
 import { and, createFilterEngine, type FilterEngine, type FilterRule, inSet, type RuleId } from '@filter-enginez/core';
+import { deriveWineFacets, type WineFacets, wineFacetsFor } from '@filter-enginez/examples-shared/wine-domain';
 import { signal } from '@preact/signals-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -86,6 +87,9 @@ const results = signal<readonly Wine[]>(core.getResults());
 const resultCount = signal<number>(core.getResults().length);
 const lastChangeRuleId = signal<RuleId | null>(null);
 
+/** The facets the (mocked) worker delivers: derived from the same records, but a distinct object to follow. */
+const workerFacets: WineFacets = deriveWineFacets(WINES);
+
 const fakeEngine = {
 	activeRules,
 	core,
@@ -103,7 +107,7 @@ vi.mock('@filter-enginez/examples-shared/wine-core', () => ({
 	bootWineAsyncEngine: async (): Promise<unknown> => {
 		await Promise.resolve();
 
-		return { asyncEngine: {}, meta: { source: 'synthetic-full-tier' }};
+		return { asyncEngine: {}, facets: workerFacets, meta: { source: 'synthetic-full-tier' }};
 	},
 	describeWineCorpusTier: (): string => 'full corpus · synthetic',
 	getWineBootProgressSnapshot: (): null => null,
@@ -179,6 +183,12 @@ describe('vanilla wine page — repaint triggers', () => {
 
 		expect(applyFiltersAndQuery).toHaveBeenCalledTimes(1);
 		applyFiltersAndQuery.mockRestore();
+	});
+
+	it('files the worker\'s facets against the facade\'s corpus, so the panel derives none', () => {
+		// The facade is built here, after the boot, so its corpus copy is one the boot never saw; filed
+		// here, the panel's `wineFacetsFor` finds the worker's facets instead of walking the corpus.
+		expect(wineFacetsFor(core.getSourceData())).toBe(workerFacets);
 	});
 
 	it('offers the BROWSER-tier comparison, which is the half `/wine-server` inverts', () => {

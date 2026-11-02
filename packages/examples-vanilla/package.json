@@ -21,7 +21,7 @@
     "@filter-enginez/core": "0.2.0",
     "@filter-enginez/examples-shared": "workspace:*",
     "@filter-enginez/mock-data": "0.2.3",
-    "@filter-enginez/reactive-signals": "0.0.5",
+    "@filter-enginez/reactive-signals": "0.0.6",
     "@filter-enginez/ui-styles": "workspace:*",
     "@filter-enginez/url-state-router": "0.0.8",
     "@preact/signals-core": "^1.14.2",

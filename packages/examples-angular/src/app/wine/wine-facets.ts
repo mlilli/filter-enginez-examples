@@ -7,12 +7,12 @@
  * republished into component-scoped DI beside the engine itself. That file argues the DI-over-inputs
  * case at length and it applies unchanged here; what follows is only what wine does differently.
  *
- * ### Derived from the WORKER's corpus, and that is not the same as "the booted corpus"
+ * ### Derived IN the worker, from the worker's corpus
  *
  * Real estate boots on the main thread, so its resolver reads `core.getSourceData()` and is done. Wine
- * runs 150,000 records behind Comlink, so the corpus lives in the worker and reaching it is an awaited
- * `getSourceData()` round trip — one transfer of the whole corpus, which is why {@link deriveWineFacets}
- * takes the records rather than the engine and the caller decides when to pay for them.
+ * runs 150,000 records behind Comlink, so the corpus lives in the worker — and so does the derivation:
+ * the worker runs the shared `deriveWineFacets` over the records it holds and delivers the result with
+ * the engine (`bootWineAsyncEngine`'s `facets`), so the main thread never walks the corpus for them.
  *
  * The alternative is worse than it looks. Any tree or vocabulary built from a corpus other than the
  * one the worker holds — the bundled 10k tier, say — would silently omit every region and grape that
@@ -37,13 +37,13 @@
 
 
 import { inject, InjectionToken, type Provider } from '@angular/core';
-import { deriveWineFacets, type WineFacets } from '@filter-enginez/examples-shared/wine-domain';
+import { type WineFacets } from '@filter-enginez/examples-shared/wine-domain';
 
-// Re-exported so every import site in this app reaches them through this file, which is where an
+// Re-exported so every import site in this app reaches the type through this file, which is where an
 // Angular reader looks. The DERIVATION lives in `examples-shared/wine-domain` because it is pure,
-// engine-free and identical for every vertical that serves wine. What stays here is the part that is
-// genuinely Angular's — the token and its two helpers.
-export { deriveWineFacets, type WineFacets };
+// engine-free and identical for every vertical that serves wine, and it runs in the corpus worker.
+// What stays here is the part that is genuinely Angular's — the token and its two helpers.
+export { type WineFacets };
 
 /** The token the route provides and the panel's consumers inject. */
 export const WINE_FACETS = new InjectionToken<WineFacets>('filter-enginez.WineFacets');

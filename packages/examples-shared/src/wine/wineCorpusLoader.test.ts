@@ -22,7 +22,9 @@ import {
 } from '@filter-enginez/mock-data/wine/generator';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { deriveWineFacets } from './wine-domain/facets.js';
 import {
+	deliverWineFacets,
 	EXPECTED_REAL_CORPUS_SIZE,
 	generateSyntheticWines,
 	loadWineCorpus,
@@ -298,6 +300,31 @@ describe('loadWineCorpus', () => {
 		expect(wines).toEqual(generateWineRange(0, DEFAULT_TIER_SIZE, undefined, 'default'));
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(onProgress).toHaveBeenLastCalledWith(DEFAULT_TIER_SIZE, DEFAULT_TIER_SIZE, 'low-memory-tier', false);
+	});
+});
+
+describe('deliverWineFacets', () => {
+	it('derives the facets of the corpus it is given and awaits their delivery', async () => {
+		// Awaited, because the callback travels on its own Comlink channel: the worker must not return
+		// its engine until the main thread holds the facets.
+		const wines = generateWineRange(0, 50);
+		let delivered: unknown = null;
+		let hasSettled = false;
+		const onFacets = vi.fn(async (facets: unknown) => {
+			await Promise.resolve();
+			delivered = facets;
+			hasSettled = true;
+		});
+
+		await deliverWineFacets(wines, onFacets);
+
+		expect(hasSettled).toBe(true);
+		expect(onFacets).toHaveBeenCalledTimes(1);
+		expect(delivered).toEqual(deriveWineFacets(wines));
+	});
+
+	it('derives nothing when the boot sent no receiver', async () => {
+		await expect(deliverWineFacets(generateWineRange(0, 5), undefined)).resolves.toBeUndefined();
 	});
 });
 

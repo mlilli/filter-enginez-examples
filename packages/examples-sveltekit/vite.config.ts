@@ -17,13 +17,13 @@ export default defineConfig({
 	// `@filter-enginez/examples-*` packages must stay out of this list, or Vite snapshots their source
 	// once and serves it stale; engine packages are installed tarballs, so pre-bundling one is safe.
 	//
-	// The wine worker's corpus generator is pre-bundled for the same reason. The worker is a separate
-	// module graph (`?worker`), so the scan at server start never sees its imports: the first visit to
-	// /wine discovers `@filter-enginez/mock-data/wine/generator`, re-optimizes, and reloads EVERY open
-	// page of this app mid-session. tests/tooling/wineWorkerPrebundle.test.ts keeps this list in step
-	// with the worker's imports.
+	// The wine worker's packages — its corpus generator, and the bounds helpers it derives the panel
+	// facets with — are pre-bundled for the same reason. The worker is a separate module graph
+	// (`?worker`), so the scan at server start never sees its imports: the first visit to /wine
+	// discovers them, re-optimizes, and reloads EVERY open page of this app mid-session.
+	// tests/tooling/wineWorkerPrebundle.test.ts keeps this list in step with the worker's imports.
 	optimizeDeps: {
-		include: ['leaflet', '@filter-enginez/mock-data/wine/generator'],
+		include: ['leaflet', '@filter-enginez/mock-data/wine/generator', '@filter-enginez/react-ui/bounds'],
 	},
 	plugins: [sveltekit()],
 	server: {

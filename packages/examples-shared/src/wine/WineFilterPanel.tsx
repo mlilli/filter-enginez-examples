@@ -23,8 +23,8 @@
  * mode via `setExpression` (single-select or "match any (OR)" multi-select).
  *
  * **One facet derivation, shared with every app.** The chip vocabularies and the origin tree come
- * from `deriveWineFacets` over the corpus the engine holds, the function the other four wine
- * verticals call. Each chip group offers `orderedPresentOptions(<design order>, <corpus values>)`
+ * from `wineFacetsFor` over the corpus the engine holds: the facets the corpus worker derived and the
+ * boot recorded, the same `deriveWineFacets` result every other wine vertical receives. Each chip group offers `orderedPresentOptions(<design order>, <corpus values>)`
  * with the raw values as labels, and the bundle asks predictive disable about exactly those values.
  *
  * Headline UX moment: the exclusion-aware chip/tree disabling
@@ -59,7 +59,7 @@ import { RangeFilterSection } from './filters/RangeFilterSection.js';
 import { SmartFilterPresets } from './filters/SmartFilterPresets.js';
 import { SmartFilterSelectionContext, useSmartFilterSelectionState } from './filters/smartFilterSelection.js';
 import { VintageFilterSection } from './filters/VintageFilterSection.js';
-import { deriveWineFacets } from './wine-domain/facets.js';
+import { wineFacetsFor } from './wine-domain/facets.js';
 import { visibleVarietalChips } from './wine-domain/filterConfig.js';
 import { orderedPresentOptions } from './wine-domain/panelCopy.js';
 
@@ -82,8 +82,8 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 	const { isHeaderVisible = true } = props;
 	const engine = useFilterEngine<Wine>();
 
-	// Baselines computed once per source-data swap (typically just once at boot). Pulled at the
-	// panel root so we can pass them into the bundle query AND down to each slider for the dim-zone
+	// Baselines read from the corpus's facets (derived once, in the worker on the full tier). Pulled at
+	// the panel root so we can pass them into the bundle query AND down to each slider for the dim-zone
 	// clamp semantics.
 	const priceBaseline = useBaselineBounds('price');
 	const pointsBaseline = useBaselineBounds('points');
@@ -95,11 +95,11 @@ export const WineFilterPanel = (props: WineFilterPanelProps = {}): React.ReactEl
 	);
 
 	// Every facet that is not a rule — the chip vocabularies, the origin tree and its flattened specs —
-	// from the shared derivation, over the corpus the ENGINE holds (`sourceData`), so the panel offers
-	// what the loaded tier actually contains. Varietal is ranked most-reviewed first; the origin tree
-	// is ordered by wine count.
+	// for the corpus the ENGINE holds (`sourceData`), so the panel offers what the loaded tier actually
+	// contains: the worker derived them and the boot recorded them, so nothing walks the corpus here.
+	// Varietal is ranked most-reviewed first; the origin tree is ordered by wine count.
 	const sourceData = engine.core.getSourceData();
-	const facets = useMemo(() => deriveWineFacets(sourceData), [sourceData]);
+	const facets = useMemo(() => wineFacetsFor(sourceData), [sourceData]);
 	const { originSpecs, originTree, vocabularies } = facets;
 	// The chip groups' options: the design order, keeping only values the corpus carries.
 	const colorOptions = useMemo(() => orderedPresentOptions(COLOR_ORDER, vocabularies.color), [vocabularies.color]);

@@ -89,6 +89,8 @@ export default defineConfig({
 			// this the first visit to /wine discovers it, re-optimizes, and reloads EVERY open page of this
 			// app mid-session. tests/tooling/wineWorkerPrebundle.test.ts keeps this in step with the worker.
 			'@filter-enginez/mock-data/wine/generator',
+			// The bounds helpers the worker derives the panel facets with, for the same reason.
+			'@filter-enginez/react-ui/bounds',
 		],
 	},
 	plugins: [

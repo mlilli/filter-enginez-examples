@@ -16,8 +16,10 @@ import { wines as defaultTierWines } from '@filter-enginez/mock-data/wine';
 import { FULL_WINE_TIER_SIZE } from '@filter-enginez/mock-data/wine/generator';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as WineFacetsModule from './wine-domain/facets.js';
 import type * as WineEngine from './wineEngine.js';
 
+import { deriveWineFacets } from './wine-domain/facets.js';
 import { describeWineCorpusTier } from './wineCorpusTier.js';
 
 /** The module's public surface, as returned by a fresh import. */
@@ -31,6 +33,30 @@ type ProgressReporter = (
 	isTotalEstimated: boolean,
 ) => void;
 
+/** The callbacks `wrapInWorker` receives, as far as these stubs read them. */
+interface StubbedFactoryCallbacks {
+	readonly onFacets?: (facets: WineFacetsModule.WineFacets) => void;
+	readonly onProgress?: ProgressReporter;
+}
+
+/** A stand-in for the facets the corpus worker derives — an identity the tests can follow, not data. */
+const WORKER_FACETS = { stand: 'in' } as unknown as WineFacetsModule.WineFacets;
+
+/**
+ * A stubbed `wrapInWorker` that behaves as the real worker's factory does: it delivers the facets
+ * through `onFacets` before it resolves the engine.
+ *
+ * @param asyncEngine - What the stub resolves to.
+ * @returns The stub.
+ */
+function wrapInWorkerDelivering(asyncEngine: unknown): (options: { factoryCallbacks?: StubbedFactoryCallbacks }) => Promise<unknown> {
+	return vi.fn(async (options: { factoryCallbacks?: StubbedFactoryCallbacks }) => {
+		options.factoryCallbacks?.onFacets?.(WORKER_FACETS);
+
+		return Promise.resolve(asyncEngine);
+	});
+}
+
 /**
  * Import a FRESH copy of the module so `cachedBoot` and the progress singleton reset.
  *
@@ -40,6 +66,17 @@ async function loadModule(): Promise<WineEngineModule> {
 	vi.resetModules();
 
 	return import('./wineEngine.js');
+}
+
+/**
+ * The facets cache the module from {@link loadModule} records into. Imported after the reset, so it is
+ * the same module instance the fresh boot imported — a static import would be an older one, with a
+ * cache of its own.
+ *
+ * @returns `wineFacetsFor` from the current module instance.
+ */
+async function currentWineFacetsFor(): Promise<typeof WineFacetsModule.wineFacetsFor> {
+	return (await import('./wine-domain/facets.js')).wineFacetsFor;
 }
 
 beforeEach(() => {
@@ -157,8 +194,9 @@ describe('describeBootedWineCorpusTier', () => {
 		const asyncEngine = { getSourceData: vi.fn(async () => Promise.resolve([])) };
 
 		vi.doMock('@filter-enginez/worker-bridge', () => ({
-			wrapInWorker: vi.fn(async (options: { factoryCallbacks?: { onProgress?: ProgressReporter }}) => {
+			wrapInWorker: vi.fn(async (options: { factoryCallbacks?: StubbedFactoryCallbacks }) => {
 				captured.onProgress = options.factoryCallbacks?.onProgress ?? null;
+				options.factoryCallbacks?.onFacets?.(WORKER_FACETS);
 
 				return Promise.resolve(asyncEngine);
 			}),
@@ -234,6 +272,18 @@ describe('bootWineEngine', () => {
 		expect(bundle.engine.resultCount.value).toBe(defaultTierWines.length);
 	});
 
+	it('derives the facets of the corpus it booted, and records them against the engine\'s copy', async () => {
+		// The main-thread tier has no worker to derive them, so the boot does, once. Recorded against the
+		// corpus the engine holds, so a panel holding only the engine (React's hooks, vanilla's panel)
+		// finds them there instead of deriving them again.
+		const wineEngine = await loadModule();
+		const bundle = await wineEngine.bootWineEngine();
+		const corpus = bundle.engine.core.getSourceData();
+
+		expect(bundle.facets).toEqual(deriveWineFacets(corpus));
+		expect((await currentWineFacetsFor())(corpus)).toBe(bundle.facets);
+	});
+
 	it('records a non-negative boot duration', async () => {
 		const wineEngine = await loadModule();
 		const bundle = await wineEngine.bootWineEngine();
@@ -267,6 +317,8 @@ describe('bootWineEngine on a revisit', () => {
 		expect(revisited.engine).not.toBe(first.engine);
 		expect(revisited.engine.core).toBe(first.engine.core);
 		expect(revisited.meta).toBe(first.meta);
+		// A new facade holds a new copy of the corpus over a worker; the facets follow it there.
+		expect((await currentWineFacetsFor())(revisited.engine.core.getSourceData())).toBe(first.facets);
 		expect((await wineEngine.bootWineEngine()).engine).toBe(revisited.engine);
 	});
 });
@@ -288,7 +340,7 @@ describe('the worker tier request', () => {
 	] as const)('asks the worker for the %s-GB device\'s tier (%s)', async (deviceMemory, expected) => {
 		// The tier is decided on the main thread and sent as plain data. Every app reaches the worker
 		// through this one call, which is what makes all six boot the same tier on one device.
-		const wrapInWorker = vi.fn(async () => Promise.resolve({ getSourceData: vi.fn(async () => Promise.resolve([])) }));
+		const wrapInWorker = wrapInWorkerDelivering({ getSourceData: vi.fn(async () => Promise.resolve([])) });
 
 		vi.doMock('@filter-enginez/worker-bridge', () => ({ wrapInWorker }));
 		vi.stubGlobal('navigator', { deviceMemory });
@@ -322,7 +374,7 @@ describe('bootWineAsyncEngine', () => {
 		// The stub resolves the shape `FilterEngineAsync` promises rather than an empty object, so the
 		// test fails if the boot starts depending on more of that surface.
 		const asyncEngine = { getSourceData: vi.fn(async () => Promise.resolve([])) };
-		const wrapInWorker = vi.fn(async () => Promise.resolve(asyncEngine));
+		const wrapInWorker = wrapInWorkerDelivering(asyncEngine);
 
 		vi.doMock('@filter-enginez/worker-bridge', () => ({ wrapInWorker }));
 
@@ -334,6 +386,8 @@ describe('bootWineAsyncEngine', () => {
 		expect(spawnWorker).toHaveBeenCalled();
 		expect(wrapInWorker).toHaveBeenCalled();
 		expect(bundle.asyncEngine).toBe(asyncEngine);
+		// The facets the worker delivered, handed on as they arrived.
+		expect(bundle.facets).toBe(WORKER_FACETS);
 		expect(bundle.meta.bootMs).toBeGreaterThanOrEqual(0);
 		// No progress was ever reported on this path, so the metadata falls back rather than reading
 		// `undefined` into the boot screen's copy.
@@ -348,7 +402,7 @@ describe('bootWineAsyncEngine', () => {
 		const asyncEngine = { getSourceData: vi.fn(async () => Promise.resolve([])) };
 
 		vi.doMock('@filter-enginez/worker-bridge', () => ({
-			wrapInWorker: vi.fn(async () => Promise.resolve(asyncEngine)),
+			wrapInWorker: wrapInWorkerDelivering(asyncEngine),
 		}));
 
 		const wineEngine = await loadModule();
@@ -359,6 +413,21 @@ describe('bootWineAsyncEngine', () => {
 
 		expect(second).toBe(first);
 		expect(spawnWorker).toHaveBeenCalledTimes(1);
+
+		vi.doUnmock('@filter-enginez/worker-bridge');
+	});
+
+	it('refuses a worker that returns its engine without delivering the facets', async () => {
+		// Out of step with this module: the panels would have nothing to read but the corpus, on the main
+		// thread, which is the cost the worker-side derivation exists to remove. Named, not degraded.
+		vi.doMock('@filter-enginez/worker-bridge', () => ({
+			wrapInWorker: vi.fn(async () => Promise.resolve({ getSourceData: vi.fn(async () => Promise.resolve([])) })),
+		}));
+
+		const wineEngine = await loadModule();
+
+		await expect(wineEngine.bootWineAsyncEngine({ spawnWorker: vi.fn(() => ({ terminate: vi.fn() })) as never }))
+			.rejects.toThrow(/deliverWineFacets/);
 
 		vi.doUnmock('@filter-enginez/worker-bridge');
 	});
