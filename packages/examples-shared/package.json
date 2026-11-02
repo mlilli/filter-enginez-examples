@@ -73,7 +73,7 @@
     "@filter-enginez/react-ui": "workspace:*",
     "@filter-enginez/reactive-signals": "0.0.5",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.7",
+    "@filter-enginez/url-state-router": "0.0.8",
     "@filter-enginez/worker-bridge": "0.0.5",
     "leaflet": "1.9.4",
     "msw": "^2.14.6",

@@ -23,7 +23,7 @@
     "@filter-enginez/mock-data": "0.2.3",
     "@filter-enginez/reactive-signals": "0.0.5",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.7",
+    "@filter-enginez/url-state-router": "0.0.8",
     "@filter-enginez/vue-signals": "0.0.5",
     "leaflet": "1.9.4",
     "roaring-wasm": "^1.1.0",

@@ -220,7 +220,7 @@ overrides:
   '@filter-enginez/reactive-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-reactive-signals-0.0.5.tgz'
   '@filter-enginez/redux-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-redux-bridge-0.0.5.tgz'
   '@filter-enginez/svelte-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-svelte-signals-0.0.5.tgz'
-  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.7.tgz'
+  '@filter-enginez/url-state-router': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-url-state-router-0.0.8.tgz'
   '@filter-enginez/vue-signals': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-vue-signals-0.0.5.tgz'
   '@filter-enginez/worker-bridge': 'file:../filter-enginez/tmp/engine-tarballs/filter-enginez-worker-bridge-0.0.5.tgz'
 
