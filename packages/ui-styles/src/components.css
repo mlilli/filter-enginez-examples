@@ -1098,7 +1098,11 @@
 	align-items: baseline;
 	gap: 6px 14px;
 }
-.fe-result-count__number {
+/* The server-rendered fallback's count shares this declaration: it is those pages' largest paint, and
+   at the live count's size the swap to the live view does not become a larger one. Its own class
+   keeps `.fe-result-count__number` meaning the live count, which the e2e boot checks wait for. */
+.fe-result-count__number,
+.fe-server-fallback__count-number {
 	font-family: var(--font-mono);
 	font-variant-numeric: tabular-nums;
 	font-size: 38px;

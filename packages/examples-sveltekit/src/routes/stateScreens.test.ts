@@ -3,8 +3,8 @@
  * holding what the screen says.
  *
  * @remarks
- * The screens: the books and real-estate boot captions, the wine boot loader (which `/wine-server`
- * shows too while it connects), the wine, books and real-estate boot failures (each saying the
+ * The screens: the books and real-estate boot captions, the wine boot loader, the wine, books and
+ * real-estate boot failures (each saying the
  * shared `BOOT_FAILURE_COPY` words around the error's own message), the two server routes'
  * server-rendered fallbacks (their no-JavaScript page, and what stays up while the live engine
  * connects or after it fails), and the error page (the not-found page for a 404, the page-error
@@ -25,7 +25,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { resetTestPage, showTestPageError } from '../../test/appStores.js';
 import BooksServerFallback from '../lib/books/BooksServerFallback.svelte';
-import WineBootScreen from '../lib/wine/WineBootScreen.svelte';
 import WineServerFallback from '../lib/wine/WineServerFallback.svelte';
 
 /** The boots the routes call, each replaced by a case. */
@@ -111,12 +110,6 @@ describe('booting', () => {
 			expect(boots.wine).toHaveBeenCalledOnce();
 		});
 		expect(within(onlyMain()).getByLabelText('Loading wine reviews')).toBeDefined();
-	});
-
-	it('the wine loader is one main landmark on its own, as /wine-server shows it while it connects', () => {
-		render(WineBootScreen, { idleCaption: 'Connecting to the filter server', progress: null });
-
-		expect(within(onlyMain()).getByText('Connecting to the filter server')).toBeDefined();
 	});
 });
 

@@ -11,7 +11,10 @@
 	 *      `<WineServerFallback>` renders a plain GET `<form>` that works with **zero JavaScript**.
 	 *   2. On mount, the client boots the live server-backed engine, derives the panel's vocabularies /
 	 *      baselines / origin tree from the resident corpus, and swaps in the full `<WineView>` — the
-	 *      exact same component tree as `/wine`.
+	 *      exact same component tree as `/wine`. Until then the server-rendered results stay on screen,
+	 *      with the fallback's "connecting" line, as on `/books-server`: the first paint is real content,
+	 *      and its result count is drawn at the live count's size, so the page's largest paint does not
+	 *      wait for the corpus download and the engine boot.
 	 *
 	 * Two traps, both borrowed verbatim from `/wine` + `/books-server`:
 	 *
@@ -28,7 +31,6 @@
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-	import { SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 	import {
 		deriveWineFacets,
 		FALLBACK_BOUNDS,
@@ -39,7 +41,6 @@
 		type WineChipVocabularies,
 	} from '@filter-enginez/examples-shared/wine-domain';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
-	import WineBootScreen from '$lib/wine/WineBootScreen.svelte';
 	import WineServerFallback from '$lib/wine/WineServerFallback.svelte';
 	import WineView from '$lib/wine/WineView.svelte';
 	import { onDestroy, onMount } from 'svelte';
@@ -60,17 +61,11 @@
 	let corpusTier = $state('');
 	let booting = $state(true);
 	let bootError = $state<string | null>(null);
-	// Only true AFTER the client mounts. Gates the boot screen so the SSR / no-JS pass renders the
-	// server-filtered `<WineServerFallback>` (the progressive-enhancement floor), and the branded boot
-	// loader appears only once JavaScript is actually driving the boot — matching `/wine`.
-	let isMounted = $state(false);
 
 	/** Teardown for the address-bar sync (client-only; `null` until wired in `onMount`). */
 	let stopUrlSync: (() => void) | null = null;
 
 	onMount(async () => {
-		// The client is now driving — swap the SSR fallback for the branded boot loader (see `isMounted`).
-		isMounted = true;
 		try {
 			// Dynamic — see the docblock. Kept on ONE line: wrapped, the formatter adds a trailing comma
 			// inside `import(...)`, which Svelte's parser rejects as a syntax error.
@@ -131,16 +126,9 @@
 		tier="server"
 		{vocabularies}
 	/>
-{:else if isMounted && bootError === null}
-	<!-- JS on + booting: the branded cold-start loader, matching `/wine`. No progress stream on the
-	     server tier (one corpus fetch), so `progress` stays null and the caption names the real step. -->
-	<WineBootScreen
-		progress={null}
-		idleCaption={SERVER_ROUTE_SCREEN_COPY.connectingCaption}
-		loaderLabel={SERVER_ROUTE_SCREEN_COPY.connectingLoaderLabel}
-	/>
 {:else}
-	<!-- SSR / no-JS (server-filtered form) and the boot-error state, which keeps the working no-JS form. -->
+	<!-- SSR / no-JS (server-filtered form), the boot (with its "connecting" line) and the boot-error state,
+	     which keeps the working no-JS form. -->
 	<WineServerFallback
 		applied={data.applied}
 		{booting}

@@ -101,18 +101,6 @@ describe('WineBootScreen', () => {
 		expect(values).toEqual(['40,000']);
 	});
 
-	it('lets /wine-server name its own cold start', () => {
-		// That route has no worker and no progress stream, so announcing a spin-up would describe
-		// something that is not happening. The override has to reach the shared builder, not just the
-		// markup.
-		const { container } = render(WineBootScreen, {
-			idleCaption: 'Connecting to the filter server',
-			progress: null,
-		});
-
-		expect(caption(container)).toBe('Connecting to the filter server');
-	});
-
 	it('shows only the loader and the caption on the 10,000-wine default tier, as every app does', () => {
 		// The tier `VITE_WINE_TIER=default` selects boots with the same screen as the others: no extra
 		// line about the switch, which no other app's boot screen carries.

@@ -85,6 +85,14 @@
 		</p>
 	{/if}
 
+	<!-- Above the form, and the number in the live count's type: this is the page's largest paint, so it
+	     has to be on screen at first paint and at least as large as the live view's count, or the swap to
+	     the live view becomes the largest paint and waits for the engine to boot. -->
+	<p class="fe-server-fallback__count">
+		<strong class="fe-server-fallback__count-number">{matched.toLocaleString()}</strong> of {total.toLocaleString()} books match
+		{#if sample.length > 0}<span class="fe-server-fallback__count-hint"> · showing first {sample.length}</span>{/if}
+	</p>
+
 	<form class="fe-server-fallback__form" method="GET" action="/books-server">
 		<fieldset class="fe-server-fallback__fieldset">
 			<legend class="fe-server-fallback__legend">Genre</legend>
@@ -126,11 +134,6 @@
 			<a href="/books-server" class="fe-server-fallback__clear">Clear</a>
 		</div>
 	</form>
-
-	<p class="fe-server-fallback__count">
-		<strong>{matched.toLocaleString()}</strong> of {total.toLocaleString()} books match
-		{#if sample.length > 0}<span class="fe-server-fallback__count-hint"> · showing first {sample.length}</span>{/if}
-	</p>
 
 	{#if sample.length > 0}
 		<ul class="fe-server-fallback__grid">

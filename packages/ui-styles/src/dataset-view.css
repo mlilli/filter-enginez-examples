@@ -232,16 +232,16 @@
 	font-size: 13px;
 	color: var(--gray-8);
 }
+/* The number's type is the live count's declaration (`.fe-server-fallback__count-number`, beside
+   `.fe-result-count__number` in components.css): this count is the page's largest paint, so it must
+   render at least as large as the live view's, or the swap to the live view becomes the largest paint. */
 .fe-server-fallback__count {
 	margin: 0;
 	font-family: var(--font-mono);
 	font-size: 14px;
 	color: var(--gray-10);
 }
-.fe-server-fallback__count strong {
-	color: var(--accent);
-	font-size: 18px;
-}
+
 .fe-server-fallback__count-hint {
 	color: var(--gray-7);
 }

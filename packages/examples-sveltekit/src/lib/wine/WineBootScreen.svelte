@@ -34,33 +34,18 @@
 	import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 	import BrainSynapse from '$lib/brand/BrainSynapse.svelte';
 
-	const {
-		idleCaption,
-		loaderLabel = 'Loading wine reviews',
-		progress,
-	}: {
-		/** The caption shown before any progress arrives. `/wine` spins up a worker; `/wine-server` has no
-		 * worker and no progress stream, so it overrides this to name the real cold-start step.
-		 *
-		 * ⚠ NO DEFAULT HERE, deliberately. A prop default would make this component a second place that
-		 * decides what an idle boot says. Leaving it `undefined` lets `bootCaptionParts` apply
-		 * `DEFAULT_IDLE_CAPTION`, so the wording has exactly one home — which
-		 * `tests/tooling/bootCaptionSingleSource.test.ts` enforces. */
-		idleCaption?: string;
-		/** The loader's accessible name: what is being waited for. */
-		loaderLabel?: string;
-		progress: WineBootProgress | null;
-	} = $props();
+	const { progress }: { progress: WineBootProgress | null } = $props();
 
 	// The three states, their wording and the zero-total guard all live in
-	// `examples-shared/boot-caption`. What stays here is the only Svelte-specific part: which element
-	// carries the accent.
-	const captionParts = $derived(bootCaptionParts(progress, { idleCaption, recordNoun: 'bottles' }));
+	// `examples-shared/boot-caption`, the idle caption included (`DEFAULT_IDLE_CAPTION`, which
+	// `tests/tooling/bootCaptionSingleSource.test.ts` keeps in one home). What stays here is the only
+	// Svelte-specific part: which element carries the accent.
+	const captionParts = $derived(bootCaptionParts(progress, { recordNoun: 'bottles' }));
 </script>
 
 <!-- `<main>`: until the engine boots, the loader and its caption are the page's main content. -->
 <main class="fe-wine-boot">
-	<BrainSynapse width={520} ariaLabel={loaderLabel} />
+	<BrainSynapse width={520} ariaLabel="Loading wine reviews" />
 
 	<p class="fe-boot-caption fe-boot-caption--hero">
 		{#each captionParts as part (part.kind + part.text)}
