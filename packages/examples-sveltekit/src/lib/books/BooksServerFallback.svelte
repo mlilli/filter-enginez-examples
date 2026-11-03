@@ -11,9 +11,12 @@
 	 * `load`; this component holds no engine and no reactivity beyond the `booting` status hint.
 	 *
 	 * While the live engine connects, and when it cannot, the status line uses the words every app's
-	 * `/books-server` shows for those two states: "Filtering on the Node server · fetching corpus +
-	 * initial state", and "Can't reach the filter server" with the error and how to start the server.
-	 * The server-rendered form stays usable below either.
+	 * `/books-server` shows for those two states: "Filtering on the server · fetching corpus + initial
+	 * state", and "Can't reach the filter server" with the error and how to start the server. The
+	 * server-rendered form stays usable below either. The connecting line is in the server-rendered
+	 * HTML (`booting` starts `true`), so it is on screen from the first paint and its arrival never
+	 * shifts the page; with JavaScript off nothing will connect, and ui-styles hides it there
+	 * (`@media (scripting: none)`).
 	 */
 
 	import type { AppliedParams } from '$lib/server/booksServerParams.js';

@@ -30,7 +30,7 @@
  * ### Connecting, and offline
  *
  * While the resolver fetches the corpus, the root component draws the connecting screen this route
- * names in its static data (the brand loader over "Filtering on the Node server · fetching corpus +
+ * names in its static data (the brand loader over "Filtering on the server · fetching corpus +
  * initial state"; see `app.routes.ts`). When the server cannot be reached, this component renders the
  * offline screen every app shows: "Can't reach the filter server", the error, and how to start it.
  *
@@ -207,7 +207,7 @@ function injectBooksServerEngine(): RxJsEngine<Book> {
 
 				<footer class="fe-books-app__footer">
 					Connected to {{ totalCount.toLocaleString() }} books in {{ bootMs }}&thinsp;ms · every
-					filter runs on the Node server
+					filter runs on the server
 				</footer>
 			</div>
 		}

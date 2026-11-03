@@ -205,7 +205,7 @@ export const BOOT_FAILURE_COPY: Readonly<Record<BootFailureDataset, BootFailureC
  */
 export const SERVER_ROUTE_SCREEN_COPY = {
 	/** The connecting screen's caption, under the hero loader. */
-	connectingCaption: 'Filtering on the Node server · fetching corpus + initial state',
+	connectingCaption: 'Filtering on the server · fetching corpus + initial state',
 	/** The hero loader's accessible name while connecting. */
 	connectingLoaderLabel: 'Connecting to the filter server',
 	/** The offline hint's words before the command. */

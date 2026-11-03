@@ -110,6 +110,9 @@ test.describe('SvelteKit /books-server — no-JS progressive enhancement', () =>
 		await expect(page.getByRole('button', { name: 'Filter on the server' })).toBeVisible();
 		// The neutral request matches the whole corpus.
 		expect(await readFallbackCount(page)).toBeGreaterThan(0);
+		// The "connecting" line is in the server-rendered HTML, but nothing will connect: it stays hidden.
+		await expect(page.locator('.fe-server-fallback__status')).toBeAttached();
+		await expect(page.locator('.fe-server-fallback__status')).toBeHidden();
 	});
 
 	test('submitting the GET form re-filters on the server and narrows the count', async ({ page }) => {

@@ -416,7 +416,7 @@ describe('the app routes’ boot captions', () => {
 		const data = appRoutes.find((route) => route.path === 'books-server')?.data;
 
 		expect(captionFor('books-server')).toBe(BOOKS_SERVER_CONNECTING_CAPTION);
-		expect(BOOKS_SERVER_CONNECTING_CAPTION).toBe('Filtering on the Node server · fetching corpus + initial state');
+		expect(BOOKS_SERVER_CONNECTING_CAPTION).toBe('Filtering on the server · fetching corpus + initial state');
 		expect(data?.[ROUTE_BOOT_LOADER_KEY]).toBe(BOOKS_SERVER_LOADER_LABEL);
 		expect(appRoutes.find((route) => route.path === 'books')?.data?.[ROUTE_BOOT_LOADER_KEY]).toBeUndefined();
 	});

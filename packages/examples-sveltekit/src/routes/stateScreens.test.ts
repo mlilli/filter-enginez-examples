@@ -191,7 +191,7 @@ describe('the server routes’ fallbacks', () => {
 		};
 		const connecting = render(BooksServerFallback, { ...props, bootError: null, booting: true });
 
-		expect(onlyMain().textContent).toContain('Filtering on the Node server · fetching corpus + initial state');
+		expect(onlyMain().textContent).toContain('Filtering on the server · fetching corpus + initial state');
 		connecting.unmount();
 
 		render(BooksServerFallback, { ...props, bootError: 'fetch failed', booting: false });

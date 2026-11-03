@@ -34,8 +34,8 @@
  * the engine had booted. Each booting route names its cold-start caption in its static `data`
  * ({@link ROUTE_BOOT_CAPTION_KEY}), and the root component draws it while the outlet is still empty —
  * see `app.component.ts`. `/books-server` also names a hero loader ({@link ROUTE_BOOT_LOADER_KEY}):
- * its wait is a corpus fetch from the Node server, shown as the brand loader over "Filtering on the
- * Node server · fetching corpus + initial state", the connecting screen every app shows there.
+ * its wait is a corpus fetch from the filter server, shown as the brand loader over "Filtering on the
+ * server · fetching corpus + initial state", the connecting screen every app shows there.
  *
  * ### Two failure contracts
  *

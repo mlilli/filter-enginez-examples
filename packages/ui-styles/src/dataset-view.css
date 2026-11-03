@@ -134,6 +134,14 @@
 .fe-server-fallback__status {
 	color: var(--engine);
 }
+/* The "connecting" line is server-rendered, so it is on screen from the first paint and its arrival
+   never shifts the page. With JavaScript off nothing will connect: the line would promise a live view
+   that never comes. */
+@media (scripting: none) {
+	.fe-server-fallback__status {
+		display: none;
+	}
+}
 .fe-server-fallback__error {
 	color: var(--danger);
 }

@@ -129,7 +129,7 @@ test.describe('Angular /books-server — boot', () => {
 
 		await expect(page.locator('.fe-books-app__subtitle')).toHaveText(subtitle('Books', 'angular', 'server'));
 		await expect(page.locator('.fe-books-app__footer')).toContainText(
-			'every filter runs on the Node server',
+			'every filter runs on the server',
 		);
 	});
 });

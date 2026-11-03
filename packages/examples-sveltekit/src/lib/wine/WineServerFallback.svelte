@@ -11,7 +11,8 @@
 	 * A deliberate SUBSET of the 14 interactive facets (color, minimum score, tasting-notes search) —
 	 * the no-JS floor, not a second full panel. All data (match count, sample grid, color vocabulary,
 	 * current selections) comes from the server `load`; this component holds no engine and no reactivity
-	 * beyond the `booting` status hint. All chrome is the shared `fe-server-fallback__*` classes from
+	 * beyond the `booting` status hint, which is in the server-rendered HTML and hidden when JavaScript
+	 * is off, as on the books fallback. All chrome is the shared `fe-server-fallback__*` classes from
 	 * `@filter-enginez/ui-styles`, identical to the books fallback.
 	 */
 
