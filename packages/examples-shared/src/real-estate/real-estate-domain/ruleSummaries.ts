@@ -21,6 +21,7 @@
  */
 
 import {
+	type DateRangeConfig,
 	DateRangeRule,
 	type FilterRule,
 	GeoProximityRule,
@@ -168,7 +169,8 @@ export function summarizeRule(
 		};
 	}
 	if (rule instanceof DateRangeRule) {
-		const { preset } = rule.config;
+		// `instanceof` gives a generic class `any` for its type parameter; the config is either mode's.
+		const { preset } = (rule as DateRangeRule<DateRangeConfig>).config;
 
 		return preset === undefined
 			? null

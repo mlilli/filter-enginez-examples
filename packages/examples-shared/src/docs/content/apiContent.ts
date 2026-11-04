@@ -61,10 +61,10 @@ export const API_GROUPS: readonly ApiGroup[] = [
 			{ description: 'Single comparison operator against a value.', name: 'numCompare', signature: "numCompare(field, config: { op: '>'|'>='|'<'|'<='|'=='|'!='; value: number }): NumericComparisonRule" },
 			{ description: 'Value must be in a set (multi-select facet).', name: 'inSet', signature: 'inSet<V>(field: FieldExtractor, set: readonly V[]): InSetRule<V>' },
 			{ description: 'Value must be in any of several subsets (super-groups).', name: 'inSetofSets', signature: 'inSetofSets<V>(field, sets: readonly (readonly V[])[]): InSetofSetsRule<V>' },
-			{ description: 'Text match in one of six modes.', name: 'text', signature: 'text(field, config: { query: string; mode: TextSearchMode }): TextSearchRule' },
+			{ description: "Text match in one of six modes. `diacritics: 'ignore'` matches regardless of accents; `locale` folds case by that language's rules (`'tr'`).", name: 'text', signature: "text(field, config: { query: string; mode: TextSearchMode; caseSensitive?: boolean; diacritics?: 'ignore' | 'match'; locale?: string }): TextSearchRule" },
 			{ description: 'Typo-tolerant search (Fuse.js).', name: 'fuzzy', signature: 'fuzzy(field, config: { query: string; threshold?: number }): FuzzySearchRule' },
 			{ description: 'Regular-expression match ({ pattern } — serializes to { source, flags }).', name: 'regex', signature: 'regex(field, config: { pattern: RegExp }): RegexRule' },
-			{ description: 'Date range with relative presets.', name: 'dateRange', signature: 'dateRange(field, config: { start?; end?; preset? }): DateRangeRule' },
+			{ description: "Date range with relative presets. Date mode takes `Date` bounds, with `timeZone: 'utc' | 'local'` for the presets' calendar; day mode compares `YYYY-MM-DD` days and counts presets from `today`.", name: 'dateRange', signature: "dateRange(field, config: { start?: Date; end?: Date; preset?; timeZone? } | { mode: 'day'; start?: string; end?: string; preset?; today?: string }): DateRangeRule" },
 			{ description: 'Tree-of-categories filter with descendant inclusion.', name: 'hierarchical', signature: 'hierarchical(field, config: { tree; selected: string[] }): HierarchicalRule' },
 			{ description: 'Within-radius geographic filter (R-tree accelerated).', name: 'geo', signature: 'geo(field, config: { center: { lat: number; lng: number }; radiusKm: number }): GeoProximityRule' },
 			{ description: 'Passes records whose value is non-null.', name: 'exists', signature: 'exists(field: FieldExtractor): ExistsRule' },
@@ -73,6 +73,17 @@ export const API_GROUPS: readonly ApiGroup[] = [
 		],
 		from: '@filter-enginez/core',
 		title: 'Rule factories',
+	},
+	{
+		blurb: 'The rule factories take a field as a plain string, so a typo in a path shows up only as a rule that filters nothing. `rulesFor<T>()` returns the same factories typed against your item type: a field that is not a path of `T`, or a value of the wrong type for it, fails to compile. At run time it returns the plain factories themselves, so it costs nothing.',
+		entries: [
+			{ description: 'The rule factories, each field typed against the item type, and the values of `value` and `inSet` typed against the field (for `inSet` on an array field, its element type).', name: 'rulesFor', signature: 'rulesFor<T>(): TypedRuleBuilders<T>' },
+			{ description: 'Every field a string path can name: each key, and a dotted path through nested plain objects, five levels deep. It stops at arrays, dates, maps, sets and functions; for an array index (`tags[0]`) or a key containing `.` or `[`, the plain factories still take any string.', name: 'FieldPath', signature: "FieldPath<T>  // e.g. 'accountId' | 'payee' | 'payee.name'" },
+			{ description: 'The type of the field a path names, `undefined` included where a step can be missing.', name: 'PathValue', signature: 'PathValue<T, P extends string>' },
+			{ description: 'What a typed builder accepts as its field: a path, paths tried in order, a function of the item, or `undefined` for the item itself.', name: 'TypedField', signature: 'TypedField<T> = FieldPath<T> | readonly FieldPath<T>[] | ((item: T) => unknown) | undefined' },
+		],
+		from: '@filter-enginez/core',
+		title: 'Typed rule builders',
 	},
 	{
 		blurb: 'Compose rules into a Boolean expression tree for `engine.setExpression(...)`.',
@@ -108,14 +119,15 @@ export const API_GROUPS: readonly ApiGroup[] = [
 		title: 'Acceleration',
 	},
 	{
-		blurb: 'Framework bindings. The engine is framework-agnostic; these adapt its subscribe surface to reactive UIs.',
+		blurb: 'Framework bindings. The engine is framework-agnostic; these adapt its subscribe surface to reactive UIs. The React packages (`react-signals`, `react-rxjs`, `url-state-router`) take React 18 (from 18.3) or 19 as a peer, and `url-state-router` takes react-router 7 (from 7.18.2) or 8 (from 8.3).',
 		entries: [
 			{ description: 'Wrap an engine in a signals-based reactive surface.', name: 'createSignalsEngine', signature: 'createSignalsEngine(core): SignalsEngine<T>  (@filter-enginez/reactive-signals)' },
 			{ description: 'Provide the engine to a React tree.', name: 'FilterEngineProvider', signature: '<FilterEngineProvider engine={…}>  (@filter-enginez/react-signals)' },
 			{ description: 'Subscribe a component to the live result set / count.', name: 'useResults / useResultCount', signature: 'useResults<T>(): readonly T[]  ·  useResultCount(): number' },
 			{ description: 'Read a live rule instance / the active-rule map.', name: 'useRule / useActiveRules', signature: 'useRule(id): FilterRule | undefined  ·  useActiveRules(): ReadonlyMap<RuleId, FilterRule>' },
+			{ description: "Keep the filter state in one URL query parameter (`f` by default), both ways. Render it once inside the app's router. It imports `react-router` itself, so an app on `react-router-dom` 7 installs `react-router` at the same version.", name: 'FilterEngineUrlSync', signature: '<FilterEngineUrlSync engine={…} paramKey="f" />  (@filter-enginez/url-state-router)' },
 		],
-		from: '@filter-enginez/reactive-signals + react-signals',
+		from: '@filter-enginez/reactive-signals + react-signals + url-state-router',
 		title: 'Reactive bindings',
 	},
 ];

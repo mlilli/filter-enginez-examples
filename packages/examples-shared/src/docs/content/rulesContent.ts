@@ -1,4 +1,5 @@
 // cspell:ignore Tolkein tolkein — deliberate misspellings demonstrating typo-tolerant fuzzy search.
+// cspell:ignore İZMİR — Izmir in Turkish capitals (dotted İ), the TextSearchRule locale example.
 /**
  * The filter-rule catalog as documentation data — every rule the engine exports, `CompositeRule` included. Each entry
  * drives one `/docs/rules/:id` page. Code examples use only the real ergonomic factories from
@@ -106,10 +107,12 @@ export const RULE_DOCS: readonly RuleDoc[] = [
 	},
 	{
 		advanced:
-			'Accepts explicit `{ start, end }` Date bounds **or** a relative `preset` (`last-7-days`, `last-30-days`, `last-90-days`, `this-month`, `this-year`, `all-time`) resolved at evaluation time — so a "last 7 days" filter stays correct as the clock moves. It coerces ISO strings, Unix-ms numbers, and `Date` instances. Serializes dates to ISO and revives them via a custom `deserialize` hook.',
+			'Two modes. **Date mode** (the default) accepts explicit `{ start, end }` Date bounds **or** a relative `preset` (`last-7-days`, `last-30-days`, `last-90-days`, `this-month`, `this-year`, `all-time`) resolved against the clock each time the rule runs — so a "last 7 days" filter stays correct as the clock moves. It coerces ISO strings, Unix-ms numbers, and `Date` instances; `timeZone: \'utc\'` or `\'local\'` names the calendar a preset\'s month and year start in, and the one a date string without an offset is read in (without it, presets use local time and a string is read the way `new Date()` reads it). **Day mode** (`mode: \'day\'`) is for calendar days: values, bounds and `today` are `YYYY-MM-DD` strings compared as strings, with no `Date` and no time zone anywhere, and a preset counts from the `today` you pass — "last 7 days" is the seven days ending on it, both ends inclusive. A value that is not a real calendar day fails the rule. Every key round-trips through config / URL (`today` too, so set it again when a saved view is applied); the constructor throws `RULE_INVALID_CONFIG` for an unknown mode, preset or time zone, a day that does not exist, or a day-mode preset without `today`.',
 		examples: [
 			{ caption: 'Relative preset (resolved when the rule runs):', code: "engine.addRule('listed', dateRange('listedAt', { preset: 'last-7-days' }))" },
 			{ caption: 'Explicit bounds:', code: "engine.addRule('listed', dateRange('listedAt', { start: new Date('2024-01-01'), end: new Date('2024-06-30') }))" },
+			{ caption: 'Presets on the UTC calendar:', code: "engine.addRule('listed', dateRange('listedAt', { preset: 'this-month', timeZone: 'utc' }))" },
+			{ caption: 'Day mode — calendar days, presets counted from the today you pass:', code: "engine.addRule('posted', dateRange('postedOn', { mode: 'day', preset: 'this-month', today: '2026-11-04' }))\nengine.addRule('q1', dateRange('postedOn', { mode: 'day', start: '2026-01-01', end: '2026-03-31' }))" },
 		],
 		factory: 'dateRange',
 		figure: {
@@ -127,8 +130,8 @@ export const RULE_DOCS: readonly RuleDoc[] = [
 		name: 'DateRangeRule',
 		seeAlso: ['range'],
 		serializable: true,
-		simple: 'Passes records whose date field falls in a range — with live relative presets like "last 7 days".',
-		tagline: 'date range + relative presets',
+		simple: 'Passes records whose date field falls in a range — with live relative presets like "last 7 days", over dates or YYYY-MM-DD calendar days.',
+		tagline: 'date or calendar-day range + relative presets',
 	},
 	{
 		advanced:
@@ -202,8 +205,12 @@ export const RULE_DOCS: readonly RuleDoc[] = [
 	},
 	{
 		advanced:
-			'Zero-dependency string matching in six modes: `exact`, `substring`, `startsWith`, `endsWith`, `tokenized`, and `allWords` (all query words must appear as whole words). The `allWords` mode is served authoritatively by the inverted text index when engaged; substring stays on native `String.includes` (already faster than an index). An empty query is inert.',
-		examples: [{ code: "engine.addRule('notes', text('description', { query: 'buttery oak', mode: 'allWords' }))" }],
+			'Zero-dependency string matching in six modes: `exact`, `substring`, `startsWith`, `endsWith`, `tokenized`, and `allWords` (all query words must appear as whole words). Matching ignores case unless `caseSensitive` is set. `diacritics: \'ignore\'` strips accents from both sides before comparing, so `cafe` finds `Café` and `Zoe` finds `Zoë` (the default, `\'match\'`, compares them as written), and `locale` folds case by a language\'s own rules — under `\'tr\'`, the dotless `ı` matches `I` and `i` matches `İ`. Both options apply in every mode. The `allWords` mode is served authoritatively by the inverted text index when engaged, from a word index folded the same way as the rule, so the index and a plain scan return the same records; substring stays on native `String.includes` (already faster than an index). An empty query is inert.',
+		examples: [
+			{ code: "engine.addRule('notes', text('description', { query: 'buttery oak', mode: 'allWords' }))" },
+			{ caption: 'Accent-insensitive (finds Château and Chateau alike):', code: "engine.addRule('winery', text('winery', { query: 'chateau', mode: 'substring', diacritics: 'ignore' }))" },
+			{ caption: 'Turkish case rules (izmir finds İZMİR):', code: "engine.addRule('city', text('city', { query: 'izmir', mode: 'exact', locale: 'tr' }))" },
+		],
 		factory: 'text',
 		figure: {
 			cells: [
@@ -219,7 +226,7 @@ export const RULE_DOCS: readonly RuleDoc[] = [
 		name: 'TextSearchRule',
 		seeAlso: ['fuzzy-search', 'regex'],
 		serializable: true,
-		simple: 'Passes records whose text field matches a query in one of six modes (substring, whole-word, …).',
+		simple: 'Passes records whose text field matches a query in one of six modes (substring, whole-word, …), optionally ignoring accents.',
 		tagline: 'zero-dep text matching',
 	},
 	{

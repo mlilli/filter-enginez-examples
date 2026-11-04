@@ -22,7 +22,7 @@
     "prettier:fix": "prettier --write --ignore-path ../../.prettierignore --ignore-unknown ."
   },
   "devDependencies": {
-    "@filter-enginez/core": "0.2.0",
+    "@filter-enginez/core": "0.2.3",
     "@filter-enginez/eslint": "0.0.4",
     "@filter-enginez/mock-data": "0.2.3",
     "roaring-wasm": "^1.1.0",

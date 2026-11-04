@@ -107,7 +107,7 @@ const DOCS_PAGES: readonly DocsPage[] = [
 	pageDescribedOnce(
 		'API reference',
 		'/api',
-		'The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.',
+		'The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories and their typed builders, composition, JSON config, acceleration and the reactive bindings.',
 	),
 ];
 

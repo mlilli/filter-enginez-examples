@@ -8,7 +8,7 @@ Filter EngineZ is a generic, isomorphic, framework-agnostic TypeScript data filt
 
 - [Filter EngineZ — Documentation](https://docs.filterenginez.com/): A quick start, and the way into the rule catalog, the algorithms, the playground and the API reference.
 - [Playground](https://docs.filterenginez.com/playground): Edit a JSON FilterEngineConfig and run the real Filter EngineZ engine against a dataset, right in your browser — the same engine and config that run server-side.
-- [API reference](https://docs.filterenginez.com/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories, composition, JSON config, acceleration and the reactive bindings.
+- [API reference](https://docs.filterenginez.com/api): The Filter EngineZ public API at a glance, grouped by area: the engine, the rule factories and their typed builders, composition, JSON config, acceleration and the reactive bindings.
 
 ## Rules
 
@@ -16,11 +16,11 @@ Filter EngineZ is a generic, isomorphic, framework-agnostic TypeScript data filt
 - [BooleanRule](https://docs.filterenginez.com/rules/boolean): A boolean-field convenience: passes records whose flag equals the configured value.
 - [RangeRule](https://docs.filterenginez.com/rules/range): Passes records whose numeric field falls within an inclusive [min, max] range.
 - [NumericComparisonRule](https://docs.filterenginez.com/rules/numeric-comparison): Passes records whose numeric field satisfies a single comparison operator against a value.
-- [DateRangeRule](https://docs.filterenginez.com/rules/date-range): Passes records whose date field falls in a range — with live relative presets like "last 7 days".
+- [DateRangeRule](https://docs.filterenginez.com/rules/date-range): Passes records whose date field falls in a range — with live relative presets like "last 7 days", over dates or YYYY-MM-DD calendar days.
 - [InSetRule](https://docs.filterenginez.com/rules/in-set): Passes records whose field value is in a configured set (a multi-select facet).
 - [InSetofSetsRule](https://docs.filterenginez.com/rules/in-set-of-sets): Passes records whose value is in ANY of several configured subsets (super-groups).
 - [HierarchicalRule](https://docs.filterenginez.com/rules/hierarchical): Passes records under a selected category — including all of its descendants in the tree.
-- [TextSearchRule](https://docs.filterenginez.com/rules/text-search): Passes records whose text field matches a query in one of six modes (substring, whole-word, …).
+- [TextSearchRule](https://docs.filterenginez.com/rules/text-search): Passes records whose text field matches a query in one of six modes (substring, whole-word, …), optionally ignoring accents.
 - [FuzzySearchRule](https://docs.filterenginez.com/rules/fuzzy-search): Passes records whose text field is a close (typo-tolerant) match for the query.
 - [RegexRule](https://docs.filterenginez.com/rules/regex): Passes records whose string field matches a regular expression.
 - [GeoProximityRule](https://docs.filterenginez.com/rules/geo-proximity): Passes records whose coordinates fall within a radius of a center point.

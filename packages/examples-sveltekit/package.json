@@ -19,14 +19,14 @@
   },
   "dependencies": {
     "@filter-enginez/brand": "workspace:*",
-    "@filter-enginez/core": "0.2.0",
+    "@filter-enginez/core": "0.2.3",
     "@filter-enginez/examples-server": "workspace:*",
     "@filter-enginez/examples-shared": "workspace:*",
     "@filter-enginez/mock-data": "0.2.3",
     "@filter-enginez/reactive-signals": "0.0.6",
     "@filter-enginez/svelte-signals": "0.0.6",
     "@filter-enginez/ui-styles": "workspace:*",
-    "@filter-enginez/url-state-router": "0.0.8",
+    "@filter-enginez/url-state-router": "0.0.9",
     "leaflet": "1.9.4",
     "roaring-wasm": "^1.1.0"
   },
