@@ -94,7 +94,7 @@ function suppressedIds(): readonly string[] {
  * @remarks
  * The third place a suppression has to appear, and the one that makes an acceptance falsifiable rather
  * than merely explained. `ignoreGhsas` is what pnpm obeys, `SECURITY.md` is the human reasoning, and
- * the script holds the machine-checkable premise — "braces has no published fix", "no math extension is
+ * the script holds the machine-checkable premise — "deepmerge has no published fix", "no math extension is
  * enabled" — so the day a premise expires, something exits non-zero.
  *
  * 🔴 Requiring all three closes the failure modes above: a suppression that outlives its recorded

@@ -242,13 +242,9 @@ overrides:
 # 7.1.6. An ignore could not fix that copy, and an override can: the one above moves it to the patched 6.1.5,
 # so pnpm audit has nothing to report and no ignore is needed.
 #
-#   - GHSA-vfj7-8cjw-p6xm (braces, high) — ACCEPTED BECAUSE THERE IS NO FIX. Stack-exhaustion DoS via
-#     deeply-nested brace patterns. `braces@3.0.3` is the latest published version and `micromatch@4.0.8`
-#     still declares `braces: ^3.0.3`, so the advisory's "Patched versions: None" is accurate — there is
-#     nothing to upgrade to, and an override cannot invent a patched release. Every path is dev tooling
-#     (`lint-staged`, `markdownlint-cli2`, `@tailwindcss/cli > @parcel/watcher`). The attack needs a
-#     hostile glob PATTERN, and every glob in this repo comes from a committed config file rather than
-#     from input. Re-review when braces publishes a fix or micromatch drops it.
+# ⚠ GHSA-vfj7-8cjw-p6xm (braces) is gone from the list below: GitHub withdrew the advisory on 2026-10-23, so pnpm
+# audit no longer reports it and an ignore would suppress NOTHING. It was accepted while it stood, because no fixed
+# version existed.
 #
 #   - GHSA-238p-pmpm-9mq7 (katex, low) — ACCEPTED: the vulnerable code is never executed. Reached via
 #     `markdownlint-cli2 > markdownlint > micromark-extension-math > katex`, and **`.markdownlint-cli2.yaml` enables no
@@ -284,7 +280,6 @@ overrides:
 #     `tests/tooling/acceptedAdvisoryParity.test.ts` keeps it that way. Re-review when the app moves to kit 3.
 auditConfig:
   ignoreGhsas:
-    - GHSA-vfj7-8cjw-p6xm
     - GHSA-238p-pmpm-9mq7
     - GHSA-g3hv-75wg-m249
     - GHSA-3g3m-2fjr-6pw4

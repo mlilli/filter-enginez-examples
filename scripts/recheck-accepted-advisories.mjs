@@ -15,7 +15,7 @@
  * hidden at all:
  *
  * 🔴 **Every justification is conditional on a dependency tree that moves, and nothing re-evaluates
- * the conditions.** The re-review triggers were prose ("re-review when `braces` publishes a fix"), in
+ * the conditions.** The re-review triggers were prose ("re-review when deepmerge publishes a fix"), in
  * a file no gate reads. `pnpm audit` cannot tell you the premise expired — suppression is exactly what
  * stops it from mentioning the package at all. So an unfixable high in dev tooling would stay
  * invisible on the day it became fixable, which is the moment you most want to hear about it.
@@ -26,14 +26,15 @@
  *
  * ## Why a script rather than a vitest guard
  *
- * It needs the network, which a vitest guard must not — so it is run by hand, whenever an
- * acceptance is added or reviewed. The one precondition that needs **no** network (that no math extension is
- * enabled, which is what makes the KaTeX advisory unreachable) is ALSO asserted in
- * `tests/tooling/acceptedAdvisoryParity.test.ts`, because it is the only one a change inside this repo
- * can invalidate, and it is free to check there.
+ * It needs the network, which a vitest guard must not — so it is run by hand whenever an
+ * acceptance is added or reviewed, and every Monday by `.github/workflows/audit.yml`. The
+ * preconditions that need **no** network (that no math extension is enabled, which is what makes the
+ * KaTeX advisory unreachable, and that `examples-sveltekit` uses neither `use:enhance` nor
+ * `setHeaders`) are ALSO asserted in `tests/tooling/acceptedAdvisoryParity.test.ts`, because they are
+ * the only ones a change inside this repo can invalidate, and they are free to check there.
  *
  * 🟢 The division is deliberate: static preconditions are guarded continuously, registry preconditions
- * are re-checked on demand. Neither is left to memory.
+ * are re-checked weekly and on demand. Neither is left to memory.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -165,27 +166,6 @@ function sveltekitSourcesMatching(pattern) {
  */
 const ACCEPTED = [
 	{
-		async check() {
-			const braces = await latestManifest('braces');
-			const micromatch = await latestManifest('micromatch');
-			const fixed = compareVersions(braces.version, '3.0.3') > 0;
-			// Bracket access, not dotted: `noPropertyAccessFromIndexSignature` is on, and a dotted read of
-			// an index-signature key is the error TS4111 that `tsconfig.node.json` exists to catch.
-			const requires = micromatch.dependencies?.['braces'] ?? '(none)';
-
-			return {
-				action: fixed
-					? `braces ${braces.version} is published — drop the override-free acceptance and upgrade`
-					: `micromatch moved to ${requires} — re-check whether a patched braces is now reachable`,
-				detail: `braces latest=${braces.version} (vulnerable <=3.0.3), micromatch@${micromatch.version} requires braces ${requires}`,
-				holds: !fixed && requires.startsWith('^3'),
-			};
-		},
-		ghsa: 'GHSA-vfj7-8cjw-p6xm',
-		premise: 'braces has no published fix, and micromatch still requires the vulnerable major',
-		severity: 'high',
-	},
-	{
 		// Static — no network. Mirrored in acceptedAdvisoryParity.test.ts, which runs continuously.
 		check() {
 			const config = readFileSync(join(ROOT, '.markdownlint-cli2.yaml'), 'utf8');
@@ -204,6 +184,8 @@ const ACCEPTED = [
 	{
 		async check() {
 			const eslint = await latestManifest('eslint');
+			// Bracket access, not dotted: `noPropertyAccessFromIndexSignature` is on, and a dotted read of
+			// an index-signature key is the error TS4111 that `tsconfig.node.json` exists to catch.
 			const eslintRange = eslint.dependencies?.['minimatch'] ?? '(none)';
 			// Each was read for `optimizationLevel`. The four lint callers leave it at the default, 1;
 			// glob sets 2, so it and editorconfig are allowed only while js-beautify is their sole parent.
