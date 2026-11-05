@@ -43,6 +43,6 @@
     "svelte-eslint-parser": "^1.8.0",
     "typescript-eslint": "^8.72.0",
     "vite": "^8.1.5",
-    "wrangler": "^4.149.0"
+    "wrangler": "^4.155.0"
   }
 }

@@ -38,8 +38,8 @@
  * @packageDocumentation
  */
 
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
@@ -201,6 +201,32 @@ describe('accepted advisories — all three records agree', () => {
 			'a math/katex setting appeared in .markdownlint-cli2.yaml — GHSA-238p-pmpm-9mq7 was accepted '
 			+ 'on the grounds that KaTeX never runs, so that acceptance needs re-deciding',
 		).toBe(false);
+	});
+
+	it('keeps the two SvelteKit acceptances true by never using the vulnerable features', () => {
+		// Static, like the KaTeX case above, and for the same reason: only a change inside this repo can
+		// invalidate it. GHSA-pfhg-q3qv-9q6r is an open redirect through `use:enhance` form actions, and
+		// GHSA-27mw-82g8-phjj an XSS through a `cache-control` value passed to `setHeaders` on a
+		// prerendered page. Both are fixed only in kit 3; they were accepted because the app uses neither
+		// feature, so the first use of either must re-decide them.
+		const app = resolve(REPO_ROOT, 'packages/examples-sveltekit');
+		const sources = readdirSync(join(app, 'src'), { recursive: true, withFileTypes: true })
+			.filter((entry) => entry.isFile() && /\.(?:svelte|ts|js)$/u.test(entry.name))
+			.map((entry) => join(entry.parentPath, entry.name));
+		const using = (pattern: RegExp): readonly string[] =>
+			sources.filter((file) => pattern.test(readFileSync(file, 'utf8'))).map((file) => relative(app, file));
+
+		expect(sources.length, 'no examples-sveltekit source files found — has src/ moved?').toBeGreaterThan(0);
+		expect(
+			using(/use:enhance/u),
+			'examples-sveltekit uses use:enhance — GHSA-pfhg-q3qv-9q6r was accepted on the grounds that it does not, '
+			+ 'so that acceptance needs re-deciding (the fix is kit 3)',
+		).toStrictEqual([]);
+		expect(
+			using(/\bsetHeaders\b/u),
+			'examples-sveltekit calls setHeaders — GHSA-27mw-82g8-phjj was accepted on the grounds that it does not, '
+			+ 'so that acceptance needs re-deciding (the fix is kit 3)',
+		).toStrictEqual([]);
 	});
 
 	it('records a re-review date in SECURITY.md', () => {

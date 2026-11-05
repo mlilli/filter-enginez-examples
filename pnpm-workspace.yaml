@@ -85,8 +85,9 @@ minimumReleaseAge: 10080
 #
 # What each pin is for: esbuild/postcss (dev-server file-read + source-map traversal), fast-uri
 # (Angular CLI chain), cookie (SvelteKit + msw; see below), linkify-it / markdown-it (markdownlint),
-# smol-toml (markdownlint; see below), and brace-expansion's v5 line (the vulnerable copy is 5.0.6,
-# `<=5.0.7`; scoped by major so that a v1 or v2 copy keeps its own chain intact).
+# smol-toml (markdownlint; see below), brace-expansion's v5 line (the vulnerable copy is 5.0.6,
+# `<=5.0.7`; scoped by major so that a v1 or v2 copy keeps its own chain intact), and
+# postcss-selector-parser's v6 line (see below).
 #
 # **react-router is NOT overridden.** Its RSC-mode CSRF advisory is patched only in 8.3.0, a MAJOR
 # bump, so the React apps depend on `react-router@^8.3.0` directly. No transitive pin is needed; the
@@ -115,8 +116,10 @@ minimumReleaseAge: 10080
 # so bounding them is lockfile-neutral BY CONSTRUCTION: the tree already satisfies every one. The
 # original advisory floors are recorded here rather than in the ranges, because a floor that no longer
 # matches the installed version only reads as precision —
-# `esbuild >=0.28.1`, `postcss >=8.5.18`, `fast-uri >=3.1.4`, `linkify-it >=5.0.2`,
-# `markdown-it >=14.1.2`. ⚠ `esbuild`'s cap is `<0.29.0`, not `<1.0.0`: in 0.x the MINOR is the
+# `esbuild >=0.28.1`, `postcss >=8.5.18`, `linkify-it >=5.0.2`. Three floors ARE advisory fixes:
+# `fast-uri >=4.2.3` (four URI-parsing advisories, GHSA-w74x-v6f9-j3xg among them), `markdown-it >=15.0.3`
+# (GHSA-gfr2-rv44-r23c, GHSA-vfgh-jcmw-g37q) and `postcss-selector-parser >=6.1.5` (see below).
+# ⚠ `esbuild`'s cap is `<0.29.0`, not `<1.0.0`: in 0.x the MINOR is the
 # breaking boundary, so a `<1` cap on a 0.x package is not a cap at all.
 #
 # ── 🔴 `cookie` — why the cap is `<2.0.0` ────────────────────────────────────────────────────────────
@@ -165,17 +168,38 @@ minimumReleaseAge: 10080
 # ⚠ The override is doing real work, and because pnpm audit reads resolved versions it needs no
 # `ignoreGhsas` entry. Deleting it restores markdownlint-cli2's exact `1.8.0` pin and the advisory comes
 # straight back; retire it only when markdownlint-cli2 moves past 1.8.0 upstream.
+#
+# ── `postcss-selector-parser` ────────────────────────────────────────────────────────────────────────
+#
+# For GHSA-rj75-hqrm-r3gf (quadratic flat-selector parsing). `@tailwindcss/typography`, whose latest
+# release is installed, pins `postcss-selector-parser: "6.0.10"` EXACTLY, so no upstream bump reaches a
+# fix. The advisory is patched on the 6.x line too, in 6.1.5, so the override stays inside the major the
+# plugin was written for; it is scoped to `^6.0.0` so the 7.x copy that eslint-plugin-vue and
+# svelte-eslint-parser use keeps its own chain. Retire it when the plugin moves past 6.0.10 upstream.
+
+# ─── Peer ranges pnpm cannot reconcile on its own ─────────────────────────────────────────────────────
+# `oxc-parser` (under `@angular/build` and `@schematics/angular`) lists a WebAssembly fallback,
+# `@oxc-parser/binding-wasm32-wasi`, which installs only on a platform with no native binding (never on
+# macOS or the Linux CI runners). It pins `@emnapi/core` and `@emnapi/runtime` to `2.0.0-alpha.3` beside a
+# `@napi-rs/wasm-runtime` whose peer range names `^1.7.1 || 2.0.0-beta.2`, so `pnpm peers check` reports the
+# pairing oxc publishes as unmet. These rules accept that pairing; nothing installed here changes.
+peerDependencyRules:
+  allowedVersions:
+    '@napi-rs/wasm-runtime>@emnapi/core': '2.0.0-alpha.3'
+    '@napi-rs/wasm-runtime>@emnapi/runtime': '2.0.0-alpha.3'
+
 overrides:
   react: '^19.2.7'
   react-dom: '^19.2.7'
   esbuild: '>=0.28.2 <0.29.0'
   postcss: '>=8.5.29 <9.0.0'
-  fast-uri: '>=4.2.1 <5.0.0'
+  fast-uri: '>=4.2.3 <5.0.0'
   cookie: '>=0.7.0 <2.0.0'
   linkify-it: '>=6.1.0 <7.0.0'
-  markdown-it: '>=15.0.2 <16.0.0'
+  markdown-it: '>=15.0.3 <16.0.0'
   smol-toml: '>=1.9.0 <2.0.0'
   'brace-expansion@^5.0.0': '>=5.0.8 <6.0.0'
+  'postcss-selector-parser@^6.0.0': '>=6.1.5 <7.0.0'
   # ─── The engine, consumed as PACKED TARBALLS from the sibling repo ──────────────────────────────
   # 🔴 The 12 engine packages these apps use are not workspace members here — they live in
   # ../filter-enginez — so every manifest names them at their real version (kept in step by
@@ -214,9 +238,9 @@ overrides:
 # vulnerable version survives in the tree on some path an override cannot reach. **An ignore that
 # matches nothing is worse than useless**, for the same reason as a pin that matches nothing.
 #
-# ⚠ `postcss-selector-parser` shows the second situation: it resolves to BOTH 6.0.10 (via
-# @tailwindcss/typography's exact pin) and 7.1.6, and it still matches — because the vulnerable copy is
-# genuinely present.
+# ⚠ `postcss-selector-parser` resolves to BOTH a 6.x copy (through @tailwindcss/typography's exact pin) and
+# 7.1.6. An ignore could not fix that copy, and an override can: the one above moves it to the patched 6.1.5,
+# so pnpm audit has nothing to report and no ignore is needed.
 #
 #   - GHSA-vfj7-8cjw-p6xm (braces, high) — ACCEPTED BECAUSE THERE IS NO FIX. Stack-exhaustion DoS via
 #     deeply-nested brace patterns. `braces@3.0.3` is the latest published version and `micromatch@4.0.8`
@@ -226,21 +250,44 @@ overrides:
 #     hostile glob PATTERN, and every glob in this repo comes from a committed config file rather than
 #     from input. Re-review when braces publishes a fix or micromatch drops it.
 #
-#   - GHSA-rj75-hqrm-r3gf (postcss-selector-parser, moderate) — ACCEPTED: NO IN-MAJOR FIX, and the forced major is the
-#     greater risk. Patched only in `>=7.1.6`; the vulnerable copy is `6.0.10`, pinned EXACTLY by
-#     `@tailwindcss/typography`, whose latest release still pins it. So an override means forcing 6.x → 7.x on a plugin
-#     that uses the library to rewrite selectors — a major bump against an exact pin, the kind of forced major that
-#     breaks dev tooling. One path only, `examples-react-rtk`, an UNPUBLISHED demo app, at build time. Exploiting it
-#     needs a hostile CSS SELECTOR, and every selector here comes from committed source. Re-review when
-#     @tailwindcss/typography moves to 7.x.
 #   - GHSA-238p-pmpm-9mq7 (katex, low) — ACCEPTED: the vulnerable code is never executed. Reached via
 #     `markdownlint-cli2 > markdownlint > micromark-extension-math > katex`, and **`.markdownlint-cli2.yaml` enables no
 #     math extension**, so KaTeX never renders anything. Patched only in `>=0.18.2` against a resolved `0.16.47` — in
 #     0.x semver a minor bump is a breaking one, so an override would force a breaking change on a transitive dep to fix
-#     a path that does not run. Lowest severity of the three. Re-review when markdownlint drops the math extension or a
-#     0.16.x patch appears.
+#     a path that does not run. Re-review when markdownlint drops the math extension or a 0.16.x patch appears.
+#
+#   - GHSA-g3hv-75wg-m249 (minimatch, moderate) — ACCEPTED: NO IN-MAJOR FIX, the patched major breaks a caller, and no
+#     caller reaches the vulnerable code. Patched only in `>=11.0.1` against a resolved `10.2.6`; every dependent
+#     declares 10.x, and minimatch 11 changed what `Minimatch#set` holds, which `glob` 13 walks, so an override would
+#     break glob. The amplification runs only at `optimizationLevel` 2 or higher. The lint dependents (eslint,
+#     `@eslint/config-array`, `@typescript-eslint/typescript-estree`, `eslint-plugin-jsx-a11y-x`) use the default, 1.
+#     `glob` sets 2, and it and `editorconfig` are reached only through `js-beautify`'s command-line tool;
+#     `@vue/test-utils` loads js-beautify's library, which loads neither. Every pattern comes from a committed config
+#     file. Re-review when eslint moves to minimatch 11, or another package starts depending on it.
+#
+#   - GHSA-3g3m-2fjr-6pw4 (glob, moderate) — ACCEPTED: NO IN-MAJOR FIX, and the vulnerable code is never executed.
+#     Patched only in `>=14.0.2` against a resolved `13.0.6`, which `js-beautify` (latest) requires as `^13.0.6`. Its only
+#     path is `@vue/test-utils > js-beautify`, whose library never loads glob; only its command-line tool does, and
+#     nothing here runs it. The advisory is about an aborted walk that keeps reading, so it also needs an `AbortSignal`,
+#     which that tool never passes. Re-review when js-beautify moves to glob 14, or another package starts depending
+#     on glob.
+#
+#   - GHSA-gcqx-w48m-w2h4 (deepmerge, low) — ACCEPTED BECAUSE THERE IS NO FIX. `deepmerge@4.3.1` is the latest
+#     published version and the advisory covers it. Its paths are build-time only: `@sveltejs/vite-plugin-svelte` and
+#     `@sveltejs/adapter-node > @rollup/plugin-node-resolve` merge plugin options from committed config, never from
+#     input. Re-review when deepmerge publishes a fix.
+#
+#   - GHSA-pfhg-q3qv-9q6r and GHSA-27mw-82g8-phjj (@sveltejs/kit, low) — ACCEPTED: the vulnerable features are never
+#     used. Patched only in kit 3.0.0, a major, against `2.70.3`. The first is an open redirect through `use:enhance`
+#     form actions, the second an XSS through a `cache-control` header passed to `setHeaders` on a prerendered page;
+#     `examples-sveltekit` uses neither `use:enhance` nor `setHeaders`, and
+#     `tests/tooling/acceptedAdvisoryParity.test.ts` keeps it that way. Re-review when the app moves to kit 3.
 auditConfig:
   ignoreGhsas:
     - GHSA-vfj7-8cjw-p6xm
-    - GHSA-rj75-hqrm-r3gf
     - GHSA-238p-pmpm-9mq7
+    - GHSA-g3hv-75wg-m249
+    - GHSA-3g3m-2fjr-6pw4
+    - GHSA-gcqx-w48m-w2h4
+    - GHSA-pfhg-q3qv-9q6r
+    - GHSA-27mw-82g8-phjj

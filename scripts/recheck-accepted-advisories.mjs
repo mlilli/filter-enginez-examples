@@ -36,8 +36,8 @@
  * are re-checked on demand. Neither is left to memory.
  */
 
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -102,6 +102,59 @@ async function latestManifest(name) {
 }
 
 /**
+ * The names of the packages whose lockfile snapshot depends on `name`, sorted and deduplicated.
+ *
+ * @remarks
+ * Local, no network: it reads `pnpm-lock.yaml`'s `snapshots` section, where each entry lists the
+ * versions it resolved for its dependencies. A premise that names the callers of a vulnerable package
+ * uses it to notice a new caller, whose use of it nobody has read yet.
+ *
+ * @param {string} name - The dependency to look for.
+ * @returns {string[]} The dependents' package names.
+ */
+function lockfileDependents(name) {
+	const lockfile = readFileSync(join(ROOT, 'pnpm-lock.yaml'), 'utf8');
+	const snapshots = lockfile.slice(lockfile.indexOf('\nsnapshots:\n'));
+	const dependents = new Set();
+	let current = '';
+
+	for (const line of snapshots.split('\n')) {
+		const entry = /^ {2}'?(?<key>@?[^@\s']+)@/u.exec(line);
+
+		if (entry?.groups !== undefined) {
+			current = entry.groups['key'] ?? '';
+		} else if (line.startsWith(`      ${name}: `) || line.startsWith(`      '${name}': `)) {
+			dependents.add(current);
+		}
+	}
+
+	return [...dependents].sort();
+}
+
+/**
+ * Which source files of the SvelteKit app match `pattern`, out of how many read?
+ *
+ * @remarks
+ * Static, no network. Mirrored in `acceptedAdvisoryParity.test.ts`, which runs continuously, because
+ * the two SvelteKit acceptances rest on the app never using a feature, and only a change inside this
+ * repository can start using one. The count is returned so a check can refuse to pass on zero files.
+ *
+ * @param {RegExp} pattern - What to look for.
+ * @returns {{ matching: string[], read: number }} The matching files, relative to the app, and the count read.
+ */
+function sveltekitSourcesMatching(pattern) {
+	const app = join(ROOT, 'packages/examples-sveltekit');
+	const files = readdirSync(join(app, 'src'), { recursive: true, withFileTypes: true })
+		.filter((entry) => entry.isFile() && /\.(?:svelte|ts|js)$/u.test(entry.name))
+		.map((entry) => join(entry.parentPath, entry.name));
+
+	return {
+		matching: files.filter((file) => pattern.test(readFileSync(file, 'utf8'))).map((file) => relative(app, file)).sort(),
+		read: files.length,
+	};
+}
+
+/**
  * The accepted advisories and the PRECONDITION each acceptance rests on.
  *
  * @remarks
@@ -133,22 +186,6 @@ const ACCEPTED = [
 		severity: 'high',
 	},
 	{
-		async check() {
-			const typography = await latestManifest('@tailwindcss/typography');
-			const pinned = typography.dependencies?.['postcss-selector-parser'] ?? '(none)';
-			const stillSix = pinned.startsWith('6');
-
-			return {
-				action: `it now wants ${pinned} — bump @tailwindcss/typography and drop this acceptance`,
-				detail: `@tailwindcss/typography@${typography.version} depends on postcss-selector-parser ${pinned} (patched >=7.1.6)`,
-				holds: stillSix,
-			};
-		},
-		ghsa: 'GHSA-rj75-hqrm-r3gf',
-		premise: '@tailwindcss/typography still pins postcss-selector-parser to the vulnerable 6.x',
-		severity: 'moderate',
-	},
-	{
 		// Static — no network. Mirrored in acceptedAdvisoryParity.test.ts, which runs continuously.
 		check() {
 			const config = readFileSync(join(ROOT, '.markdownlint-cli2.yaml'), 'utf8');
@@ -162,6 +199,115 @@ const ACCEPTED = [
 		},
 		ghsa: 'GHSA-238p-pmpm-9mq7',
 		premise: 'no math extension is enabled, so KaTeX never renders',
+		severity: 'low',
+	},
+	{
+		async check() {
+			const eslint = await latestManifest('eslint');
+			const eslintRange = eslint.dependencies?.['minimatch'] ?? '(none)';
+			// Each was read for `optimizationLevel`. The four lint callers leave it at the default, 1;
+			// glob sets 2, so it and editorconfig are allowed only while js-beautify is their sole parent.
+			const known = [
+				'@eslint/config-array',
+				'@typescript-eslint/typescript-estree',
+				'editorconfig',
+				'eslint',
+				'eslint-plugin-jsx-a11y-x',
+				'glob',
+			];
+			const dependents = lockfileDependents('minimatch');
+			const unread = dependents.filter((dependent) => !known.includes(dependent));
+			const cliOnly = ['editorconfig', 'glob'].every((name) => lockfileDependents(name).join() === 'js-beautify');
+			const pinned = eslintRange.startsWith('^10');
+			let action = `${unread.join(', ')} now depend(s) on minimatch — check whether it sets optimizationLevel >= 2`;
+
+			if (dependents.length === 0) {
+				action = 'nothing in the lockfile depends on minimatch any more — retire this acceptance';
+			} else if (!pinned) {
+				action = 'eslint moved to another minimatch major — upgrade to a patched one and retire this acceptance';
+			} else if (!cliOnly) {
+				action = 'glob or editorconfig gained a parent besides js-beautify — check whether that caller runs it';
+			}
+
+			return {
+				action,
+				detail: `eslint@${eslint.version} requires minimatch ${eslintRange}; lockfile dependents: `
+					+ `${dependents.join(', ') || 'none'}; glob and editorconfig ${cliOnly ? 'only' : 'NOT only'} under js-beautify`,
+				holds: pinned && dependents.length > 0 && unread.length === 0 && cliOnly,
+			};
+		},
+		ghsa: 'GHSA-g3hv-75wg-m249',
+		premise: 'eslint still requires minimatch 10, and the only caller at optimizationLevel 2 is glob under js-beautify\'s CLI',
+		severity: 'moderate',
+	},
+	{
+		async check() {
+			const beautify = await latestManifest('js-beautify');
+			const requires = beautify.dependencies?.['glob'] ?? '(none)';
+			const parents = lockfileDependents('glob');
+			const beautifyParents = lockfileDependents('js-beautify');
+			const onlyPath = parents.join() === 'js-beautify' && beautifyParents.join() === '@vue/test-utils';
+
+			return {
+				action: onlyPath
+					? `js-beautify now requires glob ${requires} — upgrade it and retire this acceptance`
+					: 'glob or js-beautify gained another parent — check whether that caller passes an AbortSignal',
+				detail: `js-beautify@${beautify.version} requires glob ${requires}; glob's parents: ${parents.join(', ') || 'none'}; `
+					+ `js-beautify's parents: ${beautifyParents.join(', ') || 'none'}`,
+				holds: requires.startsWith('^13') && onlyPath,
+			};
+		},
+		ghsa: 'GHSA-3g3m-2fjr-6pw4',
+		premise: 'glob is reached only through js-beautify (under @vue/test-utils), which still requires glob 13',
+		severity: 'moderate',
+	},
+	{
+		async check() {
+			const deepmerge = await latestManifest('deepmerge');
+			const fixed = compareVersions(deepmerge.version, '4.3.1') > 0;
+
+			return {
+				action: `deepmerge ${deepmerge.version} is published — update the lockfile and retire this acceptance`,
+				detail: `deepmerge latest=${deepmerge.version} (vulnerable <=4.3.1)`,
+				holds: !fixed,
+			};
+		},
+		ghsa: 'GHSA-gcqx-w48m-w2h4',
+		premise: 'deepmerge has no published fix',
+		severity: 'low',
+	},
+	{
+		// Static — no network. Mirrored in acceptedAdvisoryParity.test.ts, which runs continuously.
+		check() {
+			const { matching, read } = sveltekitSourcesMatching(/use:enhance/u);
+
+			return Promise.resolve({
+				action: read === 0
+					? 'no examples-sveltekit source file was read — fix the scan before trusting this premise'
+					: 'examples-sveltekit now uses use:enhance — this acceptance no longer holds; move to kit 3',
+				detail: `use:enhance in ${String(read)} examples-sveltekit files: ${matching.join(', ') || 'none'}`,
+				holds: read > 0 && matching.length === 0,
+			});
+		},
+		ghsa: 'GHSA-pfhg-q3qv-9q6r',
+		premise: 'examples-sveltekit has no use:enhance form, so the open redirect cannot occur',
+		severity: 'low',
+	},
+	{
+		// Static — no network. Mirrored in acceptedAdvisoryParity.test.ts, which runs continuously.
+		check() {
+			const { matching, read } = sveltekitSourcesMatching(/\bsetHeaders\b/u);
+
+			return Promise.resolve({
+				action: read === 0
+					? 'no examples-sveltekit source file was read — fix the scan before trusting this premise'
+					: 'examples-sveltekit now calls setHeaders — this acceptance no longer holds; move to kit 3',
+				detail: `setHeaders in ${String(read)} examples-sveltekit files: ${matching.join(', ') || 'none'}`,
+				holds: read > 0 && matching.length === 0,
+			});
+		},
+		ghsa: 'GHSA-27mw-82g8-phjj',
+		premise: 'examples-sveltekit never calls setHeaders, so no cache-control value reaches a prerendered page',
 		severity: 'low',
 	},
 ];

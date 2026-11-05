@@ -166,6 +166,10 @@ words:
   # `smol` above: a real library whose name is not a word. (The advisory is accepted rather than fixed
   # precisely because no math extension is enabled, so this renderer never runs here.)
   - katex
+  # `@emnapi/core` and `@emnapi/runtime` — the Node-API-on-WebAssembly runtime that oxc-parser's
+  # WebAssembly fallback depends on. Package names, in pnpm-workspace.yaml's `peerDependencyRules`. Same
+  # allowlist case as `smol` above.
+  - emnapi
   # `glpat` and `xox` — GitLab and Slack access-token PREFIXES, which appear inside the credential
   # patterns in `scripts/secret-scan.sh` and `tests/tooling/noCommittedSecrets.test.ts`. Vendor-defined
   # identifiers rather than words, so the allowlist case: the alternative is weakening a
