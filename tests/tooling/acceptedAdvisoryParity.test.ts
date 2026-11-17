@@ -229,6 +229,35 @@ describe('accepted advisories — all three records agree', () => {
 		).toStrictEqual([]);
 	});
 
+	it('keeps the two remote-function acceptances true by never using remote functions', () => {
+		// Static, like the cases above. GHSA-3r8g-jcqq-3p5j is a denial of service while parsing a remote
+		// `form`'s data, and GHSA-6cf5-gc4q-fm3x a collision between private `query.batch` functions. Both
+		// are fixed only in kit 3.1.1; they were accepted because the app has no remote functions, which
+		// need the `remoteFunctions` flag, a `*.remote.ts` module and `$app/server`. Any of the three
+		// appearing must re-decide them.
+		const app = resolve(REPO_ROOT, 'packages/examples-sveltekit');
+		const files = readdirSync(join(app, 'src'), { recursive: true, withFileTypes: true })
+			.filter((entry) => entry.isFile())
+			.map((entry) => join(entry.parentPath, entry.name));
+		const sources = files.filter((file) => /\.(?:svelte|ts|js)$/u.test(file));
+		const reason = 'GHSA-3r8g-jcqq-3p5j and GHSA-6cf5-gc4q-fm3x were accepted on the grounds that the app has no '
+			+ 'remote functions, so those acceptances need re-deciding (the fix is kit 3.1.1)';
+
+		expect(sources.length, 'no examples-sveltekit source files found — has src/ moved?').toBeGreaterThan(0);
+		expect(
+			files.filter((file) => /\.remote\.[jt]s$/u.test(file)).map((file) => relative(app, file)),
+			`examples-sveltekit has a remote module — ${reason}`,
+		).toStrictEqual([]);
+		expect(
+			sources.filter((file) => /['"]\$app\/server['"]/u.test(readFileSync(file, 'utf8'))).map((file) => relative(app, file)),
+			`examples-sveltekit imports $app/server — ${reason}`,
+		).toStrictEqual([]);
+		expect(
+			/\bremoteFunctions\b/u.test(readFileSync(join(app, 'svelte.config.js'), 'utf8')),
+			`svelte.config.js sets remoteFunctions — ${reason}`,
+		).toBe(false);
+	});
+
 	it('records a re-review date in SECURITY.md', () => {
 		// Every entry's justification is conditional on a dependency tree that moves. The date is what
 		// tells a reader whether the reasoning was checked against this month's tree or last quarter's.

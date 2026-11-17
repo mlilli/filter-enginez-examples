@@ -111,9 +111,10 @@ async function latestManifest(name) {
  * uses it to notice a new caller, whose use of it nobody has read yet.
  *
  * @param {string} name - The dependency to look for.
+ * @param {(version: string) => boolean} [accepts] - Keeps only dependents whose resolved version passes.
  * @returns {string[]} The dependents' package names.
  */
-function lockfileDependents(name) {
+function lockfileDependents(name, accepts = () => true) {
 	const lockfile = readFileSync(join(ROOT, 'pnpm-lock.yaml'), 'utf8');
 	const snapshots = lockfile.slice(lockfile.indexOf('\nsnapshots:\n'));
 	const dependents = new Set();
@@ -125,11 +126,73 @@ function lockfileDependents(name) {
 		if (entry?.groups !== undefined) {
 			current = entry.groups['key'] ?? '';
 		} else if (line.startsWith(`      ${name}: `) || line.startsWith(`      '${name}': `)) {
-			dependents.add(current);
+			const resolved = line.slice(line.indexOf(': ') + 2).replace(/^'|\(.*$|'$/gu, '');
+
+			if (accepts(resolved)) {
+				dependents.add(current);
+			}
 		}
 	}
 
 	return [...dependents].sort();
+}
+
+/**
+ * When a version was published, in milliseconds since the epoch.
+ *
+ * @remarks
+ * It reads the package's full registry document, whose `time` map the `latest` manifest lacks. Only a
+ * check that has found a fix calls it, so the larger documents are fetched rarely.
+ *
+ * @param {string} name - Package name, scoped names included.
+ * @param {string} version - The published version.
+ * @returns {Promise<number>} The publish time.
+ */
+async function publishedAt(name, version) {
+	const response = await fetch(`https://registry.npmjs.org/${name.replace('/', '%2F')}`);
+
+	if (!response.ok) {
+		throw new Error(`registry returned ${String(response.status)} for ${name}`);
+	}
+
+	/** @type {{ time?: Record<string, string> }} */
+	const document = await response.json();
+	const published = Date.parse(document.time?.[version] ?? '');
+
+	if (Number.isNaN(published)) {
+		throw new Error(`the registry gives no publish time for ${name}@${version}`);
+	}
+
+	return published;
+}
+
+/**
+ * pnpm's release-age quarantine, read from `pnpm-workspace.yaml`, in milliseconds.
+ *
+ * @remarks
+ * A fix inside the quarantine cannot be installed yet (`pnpm install` refuses it), so it does not
+ * expire an acceptance; it does on the day the quarantine ends.
+ *
+ * @returns {number} `minimumReleaseAge`, converted from minutes.
+ */
+function releaseAgeMs() {
+	const minutes = /^minimumReleaseAge:\s*(?<minutes>\d+)\s*$/mu.exec(readFileSync(join(ROOT, 'pnpm-workspace.yaml'), 'utf8'));
+
+	if (minutes?.groups === undefined) {
+		throw new Error('pnpm-workspace.yaml sets no minimumReleaseAge');
+	}
+
+	return Number(minutes.groups['minutes']) * 60_000;
+}
+
+/**
+ * The major version a dependency range starts at: 11 for `^11.0.5` or `~11.0.4`.
+ *
+ * @param {string} range - A range as a manifest declares it.
+ * @returns {number} The first number in it, or `NaN` when there is none.
+ */
+function majorOf(range) {
+	return Number(/\d+/u.exec(range)?.[0] ?? Number.NaN);
 }
 
 /**
@@ -152,6 +215,50 @@ function sveltekitSourcesMatching(pattern) {
 	return {
 		matching: files.filter((file) => pattern.test(readFileSync(file, 'utf8'))).map((file) => relative(app, file)).sort(),
 		read: files.length,
+	};
+}
+
+/**
+ * Where the SvelteKit app defines or enables remote functions, the feature two kit advisories live in.
+ *
+ * @remarks
+ * Static, no network. Mirrored in `acceptedAdvisoryParity.test.ts`, which runs continuously. Remote
+ * functions need the `kit.experimental.remoteFunctions` flag in `svelte.config.js`, a `*.remote.ts` (or
+ * `.js`) module, and `form`, `query` or `command` from `$app/server`; any one of them appearing is a
+ * reason to re-decide.
+ *
+ * @returns {{ found: string[], read: number }} Each finding as a note, and how many source files were read.
+ */
+function sveltekitRemoteFunctions() {
+	const app = join(ROOT, 'packages/examples-sveltekit');
+	const found = readdirSync(join(app, 'src'), { recursive: true, withFileTypes: true })
+		.filter((entry) => entry.isFile() && /\.remote\.[jt]s$/u.test(entry.name))
+		.map((entry) => `${relative(app, join(entry.parentPath, entry.name))} is a remote module`);
+	const { matching, read } = sveltekitSourcesMatching(/['"]\$app\/server['"]/u);
+
+	found.push(...matching.map((file) => `${file} imports $app/server`));
+
+	if (/\bremoteFunctions\b/u.test(readFileSync(join(app, 'svelte.config.js'), 'utf8'))) {
+		found.push('svelte.config.js sets remoteFunctions');
+	}
+
+	return { found: found.sort(), read };
+}
+
+/**
+ * The outcome both remote-function acceptances share: they hold while the app uses no remote functions.
+ *
+ * @returns {{ action: string, detail: string, holds: boolean }} The check's result.
+ */
+function remoteFunctionsUnused() {
+	const { found, read } = sveltekitRemoteFunctions();
+
+	return {
+		action: read === 0
+			? 'no examples-sveltekit source file was read — fix the scan before trusting this premise'
+			: 'examples-sveltekit now uses remote functions — this acceptance no longer holds; move to kit 3.1.1 or later',
+		detail: `remote functions in ${String(read)} examples-sveltekit files and svelte.config.js: ${found.join(', ') || 'none'}`,
+		holds: read > 0 && found.length === 0,
 	};
 }
 
@@ -183,43 +290,82 @@ const ACCEPTED = [
 	},
 	{
 		async check() {
-			const eslint = await latestManifest('eslint');
-			// Bracket access, not dotted: `noPropertyAccessFromIndexSignature` is on, and a dotted read of
-			// an index-signature key is the error TS4111 that `tsconfig.node.json` exists to catch.
-			const eslintRange = eslint.dependencies?.['minimatch'] ?? '(none)';
 			// Each was read for `optimizationLevel`. The four lint callers leave it at the default, 1;
 			// glob sets 2, so it and editorconfig are allowed only while js-beautify is their sole parent.
-			const known = [
-				'@eslint/config-array',
-				'@typescript-eslint/typescript-estree',
-				'editorconfig',
-				'eslint',
-				'eslint-plugin-jsx-a11y-x',
-				'glob',
-			];
-			const dependents = lockfileDependents('minimatch');
-			const unread = dependents.filter((dependent) => !known.includes(dependent));
+			// `via`: only a release of that package moves this one, by allowing the major in `from`, the
+			// first on minimatch 11 (glob 14.0.0, editorconfig 4.0.0). The rest move with their own release,
+			// which their parents' ranges admit or which typescript-eslint ships in lockstep.
+			/** @type {Record<string, { via?: string, from?: number }>} */
+			const moves = {
+				'@eslint/config-array': {},
+				'@typescript-eslint/typescript-estree': {},
+				editorconfig: { from: 4, via: 'js-beautify' },
+				eslint: {},
+				'eslint-plugin-jsx-a11y-x': {},
+				glob: { from: 14, via: 'js-beautify' },
+			};
+			// Patched in 11.0.1. Only the dependents that resolve an older minimatch matter.
+			const vulnerable = lockfileDependents('minimatch', (version) => compareVersions(version, '11.0.1') < 0);
+			const unread = vulnerable.filter((dependent) => !Object.hasOwn(moves, dependent));
 			const cliOnly = ['editorconfig', 'glob'].every((name) => lockfileDependents(name).join() === 'js-beautify');
-			const pinned = eslintRange.startsWith('^10');
-			let action = `${unread.join(', ')} now depend(s) on minimatch — check whether it sets optimizationLevel >= 2`;
+			const quarantine = releaseAgeMs();
+			/** @type {string[]} */
+			const installable = [];
+			/** @type {string[]} */
+			const quarantined = [];
+			/** @type {string[]} */
+			const unfixed = [];
 
-			if (dependents.length === 0) {
-				action = 'nothing in the lockfile depends on minimatch any more — retire this acceptance';
-			} else if (!pinned) {
-				action = 'eslint moved to another minimatch major — upgrade to a patched one and retire this acceptance';
+			for (const dependent of vulnerable) {
+				const move = moves[dependent];
+
+				if (move === undefined) {
+					continue;
+				}
+
+				const owner = move.via ?? dependent;
+				const latest = await latestManifest(owner);
+				const range = latest.dependencies?.[move.via === undefined ? 'minimatch' : dependent];
+				const label = move.via === undefined
+					? `${dependent}@${latest.version} (minimatch ${range ?? 'dropped'})`
+					: `${dependent} via ${owner}@${latest.version} (${dependent} ${range ?? 'dropped'})`;
+
+				if (range !== undefined && !(majorOf(range) >= (move.from ?? 11))) {
+					unfixed.push(label);
+					continue;
+				}
+
+				const clears = (await publishedAt(owner, latest.version)) + quarantine;
+
+				if (clears <= Date.now()) {
+					installable.push(label);
+				} else {
+					quarantined.push(`${label}, installable from ${new Date(clears).toISOString().slice(0, 16)}Z`);
+				}
+			}
+
+			let action = `${unread.join(', ')} now resolve(s) minimatch 10 — check whether it sets optimizationLevel >= 2`;
+
+			if (vulnerable.length === 0) {
+				action = 'nothing in the lockfile resolves minimatch < 11.0.1 any more — retire this acceptance';
+			} else if (installable.length > 0) {
+				action = `upgrade ${installable.join(', ')}: past the quarantine and on minimatch 11. `
+					+ 'Retire this acceptance once nothing resolves minimatch < 11.0.1';
 			} else if (!cliOnly) {
 				action = 'glob or editorconfig gained a parent besides js-beautify — check whether that caller runs it';
 			}
 
 			return {
 				action,
-				detail: `eslint@${eslint.version} requires minimatch ${eslintRange}; lockfile dependents: `
-					+ `${dependents.join(', ') || 'none'}; glob and editorconfig ${cliOnly ? 'only' : 'NOT only'} under js-beautify`,
-				holds: pinned && dependents.length > 0 && unread.length === 0 && cliOnly,
+				detail: `minimatch < 11.0.1 resolved for: ${vulnerable.join(', ') || 'none'}; `
+					+ `no fix yet: ${unfixed.join(', ') || 'none'}; `
+					+ `fixed, inside the quarantine: ${quarantined.join(', ') || 'none'}; `
+					+ `fixed and installable: ${installable.join(', ') || 'none'}` + `; glob and editorconfig ${cliOnly ? 'only' : 'NOT only'} under js-beautify`,
+				holds: vulnerable.length > 0 && unread.length === 0 && installable.length === 0 && cliOnly,
 			};
 		},
 		ghsa: 'GHSA-g3hv-75wg-m249',
-		premise: 'eslint still requires minimatch 10, and the only caller at optimizationLevel 2 is glob under js-beautify\'s CLI',
+		premise: 'every package resolving minimatch 10 has no release on 11 past the quarantine, and the only caller at optimizationLevel 2 is glob under js-beautify\'s CLI',
 		severity: 'moderate',
 	},
 	{
@@ -291,6 +437,24 @@ const ACCEPTED = [
 		ghsa: 'GHSA-27mw-82g8-phjj',
 		premise: 'examples-sveltekit never calls setHeaders, so no cache-control value reaches a prerendered page',
 		severity: 'low',
+	},
+	{
+		// Static — no network. Mirrored in acceptedAdvisoryParity.test.ts, which runs continuously.
+		check() {
+			return Promise.resolve(remoteFunctionsUnused());
+		},
+		ghsa: 'GHSA-3r8g-jcqq-3p5j',
+		premise: 'examples-sveltekit uses no remote functions, so no remote form parses request data',
+		severity: 'high',
+	},
+	{
+		// Static — no network. Mirrored in acceptedAdvisoryParity.test.ts, which runs continuously.
+		check() {
+			return Promise.resolve(remoteFunctionsUnused());
+		},
+		ghsa: 'GHSA-6cf5-gc4q-fm3x',
+		premise: 'examples-sveltekit uses no remote functions, so no query.batch exists to collide',
+		severity: 'moderate',
 	},
 ];
 
