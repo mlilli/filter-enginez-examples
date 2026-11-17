@@ -282,6 +282,8 @@ export function createResultsView<T>(
 
 	// ── Incremental grid rendering (batching + hard cap), mirroring the other verticals ──
 	let rendered: readonly T[] = [];
+	// Whether a result set has been painted yet; the first one needs no scroll reset.
+	let hasShownResults = false;
 	let visible: number = RESULT_GRID_WINDOW.initial;
 
 	/** Paint the current slice + the empty / cap affordances. */
@@ -365,7 +367,12 @@ export function createResultsView<T>(
 			rendered = results;
 			visible = RESULT_GRID_WINDOW.initial;
 			grid.setAttribute('aria-label', copy.listLabel(results.length));
-			gridElement.scrollTop = 0;
+			// Back to the top for each new result set, but not for the first: the grid was just created
+			// there, and a `scrollTop` write would only force a layout mid-paint.
+			if (hasShownResults) {
+				gridElement.scrollTop = 0;
+			}
+			hasShownResults = true;
 			paintGrid();
 		},
 		setRules: (rules, recentRuleId) => {

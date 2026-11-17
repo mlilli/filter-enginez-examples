@@ -26,9 +26,10 @@
 
 import type { Wine } from '@filter-enginez/mock-data/wine/generator';
 
-import { createFilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
+import { createFilterEngine } from '@filter-enginez/core';
 import { exposeFilterEngineWorker, type WorkerEngineFactory } from '@filter-enginez/worker-bridge';
 
+import { startBitmapAcceleration } from '../data/startBitmapAcceleration.js';
 import { deliverWineFacets, loadWineCorpus, type WineWorkerCallbacks } from './wineCorpusLoader.js';
 import { type WineWorkerTier } from './wineCorpusTier.js';
 
@@ -60,9 +61,10 @@ const wineEngineFactory: WorkerEngineFactory<Wine> = async (options, callbacks) 
 	const cbs = callbacks as unknown as WineWorkerCallbacks | undefined;
 	const onProgress = cbs?.onProgress;
 
-	// Phase 1 — WASM init. The worker has its own module scope, so Roaring is initialized here, where
-	// the bitmap index will be built.
-	await initializeBitmapAcceleration();
+	// Phase 1 — WASM init, started and not awaited. The worker has its own module scope, so Roaring is
+	// initialized here, where the bitmap index will be built; it loads while the corpus does, and the
+	// engine answers on the predicate path until it is ready (see `startBitmapAcceleration`).
+	void startBitmapAcceleration();
 
 	// Phase 2 — the corpus.
 	const { wines } = await loadWineCorpus(readRequestedTier(options), onProgress);

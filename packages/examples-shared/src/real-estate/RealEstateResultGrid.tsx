@@ -19,6 +19,7 @@ import { ScrollRegion } from '@filter-enginez/react-ui';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { isRenderCapped, nextRenderLimit, RESULT_COPY, RESULT_GRID_WINDOW, resultCapNotice } from '../verticals/verticals.js';
+import { useScrollToTopOnNewResults } from '../viewport/useScrollToTopOnNewResults.js';
 import { RealEstateCard } from './RealEstateCard.js';
 
 /** This dataset's result-column copy: the list and scroller names and the empty state. */
@@ -45,13 +46,9 @@ const RealEstateResultGridInner = (): React.ReactElement => {
 		setRenderLimit(RESULT_GRID_WINDOW.initial);
 	}
 
-	useEffect(() => {
-		const el = scrollerRef.current;
-
-		if (el !== null) {
-			el.scrollTop = 0;
-		}
-	}, [results]);
+	// Back to the top for each new result set, but not on mount, where a `scrollTop` write would only
+	// force a layout (see `useScrollToTopOnNewResults`).
+	useScrollToTopOnNewResults(scrollerRef, results);
 
 	// Bottom-sentinel intersection — expands `renderLimit` when the user scrolls near the rendered
 	// tail. `rootMargin: 200px` triggers a viewport-height early so the load feels continuous.

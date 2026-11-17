@@ -24,9 +24,10 @@
 
 import type { Book } from '@filter-enginez/mock-data/books';
 
-import { type FilterEngineConfig, initializeBitmapAcceleration, loadConfig } from '@filter-enginez/core';
+import { type FilterEngineConfig, loadConfig } from '@filter-enginez/core';
 import { createSignalsEngine, type SignalsEngine } from '@filter-enginez/reactive-signals';
 
+import { startBitmapAcceleration } from '../data/startBitmapAcceleration.js';
 import { buildBooksEngine } from './buildBooksEngine.js';
 
 /** Live boot progress — books load in one shot, so this reports the final count. */
@@ -107,11 +108,11 @@ export async function bootBooksConfigEngine(): Promise<BooksConfigEngineBundle> 
 async function bootInternal(): Promise<BooksConfigEngineBundle> {
 	const t0 = performance.now();
 
-	// The dataset chunk downloads while acceleration initializes; neither depends on the other.
-	const [{ books: defaultBooks, booksFilterConfig }] = await Promise.all([
-		import('@filter-enginez/mock-data/books'),
-		initializeBitmapAcceleration(),
-	]);
+	// Acceleration loads beside the dataset chunk and the engine does not wait for it (see
+	// `startBitmapAcceleration`).
+	void startBitmapAcceleration();
+
+	const { books: defaultBooks, booksFilterConfig } = await import('@filter-enginez/mock-data/books');
 
 	// Build the rule-free engine, then load the declarative config onto its core BEFORE wrapping it in
 	// the signals surface — so the wrapped engine boots already-configured (rules + groups from JSON).

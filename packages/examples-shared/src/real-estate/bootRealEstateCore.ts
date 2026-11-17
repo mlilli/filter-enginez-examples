@@ -2,7 +2,7 @@
  * Real-estate engine boot — the **reactive-surface-neutral** half.
  *
  * @remarks
- * This module boots the real-estate engine down to a bare `FilterEngine<Listing>`: it initializes
+ * This module boots the real-estate engine down to a bare `FilterEngine<Listing>`: it starts
  * bitmap acceleration, builds the engine over the streamed default tier, and reports boot progress.
  * It has NO reactive-surface dependency — deliberately kept in its own module (rather than living
  * beside `bootRealEstateEngine`) so a consumer of the RxJS surface never pulls
@@ -20,18 +20,18 @@
  * ```
  *
  * Both paths share ONE cached core — the cache lives HERE, over the expensive work
- * (`initializeBitmapAcceleration` + `loadDefaultTierCorpus`), and the signals wrapper adds only a
+ * (`loadDefaultTierCorpus` and the engine build), and the signals wrapper adds only a
  * second, cheap memo over its own wrapping. That split is the whole point: two `let cached…`
  * variables are correct, two corpus builds are not.
  *
  * @packageDocumentation
  */
 
+import type { FilterEngine } from '@filter-enginez/core';
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
-import { type FilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
-
 import { loadDefaultTierCorpus } from '../data/loadDefaultTierCorpus.js';
+import { startBitmapAcceleration } from '../data/startBitmapAcceleration.js';
 import { buildRealEstateEngine } from './buildRealEstateEngine.js';
 
 /** Live boot progress — listings load in one shot, so this reports the final count. */
@@ -96,7 +96,7 @@ export function getRealEstateBootProgressSnapshot(): RealEstateBootProgress | nu
 
 /**
  * Boot the real-estate engine to a bare `FilterEngine`. Idempotent — repeated calls return the
- * cached bundle, so acceleration initializes once and the corpus builds once.
+ * cached bundle, so acceleration starts once and the corpus builds once.
  *
  * @returns The bare engine + boot metadata.
  */
@@ -107,7 +107,7 @@ export async function bootRealEstateCore(): Promise<RealEstateCoreBundle> {
 }
 
 /**
- * The boot: initialize acceleration, load the default tier, build the engine, publish progress.
+ * The boot: start acceleration, load the default tier, build the engine, publish progress.
  *
  * @remarks
  * The corpus comes through {@link loadDefaultTierCorpus} rather than a static import, so the ~10k
@@ -124,7 +124,8 @@ export async function bootRealEstateCore(): Promise<RealEstateCoreBundle> {
 async function bootCoreInternal(): Promise<RealEstateCoreBundle> {
 	const t0 = performance.now();
 
-	await initializeBitmapAcceleration();
+	// Acceleration loads beside the corpus and the engine does not wait for it (see `startBitmapAcceleration`).
+	void startBitmapAcceleration();
 
 	const { records } = await loadDefaultTierCorpus<Listing>(
 		'real-estate',

@@ -3,9 +3,10 @@
  *
  * @remarks
  * jsdom render via `createElement`. One 3-deep fixture (US → CA → {Napa, Sonoma}; US → OR →
- * Willamette) drives the whole matrix. Collapsed children stay in the DOM (rendered `hidden`, not
- * unmounted), so `getByText` resolves every node regardless of the parent's open state. Every row —
- * parent or leaf — is a `.fe-tree__row`, so `boxFor` locates a node's checkbox from its label.
+ * Willamette) drives the whole matrix. Only open branches mount their children, so `renderPicker`
+ * opens every branch unless a case asks for the tree as it first renders (`collapsed: true`); then
+ * `getByText` resolves every node. Every row — parent or leaf — is a `.fe-tree__row`, so `boxFor`
+ * locates a node's checkbox from its label.
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -70,11 +71,46 @@ function stateFor(label: string): string | null {
 	return boxFor(label).getAttribute('aria-checked');
 }
 
-/** Render the picker with the standard tree and the supplied prop overrides. */
-function renderPicker(overrides: Record<string, unknown> = {}): ReturnType<typeof render> {
-	return render(
+/**
+ * Render the picker with the standard tree and the supplied prop overrides, every branch opened.
+ *
+ * @param options - Prop overrides, plus `collapsed: true` to leave the tree as it first renders.
+ * @returns The render result.
+ */
+function renderPicker(options: Record<string, unknown> = {}): ReturnType<typeof render> {
+	const { collapsed = false, ...overrides } = options;
+	const result = render(
 		createElement(HierarchicalPicker, { onChange: vi.fn(), selected: [], tree: TREE, ...overrides }),
 	);
+
+	if (collapsed !== true) {
+		// Opening a branch mounts its rows, and with them their own toggles, so open until none is left.
+		for (let toggle = closedToggle(result.container); toggle !== null; toggle = closedToggle(result.container)) {
+			fireEvent.click(toggle);
+		}
+	}
+
+	return result;
+}
+
+/**
+ * The first disclosure toggle still closed.
+ *
+ * @param container - The rendered picker.
+ * @returns The toggle, or `null` when every mounted branch is open.
+ */
+function closedToggle(container: HTMLElement): HTMLButtonElement | null {
+	return container.querySelector<HTMLButtonElement>('.fe-tree__toggle[aria-expanded="false"]');
+}
+
+/**
+ * The disclosure toggle on the row carrying `label`.
+ *
+ * @param label - A parent node's visible label.
+ * @returns Its toggle.
+ */
+function toggleFor(label: string): HTMLButtonElement {
+	return screen.getByText(label).closest('.fe-tree__row')?.querySelector<HTMLButtonElement>('.fe-tree__toggle') as HTMLButtonElement;
 }
 
 describe('HierarchicalPicker', () => {
@@ -248,7 +284,7 @@ describe('HierarchicalPicker', () => {
 	it('flips the plus to a minus by class, and back', () => {
 		// The icon has no text to assert on, so the open state is carried by a modifier class. That is
 		// also what the CSS rotation hangs off, so this pins the contract between the two.
-		const { container } = renderPicker({ selected: []});
+		const { container } = renderPicker({ collapsed: true, selected: []});
 		const usToggle = screen.getByText('US').closest('.fe-tree__row')?.querySelector('.fe-tree__toggle');
 
 		expect(usToggle?.querySelector('.fe-tree__pm--open')).toBeNull();
@@ -261,7 +297,8 @@ describe('HierarchicalPicker', () => {
 		fireEvent.click(usToggle as Element);
 
 		expect(usToggle?.querySelector('.fe-tree__pm--open')).toBeNull();
-		expect(container.querySelectorAll('.fe-tree__toggle')).toHaveLength(3);
+		// Closed again, US's branch holds no rows, so CA's and OR's toggles are gone with them.
+		expect(container.querySelectorAll('.fe-tree__toggle')).toHaveLength(1);
 	});
 
 	it('renders NO badge when the caller supplies no counts', () => {
@@ -282,26 +319,61 @@ describe('HierarchicalPicker', () => {
 		expect(screen.getByText('Sonoma').closest('.fe-tree__row')?.querySelector('.fe-tree__count')).toBeNull();
 	});
 
-	it('toggles a parent open/closed via its disclosure button (children hidden while collapsed)', () => {
-		renderPicker({ selected: []});
-		const toggle = screen.getByText('US').closest('.fe-tree__row')?.querySelector('.fe-tree__toggle') as HTMLButtonElement;
-		// The children container is the row's next sibling within the parent's wrapper.
-		const childrenBox = toggle.closest('.fe-tree__row')?.nextElementSibling as HTMLElement;
+	it('toggles a parent open/closed via its disclosure button, mounting its children only while open', () => {
+		// A wine origin tree runs to thousands of nodes. Kept mounted while collapsed, they cost every
+		// commit a walk over all of them; a collapsed branch therefore renders no children at all.
+		const { container } = renderPicker({ collapsed: true, selected: []});
+		const toggle = toggleFor('US');
+		const childrenOf = (): Element | null => toggle.closest('.fe-tree__branch')?.querySelector(':scope > .fe-tree__children') ?? null;
 
-		// Collapsed by default.
+		// Collapsed by default: the top-level row only.
 		expect(toggle.getAttribute('aria-expanded')).toBe('false');
 		expect(toggle.getAttribute('aria-label')).toBe('Expand US');
-		expect(childrenBox.hidden).toBe(true);
+		expect(childrenOf()).toBeNull();
+		expect(container.querySelectorAll('.fe-tree__row')).toHaveLength(1);
 
 		fireEvent.click(toggle);
 		expect(toggle.getAttribute('aria-expanded')).toBe('true');
 		expect(toggle.getAttribute('aria-label')).toBe('Collapse US');
-		expect(childrenBox.hidden).toBe(false);
+		expect(childrenOf()).not.toBeNull();
+		expect(screen.getByText('CA')).toBeDefined();
+		expect(screen.queryByText('Napa')).toBeNull();
 
 		// Toggle back closed.
 		fireEvent.click(toggle);
 		expect(toggle.getAttribute('aria-expanded')).toBe('false');
-		expect(childrenBox.hidden).toBe(true);
+		expect(childrenOf()).toBeNull();
+		expect(screen.queryByText('CA')).toBeNull();
+	});
+
+	it('announces a collapsed parent\'s state from the selection, with none of its descendants mounted', () => {
+		// Nothing a row shows may depend on its descendants being mounted: a collapsed country with one
+		// region selected must still read "mixed", and one selected outright "checked".
+		const { container, rerender } = renderPicker({ collapsed: true, selected: ['napa']});
+
+		expect(container.querySelectorAll('.fe-tree__row')).toHaveLength(1);
+		expect(stateFor('US')).toBe('mixed');
+
+		rerender(createElement(HierarchicalPicker, { onChange: vi.fn(), selected: ['us'], tree: TREE }));
+
+		expect(stateFor('US')).toBe('true');
+	});
+
+	it('keeps a branch open inside a parent that closes and reopens, as the flat-list pickers do', () => {
+		// The open set lives in the picker, not in each row: a row unmounts with its collapsed parent,
+		// and an open state held by the row would go with it.
+		renderPicker({ collapsed: true, selected: []});
+
+		fireEvent.click(toggleFor('US'));
+		fireEvent.click(toggleFor('CA'));
+		expect(screen.getByText('Napa')).toBeDefined();
+
+		fireEvent.click(toggleFor('US'));
+		expect(screen.queryByText('Napa')).toBeNull();
+
+		fireEvent.click(toggleFor('US'));
+		expect(toggleFor('CA').getAttribute('aria-expanded')).toBe('true');
+		expect(screen.getByText('Napa')).toBeDefined();
 	});
 
 	it('renders nothing when the root has no children', () => {

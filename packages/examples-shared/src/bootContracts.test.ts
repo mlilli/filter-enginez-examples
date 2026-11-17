@@ -26,7 +26,7 @@
 import { loadConfig } from '@filter-enginez/core';
 import { booksFilterConfig, books as defaultBooks } from '@filter-enginez/mock-data/books';
 import { listings as defaultListings } from '@filter-enginez/mock-data/real-estate';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { buildBooksEngine } from './books/buildBooksEngine.js';
 
@@ -182,6 +182,73 @@ describe.each(boots)('%s boot contract', (name) => {
 		await contract.boot();
 
 		expect(seen).toEqual([]);
+	});
+});
+
+/**
+ * Replace core's `initializeBitmapAcceleration` for the next fresh import of a boot.
+ *
+ * @param initialize - What the boot's acceleration call returns instead.
+ */
+function stubAcceleration(initialize: () => Promise<void>): void {
+	vi.doMock('@filter-enginez/core', async (importOriginal) => ({
+		...(await importOriginal<Record<string, unknown>>()),
+		initializeBitmapAcceleration: initialize,
+	}));
+}
+
+/**
+ * Settle with the boot, or reject once it has had far longer than a booted corpus needs.
+ *
+ * @param boot - The boot under test.
+ * @returns What the boot resolved to.
+ */
+async function bootWithin(boot: () => Promise<unknown>): Promise<unknown> {
+	return Promise.race([
+		boot(),
+		new Promise<never>((_resolve, reject) => {
+			setTimeout(() => {
+				reject(new Error('the boot is still waiting — is it awaiting bitmap acceleration?'));
+			}, 10_000);
+		}),
+	]);
+}
+
+describe.each(boots)('%s boot and bitmap acceleration', (name) => {
+	afterEach(() => {
+		vi.doUnmock('@filter-enginez/core');
+		vi.restoreAllMocks();
+	});
+
+	it('builds the engine without waiting for acceleration', async () => {
+		// Acceleration is a WebAssembly fetch and compile; the corpus is a chunk of its own. A boot that
+		// waited for the first before loading the second paid for them one after the other, and the
+		// first render waited on both. The engine answers on its predicate path until acceleration is
+		// ready, so here it never is, and the boot still resolves.
+		const initialize = vi.fn<() => Promise<void>>(async () => new Promise<void>(() => undefined));
+
+		stubAcceleration(initialize);
+
+		const contract = await loadBoot(name);
+
+		await expect(bootWithin(contract.boot)).resolves.toMatchObject({ meta: { [contract.countKey]: contract.expectedCount }});
+		expect(initialize).toHaveBeenCalledOnce();
+	});
+
+	it('boots when acceleration fails, and says so once as a warning', async () => {
+		// Without the library, or with its chunk unreachable, the engine still answers every filter on
+		// the predicate path; a failed boot screen would be worse than a slower filter.
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+		stubAcceleration(async () => Promise.reject(new Error('MODE_ACCELERATION_PEER_MISSING')));
+
+		const contract = await loadBoot(name);
+
+		await expect(bootWithin(contract.boot)).resolves.toMatchObject({ meta: { [contract.countKey]: contract.expectedCount }});
+		await vi.waitFor(() => {
+			expect(warn).toHaveBeenCalledOnce();
+		});
+		expect(String(warn.mock.calls[0]?.[0])).toMatch(/predicate path/u);
 	});
 });
 

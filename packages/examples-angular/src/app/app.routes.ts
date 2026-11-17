@@ -26,7 +26,9 @@
  *
  * The router loads a route's component only after its resolvers settle, so each resolver also starts
  * the page's own chunk downloading ({@link resolveWithPage}); by the time the boot finishes, the
- * component is already in the module cache rather than one more round trip away.
+ * component is already in the module cache rather than one more round trip away. A dataset route's
+ * resolver starts its dataset chunk the same way ({@link prefetchDataset}), so the corpus downloads
+ * beside the route's code instead of after it.
  *
  * ### A first frame while the resolver works
  *
@@ -51,9 +53,9 @@
  * @packageDocumentation
  */
 
-import type { Type } from '@angular/core';
 import type { ResolveFn, Routes } from '@angular/router';
 
+import { isDevMode, type Type } from '@angular/core';
 import {
 	BOOKS_BOOT_IDLE_CAPTION,
 	BOOKS_RECORD_NOUN,
@@ -141,6 +143,31 @@ async function resolveWithPage<T>(loadPage: () => Promise<unknown>, loadData: ()
 	return data;
 }
 
+/**
+ * Start downloading the dataset chunk a route's boot is about to import, and do not wait for it.
+ *
+ * @remarks
+ * The build splits each dataset into a chunk of its own, imported by the boot inside the route's data
+ * module. The browser learns of a lazy chunk only once the module that imports it has run, and the
+ * build writes no preload for a lazy chunk's own imports, so on its own the dataset would start
+ * downloading only after the route's data module had arrived, and its shared generator helpers only
+ * after the dataset had: a request chain several round trips deep. Importing the dataset here, from the
+ * startup bundle, starts it with the route's code; the boot's own `import()` then finds the module
+ * already loaded.
+ *
+ * Production only: a development build streams the dataset from the mock API and never imports the
+ * chunk. A failed download is the boot's to report, through its own `import()`, as the dataset's
+ * boot-failure screen.
+ *
+ * @param load - The route boot's dataset `import()`.
+ */
+function prefetchDataset(load: () => Promise<unknown>): void {
+	if (isDevMode()) {
+		return;
+	}
+	void load().catch(() => undefined);
+}
+
 /** `/books`' page component, loaded on demand. */
 const loadBooksPage = async (): Promise<Type<unknown>> =>
 	(await import('./pages/books-page.component.js')).BooksPageComponent;
@@ -160,12 +187,15 @@ const loadRealEstatePage = async (): Promise<Type<unknown>> =>
  * @throws A `DatasetBootError` when the engine cannot boot; the root component shows the books
  *   boot-failure screen.
  */
-export const booksResolver: ResolveFn<BooksRouteData> = async () =>
-	resolveWithPage(loadBooksPage, async () => {
+export const booksResolver: ResolveFn<BooksRouteData> = async () => {
+	prefetchDataset(async () => import('@filter-enginez/mock-data/books'));
+
+	return resolveWithPage(loadBooksPage, async () => {
 		const { loadBooksRouteData } = await import('./books/books-route-data.js');
 
 		return withDatasetBootFailure('books', loadBooksRouteData());
 	});
+};
 
 /**
  * Resolve `/books-server`: the HTTP-backed engine, or the error that stopped it
@@ -186,12 +216,15 @@ export const booksServerResolver: ResolveFn<BooksServerRouteData> = async () =>
  * @returns The engine, the derived facets and boot metadata, for the route's `data`.
  * @throws A `DatasetBootError` when the engine cannot boot.
  */
-export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () =>
-	resolveWithPage(loadRealEstatePage, async () => {
+export const realEstateResolver: ResolveFn<RealEstateRouteData> = async () => {
+	prefetchDataset(async () => import('@filter-enginez/mock-data/real-estate'));
+
+	return resolveWithPage(loadRealEstatePage, async () => {
 		const { loadRealEstateRouteData } = await import('./real-estate/real-estate-route-data.js');
 
 		return withDatasetBootFailure('real-estate', loadRealEstateRouteData());
 	});
+};
 
 /**
  * The app routes. The landing hub is eager; every other page, and everything a resolver boots, loads

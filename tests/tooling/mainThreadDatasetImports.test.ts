@@ -66,6 +66,11 @@ interface AllowedImport {
  * The modules that may import a dataset or its generator for VALUES, keyed by repo-relative path.
  */
 const ALLOWED_IMPORTS: Readonly<Record<string, AllowedImport>> = {
+	'packages/examples-angular/src/app/app.routes.ts': {
+		kinds: ['dynamic'],
+		reason:
+			'the `/books` and `/real-estate` resolvers start the dataset chunk their boot imports, with `import()`, so it downloads beside the route code (Angular’s build writes no preload for a lazy chunk’s imports)',
+	},
 	'packages/examples-server/src/datasets.ts': {
 		kinds: ['value'],
 		reason:

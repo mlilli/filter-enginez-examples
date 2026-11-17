@@ -214,14 +214,21 @@ export class ResultGridComponent<T> {
 		// Reset to the first page whenever the result set's IDENTITY changes. A filter commit hands back
 		// a fresh array, so this fires on every commit and the user sees the new first page rather than
 		// page seven of the previous one. Reading `results()` is the whole point of the effect; the
-		// write to `_renderLimit` is not read here, so there is no self-trigger.
+		// write to `_renderLimit` is not read here, so there is no self-trigger. The scroll reset skips
+		// the first result set, and a re-run over the same one (the scroller arriving): the grid was
+		// just created at the top, and a `scrollTop` write would only force a layout mid-render.
+		let shownResults: unknown;
+
 		effect(() => {
-			this.results();
+			const results = this.results();
+
 			this._renderLimit.set(RESULT_GRID_WINDOW.initial);
 
 			const scroller = this._scroller();
+			const isNewResultSet = shownResults !== undefined && shownResults !== results;
 
-			if (scroller !== undefined) {
+			shownResults = results;
+			if (isNewResultSet && scroller !== undefined) {
 				scroller.nativeElement.scrollTop = 0;
 			}
 		});

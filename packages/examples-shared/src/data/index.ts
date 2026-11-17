@@ -16,3 +16,4 @@ export {
 	loadDefaultTierCorpus,
 	type LoadDefaultTierCorpusOptions,
 } from './loadDefaultTierCorpus.js';
+export { startBitmapAcceleration } from './startBitmapAcceleration.js';

@@ -58,11 +58,17 @@
 	const capNotice = $derived(resultCapNotice(renderedCount, results.length));
 
 	// Back to the first batch, scrolled to the top, whenever the result set changes identity (every
-	// recompute hands over a fresh array). Reading `results` is what registers the dependency.
+	// recompute hands over a fresh array). Reading `results` is what registers the dependency. The
+	// scroll reset skips the first result set, and a re-run over the same one (the scroller binding):
+	// the grid was just created at the top, and a `scrollTop` write would only force a layout.
+	let shownResults: unknown;
+
 	$effect(() => {
-		void results;
+		const isNewResultSet = shownResults !== undefined && shownResults !== results;
+
+		shownResults = results;
 		renderLimit = RESULT_GRID_WINDOW.initial;
-		if (scrollerEl !== null) {
+		if (isNewResultSet && scrollerEl !== null) {
 			scrollerEl.scrollTop = 0;
 		}
 	});

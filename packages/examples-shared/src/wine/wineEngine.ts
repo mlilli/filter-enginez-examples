@@ -36,12 +36,12 @@
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
-import { initializeBitmapAcceleration } from '@filter-enginez/core';
 import { bootSignalsEngine } from '@filter-enginez/reactive-signals/worker';
 import { type FilterEngineAsync, type WorkerLike, wrapInWorker } from '@filter-enginez/worker-bridge';
 
 import { loadCorpusPaged } from '../data/loadCorpusPaged.js';
 import { reviveSignalsEngineOverWorker } from '../data/reviveSignalsEngine.js';
+import { startBitmapAcceleration } from '../data/startBitmapAcceleration.js';
 import { buildWineEngine } from './buildWineEngine.js';
 import { deriveWineFacets, rememberWineFacets, type WineFacets } from './wine-domain/facets.js';
 import { describeWineCorpusTier, type WineCorpusSource } from './wineCorpusTier.js';
@@ -407,11 +407,11 @@ async function bootInternal(options: WineBootOptions): Promise<WineEngineBundle>
 	// on the main thread instead. Both branches are real — see `createMainEngine`.
 	const { engine, mode } = await bootSignalsEngine<Wine>({
 		// Main-thread path — build the identical engine from the bundled default tier via the
-		// shared `buildWineEngine`. Bitmap acceleration is initialized here (the worker does it in
-		// its own boot phase); the final progress ping makes the boot screen read "ready" the same
-		// way the worker path does.
+		// shared `buildWineEngine`. Bitmap acceleration starts here, beside the corpus, and the engine
+		// does not wait for it (the worker does the same in its own scope); the final progress ping
+		// makes the boot screen read "ready" the same way the worker path does.
 		createMainEngine: async () => {
-			await initializeBitmapAcceleration();
+			void startBitmapAcceleration();
 			// Stream the default tier over the paginated MSW-backed endpoint (`/api/wine`) — realistic
 			// incremental loading, and the ~9 MB default corpus stays out of the main-thread bundle.
 			// `loadCorpusPaged` reports per-page progress; the final page's ping (loaded === total) leaves

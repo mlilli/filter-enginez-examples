@@ -548,10 +548,9 @@
 		background-color 150ms ease,
 		color 150ms ease;
 	/* Newly revealed rows ease in rather than appearing instantly. It fires when a row enters the
-	 * layout — which for Svelte's flat list means a row being inserted on expand, and for React's
-	 * nested one means `.fe-tree__children` leaving `display: none`. Two different mechanisms, one
-	 * behavior, which is the point of it living here: expanding a branch animates the same way in
-	 * every picker over the same tree. */
+	 * layout, which in every picker means a row being inserted on expand: the flat lists insert the
+	 * branch's rows, React's nested tree mounts its `.fe-tree__children`. Living here, expanding a
+	 * branch animates the same way in every picker over the same tree. */
 	animation: fe-tree-row-in 140ms ease-out;
 }
 @keyframes fe-tree-row-in {
@@ -664,11 +663,6 @@
 	.fe-tree__row {
 		animation: none;
 	}
-}
-/* Collapsed children stay in the DOM (so exclusion state is live) but are hidden. The double
- * selector beats the base `.fe-tree__children { display: flex }`. */
-.fe-tree__children[hidden] {
-	display: none;
 }
 /* The row's selection control — a button spanning mark, label and count, so the whole line is the
  * hit target rather than a 13px checkbox. */

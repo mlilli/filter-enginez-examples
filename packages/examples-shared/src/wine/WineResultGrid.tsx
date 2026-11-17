@@ -43,6 +43,7 @@ import { ScrollRegion } from '@filter-enginez/react-ui';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { isRenderCapped, nextRenderLimit, RESULT_COPY, RESULT_GRID_WINDOW, resultCapNotice } from '../verticals/verticals.js';
+import { useScrollToTopOnNewResults } from '../viewport/useScrollToTopOnNewResults.js';
 import { WineCard } from './WineCard.js';
 
 /** This dataset's result-column copy: the list and scroller names and the empty state. */
@@ -69,15 +70,9 @@ const WineResultGridInner = (): React.ReactElement => {
 		setRenderLimit(RESULT_GRID_WINDOW.initial);
 	}
 
-	// Also scroll back to top so the new result set's first page is visible. The scroll
-	// position belongs to the DOM, so this half stays in an effect.
-	useEffect(() => {
-		const el = scrollerRef.current;
-
-		if (el !== null) {
-			el.scrollTop = 0;
-		}
-	}, [results]);
+	// Back to the top for each new result set, but not on mount, where a `scrollTop` write would only
+	// force a layout (see `useScrollToTopOnNewResults`).
+	useScrollToTopOnNewResults(scrollerRef, results);
 
 	// Bottom-sentinel intersection — expands renderLimit when the user scrolls within
 	// striking distance of the currently-rendered tail. `rootMargin: 200px` triggers

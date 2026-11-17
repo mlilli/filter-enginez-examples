@@ -10,8 +10,8 @@
  * specified id" (its page reloaded mid-action), which points nowhere near the cause.
  *
  * So each Vite app that spawns the worker lists, in its `optimizeDeps.include`, every bare package the
- * worker's module graph imports, except the ones the main thread's wine boot (`wineEngine.ts`) imports
- * too: those are discovered by the startup scan through the main graph. The check reads source TEXT, so
+ * worker's module graph imports, except the ones the main thread's wine boot (`wineEngine.ts`) and
+ * the modules it imports reach too: the startup scan discovers those through the main graph. The check reads source TEXT, so
  * it runs without building anything; a package added to the worker, or a Vite app that starts spawning
  * it, fails here until the list is updated.
  *
@@ -110,9 +110,9 @@ function optimizeDepsIncludeOf(configText: string): string[] {
 	return [...includeBlock.replaceAll(/\/\/[^\n]*/gu, '').matchAll(/['"]([^'"]+)['"]/gu)].map((match) => match[1] ?? '');
 }
 
-/** The packages the worker imports, and the subset the main-thread wine boot also imports. */
+/** The packages the worker imports, and the subset the main-thread wine boot's graph also imports. */
 const WORKER_PACKAGES = bareSpecifiersOfGraph(WORKER_ENTRY);
-const MAIN_THREAD_PACKAGES = new Set(runtimeSpecifiersOf(MAIN_THREAD_WINE_BOOT).filter((specifier) => !specifier.startsWith('.')));
+const MAIN_THREAD_PACKAGES = new Set(bareSpecifiersOfGraph(MAIN_THREAD_WINE_BOOT));
 const WORKER_ONLY_PACKAGES = WORKER_PACKAGES.filter((specifier) => !MAIN_THREAD_PACKAGES.has(specifier));
 
 /** Vite apps whose own source spawns the wine worker (Angular builds with `@angular/build`, not Vite). */

@@ -32,10 +32,12 @@
  * @packageDocumentation
  */
 
-import { initializeBitmapAcceleration, type RuleId } from '@filter-enginez/core';
+import type { RuleId } from '@filter-enginez/core';
+
 import { appHeaderSubtitle } from '@filter-enginez/examples-shared/app-header-core';
 import { buildBooksEngine } from '@filter-enginez/examples-shared/books-core';
 import { safeApplyBundleFromCore } from '@filter-enginez/examples-shared/books-domain';
+import { startBitmapAcceleration } from '@filter-enginez/examples-shared/data';
 import { el } from '@filter-enginez/examples-shared/dom';
 
 import type { RouteTeardown } from '../router.js';
@@ -59,12 +61,11 @@ export async function renderBooksRawPage(container: HTMLElement): Promise<RouteT
 	let built;
 
 	try {
-		// Same acceleration the shared boot installs, so the two routes are a fair comparison. The dataset
-		// chunk downloads meanwhile; neither depends on the other.
-		const [{ books: defaultBooks }] = await Promise.all([
-			import('@filter-enginez/mock-data/books'),
-			initializeBitmapAcceleration(),
-		]);
+		// Same acceleration the shared boot starts, the same way, so the two routes are a fair comparison:
+		// it loads beside the dataset chunk and the engine does not wait for it.
+		void startBitmapAcceleration();
+
+		const { books: defaultBooks } = await import('@filter-enginez/mock-data/books');
 
 		built = buildBooksEngine(defaultBooks);
 	} catch (error) {

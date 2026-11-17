@@ -15,8 +15,6 @@
  * @packageDocumentation
  */
 
-import type * as Core from '@filter-enginez/core';
-
 import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,11 +28,8 @@ const boots = vi.hoisted(() => ({
 /** A boot that never settles: the page stays on its boot screen. */
 const pending = async (): Promise<never> => new Promise<never>(() => undefined);
 
-vi.mock('@filter-enginez/core', async (importOriginal) => ({
-	...(await importOriginal<typeof Core>()),
-	// The bare-core route's one wait before it builds its engine.
-	initializeBitmapAcceleration: pending,
-}));
+// The bare-core route's one wait before it builds its engine: the dataset chunk.
+vi.mock('@filter-enginez/mock-data/books', async () => pending());
 vi.mock('@filter-enginez/examples-shared/books-core', async (importOriginal) => ({
 	...(await importOriginal<Record<string, unknown>>()),
 	bootBooksEngine: boots.books,

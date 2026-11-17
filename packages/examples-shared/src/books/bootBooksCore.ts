@@ -2,7 +2,7 @@
  * Books engine boot — the **reactive-surface-neutral** half.
  *
  * @remarks
- * This module boots the books engine down to a bare `FilterEngine<Book>`: it initializes bitmap
+ * This module boots the books engine down to a bare `FilterEngine<Book>`: it starts bitmap
  * acceleration, builds the engine over the default tier, and reports boot progress. It has
  * NO reactive-surface dependency — deliberately kept in its own module (rather than living beside
  * `bootBooksEngine`) so a consumer of the RxJS surface never pulls `@preact/signals-core` into its
@@ -16,17 +16,17 @@
  * const engine = createRxJsEngine(core);
  * ```
  *
- * Both paths share ONE cached core, so acceleration is initialized once and the corpus is built once
+ * Both paths share ONE cached core, so acceleration is started once and the corpus is built once
  * no matter which surfaces are in play.
  *
  * @packageDocumentation
  */
 
+import type { FilterEngine } from '@filter-enginez/core';
 import type { Book } from '@filter-enginez/mock-data/books';
 
-import { type FilterEngine, initializeBitmapAcceleration } from '@filter-enginez/core';
-
 import { loadDefaultTierCorpus } from '../data/loadDefaultTierCorpus.js';
+import { startBitmapAcceleration } from '../data/startBitmapAcceleration.js';
 import { buildBooksEngine } from './buildBooksEngine.js';
 
 /** Live boot progress — books load in one shot, so this reports the final count. */
@@ -79,7 +79,7 @@ export function getBooksBootProgressSnapshot(): BooksBootProgress | null {
 
 /**
  * Boot the books engine to a bare `FilterEngine`. Idempotent — repeated calls return the cached
- * bundle, so acceleration initializes once and the corpus builds once.
+ * bundle, so acceleration starts once and the corpus builds once.
  *
  * @returns The bare engine + boot metadata.
  */
@@ -90,7 +90,7 @@ export async function bootBooksCore(): Promise<BooksCoreBundle> {
 }
 
 /**
- * The boot: initialize acceleration, load the default tier, build the engine, publish progress.
+ * The boot: start acceleration, load the default tier, build the engine, publish progress.
  *
  * @remarks
  * The corpus comes through {@link loadDefaultTierCorpus} rather than a static import, so the ~10k
@@ -107,7 +107,8 @@ export async function bootBooksCore(): Promise<BooksCoreBundle> {
 async function bootCoreInternal(): Promise<BooksCoreBundle> {
 	const t0 = performance.now();
 
-	await initializeBitmapAcceleration();
+	// Acceleration loads beside the corpus and the engine does not wait for it (see `startBitmapAcceleration`).
+	void startBitmapAcceleration();
 
 	const { records } = await loadDefaultTierCorpus<Book>(
 		'books',

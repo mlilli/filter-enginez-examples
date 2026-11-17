@@ -14,3 +14,4 @@ export {
 	useIsDesktop,
 	useMediaQuery,
 } from './useMediaQuery.js';
+export { useScrollToTopOnNewResults } from './useScrollToTopOnNewResults.js';

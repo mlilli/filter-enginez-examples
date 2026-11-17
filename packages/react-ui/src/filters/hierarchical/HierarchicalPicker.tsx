@@ -28,13 +28,21 @@
  * **Accessibility:** a dedicated disclosure `<button aria-expanded>` (the chevron) drives
  * expand/collapse, kept separate from the selection `<input type="checkbox">` so neither is an
  * interactive control nested inside another (no `<summary>`-wrapped checkbox). Each checkbox carries
- * an `aria-label`; collapsed children stay mounted but `hidden`, so exclusion state stays live.
+ * an `aria-label`.
+ *
+ * **Only open branches are mounted.** A collapsed branch renders no children at all: a wine origin
+ * tree runs to thousands of nodes, and keeping every collapsed one mounted (`hidden`) cost each
+ * commit a walk over all of them. Nothing a row shows depends on its descendants being mounted — its
+ * checked, mixed and disabled state are derived from the selection and the tree data alone — so a
+ * collapsed parent still announces "mixed" for a selected grandchild. Which branches are open is one
+ * set held by the picker, as in the other apps' flat-list pickers, so a branch left open inside a
+ * collapsed parent is open again when the parent reopens.
  *
  * Pure presentational: styling is the `fe-tree*` classes in `@filter-enginez/ui-styles` (the
  * depth indent is inline, computed per node). No engine import.
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { PickerTreeNode } from './pickerTree.js';
 
@@ -92,6 +100,20 @@ export const HierarchicalPicker = (props: HierarchicalPickerProps): React.ReactE
 	// One walk for the whole tree, memoized on tree identity. Each row's count badge is a lookup
 	// rather than a per-row subtree walk, which would be quadratic on a deep corpus.
 	const index = useMemo(() => indexTree(tree), [tree]);
+	// The open branches, by node id. Held here rather than per row: a row unmounts with its collapsed
+	// parent, and its own open state would go with it.
+	const [expanded, setExpanded] = useState<ReadonlySet<string>>(EMPTY_EXPANDED);
+	const toggleExpanded = useCallback((id: string): void => {
+		setExpanded((previous) => {
+			const next = new Set(previous);
+
+			if (!next.delete(id)) {
+				next.add(id);
+			}
+
+			return next;
+		});
+	}, []);
 
 	// `--fe-tree-max-height` rather than an inline `max-height`: the property is what `ui-styles` reads,
 	// so the other `.fe-tree` rules keep working off one value.
@@ -112,6 +134,8 @@ export const HierarchicalPicker = (props: HierarchicalPickerProps): React.ReactE
 					index={index}
 					nodeCounts={nodeCounts}
 					count={nodeCounts?.get(node.id)}
+					expanded={expanded}
+					onToggleExpanded={toggleExpanded}
 				/>
 			))}
 		</div>
@@ -124,6 +148,7 @@ export const HierarchicalPicker = (props: HierarchicalPickerProps): React.ReactE
  * @internal
  */
 const EMPTY_DISABLED: ReadonlySet<string> = new Set();
+const EMPTY_EXPANDED: ReadonlySet<string> = new Set();
 const EMPTY_PATH: readonly PickerTreeNode[] = [];
 
 /**
@@ -137,10 +162,12 @@ const NodeRow = ({
 	count,
 	depth,
 	disabledNodes,
+	expanded,
 	index,
 	node,
 	nodeCounts,
 	onChange,
+	onToggleExpanded,
 	selected,
 	selectedSet,
 }: {
@@ -168,12 +195,16 @@ const NodeRow = ({
 	/** Threaded down so child rows can resolve their own badges. */
 	readonly nodeCounts: ReadonlyMap<string, number> | undefined;
 	readonly onChange: (nextSelected: readonly string[]) => void;
+	/** The picker's open branches, by node id. */
+	readonly expanded: ReadonlySet<string>;
+	/** Open or close the branch with this id. */
+	readonly onToggleExpanded: (id: string) => void;
 	readonly selected: readonly string[];
 	readonly selectedSet: ReadonlySet<string>;
 }): React.ReactElement => {
-	// Expand/collapse state for parent rows (leaf rows ignore it). Collapsed by default — the tree
-	// can be deep, so the user opens the branches they care about.
-	const [isExpanded, setIsExpanded] = useState(false);
+	// Whether this parent row is open (leaf rows ignore it). Collapsed by default — the tree can be
+	// deep, so the user opens the branches they care about.
+	const isExpanded = expanded.has(node.id);
 	// State + toggle both come from the shared `treeSelection` module, so the Svelte picker and this
 	// one cannot disagree about what "partly selected" means or what a click does.
 	const state = resolveNodeState(node, ancestorPath, selectedSet);
@@ -256,8 +287,8 @@ const NodeRow = ({
 
 	// Disclosure pattern: a dedicated toggle button (`aria-expanded`) drives expand/collapse instead
 	// of a native `<summary>`, so the selection checkbox is not an interactive control nested
-	// inside another interactive one (a11y: nested-interactive). Children stay mounted but `hidden`
-	// when collapsed, so their exclusion / indeterminate state stays live regardless of open state.
+	// inside another interactive one (a11y: nested-interactive). Children are mounted only while the
+	// branch is open; every row's state is derived from data, so nothing depends on them otherwise.
 	// No per-depth inline indent. The rows are ALREADY nested in the DOM — a node's wrapper sits inside
 	// its parent's `.fe-tree__children` — so a `depth * 14` margin at every level would compound on top
 	// of every ancestor's: depth 2 would land at 56px instead of 28px, and the error would grow with
@@ -272,7 +303,9 @@ const NodeRow = ({
 					className="fe-tree__chevron fe-tree__toggle"
 					aria-expanded={isExpanded}
 					aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${node.label}`}
-					onClick={() => setIsExpanded((prev) => !prev)}
+					onClick={() => {
+						onToggleExpanded(node.id);
+					}}
 				>
 					{/* A plus that BECOMES a minus: the second bar rotates onto the first rather than
 					    the glyph being swapped, so the icon reads as one thing changing state.
@@ -284,23 +317,27 @@ const NodeRow = ({
 				</button>
 				{controls}
 			</div>
-			<div className="fe-tree__children" hidden={!isExpanded}>
-				{node.children.map((child) => (
-					<NodeRow
-						key={child.id}
-						node={child}
-						depth={depth + 1}
-						ancestorPath={childAncestorPath}
-						selectedSet={selectedSet}
-						selected={selected}
-						onChange={onChange}
-						disabledNodes={disabledNodes}
-						index={index}
-						nodeCounts={nodeCounts}
-						count={nodeCounts?.get(child.id)}
-					/>
-				))}
-			</div>
+			{isExpanded ? (
+				<div className="fe-tree__children">
+					{node.children.map((child) => (
+						<NodeRow
+							key={child.id}
+							node={child}
+							depth={depth + 1}
+							ancestorPath={childAncestorPath}
+							selectedSet={selectedSet}
+							selected={selected}
+							onChange={onChange}
+							disabledNodes={disabledNodes}
+							index={index}
+							nodeCounts={nodeCounts}
+							count={nodeCounts?.get(child.id)}
+							expanded={expanded}
+							onToggleExpanded={onToggleExpanded}
+						/>
+					))}
+				</div>
+			) : null}
 		</div>
 	);
 };
