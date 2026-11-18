@@ -4,8 +4,9 @@
  *
  * @remarks
  * A browser discovers a webfont late: only once it has downloaded and parsed the stylesheet that
- * declares it and laid out text that uses it. Until then the text renders in a fallback, and the swap
- * to the brand face is a visible jump after the first paint. A `<link rel="preload" as="font">` in the
+ * declares it and laid out text that uses it. The brand faces are `font-display: optional`: one that is
+ * not in by then is not used for that page view at all, which keeps the page from redrawing its text
+ * but shows the fallback face instead of the brand's. A `<link rel="preload" as="font">` in the
  * HTML's head moves the request to the moment the preload scanner reads the head, in parallel with
  * the stylesheet and the scripts.
  *

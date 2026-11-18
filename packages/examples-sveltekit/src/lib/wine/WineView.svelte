@@ -76,8 +76,7 @@
 		 * The bundle to show from the first frame, fetched by the route before it rendered this view; the
 		 * fetch loop replaces it as usual. Without one, the panel's chips show their projected counts only
 		 * once the first round trip returns, a frame or two after the view's first paint, and widen in
-		 * front of the visitor. `/wine-server` passes it; `/wine`'s prerendered snapshot already stays up
-		 * until the live chips have their counts.
+		 * front of the visitor. Both wine routes pass it (`fetchFirstWineBundle`).
 		 */
 		initialBundle?: FilterBundle | null;
 		originSpecs: readonly OriginNodeSpec[];

@@ -112,6 +112,8 @@ export const DatasetRoute = ({ entry }: { readonly entry: DatasetEntry }): React
 				if (entry.supportsUrlState === true) {
 					loadFilterStateFromAddress(booted.engine.core);
 				}
+				// For the state the page opens on, so after the address's.
+				await loaded.prepareFirstRender?.(booted.engine);
 
 				return { booted, Component: loaded.Component, View };
 			})

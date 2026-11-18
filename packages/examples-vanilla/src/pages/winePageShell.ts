@@ -96,7 +96,12 @@ export interface WineRouteChrome {
  * Synchronous: the awaiting happened in the caller's boot, and pretending otherwise would put a
  * `Promise` in the signature that never has anything to wait for.
  *
- * Clears the container first, which is what removes the caller's boot screen.
+ * The view is built at once but put in the container, in place of the caller's boot screen, only once
+ * the panel's first bundle has settled into it: so its chips show their projected counts from its first
+ * frame. Appended before (as it was), the chips painted bare ("red") and widened a round trip later
+ * ("red (90,586)"), moving the chips after them: a layout shift of up to 0.0004 at a desktop width
+ * wherever no prerendered snapshot covered the boot. A failed first fetch settles too, so the view
+ * still appears.
  *
  * @param container - The route container, still holding the boot screen.
  * @param chrome - The engine and this tier's labels.
@@ -104,8 +109,6 @@ export interface WineRouteChrome {
  */
 export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome): RouteTeardown {
 	const { compareDataset, engine, footnote, subtitle } = chrome;
-
-	container.replaceChildren();
 
 	// Hydrate any shared `?f` link BEFORE wiring the write-back, so loading a link doesn't immediately
 	// re-serialize the state it just restored.
@@ -135,7 +138,19 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 		subtitle,
 	});
 
-	container.append(view.element);
+	/** Whether the view has replaced the boot screen yet; it does on the first settled bundle. */
+	let isViewShown = false;
+	/** Set by the teardown: a fetch settling after it must not put the view back. */
+	let isTornDown = false;
+	const showView = (): void => {
+		if (isViewShown || isTornDown) {
+			return;
+		}
+		isViewShown = true;
+		container.replaceChildren(view.element);
+		// The live page's first frame is painted: it takes over from the prerendered snapshot of itself.
+		releasePrerender();
+	};
 
 	const total = engine.core.getSourceData().length;
 	/** The rules the next repaint should render — captured on change, read when the bundle settles. */
@@ -159,6 +174,7 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 
 			view.setRules(latestRules, engine.lastChangeRuleId.value, expression !== null);
 			view.setPanelState({ bundle, expression, rules: latestRules });
+			showView();
 			resolveAfterPaint(wineBusyCore, version);
 		},
 	});
@@ -234,10 +250,8 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 		}),
 	);
 
-	// The live page's first frame is painted: it takes over from the prerendered snapshot of itself.
-	releasePrerender();
-
 	return () => {
+		isTornDown = true;
 		for (const unsubscribe of unsubscribes) {
 			unsubscribe();
 		}

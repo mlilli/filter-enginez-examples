@@ -64,6 +64,12 @@ export interface DatasetModule {
 	readonly boot: () => Promise<BootedDataset>;
 	/** Read the current boot progress (for the loader). */
 	readonly getProgressSnapshot?: () => DatasetBootProgress | null;
+	/**
+	 * Run after the boot and the address's filter state, before the first render: what the dataset's page
+	 * should hold from its first frame. Wine fetches its panel's first bundle here, so the chips show
+	 * their projected counts at once rather than widening a round trip later.
+	 */
+	readonly prepareFirstRender?: (engine: SignalsEngine<unknown>) => Promise<void>;
 	/** Subscribe to boot-progress changes (`useSyncExternalStore`-shaped). */
 	readonly subscribeProgress?: (onStoreChange: () => void) => () => void;
 }

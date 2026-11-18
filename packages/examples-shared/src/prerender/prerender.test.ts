@@ -97,7 +97,7 @@ function writeShell(options: ShellOptions = {}): void {
 	const attributes = (options.attributes ?? []).join(' ');
 	const chips = '<button class="fe-chip">red<span class="fe-chip__count">(9)</span></button>'.repeat(options.projectedCounts ?? 0);
 	const page = (width: string): string =>
-		`<template id="fe-prerender-${width}" ${attributes}><header>${options.withoutCount === true ? '' : `<span class="fe-result-count__number" style="font-family: 'JetBrains Mono', 'JetBrains Mono Fallback Android', monospace" ${PRERENDER.countAttribute}> 10,000 </span>`}<em>${width}</em></header>${chips}<div role="list" ${PRERENDER.cardsSlotAttribute}></div></template>`;
+		`<template id="fe-prerender-${width}" ${attributes}><header>${options.withoutCount === true ? '' : `<span class="fe-result-count__number" style="font-family: 'Filter EngineZ Mono', 'Filter EngineZ Mono Fallback Android', monospace" ${PRERENDER.countAttribute}> 10,000 </span>`}<em>${width}</em></header>${chips}<div role="list" ${PRERENDER.cardsSlotAttribute}></div></template>`;
 	const liveCount = options.liveCount === undefined ? '10,000' : options.liveCount;
 	const cards = (width: string): string => `<template id="fe-prerender-cards-${width}"><article role="listitem">${width} card</article></template>`;
 
@@ -255,7 +255,7 @@ describe('hasPrerender / releasePrerender', () => {
 		// The count's own webfont, asked for outright: `document.fonts.ready` would not wait for a face no text
 		// has asked for yet, and the whole stack would fail on a platform's missing local fallback.
 		expect(fonts.asked).toHaveLength(1);
-		expect(fonts.asked[0]).toMatch(/ ["']JetBrains Mono["']$/u);
+		expect(fonts.asked[0]).toMatch(/ ["']Filter EngineZ Mono["']$/u);
 
 		await fonts.settle();
 		expect(host()).toBeNull();

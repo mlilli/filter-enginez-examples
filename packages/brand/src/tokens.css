@@ -16,27 +16,45 @@
    a subset is a modified one.
 
    WOFF2 only, with no TTF fallback: every browser the apps support reads
-   WOFF2, so a second source would never be fetched. */
+   WOFF2, so a second source would never be fetched.
+
+   `font-display: optional`, not `swap`. With `swap`, a webfont that
+   arrived after the first paint redrew its text, and however closely the
+   fallback faces below match a webfont's metrics, words still wrapped
+   differently: layout shifts of up to 0.023 on the app landing pages, at
+   random, by how fast the font came. With `optional` a page uses a webfont
+   only if it is in within a short block period at its first use (every
+   page preloads the faces its first screen sets, and Chromium holds the
+   first paint for a preloaded optional font); otherwise it keeps the
+   fallback for that page view, never redraws, and the font, downloaded
+   anyway, is in the cache for the next page.
+
+   Each face is declared under a family name of the site's own ("Filter
+   EngineZ Sans" is Inter, "Filter EngineZ Mono" is JetBrains Mono), never
+   under a name a visitor may have installed. Chromium resolves a family
+   whose `optional` webfont was not in time to an installed font of the
+   same name once the download lands, and redraws: on a machine with Inter
+   installed, the late swap `optional` exists to prevent. */
 @font-face {
-	font-family: 'Inter';
+	font-family: 'Filter EngineZ Sans';
 	src: url('fonts/inter/Inter-Subset.woff2') format('woff2');
 	font-weight: 100 900;
 	font-style: normal;
-	font-display: swap;
+	font-display: optional;
 }
 @font-face {
-	font-family: 'JetBrains Mono';
+	font-family: 'Filter EngineZ Mono';
 	src: url('fonts/jetbrains-mono/JetBrainsMono-Subset.woff2') format('woff2');
 	font-weight: 100 800;
 	font-style: normal;
-	font-display: swap;
+	font-display: optional;
 }
 @font-face {
 	font-family: 'Filter EngineZ Display';
 	src: url('fonts/orbitron/FilterEngineZDisplay-Subset.woff2') format('woff2');
 	font-weight: 400 900;
 	font-style: normal;
-	font-display: swap;
+	font-display: optional;
 }
 
 /* ---- Fallback faces — a local system font sized to each webfont ----------
@@ -47,8 +65,8 @@
    DejaVu Sans Mono on Linux), Droid Sans Mono or Roboto Mono (Android),
    Consolas (Windows), then Courier New. Each is scaled by `size-adjust` to
    the webfont's average character width and given the webfont's ascent,
-   descent and line gap, so the swap changes the letterforms without moving
-   the lines. The monospace families but Courier New's also have a face for
+   descent and line gap, so a page view that keeps the fallback is laid out
+   as the webfont would lay it out, line for line. The monospace families but Courier New's also have a face for
    the figures, scaled so they never paint smaller than the webfont's: a
    result count first painted smaller would make the webfont's a later,
    larger paint. A regular and a bold face per family where the platform
@@ -59,7 +77,7 @@
 /* fallback-font-metrics:start — written by packages/brand/scripts/fallback-font-metrics.py; run it with
    --write rather than editing these rules. */
 @font-face {
-	font-family: 'Inter Fallback';
+	font-family: 'Filter EngineZ Sans Fallback';
 	src: local('Arial'), local('ArialMT'), local('Helvetica'), local('Liberation Sans'), local('Arimo');
 	font-weight: 400;
 	size-adjust: 107.35%;
@@ -68,7 +86,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'Inter Fallback';
+	font-family: 'Filter EngineZ Sans Fallback';
 	src:
 		local('Arial Bold'), local('Arial-BoldMT'), local('Helvetica Bold'), local('Helvetica-Bold'),
 		local('Liberation Sans Bold'), local('Arimo Bold');
@@ -79,7 +97,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback';
+	font-family: 'Filter EngineZ Mono Fallback';
 	src: local('Menlo Regular'), local('Menlo-Regular'), local('DejaVu Sans Mono'), local('DejaVuSansMono');
 	font-weight: 400;
 	size-adjust: 99.66%;
@@ -88,7 +106,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback';
+	font-family: 'Filter EngineZ Mono Fallback';
 	src: local('Menlo Regular'), local('Menlo-Regular'), local('DejaVu Sans Mono'), local('DejaVuSansMono');
 	font-weight: 400;
 	unicode-range: U+002B-002E, U+0030-0039;
@@ -98,7 +116,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback';
+	font-family: 'Filter EngineZ Mono Fallback';
 	src: local('Menlo Bold'), local('Menlo-Bold'), local('DejaVu Sans Mono Bold'), local('DejaVuSansMono-Bold');
 	font-weight: 700;
 	size-adjust: 99.66%;
@@ -107,7 +125,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback';
+	font-family: 'Filter EngineZ Mono Fallback';
 	src: local('Menlo Bold'), local('Menlo-Bold'), local('DejaVu Sans Mono Bold'), local('DejaVuSansMono-Bold');
 	font-weight: 700;
 	unicode-range: U+002B-002E, U+0030-0039;
@@ -117,7 +135,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Android';
+	font-family: 'Filter EngineZ Mono Fallback Android';
 	src: local('Droid Sans Mono'), local('DroidSansMono'), local('Roboto Mono'), local('RobotoMono-Regular');
 	font-weight: 400;
 	size-adjust: 99.98%;
@@ -126,7 +144,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Android';
+	font-family: 'Filter EngineZ Mono Fallback Android';
 	src: local('Droid Sans Mono'), local('DroidSansMono'), local('Roboto Mono'), local('RobotoMono-Regular');
 	font-weight: 400;
 	unicode-range: U+002B-002E, U+0030-0039;
@@ -136,7 +154,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Windows';
+	font-family: 'Filter EngineZ Mono Fallback Windows';
 	src: local('Consolas');
 	font-weight: 400;
 	size-adjust: 109.13%;
@@ -145,7 +163,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Windows';
+	font-family: 'Filter EngineZ Mono Fallback Windows';
 	src: local('Consolas');
 	font-weight: 400;
 	unicode-range: U+002B-002E, U+0030-0039;
@@ -155,7 +173,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Windows';
+	font-family: 'Filter EngineZ Mono Fallback Windows';
 	src: local('Consolas Bold'), local('Consolas-Bold');
 	font-weight: 700;
 	size-adjust: 109.13%;
@@ -164,7 +182,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Windows';
+	font-family: 'Filter EngineZ Mono Fallback Windows';
 	src: local('Consolas Bold'), local('Consolas-Bold');
 	font-weight: 700;
 	unicode-range: U+002B-002E, U+0030-0039;
@@ -174,7 +192,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Courier';
+	font-family: 'Filter EngineZ Mono Fallback Courier';
 	src: local('Courier New'), local('CourierNewPSMT'), local('Liberation Mono'), local('Cousine');
 	font-weight: 400;
 	size-adjust: 99.98%;
@@ -183,7 +201,7 @@
 	line-gap-override: 0%;
 }
 @font-face {
-	font-family: 'JetBrains Mono Fallback Courier';
+	font-family: 'Filter EngineZ Mono Fallback Courier';
 	src: local('Courier New Bold'), local('CourierNewPS-BoldMT'), local('Liberation Mono Bold'), local('Cousine Bold');
 	font-weight: 700;
 	size-adjust: 99.98%;
@@ -281,11 +299,14 @@
      TYPOGRAPHY
      ======================================================================== */
 	/* Each stack names its webfont, then the webfont's metric-matched fallback face (see the
-	   fallback faces above), then the system fonts. */
-	--font-sans: 'Inter', 'Inter Fallback', -apple-system, 'Segoe UI', system-ui, sans-serif;
+	   fallback faces above), then the unmodified font under its own name, as the design system's
+	   sheet loads it, then the system fonts. */
+	--font-sans:
+		'Filter EngineZ Sans', 'Filter EngineZ Sans Fallback', 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 	--font-mono:
-		'JetBrains Mono', 'JetBrains Mono Fallback', 'JetBrains Mono Fallback Android', 'JetBrains Mono Fallback Windows',
-		'JetBrains Mono Fallback Courier', 'SF Mono', Menlo, Consolas, monospace;
+		'Filter EngineZ Mono', 'Filter EngineZ Mono Fallback', 'Filter EngineZ Mono Fallback Android',
+		'Filter EngineZ Mono Fallback Windows', 'Filter EngineZ Mono Fallback Courier', 'JetBrains Mono', 'SF Mono', Menlo,
+		Consolas, monospace;
 	/* The served subset of Orbitron (see the @font-face above) and its fallback face, then the
 	   unmodified font under its own name, as the design system's sheet loads it. */
 	--font-display: 'Filter EngineZ Display', 'Filter EngineZ Display Fallback', 'Orbitron', 'Inter', sans-serif;

@@ -10,6 +10,7 @@
  * @packageDocumentation
  */
 
+import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import {
@@ -17,6 +18,7 @@ import {
 	getWineBootProgressSnapshot,
 	subscribeWineBootProgress,
 } from '@filter-enginez/examples-shared/wine';
+import { primeFirstWineBundle } from '@filter-enginez/examples-shared/wine-domain';
 import { spawnWineWorker } from '@filter-enginez/examples-shared/wine-worker-spawn';
 
 import type { BootedDataset, DatasetModule } from '../datasets.js';
@@ -32,5 +34,8 @@ export const wineDataset: DatasetModule = {
 	},
 	Component: WineApp,
 	getProgressSnapshot: getWineBootProgressSnapshot,
+	// The panel's first bundle, for its first frame (`primeFirstWineBundle`).
+	prepareFirstRender: async (engine: SignalsEngine<unknown>): Promise<void> =>
+		primeFirstWineBundle(engine as unknown as SignalsEngine<Wine>),
 	subscribeProgress: subscribeWineBootProgress,
 };

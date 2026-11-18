@@ -5,8 +5,9 @@
  * @remarks
  * ### What the preloads buy, and why a gate
  *
- * A browser finds a webfont only once it has parsed the stylesheet that declares it, so the first
- * paint sets a fallback and swaps faces a moment later. A `<link rel="preload" as="font">` in the head
+ * A browser finds a webfont only once it has parsed the stylesheet that declares it, and the brand
+ * faces are `font-display: optional`: one that is not in by the first paint sets the page view in its
+ * fallback face for good. A `<link rel="preload" as="font">` in the head
  * starts the download with the HTML. Its failure modes are all invisible: a preload naming a file the
  * build no longer has is a 404 on every first visit, a missing one costs only speed, a third one
  * (JetBrains Mono, the largest subset) spends early bandwidth the startup scripts need, and one

@@ -94,12 +94,15 @@
 	/* ========================================================================
 		TYPOGRAPHY
 		======================================================================== */
-	/* The "… Fallback" families are the sites' metric-matched fallback faces
-	   (packages/brand/src/tokens.css); this sheet declares none, so here they are skipped. */
-	--font-sans: 'Inter', 'Inter Fallback', -apple-system, 'Segoe UI', system-ui, sans-serif;
+	/* The "Filter EngineZ" sans and mono families are the sites' webfont faces and the
+	   "… Fallback" families their metric-matched fallback faces (packages/brand/src/tokens.css);
+	   this sheet declares none of them, so here they are skipped, down to Inter and JetBrains Mono. */
+	--font-sans:
+		'Filter EngineZ Sans', 'Filter EngineZ Sans Fallback', 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 	--font-mono:
-		'JetBrains Mono', 'JetBrains Mono Fallback', 'JetBrains Mono Fallback Android', 'JetBrains Mono Fallback Windows',
-		'JetBrains Mono Fallback Courier', 'SF Mono', Menlo, Consolas, monospace;
+		'Filter EngineZ Mono', 'Filter EngineZ Mono Fallback', 'Filter EngineZ Mono Fallback Android',
+		'Filter EngineZ Mono Fallback Windows', 'Filter EngineZ Mono Fallback Courier', 'JetBrains Mono', 'SF Mono', Menlo,
+		Consolas, monospace;
 	/* The sites serve a renamed subset of Orbitron (packages/brand/src/tokens.css); this sheet
 	   loads the unmodified TTF, under its own name. */
 	--font-display: 'Filter EngineZ Display', 'Filter EngineZ Display Fallback', 'Orbitron', 'Inter', sans-serif;

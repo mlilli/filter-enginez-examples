@@ -21,8 +21,13 @@
 	 * Boot progress is a module-level pub/sub in `wine-core`, so it is subscribed BEFORE the boot is
 	 * kicked off — subscribing after would miss every chunk already streamed and leave the boot screen
 	 * at zero until the corpus finished.
+	 *
+	 * The panel's first bundle is fetched before `<WineView>` renders and handed to it
+	 * (`fetchFirstWineBundle`), so its chips show their projected counts from its first frame rather
+	 * than widening a round trip later.
 	 */
 
+	import type { FilterBundle } from '@filter-enginez/core';
 	import type { WineBootProgress } from '@filter-enginez/examples-shared/wine-core';
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
@@ -30,6 +35,7 @@
 	import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import {
 		FALLBACK_BOUNDS,
+		fetchFirstWineBundle,
 		type NumericBounds,
 		type OriginNodeSpec,
 		type PickerTreeNode,
@@ -67,6 +73,8 @@
 	// those sliders.
 	let baselines = $state.raw<Record<SliderFieldId, NumericBounds>>(FALLBACK_BOUNDS);
 	let progress = $state.raw<WineBootProgress | null>(null);
+	// The panel's first bundle, fetched before the view renders (see the docblock). `$state.raw`: typed arrays.
+	let initialBundle = $state.raw<FilterBundle | null>(null);
 	/** Which corpus tier booted (from `meta.source`), for the footer. */
 	let corpusTier = $state.raw('');
 	let bootError = $state.raw<string | null>(null);
@@ -121,6 +129,7 @@
 			// The worker tier's sync `.core` shim has no sync `exportConfig`, so this reads through
 			// `asyncEngine.exportConfig()`. `startEngineUrlSync` already picks the right reader.
 			stopUrlSync = startEngineUrlSync(booted);
+			initialBundle = await fetchFirstWineBundle(booted, facets);
 			engine = booted;
 		} catch (error) {
 			// A failed boot is usually the worker failing to spawn (or, with the local real corpus
@@ -149,7 +158,7 @@
 		{/snippet}
 	</BootFailureScreen>
 {:else if engine}
-	<WineView {baselines} compareDataset="wine" {corpusTier} {engine} {originSpecs} {originTree} {vocabularies} />
+	<WineView {baselines} compareDataset="wine" {corpusTier} {engine} {initialBundle} {originSpecs} {originTree} {vocabularies} />
 {:else if !isPrerendered}
 	<WineBootScreen {progress} />
 {/if}

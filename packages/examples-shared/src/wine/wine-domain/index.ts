@@ -49,6 +49,7 @@ export * from './commit.js';
 // Shared by the Angular, Vue, SvelteKit and vanilla wine routes. Pure, engine-free, testable without a
 // worker.
 export { buildWineOriginTree, deriveWineFacets, rankWineVarietals, rememberWineFacets, type WineFacets, wineFacetsFor } from './facets.js';
+export { fetchFirstWineBundle, primedFirstWineBundle, primeFirstWineBundle, type WineCorpusQueryable } from './firstBundle.js';
 // The tracker the commit helpers bump, exported from the same subpath that exports them — a vertical
 // that writes through `commitRule` and reads busy state from a DIFFERENT instance gets an indicator
 // that never lights, with nothing erroring. One import path, one instance.

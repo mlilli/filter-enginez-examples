@@ -247,6 +247,31 @@ describe('DatasetRoute', () => {
 		expect(screen.getByText('the live dataset app')).toBeDefined();
 	});
 
+	it('holds the boot screen until the module has prepared its first render, then renders over the same engine', async () => {
+		// Wine fetches its panel's first bundle here, so the chips show their projected counts from the
+		// page's first frame rather than widening a round trip later.
+		let finishPreparing = (): void => undefined;
+		const prepareFirstRender = vi.fn(async () =>
+			new Promise<void>((resolve) => {
+				finishPreparing = resolve;
+			}));
+
+		await renderBooting(makeEntry({}, makeModule({ prepareFirstRender })));
+		await resolveBoot();
+
+		expect(prepareFirstRender).toHaveBeenCalledWith(bootedEngine);
+		expect(screen.getByLabelText('Loading Books')).toBeDefined();
+		expect(screen.queryByText('the live dataset app')).toBeNull();
+
+		await act(async () => {
+			finishPreparing();
+			await Promise.resolve();
+		});
+		await flush();
+
+		expect(screen.getByText('the live dataset app')).toBeDefined();
+	});
+
 	it('renders no boot screen under a prerendered snapshot, which the dataset app then takes over from', async () => {
 		// The snapshot of the booted page stands in for the boot screen; the live page releases it in its
 		// first commit (`examples-shared`'s `prerender-core`).

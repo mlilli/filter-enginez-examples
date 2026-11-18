@@ -35,10 +35,9 @@
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 	import {
-		buildWineBundleQuery,
 		deriveWineFacets,
 		FALLBACK_BOUNDS,
-		fetchBundleOnce,
+		fetchFirstWineBundle,
 		type NumericBounds,
 		type OriginNodeSpec,
 		type PickerTreeNode,
@@ -103,7 +102,7 @@
 				}
 			}
 			stopUrlSync = startEngineUrlSync(booted);
-			initialBundle = await fetchBundleOnce(booted, buildWineBundleQuery(baselines, vocabularies, originSpecs));
+			initialBundle = await fetchFirstWineBundle(booted, facets);
 			engine = booted;
 		} catch (caught) {
 			// A failed boot is usually the server being unreachable (corpus fetch / initial state pull

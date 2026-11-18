@@ -31,8 +31,14 @@
  * `FALLBACK_BOUNDS` is a pre-boot PLACEHOLDER, not a ceiling. It matches the extents of the 150,000
  * synthetic wines, but the local real corpus, when linked, has extents of its own; using the
  * placeholder as the live baseline would put any bottle outside it out of the sliders' reach.
+ *
+ * ## The panel's first bundle is fetched before the view renders
+ *
+ * `fetchFirstWineBundle`, after the address's filter state is loaded, handed to `<WineView>`: its chips
+ * show their projected counts from its first frame rather than widening a round trip later.
  */
 
+import type { FilterBundle } from '@filter-enginez/core';
 import type { WineBootProgress } from '@filter-enginez/examples-shared/wine-core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
@@ -41,6 +47,7 @@ import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 import {
 	FALLBACK_BOUNDS,
+	fetchFirstWineBundle,
 	type NumericBounds,
 	type OriginNodeSpec,
 	type PickerTreeNode,
@@ -87,6 +94,8 @@ const originTree = shallowRef<PickerTreeNode | null>(null);
 
 const baselines = shallowRef<Record<SliderFieldId, NumericBounds>>(FALLBACK_BOUNDS);
 const progress = shallowRef<WineBootProgress | null>(null);
+/** The panel's first bundle, fetched before the view renders. `shallowRef`: typed arrays. */
+const initialBundle = shallowRef<FilterBundle | null>(null);
 /**
  * The cold-boot caption, from the one module every vertical renders.
  *
@@ -144,6 +153,7 @@ onMounted(async () => {
 		// The worker tier's sync `.core` shim has no sync `exportConfig`, so this reads through
 		// `asyncEngine.exportConfig()`. `startEngineUrlSync` already picks the right reader.
 		stopUrlSync = startEngineUrlSync(booted);
+		initialBundle.value = await fetchFirstWineBundle(booted, facets);
 		engine.value = booted;
 	} catch (error) {
 		// A failed boot is usually the worker failing to spawn or the corpus 404ing. Surfacing it beats
@@ -164,6 +174,7 @@ onUnmounted(() => {
 		v-if="engine"
 		:baselines="baselines"
 		:engine="engine"
+		:initial-bundle="initialBundle"
 		:origin-specs="originSpecs"
 		:corpus-tier="corpusTier"
 		:origin-tree="originTree"

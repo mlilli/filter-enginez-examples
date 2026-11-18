@@ -3,7 +3,7 @@
   "fonts": {
     "inter/Inter-Subset.woff2": {
       "bytes": 68008,
-      "family": "Inter",
+      "family": "Filter EngineZ Sans",
       "glyphs": 511,
       "sha256": "464310b0c81af18efd1325d4841578439657935459614f7294c07473cdfb2679",
       "source": "inter/Inter-VariableFont.ttf",
@@ -11,7 +11,7 @@
     },
     "jetbrains-mono/JetBrainsMono-Subset.woff2": {
       "bytes": 42424,
-      "family": "JetBrains Mono",
+      "family": "Filter EngineZ Mono",
       "glyphs": 525,
       "sha256": "1925068a674c7d189691dd18862cd5ca63b57b2a7bc2c1f8ff8471beb1d89b25",
       "source": "jetbrains-mono/JetBrainsMono-VariableFont.ttf",

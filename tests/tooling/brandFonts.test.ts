@@ -140,8 +140,8 @@ const FALLBACK_FACES = fontFaces().filter((face) => !face.sources.includes('url(
 const FIGURES_FACES = FALLBACK_FACES.filter((face) => face.descriptors.has('unicode-range'));
 
 /**
- * The webfont family a fallback family stands in for: `Inter Fallback`, or a platform's
- * `JetBrains Mono Fallback Android`.
+ * The webfont family a fallback family stands in for: `Filter EngineZ Sans Fallback`, or a platform's
+ * `Filter EngineZ Mono Fallback Android`.
  *
  * @param fallbackFamily - A fallback face's family.
  * @returns The webfont's family, or `undefined` for a family named after none.
@@ -156,7 +156,7 @@ function webfontFamilyOf(fallbackFamily: string): string | undefined {
  * A face's name in a case title: its family, weight and, for a figures face, `figures`.
  *
  * @param face - A fallback face.
- * @returns E.g. `JetBrains Mono Fallback Android 400 figures`.
+ * @returns E.g. `Filter EngineZ Mono Fallback Android 400 figures`.
  */
 function faceName(face: FontFace): string {
 	return `${face.family} ${face.descriptors.get('font-weight') ?? ''}${face.descriptors.has('unicode-range') ? ' figures' : ''}`;
@@ -250,8 +250,12 @@ describe('the brand font subsets', () => {
 		const familyNames = records.filter((record) => record.nameID === 1).map((record) => record.text);
 
 		expect(familyNames.length).toBeGreaterThan(0);
-		expect(new Set(familyNames)).toEqual(new Set([font.family]));
-		if (reserved !== null) {
+		if (reserved === null) {
+			// A font that reserves no name keeps its own inside the file; `tokens.css` declares it under a
+			// name of the site's own (see the case on webfont names), so the two differ.
+			expect(familyNames).not.toContain(font.family);
+		} else {
+			expect(new Set(familyNames)).toEqual(new Set([font.family]));
 			expect(font.family).not.toContain(reserved);
 			expect(
 				records.filter((record) => !KEPT_NAME_IDS.has(record.nameID) && record.text.includes(reserved)).map((record) => record.nameID),
@@ -279,6 +283,24 @@ describe('tokens.css', () => {
 
 	it('loads no TTF: the canonical files are sources, never served', () => {
 		expect(readFileSync(TOKENS_SHEET, 'utf8')).not.toMatch(/\.ttf\b/u);
+	});
+
+	it('lets no webfont redraw a page: every face is font-display: optional', () => {
+		// `swap` redrew the text when a webfont arrived after the first paint, and the words wrapped anew:
+		// layout shifts of up to 0.023, at random, by how fast the font came.
+		expect(WEBFONT_FACES).toHaveLength(SUBSETS.length);
+		for (const face of WEBFONT_FACES) {
+			expect(face.descriptors.get('font-display'), face.family).toBe('optional');
+		}
+	});
+
+	it('declares every webfont under a name of the site’s own, never one a visitor may have installed', () => {
+		// Chromium resolves a family whose `optional` webfont missed its first paint to an installed font of
+		// the same name once the download lands, and redraws: under `Inter`, every machine with Inter
+		// installed got the late swap `optional` is there to prevent.
+		for (const face of WEBFONT_FACES) {
+			expect(face.family, face.family).toMatch(/^Filter EngineZ /u);
+		}
 	});
 
 	it('names the renamed display face first in --font-display', () => {

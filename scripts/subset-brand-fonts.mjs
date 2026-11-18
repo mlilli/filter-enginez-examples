@@ -83,7 +83,9 @@ const PINNED_TOOLS = { brotli: '1.2.0', fontTools: '4.65.0' };
  * @property {string} directory - Its directory under {@link FONTS_DIRECTORY}, which also holds its `OFL.txt`.
  * @property {string} source - The canonical variable TTF, in that directory.
  * @property {string} output - The WOFF2 subset to write, in that directory.
- * @property {string} family - The family name the subset carries, and `tokens.css` declares.
+ * @property {string} family - The family `tokens.css` declares the subset under: a name of the site's own,
+ *   never one a visitor may have installed (see `tokens.css`). For a renamed font it is also the family
+ *   its name records carry; Inter and JetBrains Mono keep their own inside the file.
  * @property {{ readonly from: string; readonly family: string; readonly postScriptFamily: string } | null} rename -
  *   The Reserved Font Name the source declares and the names that replace it, or `null` for a font whose
  *   license reserves no name.
@@ -93,14 +95,14 @@ const PINNED_TOOLS = { brotli: '1.2.0', fontTools: '4.65.0' };
 const BRAND_FONTS = [
 	{
 		directory: 'inter',
-		family: 'Inter',
+		family: 'Filter EngineZ Sans',
 		output: 'Inter-Subset.woff2',
 		rename: null,
 		source: 'Inter-VariableFont.ttf',
 	},
 	{
 		directory: 'jetbrains-mono',
-		family: 'JetBrains Mono',
+		family: 'Filter EngineZ Mono',
 		output: 'JetBrainsMono-Subset.woff2',
 		rename: null,
 		source: 'JetBrainsMono-VariableFont.ttf',

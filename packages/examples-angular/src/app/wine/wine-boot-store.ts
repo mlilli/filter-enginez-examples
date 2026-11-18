@@ -43,11 +43,15 @@ import {
 	subscribeWineBootProgress,
 	type WineBootProgress,
 } from '@filter-enginez/examples-shared/wine-core';
+import { fetchFirstWineBundle } from '@filter-enginez/examples-shared/wine-domain';
 import { createRxJsEngineFromAsync } from '@filter-enginez/reactive-rxjs/worker';
 
 import { readConfigFromUrl } from '../url/url-state.js';
 import { type WineFacets } from './wine-facets.js';
 import { spawnWineWorker, WINE_DATASET_SIZE } from './wineBoot.js';
+
+/** The corpus details a wine boot reports beside its engine. */
+type WineBootMeta = Awaited<ReturnType<typeof bootWineAsyncEngine>>['meta'];
 
 @Injectable()
 export class WineBootStore {
@@ -153,6 +157,11 @@ export class WineBootStore {
 	 * fires its change, and restoring first avoids an immediate redundant write straight back to the
 	 * URL. It is awaited here because on this tier it is a round trip.
 	 *
+	 * **The panel's first bundle is fetched before the engine is published** (`fetchFirstWineBundle`,
+	 * for the address's state), into {@link bundle}, so the view's chips show their projected counts
+	 * from its first frame rather than widening when its own first fetch returns. A failed fetch leaves
+	 * `null`, which the view starts from as before.
+	 *
 	 * A failed boot is reported rather than thrown. The usual causes are the worker failing to spawn or
 	 * the corpus 404ing, both of which are ordinary local-setup states rather than bugs, and an
 	 * indefinite boot screen reads as a hang.
@@ -179,20 +188,35 @@ export class WineBootStore {
 				}
 			}
 
-			const engine = await createRxJsEngineFromAsync<Wine>(asyncEngine);
-
-			// The facets the corpus worker derived from its corpus and delivered with the engine, so the
-			// main thread never walks the 150k records for them.
-			this.facets.set(facets);
-			this.wineCount.set(meta.wineCount);
-			this.bootMs.set(meta.bootMs);
-			this.corpusTier.set(describeWineCorpusTier(meta.source));
-			// LAST. `isReady()` reads both, and the view's providers pull the facets the moment it
-			// renders — so publishing the engine first would give the view a frame with no facets.
-			this.engine.set(engine);
+			await this.publish(await createRxJsEngineFromAsync<Wine>(asyncEngine), facets, meta);
 		} catch (caught: unknown) {
 			this.error.set(caught instanceof Error ? caught.message : String(caught));
 		}
+	}
+
+	/**
+	 * Publish a booted engine: its first bundle, its facets and its corpus details, then the engine.
+	 *
+	 * @remarks
+	 * The second half of {@link boot}, apart so a spec can drive it with a stand-in engine (this app's
+	 * test builder cannot replace the worker boot's module).
+	 *
+	 * @param engine - The booted engine, with the address's filter state already loaded.
+	 * @param facets - The facets the corpus worker derived.
+	 * @param meta - The boot's corpus details.
+	 */
+	public async publish(engine: RxJsEngine<Wine>, facets: WineFacets, meta: WineBootMeta): Promise<void> {
+		// Before the engine: see the remarks on `boot`.
+		this.bundle.set(await fetchFirstWineBundle(engine, facets));
+		// The facets the corpus worker derived from its corpus and delivered with the engine, so the
+		// main thread never walks the 150k records for them.
+		this.facets.set(facets);
+		this.wineCount.set(meta.wineCount);
+		this.bootMs.set(meta.bootMs);
+		this.corpusTier.set(describeWineCorpusTier(meta.source));
+		// LAST. `isReady()` reads both, and the view's providers pull the facets the moment it
+		// renders — so publishing the engine first would give the view a frame with no facets.
+		this.engine.set(engine);
 	}
 
 	/** Release the progress subscription. The engine outlives the page by design — it is cached. */

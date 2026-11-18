@@ -23,11 +23,13 @@
 import type { NumericBounds } from '@filter-enginez/react-ui';
 
 import { createFilterEngine, type FilterBundle, inSet } from '@filter-enginez/core';
+import { generateWines } from '@filter-enginez/mock-data/wine/generator';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { createSignalsEngine, type SignalsEngine } from '@filter-enginez/reactive-signals';
 import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { primeFirstWineBundle } from '../wine-domain/firstBundle.js';
 import {
 	type BundleContextValue,
 	FilterBundleContext,
@@ -242,6 +244,32 @@ function workerBackedEngine(applyFiltersAndQuery: () => Promise<FilterBundle>): 
 
 	return { ...engine, asyncEngine: { applyFiltersAndQuery }} as unknown as SignalsEngine<unknown>;
 }
+
+describe('useFetchFilterBundle — the primed first bundle', () => {
+	it('renders the bundle the route primed for this corpus in the first render, before its own fetch returns', async () => {
+		// Without it the panel's first frame had bare chips that widened when the fetch returned: a layout
+		// shift wherever no prerendered snapshot covered the boot.
+		const corpus = generateWines(12);
+		const primer = createSignalsEngine(createFilterEngine({ sourceData: corpus }));
+
+		await primeFirstWineBundle({ ...primer, asyncEngine: { applyFiltersAndQuery: async () => Promise.resolve(bundleWithCount(9)) }});
+
+		// The same corpus array, and a fetch that never answers: whatever renders came from the prime.
+		const engine = { ...primer, asyncEngine: { applyFiltersAndQuery: async () => new Promise<FilterBundle>(() => undefined) }} as unknown as SignalsEngine<unknown>;
+
+		render(<FilterEngineProvider engine={engine}><FetchHarness /></FilterEngineProvider>);
+
+		expect(screen.getByTestId('count').textContent).toBe('9');
+	});
+
+	it('starts with no bundle for a corpus nothing primed', () => {
+		const engine = workerBackedEngine(async () => new Promise<FilterBundle>(() => undefined));
+
+		render(<FilterEngineProvider engine={engine}><FetchHarness /></FilterEngineProvider>);
+
+		expect(screen.getByTestId('count').textContent).toBe('pending');
+	});
+});
 
 describe('useFetchFilterBundle — the worker path', () => {
 	it('renders the bundle the async engine resolves', async () => {

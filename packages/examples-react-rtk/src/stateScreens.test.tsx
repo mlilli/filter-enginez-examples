@@ -194,6 +194,25 @@ describe('a dataset route', () => {
 		expect(caption()?.childNodes[2]).toBe(ofText);
 	});
 
+	it('holds the wine hero loader while the module prepares its first render, over the booted engine', async () => {
+		// Wine fetches its panel's first bundle here, so the chips show their projected counts from the
+		// page's first frame rather than widening a round trip later.
+		const engine = { core: {}};
+		const prepareFirstRender = vi.fn(async () => new Promise<void>(() => undefined));
+		const module: DatasetModule = {
+			bootAndWire: vi.fn(async () => Promise.resolve({ detach: () => undefined, engine, store: {}} as never)),
+			Component: () => null,
+			prepareFirstRender,
+		};
+
+		await renderSettled(<DatasetRoute entry={wineEntryLoading(async () => Promise.resolve(module))} />);
+		await vi.waitFor(() => {
+			expect(prepareFirstRender).toHaveBeenCalledWith(engine);
+		});
+
+		expect(onlyMain().querySelector('[aria-label="Loading wine reviews"]')).not.toBeNull();
+	});
+
 	it("shows a failed boot as the dataset's shared failure copy, in an alert inside one main landmark", async () => {
 		await renderSettled(<DatasetRoute entry={entryLoading(async () => Promise.reject(new Error('corpus fetch returned 503')))} />);
 

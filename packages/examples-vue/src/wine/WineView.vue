@@ -88,6 +88,13 @@ const props = withDefaults(
 		/** Which corpus tier booted — rendered in the footer beside the record count. */
 		corpusTier?: string;
 		engine: SignalsEngine<Wine>;
+		/**
+		 * The bundle to show from the first frame, fetched by the route before it rendered this view
+		 * (`fetchFirstWineBundle`); the fetch loop replaces it as usual. Without one, the panel's chips
+		 * show their projected counts only once the first round trip returns, a frame or two after the
+		 * view's first paint, and widen in front of the visitor.
+		 */
+		initialBundle?: FilterBundle | null;
 		originSpecs: readonly OriginNodeSpec[];
 		originTree: PickerTreeNode | null;
 		/** The engine tier the header's subtitle names (defaults to the worker tier). */
@@ -97,6 +104,7 @@ const props = withDefaults(
 	{
 		corpusTier: '',
 		engineTier: 'worker',
+		initialBundle: null,
 	},
 );
 
@@ -108,7 +116,7 @@ const { activeRules, lastChange, mode, results, sourceData } = useEngineRefs(pro
 const isEngineBusy = useBusy(wineBusyTracker);
 
 /** `shallowRef`: the bundle carries `Uint32Array` indices and `Float64Array` histogram edges. */
-const bundle = shallowRef<FilterBundle | null>(null);
+const bundle = shallowRef<FilterBundle | null>(props.initialBundle);
 
 const fetcher = createBundleFetcher(props.engine, {
 	captureVersion: captureCurrentVersion,

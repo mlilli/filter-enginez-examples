@@ -32,6 +32,7 @@ import {
 	wineFieldMeta,
 	wineSliderHistogram,
 } from '../wine-domain/bundle.js';
+import { primedFirstWineBundle } from '../wine-domain/firstBundle.js';
 
 export {
 	buildOriginNodeSpecs,
@@ -59,6 +60,11 @@ export const FilterBundleContext = createContext<BundleContextValue | null>(null
  * Hook the wine panel uses to fetch a fresh bundle on every engine event. Stores in local state;
  * re-fetches in a useEffect keyed on `lastChange` so changes propagate.
  *
+ * **The first render already has a bundle** when the route primed one for this corpus
+ * (`primeFirstWineBundle`, which the React apps' route calls once the address's filter state is
+ * loaded): the chips show their projected counts from the panel's first frame rather than widening when
+ * the effect's first fetch returns.
+ *
  * **Cancellation.** A stale-fetch guard discards the resolution if a NEWER lastChange tick fires
  * while a previous fetch is still in flight — prevents older results overwriting newer ones
  * during rapid filter changes.
@@ -74,7 +80,7 @@ export function useFetchFilterBundle(
 ): FilterBundle | null {
 	const engine = useFilterEngine<Wine>();
 	const lastChange = useLastChange();
-	const [bundle, setBundle] = useState<FilterBundle | null>(null);
+	const [bundle, setBundle] = useState<FilterBundle | null>(() => primedFirstWineBundle(engine.core.getSourceData()));
 
 	useEffect(() => {
 		const query: WineBundleQuery = buildWineBundleQuery(baselines, chipVocabularies, originNodeSpecs);

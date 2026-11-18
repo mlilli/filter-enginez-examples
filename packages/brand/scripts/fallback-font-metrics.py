@@ -4,13 +4,14 @@
     python3 packages/brand/scripts/fallback-font-metrics.py --write    # replace it in tokens.css
     python3 packages/brand/scripts/fallback-font-metrics.py --check    # fail if tokens.css differs
 
-Why: every brand font is `font-display: swap`, so a page first renders in whatever font comes next in
-its stack and redraws when the webfont arrives. Where the two fonts differ in width and line height,
-that redraw moves every line of text below it. A fallback face is a local system font declared under a
+Why: every brand font is `font-display: optional`, so a page view whose webfont is not in at its first
+use renders, for good, in whatever font comes next in its stack. (It was `swap`, which redrew the text
+when the webfont arrived; where the two fonts differ in width and line height, that redraw moved every
+line of text below it.) A fallback face is a local system font declared under a
 family of its own, with `size-adjust` scaling its glyphs to the webfont's average width and
 `ascent-override`, `descent-override` and `line-gap-override` giving it the webfont's vertical metrics.
-Named right after the webfont in its `--font-*` stack, it is what the page renders in until the webfont
-swaps in, and the swap then changes the letterforms but barely moves the text.
+Named right after the webfont in its `--font-*` stack, it is what such a page view renders in, laid out
+as the webfont would lay it out.
 
 The fallback families, in stack order (`FAMILIES`):
 
@@ -174,11 +175,11 @@ LOCAL_NAMES = {
 # font, so bold text renders in it rather than a synthesized one; Android has no bold monospace font,
 # so its family has a regular face only and the browser synthesizes bold from it.
 FAMILIES = [
-    ("Inter Fallback", "inter/Inter-VariableFont.ttf", [(400, "Arial"), (700, "Arial Bold")], False),
-    ("JetBrains Mono Fallback", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Menlo"), (700, "Menlo Bold")], True),
-    ("JetBrains Mono Fallback Android", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Droid Sans Mono")], True),
-    ("JetBrains Mono Fallback Windows", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Consolas"), (700, "Consolas Bold")], True),
-    ("JetBrains Mono Fallback Courier", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Courier New"), (700, "Courier New Bold")], False),
+    ("Filter EngineZ Sans Fallback", "inter/Inter-VariableFont.ttf", [(400, "Arial"), (700, "Arial Bold")], False),
+    ("Filter EngineZ Mono Fallback", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Menlo"), (700, "Menlo Bold")], True),
+    ("Filter EngineZ Mono Fallback Android", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Droid Sans Mono")], True),
+    ("Filter EngineZ Mono Fallback Windows", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Consolas"), (700, "Consolas Bold")], True),
+    ("Filter EngineZ Mono Fallback Courier", "jetbrains-mono/JetBrainsMono-VariableFont.ttf", [(400, "Courier New"), (700, "Courier New Bold")], False),
     ("Filter EngineZ Display Fallback", "orbitron/Orbitron-VariableFont_wght.ttf", [(400, "Arial"), (700, "Arial Bold")], False),
 ]
 
