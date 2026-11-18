@@ -136,14 +136,15 @@ export function useBundleFieldMeta(ruleId: SliderFieldId): FilterBundleFieldMeta
  * through: a log-scaled field's fine histogram is summed into equal slices of its track here, so the
  * React sliders draw the same bars as the other five apps.
  *
- * `undefined` rather than `[]` before the first bundle settles, like the books and real-estate
- * readers: the slider then renders no overlay at all, never an empty bar strip.
+ * `[]` before the first bundle settles, like the books and real-estate readers: the slider holds
+ * its overlay's row with no bars, so nothing below it moves when they arrive. With no provider no
+ * bundle is coming, so it is `undefined` and the slider renders no overlay.
  *
  * @param ruleId - The slider's field id.
  * @param baseline - The slider's baseline bounds.
  * @param selectedMin - The slider's lower handle.
  * @param selectedMax - The slider's upper handle.
- * @returns The bars, or `undefined` before the first bundle settles.
+ * @returns The bars; `[]` before the first bundle settles; `undefined` with no provider.
  */
 export function useBundleSliderHistogram(
 	ruleId: SliderFieldId,
@@ -154,7 +155,7 @@ export function useBundleSliderHistogram(
 	const ctx = use(FilterBundleContext);
 
 	return useMemo(
-		() => wineSliderHistogram(ctx?.bundle ?? null, ruleId, baseline, selectedMin, selectedMax),
+		() => (ctx === null ? undefined : wineSliderHistogram(ctx.bundle, ruleId, baseline, selectedMin, selectedMax)),
 		[ctx, ruleId, baseline, selectedMin, selectedMax],
 	);
 }

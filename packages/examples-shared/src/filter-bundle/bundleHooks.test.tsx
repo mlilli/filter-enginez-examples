@@ -224,14 +224,19 @@ describe('useFieldHistogram', () => {
 	}
 
 	it.each([
-		['before the first bundle resolves', withBundle(null), 'size'],
 		['for a field the query did not include', withBundle(makeBundle()), 'not-queried'],
 		['for a queried field that carried no buckets', withBundle(makeBundle()), 'size'],
 	])('returns undefined %s', (_label, wrapper, ruleId) => {
-		// Undefined and not `[]`, in all three cases: the sliders render an absent histogram as NO
-		// overlay and an empty one as an overlay of nothing — a blank 38px band above the track. The
-		// third case is the subtle one, since the field IS in the bundle; only its buckets are missing.
+		// Undefined and not `[]`: the sliders render an absent histogram as NO overlay and an empty one
+		// as the overlay's row with no bars yet. The second case is the subtle one, since the field IS
+		// in the bundle; only its buckets are missing.
 		expect(renderHook(() => useFieldHistogram(ruleId, 10, 30), { wrapper }).result.current).toBeUndefined();
+	});
+
+	it('returns an empty list before the first bundle resolves', () => {
+		// The overlay is coming, so the slider holds its row: the bars then fill in without moving
+		// anything below the slider.
+		expect(renderHook(() => useFieldHistogram('size', 10, 30), { wrapper: withBundle(null) }).result.current).toEqual([]);
 	});
 
 	it('returns undefined with no provider', () => {

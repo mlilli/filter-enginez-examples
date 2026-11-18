@@ -384,7 +384,8 @@ describe('wineSliderHistogram', () => {
 		expect(bars?.map((bar) => bar.count)).toEqual([3, 5]);
 	});
 
-	it('reports no overlay before the bundle arrives', () => {
-		expect(wineSliderHistogram(null, 'price', PRICE_BASELINE, 4, 103)).toBeUndefined();
+	it('holds the overlay with no bars before the bundle arrives, on a log-scaled field too', () => {
+		// `price` is log-scaled: an empty list must not be rebinned into a row of zero-height bars.
+		expect(wineSliderHistogram(null, 'price', PRICE_BASELINE, 4, 103)).toEqual([]);
 	});
 });

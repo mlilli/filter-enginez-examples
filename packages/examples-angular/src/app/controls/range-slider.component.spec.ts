@@ -491,9 +491,19 @@ describe('RangeSliderComponent', () => {
 			Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('.fe-range-histogram__bar'));
 
 		it('renders no overlay at all when no buckets are supplied', () => {
-			// Not an empty container: `.fe-range-histogram` is an authored 32px flex row plus 6px of
-			// margin, so rendering it empty leaves a visible band above the track before the first bundle.
+			// `.fe-range-histogram` is an authored 32px flex row plus 6px of margin: a slider with no
+			// overlay must not carry that band above its track.
 			expect(fixture.nativeElement.querySelector('.fe-range-histogram')).toBeNull();
+		});
+
+		it('keeps the row with no bars for an empty bucket list, so the bars arrive without a shift', () => {
+			// An empty list is a panel before its first bundle: the overlay is coming, so its row is held
+			// and nothing below the slider moves when the bars arrive.
+			host.histogram.set([]);
+			fixture.detectChanges();
+
+			expect(fixture.nativeElement.querySelector('.fe-range-histogram')).not.toBeNull();
+			expect(bars()).toHaveLength(0);
 		});
 
 		it('renders one aria-hidden bar per bucket', () => {

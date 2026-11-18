@@ -182,15 +182,16 @@ describe('useBundleSliderHistogram', () => {
 		expect(result.current?.map((bar) => bar.count)).toEqual([3, 5]);
 	});
 
-	it.each([
-		['the bundle has not arrived', withBundle(null)],
-		['there is no provider', undefined],
-	])('returns undefined, not an empty bar list, when %s', (_label, wrapper) => {
-		// `undefined` is what makes the slider skip its overlay; an empty list would draw an empty strip.
-		const { result } = renderHook(
-			() => useBundleSliderHistogram('points', POINTS_BASELINE, 80, 100),
-			wrapper ? { wrapper } : undefined,
-		);
+	it('returns an empty bar list while the bundle has not arrived, so the slider holds its row', () => {
+		const { result } = renderHook(() => useBundleSliderHistogram('points', POINTS_BASELINE, 80, 100), {
+			wrapper: withBundle(null),
+		});
+
+		expect(result.current).toEqual([]);
+	});
+
+	it('returns undefined with no provider, where no bundle is coming and the slider skips its overlay', () => {
+		const { result } = renderHook(() => useBundleSliderHistogram('points', POINTS_BASELINE, 80, 100));
 
 		expect(result.current).toBeUndefined();
 	});

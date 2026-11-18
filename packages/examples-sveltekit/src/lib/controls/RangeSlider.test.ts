@@ -131,6 +131,21 @@ async function clickTrackAt(track: HTMLElement, fraction: number): Promise<void>
 	await fireEvent.pointerUp(window);
 }
 
+describe('RangeSlider distribution overlay', () => {
+	it('renders no overlay at all when no buckets are supplied', () => {
+		expect(renderSlider().container.querySelector('.fe-range-histogram')).toBeNull();
+	});
+
+	it('keeps the row with no bars for an empty bucket list, so the bars arrive without a shift', () => {
+		// An empty list is a panel before its first bundle: the overlay is coming, so its row is held
+		// and nothing below the slider moves when the bars arrive.
+		const overlay = renderSlider({ histogram: []}).container.querySelector('.fe-range-histogram');
+
+		expect(overlay).not.toBeNull();
+		expect(overlay?.childElementCount).toBe(0);
+	});
+});
+
 describe('RangeSlider with no scale', () => {
 	it('draws thumbs proportionally, exactly as a linear track always has', () => {
 		const { container } = renderSlider({ baseline: { max: 100, min: 0 }, valueMax: 75, valueMin: 25 });

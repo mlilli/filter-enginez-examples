@@ -54,10 +54,13 @@ describe('RangeSlider distribution overlay', () => {
 		expect(mountSlider().find('.fe-range-histogram').exists()).toBe(false);
 	});
 
-	it('renders no overlay for an empty bucket list either', () => {
-		// The two absences are different upstream — no bundle yet versus a field with no buckets — and
-		// must look the same here.
-		expect(mountSlider({ histogram: []}).find('.fe-range-histogram').exists()).toBe(false);
+	it('keeps the row with no bars for an empty bucket list, so the bars arrive without a shift', () => {
+		// An empty list is a panel before its first bundle: the overlay is coming, so its row is held.
+		// A field that will never have bars reaches the slider as `undefined`, above.
+		const overlay = mountSlider({ histogram: []}).find('.fe-range-histogram');
+
+		expect(overlay.exists()).toBe(true);
+		expect(overlay.findAll('.fe-range-histogram__bar')).toHaveLength(0);
 	});
 
 	it('renders one aria-hidden bar per bucket', () => {

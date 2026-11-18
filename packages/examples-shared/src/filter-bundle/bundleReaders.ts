@@ -233,11 +233,12 @@ export function bundleHistogramToBuckets(
  * histogram in one step. Both readers exist because they answer different questions about the same
  * field — where the data STOPS (the dimmed zone) versus where inside that zone it actually LIVES.
  *
- * **`undefined`, not `[]`.** Same asymmetry as every reader in this module, and it matters more here
- * than most: the sliders treat an absent histogram as "no overlay" and an empty one as "an overlay
- * with nothing in it", which is 38px of blank space above a track. Before the first bundle resolves
- * the honest answer is that we do not know the distribution yet, so there should be no overlay at
- * all rather than an empty frame that collapses a moment later.
+ * **`[]` before the first bundle, `undefined` for a field with no histogram.** The sliders treat an
+ * absent histogram as "no overlay" and an empty one as "an overlay whose bars have not arrived": the
+ * overlay's 38px row with nothing in it yet. Before the first bundle resolves, the distribution is
+ * not known yet but the overlay is coming, so the row is held from the slider's first paint. Leaving
+ * it out until the bundle arrived moved every section below the slider down 38px a frame after the
+ * panel first painted: on `/wine` at a desktop width, a layout shift of 0.010 in all six apps.
  *
  * Note the `inSelection` flag on the returned buckets is NOT what tiers the bars — the controls
  * recompute that from their own displayed handle positions, per `histogramBarTier`. Passing
@@ -247,8 +248,8 @@ export function bundleHistogramToBuckets(
  * @param ruleId - The slider field's rule id.
  * @param selectedMin - The slider's current lower handle.
  * @param selectedMax - The slider's current upper handle.
- * @returns The buckets, or `undefined` when there is no bundle, the field was not queried, or the
- *   field carried no buckets.
+ * @returns The buckets; `[]` before the first bundle; `undefined` when the field was not queried or
+ *   carried no buckets.
  */
 export function fieldHistogram(
 	bundle: FilterBundle | null,
@@ -257,7 +258,7 @@ export function fieldHistogram(
 	selectedMax: number,
 ): undefined | readonly HistogramBucket[] {
 	if (bundle === null) {
-		return undefined;
+		return [];
 	}
 	const field = bundle.fields.find((candidateField) => candidateField.ruleId === ruleId);
 

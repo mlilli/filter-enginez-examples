@@ -125,8 +125,9 @@ export interface RangeSliderProps {
 	readonly ariaLabel?: string;
 	/**
 	 * Optional pre-computed histogram (from `computeHistogram(...)`) to render above the track
-	 * as a distribution overlay. Omit to skip the overlay. Under a non-linear `scale`, pass slices of
-	 * the TRACK (`rebinHistogram`): the bars are drawn at equal widths.
+	 * as a distribution overlay. Omit to skip the overlay; an empty list holds the overlay's row with no
+	 * bars yet (a panel before its first bundle). Under a non-linear `scale`, pass slices of the TRACK
+	 * (`rebinHistogram`): the bars are drawn at equal widths.
 	 */
 	readonly histogram?: readonly HistogramBucket[];
 	/** How values sit on the track; linear over `baseline` by default. Build it over that baseline. */

@@ -71,8 +71,9 @@ export interface RangeSliderState {
 	 *
 	 * @remarks
 	 * Part of the state, not the options: the buckets come from the engine's predictive-disable bundle
-	 * and change on every commit. Omitting them hides the overlay entirely, which is what a panel should
-	 * render before its first bundle resolves.
+	 * and change on every commit. Omitting them hides the overlay entirely: a slider without one. An
+	 * empty list holds the overlay's row with no bars, which is what a panel renders before its first
+	 * bundle resolves, so the bars fill in without moving anything below the slider.
 	 *
 	 * The bars are drawn at equal widths, so each bucket must be an equal slice of the TRACK. Under a
 	 * linear scale that is an equal slice of the value range; under any other the caller passes buckets
@@ -132,7 +133,7 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 	let available: NumericBounds = baseline;
 	let safeLower = 0;
 	let safeUpper = 1;
-	let histogram: readonly HistogramBucket[] = [];
+	let histogram: undefined | readonly HistogramBucket[];
 	/** Transient drag position; `null` when idle (display falls back to the committed values). */
 	let dragValue: null | readonly [number, number] = null;
 	let activeHandle: 'lower' | 'upper' | null = null;
@@ -177,13 +178,13 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 	 * Bars are reused across paints; the DOM is rebuilt only when the bucket count changes, which after
 	 * boot it does not. `setHidden` — an inline `display` — is correct here and `toggleAttribute('hidden')`
 	 * is not: `.fe-range-histogram` carries an authored `display: flex`, which beats the UA's
-	 * `[hidden] { display: none }` and would leave an empty 38px band above the track. (The opposite
-	 * convention applies to `.fe-filter-collapse`, which `ui-styles` authors as `:not([hidden])` on
-	 * purpose.)
+	 * `[hidden] { display: none }` and would leave the 38px row above the track of a slider that has no
+	 * overlay. (The opposite convention applies to `.fe-filter-collapse`, which `ui-styles` authors as
+	 * `:not([hidden])` on purpose.) An empty list keeps the row, with no bars.
 	 */
 	function paintHistogram(): void {
-		setHidden(histogramContainer, histogram.length === 0);
-		if (histogram.length === 0) {
+		setHidden(histogramContainer, histogram === undefined);
+		if (histogram === undefined) {
 			return;
 		}
 		while (histogramContainer.childElementCount > histogram.length) {
@@ -483,7 +484,7 @@ export function createRangeSlider(options: RangeSliderOptions): Control<RangeSli
 			baseline = state.baseline;
 			scale = state.scale ?? linearSliderScale(state.baseline);
 			available = state.available ?? state.baseline;
-			histogram = state.histogram ?? [];
+			histogram = state.histogram;
 			safeUpper = Number.isFinite(state.valueMax) ? Math.min(state.valueMax, available.max) : available.max;
 			safeLower = Math.max(available.min, Math.min(state.valueMin, safeUpper));
 			// A committed update supersedes any in-flight drag position.

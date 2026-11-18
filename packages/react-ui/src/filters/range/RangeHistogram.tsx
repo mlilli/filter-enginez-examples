@@ -46,10 +46,15 @@ export interface RangeHistogramProps {
 }
 
 /**
- * Distribution-bar overlay for `<RangeSlider />`. Returns `null` when there are no buckets to
- * render, so a slider never shows an empty bar strip before its first bundle arrives.
+ * Distribution-bar overlay for `<RangeSlider />`. With no buckets yet it renders the overlay's row
+ * empty, so the bars fill in without moving anything below the slider.
  *
  * @remarks
+ * A panel passes `[]` before its first bundle arrives (`fieldHistogram`), and `<RangeSlider />`
+ * renders no overlay at all for a slider whose `histogram` is absent. Rendering nothing for the
+ * empty list instead moved every section below the slider down 38px a frame after the panel first
+ * painted.
+ *
  * The bars carry no hover title, as in every other app: the overlay is `aria-hidden`, a picture of
  * where the data sits, and the slider's readouts and the results count say the numbers.
  *
@@ -61,12 +66,8 @@ export interface RangeHistogramProps {
  *     displayUpper={50}
  *   />
  */
-export const RangeHistogram = (props: RangeHistogramProps): React.ReactElement | null => {
+export const RangeHistogram = (props: RangeHistogramProps): React.ReactElement => {
 	const { available, displayLower, displayUpper, histogram } = props;
-
-	if (histogram.length === 0) {
-		return null;
-	}
 
 	return (
 		<div className="fe-range-histogram" aria-hidden="true">

@@ -190,14 +190,18 @@ describe('fieldHistogram', () => {
 	});
 
 	it.each([
-		['the bundle has not arrived', null, 'price'],
 		['the field was not queried', makeBundle(), 'square-feet'],
 		['the field carried no buckets', makeBundle(), 'bedrooms'],
 	])('returns undefined when %s', (_label, bundle, ruleId) => {
-		// Undefined and not `[]`: the sliders read absent as "render no overlay" and empty as "render an
-		// overlay of nothing", and the second is 38px of blank space above the track that collapses a
-		// frame later. Three different absences, one honest answer.
+		// Undefined and not `[]`: the sliders read absent as "render no overlay" and empty as "hold the
+		// overlay's row, its bars not here yet". Neither field will ever have bars.
 		expect(fieldHistogram(bundle, ruleId, 0, 100)).toBeUndefined();
+	});
+
+	it('returns an empty list when the bundle has not arrived', () => {
+		// The overlay is coming, so the slider holds its 38px row from its first paint. Leaving the row
+		// out moved every section below the slider when the first bundle arrived.
+		expect(fieldHistogram(null, 'price', 0, 100)).toEqual([]);
 	});
 });
 

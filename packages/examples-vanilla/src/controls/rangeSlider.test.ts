@@ -88,8 +88,11 @@ describe('createRangeSlider distribution overlay', () => {
 		expect(bars()).toHaveLength(0);
 	});
 
-	it('hides it for an empty bucket list too', () => {
-		expect(renderSlider({ histogram: []}).container.style.display).toBe('none');
+	it('keeps the row with no bars for an empty bucket list, so the bars arrive without a shift', () => {
+		const { bars, container } = renderSlider({ histogram: []});
+
+		expect(container.style.display).toBe('');
+		expect(bars()).toHaveLength(0);
 	});
 
 	it('reveals the container and renders one aria-hidden bar per bucket', () => {

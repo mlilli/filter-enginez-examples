@@ -450,8 +450,9 @@ function handleInputKeydown(which: 'lower' | 'upper', event: KeyboardEvent): voi
 		</div>
 
 		<!-- aria-hidden: the bars restate the result count a screen reader already gets from the
-		     results header, and eighty of them would be eighty announcements. -->
-		<div v-if="histogram !== undefined && histogram.length > 0" class="fe-range-histogram" aria-hidden="true">
+		     results header, and eighty of them would be eighty announcements. An empty list keeps the
+		     row with no bars: a panel before its first bundle, so the bars fill in without a shift. -->
+		<div v-if="histogram !== undefined" class="fe-range-histogram" aria-hidden="true">
 			<div
 				v-for="(bucket, index) in histogram"
 				:key="index"

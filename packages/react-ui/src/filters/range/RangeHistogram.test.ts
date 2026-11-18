@@ -60,7 +60,7 @@ function renderBars(): { bars: HTMLElement[]; container: HTMLElement } {
 }
 
 describe('RangeHistogram', () => {
-	it('returns null when there are no buckets to render', () => {
+	it('renders the row with no bars when there are no buckets yet', () => {
 		const { container } = render(
 			createElement(RangeHistogram, {
 				available: { max: 8, min: 2 },
@@ -70,7 +70,7 @@ describe('RangeHistogram', () => {
 			}),
 		);
 
-		expect(container.querySelector('.fe-range-histogram')).toBeNull();
+		expect(container.querySelector('.fe-range-histogram')?.childElementCount).toBe(0);
 	});
 
 	it('renders one aria-hidden bar per bucket', () => {

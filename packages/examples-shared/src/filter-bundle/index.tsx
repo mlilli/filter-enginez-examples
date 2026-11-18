@@ -157,15 +157,16 @@ export function useFieldBounds(ruleId: string): NumericBounds | null {
  * Read one slider field's distribution — the `RangeSlider` `histogram` overlay.
  *
  * @remarks
- * `undefined` rather than `[]` when there is nothing to draw, because the sliders distinguish the two:
- * absent renders no overlay, empty renders an overlay of nothing, and the second is a 38px blank band
- * above the track for the frame before the first bundle resolves.
+ * The sliders distinguish `undefined` from `[]`: absent renders no overlay, empty renders the
+ * overlay's row with no bars yet. Inside a provider, the frame before the first bundle resolves is
+ * `[]`, so the row is there when the bars arrive and nothing below the slider moves. With no provider
+ * no bundle is coming, so it is `undefined`.
  *
  * @param ruleId - The field's rule id, matching the one used in the bundle query.
  * @param selectedMin - The slider's committed lower bound.
  * @param selectedMax - The slider's committed upper bound.
- * @returns The buckets, or `undefined` when the bundle is absent, did not carry the field, or carried
- *   no buckets for it.
+ * @returns The buckets; `[]` before the first bundle; `undefined` with no provider, or when the bundle
+ *   did not carry the field or carried no buckets for it.
  */
 export function useFieldHistogram(
 	ruleId: string,
@@ -173,9 +174,13 @@ export function useFieldHistogram(
 	selectedMax: number,
 ): undefined | readonly HistogramBucket[] {
 	const ctx = use(FilterBundleContext);
+	const hasProvider = ctx !== null;
 	const bundle = ctx?.bundle ?? null;
 
-	return useMemo(() => fieldHistogram(bundle, ruleId, selectedMin, selectedMax), [bundle, ruleId, selectedMin, selectedMax]);
+	return useMemo(
+		() => (hasProvider ? fieldHistogram(bundle, ruleId, selectedMin, selectedMax) : undefined),
+		[hasProvider, bundle, ruleId, selectedMin, selectedMax],
+	);
 }
 
 /**

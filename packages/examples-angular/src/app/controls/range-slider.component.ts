@@ -105,8 +105,9 @@ type ActiveHandle = 'lower' | 'upper' | null;
 			</div>
 
 			<!-- aria-hidden: the bars restate a count the results header already announces, and eighty
-			     of them would be eighty announcements. -->
-			@if (histogramBuckets().length > 0) {
+			     of them would be eighty announcements. An empty list keeps the row with no bars: a panel
+			     before its first bundle, so the bars fill in without a shift. -->
+			@if (histogram() !== undefined) {
 				<div class="fe-range-histogram" aria-hidden="true">
 					@for (bucket of histogramBuckets(); track $index) {
 						<div [class]="barClassName(bucket)" [style.height.%]="barHeightPercent(bucket)"></div>

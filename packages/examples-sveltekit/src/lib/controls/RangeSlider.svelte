@@ -446,7 +446,9 @@
 		<span class="fe-range-slider__summary">{format(safeLower)} — {format(safeUpper)}</span>
 	</div>
 
-	{#if histogram !== undefined && histogram.length > 0}
+	<!-- An empty list keeps the row with no bars: a panel before its first bundle, so the bars fill in
+	     without a shift. -->
+	{#if histogram !== undefined}
 		<div class="fe-range-histogram" aria-hidden="true">
 			{#each histogram as bucket, index (index)}
 				<div

@@ -102,7 +102,8 @@ export function wineHistogramQuery(field: SliderFieldId, baseline: NumericBounds
  * @param baseline - The slider's baseline bounds.
  * @param selectedMin - The slider's lower handle.
  * @param selectedMax - The slider's upper handle.
- * @returns The bars, or `undefined` when there is no bundle or the field carried no buckets.
+ * @returns The bars; `[]` before the first bundle (the overlay's row is held for them, see
+ *   `fieldHistogram`); `undefined` when the field carried no buckets.
  */
 export function wineSliderHistogram(
 	bundle: FilterBundle | null,
@@ -113,7 +114,7 @@ export function wineSliderHistogram(
 ): undefined | readonly HistogramBucket[] {
 	const buckets = fieldHistogram(bundle, field, selectedMin, selectedMax);
 
-	if (buckets === undefined || SLIDER_SCALE_SPECS[field].kind === 'linear') {
+	if (buckets === undefined || buckets.length === 0 || SLIDER_SCALE_SPECS[field].kind === 'linear') {
 		return buckets;
 	}
 	const scale = wineSliderScale(field, baseline);
