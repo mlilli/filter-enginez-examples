@@ -60,12 +60,13 @@
  * (a partially-shaped corpus must degrade to "no exclusion data", never blank the panel) and the
  * stale-response guard, so a slow query can never overwrite a newer one.
  *
- * ### The geo section renders inside a `@defer` block
+ * ### The geo section renders with the panel
  *
- * `<fe-geo-radius-section>` reaches Leaflet, so it sits in a `@defer (on immediate)` block and the
- * other thirteen sections paint without waiting on it. `on immediate` defers RENDERING, not
- * downloading; the actual code-split is one level further down, and
- * `leaflet-radius-map.component.ts` documents it.
+ * `<fe-geo-radius-section>` reaches Leaflet only through its map, which mounts once the distance
+ * filter is on and imports Leaflet then: that import is the code-split, and
+ * `leaflet-radius-map.component.ts` documents it. The section sat in a `@defer (on immediate)` block,
+ * which deferred RENDERING, not downloading: it was inserted a tick after the other thirteen sections
+ * and moved the ones below it down 140px, a layout shift of 0.011 at a desktop width.
  *
  * @packageDocumentation
  */

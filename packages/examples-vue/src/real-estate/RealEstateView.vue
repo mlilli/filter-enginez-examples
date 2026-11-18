@@ -34,17 +34,19 @@ import {
  * histogram edges, and Vue's deep proxy neither preserves typed-array semantics nor survives tens of
  * thousands of entries at any acceptable speed — the same trap that makes the ENGINE need `shallowRef`.
  *
- * ### The geo section is loaded, not imported
+ * ### The geo section is imported; its map is loaded
  *
- * `<GeoRadiusSection>` reaches Leaflet. A static import would pull a mapping library into the initial
- * chunk for every visitor, including the majority who never open the distance filter, so it is pulled
- * in from `onMounted` and passed down as a component. Until it resolves the panel renders its other
- * thirteen sections, which is a better first paint than blocking all of them on a map.
+ * `<GeoRadiusSection>` renders its map only once the distance filter is on, and the map imports the
+ * Leaflet-bearing module itself, from `onMounted`. So the section is imported here like any other and
+ * paints with the panel, and a visitor who never opens the distance filter still never downloads
+ * Leaflet. It used to be loaded from `onMounted` as well, which inserted it a frame after the panel's
+ * first paint and moved every section below it down 140px: a layout shift of 0.011 at a desktop width,
+ * where the React and vanilla apps, which import it, shift nothing.
  */
 import { clearAllFilters } from '@filter-enginez/examples-shared/selection';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import { provideFilterEngine, useBusy, useEngineRefs } from '@filter-enginez/vue-signals';
-import { type Component, computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import ComputingIndicator from '../brand/ComputingIndicator.vue';
 import DevtoolsPanel from '../controls/DevtoolsPanel.vue';
@@ -54,6 +56,7 @@ import AppHeaderBrand from '../shell/AppHeaderBrand.vue';
 import CompareLinkButton from '../url/CompareLinkButton.vue';
 import CopyLinkButton from '../url/CopyLinkButton.vue';
 import UrlFormatToggle from '../url/UrlFormatToggle.vue';
+import GeoRadiusSection from './GeoRadiusSection.vue';
 import { provideRealEstateBundle } from './realEstateBundle.js';
 import {
 	captureCurrentVersion,
@@ -114,23 +117,8 @@ watch(
 	{ immediate: true },
 );
 
-/**
- * The geo section, once its Leaflet-bearing module has loaded in the browser.
- *
- * @remarks
- * `shallowRef` because it holds a component definition: deep-proxying one would be pure cost and no
- * benefit. It stays `null` in jsdom, where the import is never awaited before assertions run.
- */
-const geoRadiusSection = shallowRef<Component | null>(null);
-
 // The live page takes over from the prerendered snapshot of itself as it mounts.
 onMounted(releasePrerender);
-
-onMounted(async () => {
-	const geoModule = await import('./GeoRadiusSection.vue');
-
-	geoRadiusSection.value = geoModule.default;
-});
 
 onUnmounted(() => {
 	fetcher.dispose();
@@ -259,7 +247,7 @@ const isDevtoolsOpen = ref(false);
 					     the panel itself has no use for. -->
 					<RealEstateFilterPanel
 						:engine="engine"
-						:geo-radius-section="geoRadiusSection"
+						:geo-radius-section="GeoRadiusSection"
 						:is-computing="isEngineBusy"
 						:location-specs="locationSpecs"
 						:location-tree="locationTree"

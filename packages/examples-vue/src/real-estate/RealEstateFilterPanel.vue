@@ -95,11 +95,12 @@ const props = withDefaults(
 		/** The real-estate engine. */
 		engine: SignalsEngine<Listing>;
 		/**
-		 * The geo-radius section, once the view has loaded it, or `null`.
+		 * The geo-radius section, or `null` to leave it out.
 		 *
 		 * @remarks
-		 * Passed DOWN rather than imported because it reaches Leaflet. `null` for the first client frame,
-		 * which is why the other thirteen sections must not depend on it being there.
+		 * Passed down by the view, which imports it; its map loads Leaflet only once the distance filter
+		 * is on. `null` (a panel test with no map at all) leaves the other thirteen sections as they are,
+		 * which is why none of them may depend on it being there.
 		 */
 		geoRadiusSection?: Component | null;
 		/** Dims + locks the sections while a bundle round trip is pending. */

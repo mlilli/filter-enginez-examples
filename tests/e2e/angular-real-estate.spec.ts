@@ -190,9 +190,8 @@ test.describe('Angular real-estate app — filter flow', () => {
 
 	test('enabling the geo-radius filter commits a Distance chip', async ({ page }, testInfo) => {
 		await openFilterPanel(page, testInfo, page.locator(TOGGLEABLE_CHIP).first());
-		// Engaging the checkbox adds the geo rule at the default center + radius. The section arrives
-		// behind an `@defer (on immediate)` block, a tick after the rest of the panel; `check()`
-		// auto-waits for it, which is why no explicit wait precedes this line.
+		// Engaging the checkbox adds the geo rule at the default center + radius. The section renders
+		// with the rest of the panel, and `check()` auto-waits for the box in any case.
 		await page.getByLabel('Filter by distance').check();
 
 		// Asserted via the deterministic "Distance" chip — proof the rule reached the engine — rather

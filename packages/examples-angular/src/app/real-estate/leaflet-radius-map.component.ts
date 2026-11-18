@@ -20,12 +20,12 @@
  * imports it directly, and the dynamic import resolves it from `examples-shared`, which owns the
  * dependency. Adding it here would create a second version to keep in step for no gain.
  *
- * **This `await import()` is the whole code-split**, and it is worth being precise about that,
- * because the panel above also wraps the geo section in a `@defer (on immediate)` block and that
- * block is NOT what keeps Leaflet out of the bundle — `on immediate` fetches its chunk for every
- * visitor as soon as rendering settles, so it buys paint order and nothing more. The import below
- * runs from `afterNextRender` on a component that only mounts once the distance filter is switched
- * on, so a mapping library reaches only the visitors who ask for a map.
+ * **This `await import()` is the whole code-split.** The panel above used to wrap the geo section in a
+ * `@defer (on immediate)` block as well, which kept nothing out of the bundle (`on immediate` fetches
+ * its chunk for every visitor as soon as rendering settles) and only inserted the section a tick after
+ * the rest of the panel, a layout shift; it renders the section inline now. The import below runs from
+ * `afterNextRender` on a component that only mounts once the distance filter is switched on, so a
+ * mapping library reaches only the visitors who ask for a map.
  *
  * ### The four Angular-specific hazards, in the order they bite
  *

@@ -20,12 +20,15 @@
 	 * thousands of entries at any acceptable speed — the same trap that makes the ENGINE need
 	 * `$state.raw`.
 	 *
-	 * ### The geo section is loaded, not imported
+	 * ### The geo section is imported; its map is loaded
 	 *
-	 * `<GeoRadiusSection>` reaches Leaflet, which touches `window` at module scope. A static import
-	 * would put it in the SSR bundle and break the server render, so it is pulled in from `onMount` and
-	 * passed down as a component. Until it resolves the panel renders its other thirteen sections,
-	 * which is a better first paint than blocking all of them on a mapping library.
+	 * `<GeoRadiusSection>` renders its map only once the distance filter is on, and the map imports
+	 * the Leaflet-bearing module (which touches `window` at module scope) itself, from `onMount`, so it
+	 * stays out of the server render. The section is therefore imported here like any other and paints
+	 * with the panel, and a visitor who never opens the distance filter still never downloads Leaflet.
+	 * It used to be loaded from `onMount` as well, which inserted it a frame after the panel's first
+	 * paint and moved every section below it down 140px: a layout shift of 0.011 at a desktop width,
+	 * where the React and vanilla apps, which import it, shift nothing.
 	 */
 
 	import type { FilterBundle } from '@filter-enginez/core';
@@ -48,7 +51,7 @@
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
 	import ResultsHeader from '$lib/controls/ResultsHeader.svelte';
-	import { type Component, onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 
 	import DevtoolsPanel from '../controls/DevtoolsPanel.svelte';
 	import TimeTravelControls from '../controls/TimeTravelControls.svelte';
@@ -56,6 +59,7 @@
 	import CompareLinkButton from '../url/CompareLinkButton.svelte';
 	import CopyLinkButton from '../url/CopyLinkButton.svelte';
 	import UrlFormatToggle from '../url/UrlFormatToggle.svelte';
+	import GeoRadiusSection from './GeoRadiusSection.svelte';
 	import { setRealEstateBundle } from './realEstateBundle.js';
 	import {
 		captureCurrentVersion,
@@ -120,23 +124,6 @@
 
 	onDestroy(() => {
 		fetcher.dispose();
-	});
-
-	/**
-	 * The geo section, once its Leaflet-bearing module has loaded in the browser.
-	 *
-	 * @remarks
-	 * `$state.raw` because it holds a component constructor: deep-proxying a class would be pure cost
-	 * and no benefit. It stays `null` under SSR and in jsdom, where the import is never attempted.
-	 */
-	let GeoRadiusSection = $state.raw<Component<{ engine: SignalsEngine<Listing> }> | null>(null);
-
-	onMount(async () => {
-		// Kept on ONE line deliberately: wrapped, the formatter adds a trailing comma inside
-		// `import(...)`, which Svelte's parser rejects as a syntax error.
-		const geoModule = await import('./GeoRadiusSection.svelte');
-
-		GeoRadiusSection = geoModule.default as Component<{ engine: SignalsEngine<Listing> }>;
 	});
 
 	/**

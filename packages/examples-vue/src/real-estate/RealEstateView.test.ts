@@ -19,9 +19,8 @@
  * ENABLED, which is exactly what "no information" is supposed to look like. So the disable state is
  * asserted directly rather than inferred from the panel looking right.
  *
- * The geo section is deliberately absent here — it is dynamically imported in `onMounted` and jsdom
- * never awaits that import before the assertions run, which is the same reason the panel treats it as
- * optional in production.
+ * The geo section renders here with its filter off, so its map, the one part that reaches Leaflet, is
+ * never mounted.
  */
 
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
@@ -138,11 +137,28 @@ function deriveBaselines(): Record<RealEstateSliderFieldId, NumericBounds> {
 
 /** Mount `<RealEstateView>` with a test router and the same derived props the route computes. */
 async function mountView(engine: SignalsEngine<Listing>): Promise<VueWrapper> {
-	const locationTree = buildListingLocationTree(DATA);
 	const router = makeRouter();
 	// Mount first (installs the router plugin, which kicks off the memory-history initial navigation),
 	// THEN await `isReady` — awaiting before install would hang forever.
-	const wrapper = mount(RealEstateView, {
+	const wrapper = mountViewNow(engine, router);
+
+	await router.isReady();
+	await flushPromises();
+
+	return wrapper;
+}
+
+/**
+ * Mount the view and return before anything is awaited: the first render, as the browser paints it.
+ *
+ * @param engine - The booted engine.
+ * @param router - The router to install.
+ * @returns The mounted wrapper.
+ */
+function mountViewNow(engine: SignalsEngine<Listing>, router: Router): VueWrapper {
+	const locationTree = buildListingLocationTree(DATA);
+
+	return mount(RealEstateView, {
 		global: { plugins: [router]},
 		props: {
 			baselines: deriveBaselines(),
@@ -153,11 +169,6 @@ async function mountView(engine: SignalsEngine<Listing>): Promise<VueWrapper> {
 			vocabularies: deriveRealEstateVocabularies(DATA),
 		},
 	});
-
-	await router.isReady();
-	await flushPromises();
-
-	return wrapper;
 }
 
 /** The rendered chip whose visible text starts with `label` (throws if absent, so callers avoid `!`). */
@@ -198,6 +209,20 @@ describe('<RealEstateView> full-parity interactions', () => {
 		// Six range sliders, from the `RANGE_FACETS` table.
 		expect(wrapper.findAll('.fe-range-slider')).toHaveLength(6);
 
+		engine.dispose();
+	});
+
+	it('renders the Distance section in its first render, with its filter off and so no map', () => {
+		// It used to be imported from `onMounted`, which inserted it a frame after the panel's first
+		// paint and moved every section below it down 140px. The map, the one part that reaches
+		// Leaflet, renders only once the filter is on.
+		const engine = bootEngine();
+		const wrapper = mountViewNow(engine, makeRouter());
+
+		expect(wrapper.find('.fe-geo').exists()).toBe(true);
+		expect(wrapper.find('.fe-geo__map').exists()).toBe(false);
+
+		wrapper.unmount();
 		engine.dispose();
 	});
 

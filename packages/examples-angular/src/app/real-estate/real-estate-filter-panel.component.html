@@ -34,14 +34,13 @@
 		</section>
 
 		<!--
-			2 · geo-proximity → GeoProximityRule. The only section that loads a mapping library, hence
-			the defer block: the other thirteen paint without waiting on it, and a visitor who never
-			enables the distance filter never downloads Leaflet at all (the map inside the section
-			imports Leaflet only once the filter is switched on).
+			2 · geo-proximity → GeoProximityRule. The only section that loads a mapping library, and only
+			from inside: its map is rendered once the distance filter is switched on and imports Leaflet
+			then, so a visitor who never enables the filter never downloads it. The section itself renders
+			with the panel. It was a `@defer` block, which inserted it a tick after the rest of the panel
+			and moved every section below it down 140px: a layout shift of 0.011 at a desktop width.
 		-->
-		@defer (on immediate) {
-			<fe-geo-radius-section [isPanelVisible]="isPanelVisible()" />
-		}
+		<fe-geo-radius-section [isPanelVisible]="isPanelVisible()" />
 
 		<!-- 3 · school-district → InSetRule. A checklist, not chips: ~100 values would be a wall. -->
 		<section>

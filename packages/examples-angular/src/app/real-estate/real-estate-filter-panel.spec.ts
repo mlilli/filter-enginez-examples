@@ -17,8 +17,8 @@
  * presets this panel does not render and a rule can arrive from a `?f` link rather than from a click.
  *
  * The fixture is six hand-written listings rather than the real corpus so every assertion is exact.
- * The geo section sits in a `@defer` block, and `DeferBlockBehavior.Manual` keeps it deterministically
- * unrendered — it would otherwise mount Leaflet under jsdom. Nothing below asserts on it.
+ * The geo section renders with its filter off, so its map, the one part that reaches Leaflet, never
+ * mounts under jsdom. Nothing below asserts on it.
  *
  * @packageDocumentation
  */
@@ -27,7 +27,6 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 
 import {
 	type ComponentFixture,
-	DeferBlockBehavior,
 	TestBed,
 } from '@angular/core/testing';
 import { provideEngineBusy, provideFilterEngine } from '@filter-enginez/angular-rxjs';
@@ -300,7 +299,6 @@ describe('RealEstateFilterPanelComponent', () => {
 		busy = createEngineBusyStream();
 
 		await TestBed.configureTestingModule({
-			deferBlockBehavior: DeferBlockBehavior.Manual,
 			imports: [RealEstateFilterPanelComponent],
 			providers: [
 				provideFilterEngine(engine),

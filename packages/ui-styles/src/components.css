@@ -1583,6 +1583,13 @@
  *
  * The hero variant is uppercase and tracked; the inline variant is plain mono body copy.
  *
+ * The hero caption's box never changes size, so a new wording never moves it or the figure above.
+ * It holds two lines from its first frame: its last wording ("150,000 bottles loaded · constructing
+ * filter engine…") wraps to two at a phone width, and the screen centers the caption with the figure,
+ * so a caption that grew a line moved both up 9px (the line height is set here so `3em` is exactly two
+ * lines). And it spans its column, its text centered inside: sized to its text, it moved sideways as
+ * the count grew. Together those were a layout shift of 0.007 on a phone; now 0.0002.
+ *
  * No `margin`. `@layer base` above already zeroes `p`, in every vertical that loads this file, which
  * is all of them. A `margin: 0` here would be cargo. */
 .fe-boot-caption {
@@ -1593,8 +1600,11 @@
 .fe-boot-caption--hero {
 	font-size: 0.75rem;
 	letter-spacing: 0.16em;
+	line-height: 1.5;
+	min-height: 3em;
 	text-align: center;
 	text-transform: uppercase;
+	width: 100%;
 }
 
 .fe-boot-caption--inline {

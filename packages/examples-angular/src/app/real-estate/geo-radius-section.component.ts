@@ -6,8 +6,9 @@
  *
  * @remarks
  * The fourteenth facet by rule count and the second by render order, and the only one that reaches a
- * mapping library — which is why the panel loads it behind a `@defer` block rather than rendering it
- * inline with the other thirteen.
+ * mapping library — through its map, which renders only once the filter is on and imports Leaflet then
+ * (`leaflet-radius-map.component.ts`). So the panel renders this section inline with the other
+ * thirteen.
  *
  * ### Miles above, kilometers below
  *
