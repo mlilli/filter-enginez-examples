@@ -22,7 +22,7 @@ import type { FilterBundle, FilterBundleQuery } from '@filter-enginez/core';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { type BundleQueryable, createBundleFetcher } from './bundleFetcher.js';
+import { type BundleQueryable, createBundleFetcher, fetchBundleOnce } from './bundleFetcher.js';
 
 const QUERY: FilterBundleQuery = {
 	chipGroups: [{ candidates: ['alpha'], field: 'kind', kind: 'inSet', ruleId: 'kind' }],
@@ -295,5 +295,42 @@ describe('version capture', () => {
 			createBundleFetcher(syncSource(() => bundleWithCount(1)), { onBundle }).request(QUERY);
 		}).not.toThrow();
 		expect(onBundle).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('fetchBundleOnce', () => {
+	it('asks the async engine when there is one, and never the core', async () => {
+		const bundle = bundleWithCount(7);
+		const core = vi.fn(() => bundleWithCount(0));
+		const remote = vi.fn(async () => Promise.resolve(bundle));
+		const source: BundleQueryable = { asyncEngine: { applyFiltersAndQuery: remote }, core: { applyFiltersAndQuery: core }};
+
+		await expect(fetchBundleOnce(source, QUERY)).resolves.toBe(bundle);
+		expect(remote).toHaveBeenCalledWith(QUERY);
+		expect(core).not.toHaveBeenCalled();
+	});
+
+	it('asks the core on a main-thread engine', async () => {
+		const bundle = bundleWithCount(3);
+		const source: BundleQueryable = { core: { applyFiltersAndQuery: vi.fn(() => bundle) }};
+
+		await expect(fetchBundleOnce(source, QUERY)).resolves.toBe(bundle);
+	});
+
+	it('answers null for a failed fetch, from either transport: the view starts without a bundle', async () => {
+		const asyncFailure: BundleQueryable = {
+			asyncEngine: { applyFiltersAndQuery: vi.fn(async () => Promise.reject(new Error('offline'))) },
+			core: { applyFiltersAndQuery: vi.fn(() => bundleWithCount(0)) },
+		};
+		const syncFailure: BundleQueryable = {
+			core: {
+				applyFiltersAndQuery: vi.fn(() => {
+					throw new Error('bad query');
+				}),
+			},
+		};
+
+		await expect(fetchBundleOnce(asyncFailure, QUERY)).resolves.toBeNull();
+		await expect(fetchBundleOnce(syncFailure, QUERY)).resolves.toBeNull();
 	});
 });

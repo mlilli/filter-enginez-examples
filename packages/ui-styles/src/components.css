@@ -1627,6 +1627,17 @@
 	color: var(--accent);
 }
 
+/* The hero caption's count holds the width of the corpus total from its first frame. The caption is
+ * centered, so a count that grew a digit at a time re-centered the whole line and moved the words around
+ * it ("Loaded 9,500 of 150,000 bottles"). Every hero caption counts a wine corpus, whose total is six
+ * digits (seven characters with the comma); the caption's face is monospaced, so seven characters, each
+ * followed by the caption's letter-spacing, is the widest count it shows. */
+.fe-boot-caption--hero .fe-boot-caption__value {
+	display: inline-block;
+	min-width: calc(7ch + 7 * 0.16em);
+	text-align: end;
+}
+
 /* fe-book-card — one book record as a compact card (books-domain presentational; mirror of
  * fe-wine-card). Muted text uses gray-8+ for AA contrast on the dark card; cyan accents mark data
  * affordances (genre chip, rating). Result grid is fluid (auto-fill minmax), so cards flex to width. */

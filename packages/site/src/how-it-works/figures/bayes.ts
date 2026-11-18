@@ -13,6 +13,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** One suggested filter with its co-occurrence probability (0–1). */
 interface Suggestion {
@@ -118,7 +119,7 @@ export function createBayesianSuggestFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-bayes__svg', viewBox: '0 0 460 250', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-bayes__svg', viewBox: FIGURE_VIEW_BOXES.bayesian, xmlns: 'http://www.w3.org/2000/svg' },
 				[
 					// Current selection
 					svgText({ class: 'fe-fig-bayes__eyebrow', x: 20, y: 28 }, 'current selection'),

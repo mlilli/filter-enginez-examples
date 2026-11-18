@@ -13,6 +13,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText, svgTspan } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** A rule chip in the exclusion graph. */
 interface GraphNode {
@@ -102,7 +103,7 @@ export function createExclusionGraphFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-excl__svg', viewBox: '0 0 460 300', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-excl__svg', viewBox: FIGURE_VIEW_BOXES.exclusion, xmlns: 'http://www.w3.org/2000/svg' },
 				[
 					// Structural edges
 					...structuralEdges,

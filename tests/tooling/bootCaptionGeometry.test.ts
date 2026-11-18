@@ -12,6 +12,10 @@
  * `min-height` is in `em`, so it is two lines only against the line height declared beside it; both
  * are pinned together.
  *
+ * Inside it, the streamed count holds the width of a seven-character total ("150,000") from its first
+ * frame. Centered, a count that grew a digit at a time re-centered the line and moved the words around
+ * it (0.0004 at a desktop width on `/wine` without the snapshot).
+ *
  * Deliberately in `tests/tooling`, like `uiStylesHistogram.test.ts`: jsdom never loads the sheet.
  */
 
@@ -45,5 +49,15 @@ describe('the hero boot caption', () => {
 
 		expect(block).toContain('line-height: 1.5;');
 		expect(block).toContain('min-height: 3em;');
+	});
+
+	it('holds the streamed count at the width of a seven-character total, each character with the caption’s letter-spacing', () => {
+		const match = /(?<![\w-])\.fe-boot-caption--hero \.fe-boot-caption__value\s*\{([^}]*)\}/u.exec(SHEET);
+		const block = match?.[1] ?? '';
+
+		expect(heroCaptionBlock()).toContain('letter-spacing: 0.16em;');
+		expect(block).toContain('display: inline-block;');
+		expect(block).toContain('min-width: calc(7ch + 7 * 0.16em);');
+		expect(block).toContain('text-align: end;');
 	});
 });

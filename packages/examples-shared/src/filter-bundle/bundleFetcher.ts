@@ -183,3 +183,26 @@ export function createBundleFetcher(source: BundleQueryable, handlers: BundleFet
 		},
 	};
 }
+
+/**
+ * Fetch one bundle, outside any fetch loop: the first one a view should show from its first frame.
+ *
+ * @remarks
+ * A view's fetch loop asks for its first bundle once the view has rendered, so the panel's projected
+ * counts (`red (90,586)`) arrive a frame or two after it: the chips widen and the row wraps anew, a layout
+ * shift. A route that keeps a placeholder up while its engine boots (SvelteKit's `/wine-server`, behind
+ * its server-rendered page) asks for that bundle here first and hands it to the view.
+ *
+ * Same transport choice as {@link createBundleFetcher}: `asyncEngine`, when present, wins over `core`.
+ *
+ * @param source - The engine.
+ * @param query - The view's bundle query.
+ * @returns The bundle, or `null` if the fetch failed: the view then starts without one, as it would have.
+ */
+export async function fetchBundleOnce(source: BundleQueryable, query: FilterBundleQuery): Promise<FilterBundle | null> {
+	try {
+		return source.asyncEngine === undefined ? source.core.applyFiltersAndQuery(query) : await source.asyncEngine.applyFiltersAndQuery(query);
+	} catch {
+		return null;
+	}
+}

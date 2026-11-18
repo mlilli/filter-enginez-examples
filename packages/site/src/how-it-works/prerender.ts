@@ -7,7 +7,9 @@
  * the benchmark's reference numbers — is rendered here, as static HTML, from the same framework-free
  * content model (`@filter-enginez/examples-shared/how-it-works`) the browser half reads. A search
  * engine, a link preview or a reader with JavaScript off gets the whole narrative; `howItWorksPage.ts`
- * then mounts the figures and the live benchmark into the placeholders left here.
+ * then mounts the figures and the live benchmark into the placeholders left here. Each figure's
+ * placeholder holds an empty SVG in the figure's own `viewBox` ({@link renderFigureFrame}), so it is
+ * already the figure's height when the page first paints.
  *
  * The hand-written parts of the page (its `<head>`, the site header, the hero and the closing links)
  * stay in `how-it-works.html`, which marks where each generated fragment goes with an HTML comment from
@@ -36,6 +38,7 @@ import {
 import { vertical } from '@filter-enginez/examples-shared/verticals';
 
 import { escapeHtml } from '../escapeHtml.js';
+import { HOW_IT_WORKS_FIGURE_VIEW_BOXES } from './figures/viewBoxes.js';
 
 /** The id of the benchmark section, the table of contents' last target. */
 export const BENCHMARK_SECTION_ID = 'benchmark';
@@ -110,7 +113,23 @@ function renderDemoLink(sectionId: string): string {
 }
 
 /**
- * One algorithm band: an empty figure placeholder beside the copy.
+ * The frame a figure's placeholder holds until the figure mounts: an empty SVG in the figure's
+ * `viewBox`, sized by the same `fe-fig__svg` rule as the figure's own SVG, so the placeholder is the
+ * figure's height from the first paint and the figure replaces it without moving anything.
+ *
+ * @param figureId - The band's id, which names its figure.
+ * @returns The frame's markup, or an empty string for an id that names no figure.
+ */
+export function renderFigureFrame(figureId: string): string {
+	const viewBox = HOW_IT_WORKS_FIGURE_VIEW_BOXES.get(figureId);
+
+	return viewBox === undefined
+		? ''
+		: `<svg class="fe-fig__svg" viewBox="${viewBox}" aria-hidden="true" focusable="false"></svg>`;
+}
+
+/**
+ * One algorithm band: its figure's placeholder (holding {@link renderFigureFrame}) beside the copy.
  *
  * @param section - The band's content.
  * @param index - Its position; odd bands put the figure on the other side.
@@ -122,7 +141,7 @@ function renderBand(section: HowItWorksSection, index: number): string {
 
 	return [
 		`<section id="${id}" class="fe-about__band${index % 2 === 1 ? ' is-reversed' : ''}" aria-labelledby="${id}-title">`,
-		`<div class="fe-about__figure" data-figure="${id}"></div>`,
+		`<div class="fe-about__figure" data-figure="${id}">${renderFigureFrame(section.id)}</div>`,
 		'<div class="fe-about__copy">',
 		`<p class="fe-about__eyebrow">${escapeHtml(section.eyebrow)}</p>`,
 		`<h2 id="${id}-title" class="fe-about__band-title">${escapeHtml(section.title)}</h2>`,

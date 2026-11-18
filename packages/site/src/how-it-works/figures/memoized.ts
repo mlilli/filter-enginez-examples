@@ -13,6 +13,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** Y centers of the two lanes in the 460×236 viewBox. */
 const HIT_Y = 70;
@@ -62,7 +63,7 @@ export function createMemoizedSimulationFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-memo__svg', viewBox: '0 0 460 236', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-memo__svg', viewBox: FIGURE_VIEW_BOXES.memoization, xmlns: 'http://www.w3.org/2000/svg' },
 				[
 					...laneGroups,
 					// LRU shelf on the hit lane

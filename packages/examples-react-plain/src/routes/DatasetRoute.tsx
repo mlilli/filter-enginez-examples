@@ -33,7 +33,7 @@ import type * as AddressFilterState from '@filter-enginez/examples-shared/addres
 import { BrainSynapse } from '@filter-enginez/brand';
 import { BOOT_FAILURE_COPY, type BootCaptionPart, bootCaptionParts, type BootFailureDataset } from '@filter-enginez/examples-shared/boot-caption';
 import { hasPrerender, useDismissPrerender } from '@filter-enginez/examples-shared/prerender';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Fragment, useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { BootedDataset, DatasetEntry, DatasetModule } from '../datasets.js';
 import type { DatasetView } from './DatasetView.js';
@@ -212,6 +212,13 @@ const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): Re
 /**
  * A caption's segments as React children: each `value` segment in its accent span, text as-is.
  *
+ * @remarks
+ * Every segment is keyed by its wording, text too (a keyed fragment), so a segment whose wording changes
+ * is a new text node rather than an old one rewritten. Without keys, React rewrote the idle caption's
+ * text node into the first words of the streamed count's caption, and the browser saw that node jump
+ * 37px left on the centered hero line: a layout shift of 0.0004 at a desktop width, on `/wine` without
+ * the snapshot. A new node is an insertion, not a shift. The other four apps already replace the node.
+ *
  * @param parts - Segments from `bootCaptionParts`.
  * @returns The children to render inside the caption element.
  */
@@ -220,7 +227,7 @@ function renderCaption(parts: readonly BootCaptionPart[]): React.ReactNode[] {
 		part.kind === 'value' ? (
 			<span key={`${part.kind}:${part.text}`} className="fe-boot-caption__value">{part.text}</span>
 		) : (
-			part.text
+			<Fragment key={`${part.kind}:${part.text}`}>{part.text}</Fragment>
 		),
 	);
 }

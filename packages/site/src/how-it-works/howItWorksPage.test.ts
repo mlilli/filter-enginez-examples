@@ -155,6 +155,27 @@ describe('enhanceHowItWorksPage', () => {
 		}
 	});
 
+	it('replaces each placeholder’s frame with a figure drawn in the frame’s own box', () => {
+		// The frame holds the figure's height from the first paint only while the two boxes agree.
+		const page = mountPrerenderedPage();
+		const frameBoxes = new Map(
+			[...page.querySelectorAll<HTMLElement>('[data-figure]')].map((placeholder) => [
+				placeholder.dataset['figure'],
+				placeholder.querySelector('svg')?.getAttribute('viewBox'),
+			]),
+		);
+
+		enhanceHowItWorksPage(page, DEV_LOCATION);
+
+		for (const section of HOW_IT_WORKS_SECTIONS) {
+			const placeholder = page.querySelector(`#${section.id} .fe-about__figure`);
+
+			expect(frameBoxes.get(section.id), section.id).toMatch(/^0 0 \d+ \d+$/u);
+			expect(placeholder?.querySelectorAll('svg.fe-fig__svg'), section.id).toHaveLength(1);
+			expect(placeholder?.querySelector('.fe-fig svg.fe-fig__svg')?.getAttribute('viewBox'), section.id).toBe(frameBoxes.get(section.id));
+		}
+	});
+
 	it('rests every figure on its completed frame when there is no IntersectionObserver', () => {
 		const page = mountPrerenderedPage();
 

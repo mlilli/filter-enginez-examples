@@ -14,6 +14,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** One membership-test lane. */
 interface BloomLane {
@@ -117,7 +118,7 @@ export function createBloomFilterFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-bloom__svg', viewBox: '0 0 460 210', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-bloom__svg', viewBox: FIGURE_VIEW_BOXES.bloom, xmlns: 'http://www.w3.org/2000/svg' },
 				laneGroups,
 			),
 		],

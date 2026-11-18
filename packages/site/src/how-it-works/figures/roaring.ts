@@ -14,6 +14,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** Number of columns (items) drawn per lane. */
 const COLUMN_COUNT = 18;
@@ -148,7 +149,7 @@ export function createRoaringBitmapsFigure(): HTMLElement {
 				'svg',
 				{
 					class: 'fe-fig__svg fe-fig-roaring__svg',
-					viewBox: '0 0 470 232',
+					viewBox: FIGURE_VIEW_BOXES.roaring,
 					xmlns: 'http://www.w3.org/2000/svg',
 				},
 				[

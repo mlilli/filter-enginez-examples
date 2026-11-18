@@ -20,12 +20,14 @@ import {
 } from '@filter-enginez/examples-shared/how-it-works';
 import { describe, expect, it } from 'vitest';
 
+import { HOW_IT_WORKS_FIGURE_VIEW_BOXES } from './figures/viewBoxes.js';
 import {
 	BENCHMARK_SECTION_ID,
 	HOW_IT_WORKS_SLOTS,
 	prerenderHowItWorks,
 	renderBands,
 	renderBenchmarkReference,
+	renderFigureFrame,
 	renderTableOfContents,
 } from './prerender.js';
 
@@ -46,6 +48,13 @@ function parse(html: string): HTMLElement {
 /** A page template holding every slot once, as `how-it-works.html` does. */
 const TEMPLATE = [...HOW_IT_WORKS_SLOTS.keys()].map((marker) => `<div>${marker}</div>`).join('\n');
 
+describe('renderFigureFrame', () => {
+	it('frames nothing for an id that names no figure', () => {
+		expect(renderFigureFrame('benchmark')).toBe('');
+		expect(renderFigureFrame('constructor')).toBe('');
+	});
+});
+
 describe('renderBands', () => {
 	const bands = parse(renderBands());
 
@@ -62,15 +71,22 @@ describe('renderBands', () => {
 		}
 	});
 
-	it('labels each band by its heading and leaves an empty placeholder for its figure', () => {
+	it('labels each band by its heading and leaves a placeholder for its figure, framed at the figure’s size', () => {
 		for (const band of bands.querySelectorAll('section')) {
 			expect(band.querySelector(`#${band.id}-title`)?.textContent).not.toBe('');
 			expect(band.getAttribute('aria-labelledby')).toBe(`${band.id}-title`);
 
 			const placeholder = band.querySelector<HTMLElement>('.fe-about__figure');
+			const frame = placeholder?.firstElementChild;
 
 			expect(placeholder?.dataset['figure']).toBe(band.id);
-			expect(placeholder?.childNodes).toHaveLength(0);
+			// One empty SVG in the figure's own box: the figure's height before it mounts, and nothing to read.
+			expect(placeholder?.childNodes).toHaveLength(1);
+			expect(frame?.tagName.toLowerCase()).toBe('svg');
+			expect(frame?.getAttribute('class')).toBe('fe-fig__svg');
+			expect(frame?.getAttribute('viewBox')).toBe(HOW_IT_WORKS_FIGURE_VIEW_BOXES.get(band.id));
+			expect(frame?.getAttribute('aria-hidden')).toBe('true');
+			expect(frame?.childNodes).toHaveLength(0);
 		}
 	});
 

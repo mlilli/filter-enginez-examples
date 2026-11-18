@@ -84,6 +84,8 @@ interface ShellOptions {
 	readonly liveCount?: string | null;
 	/** Leave the count out of the page templates. */
 	readonly withoutCount?: boolean;
+	/** How many projected counts (on chips) the page templates hold; the live page starts with none. */
+	readonly projectedCounts?: number;
 }
 
 /**
@@ -93,8 +95,9 @@ interface ShellOptions {
  */
 function writeShell(options: ShellOptions = {}): void {
 	const attributes = (options.attributes ?? []).join(' ');
+	const chips = '<button class="fe-chip">red<span class="fe-chip__count">(9)</span></button>'.repeat(options.projectedCounts ?? 0);
 	const page = (width: string): string =>
-		`<template id="fe-prerender-${width}" ${attributes}><header>${options.withoutCount === true ? '' : `<span class="fe-result-count__number" style="font-family: 'JetBrains Mono', 'JetBrains Mono Fallback Android', monospace" ${PRERENDER.countAttribute}> 10,000 </span>`}<em>${width}</em></header><div role="list" ${PRERENDER.cardsSlotAttribute}></div></template>`;
+		`<template id="fe-prerender-${width}" ${attributes}><header>${options.withoutCount === true ? '' : `<span class="fe-result-count__number" style="font-family: 'JetBrains Mono', 'JetBrains Mono Fallback Android', monospace" ${PRERENDER.countAttribute}> 10,000 </span>`}<em>${width}</em></header>${chips}<div role="list" ${PRERENDER.cardsSlotAttribute}></div></template>`;
 	const liveCount = options.liveCount === undefined ? '10,000' : options.liveCount;
 	const cards = (width: string): string => `<template id="fe-prerender-cards-${width}"><article role="listitem">${width} card</article></template>`;
 
@@ -286,6 +289,57 @@ describe('hasPrerender / releasePrerender', () => {
 
 		liveCountElement().textContent = '10,000';
 		await flushMicrotasks();
+		expect(host()).toBeNull();
+	});
+
+	it('keeps a released snapshot until the live page shows the snapshot’s projected counts: the first bundle’s', async () => {
+		// Revealed sooner, the live chips widen as their counts arrive and the row wraps anew: a layout shift.
+		const fonts = loadFonts();
+
+		writeShell({ projectedCounts: 2 });
+		pickPrerender(document, windowLike(), PRERENDER);
+		releasePrerender();
+		await fonts.settle();
+		expect(host(), 'removed before the live page had its projected counts').not.toBeNull();
+
+		const root = document.getElementById('root');
+
+		root?.insertAdjacentHTML('beforeend', '<button class="fe-chip">red<span class="fe-chip__count">(9)</span></button>');
+		await flushMicrotasks();
+		expect(host(), 'removed with one projected count of two').not.toBeNull();
+
+		root?.insertAdjacentHTML('beforeend', '<label><span class="fe-checkbox-list__count">9</span></label>');
+		await flushMicrotasks();
+		expect(host()).toBeNull();
+	});
+
+	it('removes a released snapshot without input once the count has held still, idle, without the projected counts', async () => {
+		// A bundle that never comes must not keep the snapshot over the page until a touch.
+		vi.useFakeTimers();
+
+		const fonts = loadFonts();
+
+		writeShell({ projectedCounts: 1 });
+		pickPrerender(document, windowLike(), PRERENDER);
+		releasePrerender();
+		await fonts.settle();
+		await vi.advanceTimersByTimeAsync(999);
+		expect(host(), 'removed before the count had held still').not.toBeNull();
+
+		await vi.advanceTimersByTimeAsync(1);
+		expect(host()).toBeNull();
+	});
+
+	it('removes a released snapshot with no count but projected counts once the page has held still', async () => {
+		vi.useFakeTimers();
+		loadFonts();
+		writeShell({ liveCount: null, projectedCounts: 1, withoutCount: true });
+		pickPrerender(document, windowLike(), PRERENDER);
+		releasePrerender();
+		await vi.advanceTimersByTimeAsync(999);
+		expect(host(), 'removed before the page had held still').not.toBeNull();
+
+		await vi.advanceTimersByTimeAsync(1);
 		expect(host()).toBeNull();
 	});
 

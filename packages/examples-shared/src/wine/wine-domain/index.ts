@@ -84,6 +84,7 @@ export {
 	type BundleFetchHandlers,
 	type BundleQueryable,
 	createBundleFetcher,
+	fetchBundleOnce,
 } from '../../filter-bundle/bundleFetcher.js';
 export {
 	chipDisabledSet,

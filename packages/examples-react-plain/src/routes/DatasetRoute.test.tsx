@@ -321,6 +321,26 @@ describe('DatasetRoute', () => {
 			expect(screen.getByText(/Loaded/u).textContent).toContain('40,000');
 		});
 
+		it('swaps the idle caption’s text for a new node when the count starts, rather than rewriting it in place', async () => {
+			// Rewritten in place, the node jumped sideways on the centered hero line: a layout shift. A new
+			// node is an insertion. The words after the count stay the same node as the count grows.
+			await renderBooting();
+
+			const idleText = screen.getByText('Spinning up worker thread').firstChild;
+
+			await emitProgress({ loaded: 5_000, total: 150_000 });
+
+			const caption = screen.getByText(/Loaded/u);
+			const [loadedText, , ofText] = caption.childNodes;
+
+			expect(loadedText?.textContent).toBe('Loaded ');
+			expect(loadedText).not.toBe(idleText);
+
+			await emitProgress({ loaded: 10_000, total: 150_000 });
+
+			expect(screen.getByText(/Loaded/u).childNodes[2]).toBe(ofText);
+		});
+
 		it('marks an estimated total with a tilde', async () => {
 			await renderBooting();
 			await emitProgress({ isTotalEstimated: true, loaded: 8_000, total: 129_907 });

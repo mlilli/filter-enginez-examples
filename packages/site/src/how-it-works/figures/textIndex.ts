@@ -14,6 +14,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** A posting-list entry: a document id and whether it survives the intersection. */
 interface Posting {
@@ -108,7 +109,7 @@ export function createTextIndexFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-text__svg', viewBox: '0 0 460 250', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-text__svg', viewBox: FIGURE_VIEW_BOXES.textindex, xmlns: 'http://www.w3.org/2000/svg' },
 				[
 					// Search box
 					svg('rect', { class: 'fe-fig-text__search', height: 34, rx: 6, width: 214, x: 20, y: 16 }),

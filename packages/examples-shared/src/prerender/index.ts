@@ -23,14 +23,22 @@
  * underneath the layer, in exactly the snapshot's place (transparent: the shell's own style keeps the app's
  * root at `opacity: 0` while the layer exists). From then on the layer lets clicks through to it and is
  * hidden from assistive technology, which reads the live page. It is removed, revealing the live page with
- * nothing moving, as soon as the count's webfont is in and the live page shows the snapshot's count — at
- * once, as a rule: the webfonts are preloaded and arrive long before the app has booted, and the app
- * renders the state the snapshot shows — or at the visitor's first input (a key, a pointer, a scroll, a
+ * nothing moving, as soon as the count's webfont is in and the live page shows the snapshot's count and
+ * its projected counts — at once, as a rule: the webfonts are preloaded and arrive long before the app has
+ * booted, the app renders the state the snapshot shows, and the projected counts beside the panel's options
+ * follow its first render by a frame or two — or at the visitor's first input (a key, a pointer, a scroll, a
  * touch, a resize to another width) if that comes first. The count can differ for a while on a server-backed route with a
  * filtered address, whose engine applies the address's state a round trip after it first renders (the
  * Worker wrote that state's count into the snapshot), so the layer waits for it; a live count that differs
  * and has held still, idle, for {@link SETTLED_COUNT_MS} is the truth, and the layer goes then. A boot
  * that fails, or a page that cannot load, removes it at once ({@link dismissPrerender}).
+ *
+ * **Why the projected counts.** The snapshot is read once the booted page has settled, so a chip shows
+ * its projected count (`red (90,586)`): the first filter bundle's. The live page gets that bundle a frame
+ * or two after it first shows the snapshot's count, and its chips are narrower until then. Revealed in
+ * between, the chips widen in front of the visitor and the row wraps anew: a layout shift. So the layer
+ * also waits until the live page shows as many projected counts as the snapshot does (and no longer than
+ * {@link SETTLED_COUNT_MS} once the count is idle, should the bundle never come).
  *
  * **Why the fonts.** The snapshot's result count is the page's largest contentful paint, usually painted
  * before the webfonts arrive, in the count's fallback face. A browser records a new largest paint only for
@@ -190,6 +198,12 @@ const LIVE_COUNT_SELECTOR = '.fe-result-count__number';
 const LIVE_COUNT_COMPUTING_CLASS = 'fe-result-count__number--computing';
 
 /**
+ * The projected counts beside the panel's options — on its chips and its checkbox rows — which every app
+ * renders from the first filter bundle.
+ */
+const PROJECTED_COUNT_SELECTOR = '.fe-chip__count, .fe-checkbox-list__count';
+
+/**
  * How long a live count that is not the snapshot's must hold still, idle, before the snapshot goes
  * anyway. Longer than the moment between an app's first render and its first fetch for the address's
  * state (an idle, unfiltered count on a server-backed route), short enough that a visitor never reads a
@@ -243,8 +257,8 @@ function countText(count: Element | null | undefined): string | undefined {
  * @remarks
  * The snapshot lets clicks through to the live page laid out underneath it, leaves the accessibility tree
  * to it (`aria-hidden`, `inert`), and is removed once the count's webfont is in and the live page shows the
- * snapshot's count (or another that has held still, idle, for {@link SETTLED_COUNT_MS}), or at the
- * visitor's first input if that is sooner. The module's remarks say why.
+ * snapshot's count and as many projected counts (or has held still, idle, for {@link SETTLED_COUNT_MS}
+ * without them), or at the visitor's first input if that is sooner. The module's remarks say why.
  *
  * @param doc - The document; the global one by default.
  */
@@ -262,6 +276,7 @@ export function releasePrerender(doc: Document | undefined = currentDocument()):
 	const page = host.ownerDocument;
 	const view = page.defaultView;
 	const snapshotCount = countText(host.querySelector(`[${PRERENDER.countAttribute}]`));
+	const snapshotProjectedCounts = host.querySelectorAll(PROJECTED_COUNT_SELECTOR).length;
 	let isFontIn = false;
 	let isCountReady = false;
 	let lastCountState: string | undefined;
@@ -293,22 +308,25 @@ export function releasePrerender(doc: Document | undefined = currentDocument()):
 		countWatch.disconnect();
 		removeOnceReady();
 	};
-	// The live count is ready once it shows the snapshot's; or, if it never does (data that changed since the
-	// build, say), once it has held still, idle, for a moment: the live page is the truth.
+	// The live count is ready once it shows the snapshot's and the live page as many projected counts; or, if
+	// it never does (data that changed since the build, say, or a bundle that never comes), once it has held
+	// still, idle, for a moment: the live page is the truth.
 	const checkCount = (): void => {
 		const live = [...page.querySelectorAll(LIVE_COUNT_SELECTOR)].find((count) => !host.contains(count));
 		const text = countText(live);
 		const isIdle = text !== undefined && text !== '' && live?.classList.contains(LIVE_COUNT_COMPUTING_CLASS) === false;
-		const state = `${String(isIdle)}:${text ?? ''}`;
+		const liveProjectedCounts = [...page.querySelectorAll(PROJECTED_COUNT_SELECTOR)].filter((count) => !host.contains(count)).length;
+		const hasProjectedCounts = liveProjectedCounts >= snapshotProjectedCounts;
+		const state = `${String(isIdle)}:${String(hasProjectedCounts)}:${text ?? ''}`;
 
 		if (state === lastCountState) {
 			return;
 		}
 		lastCountState = state;
 		clearTimeout(settleTimer);
-		if (snapshotCount === undefined || text === snapshotCount) {
+		if ((snapshotCount === undefined || text === snapshotCount) && hasProjectedCounts) {
 			markCountReady();
-		} else if (isIdle) {
+		} else if (isIdle || snapshotCount === undefined) {
 			settleTimer = setTimeout(markCountReady, SETTLED_COUNT_MS);
 		}
 	};

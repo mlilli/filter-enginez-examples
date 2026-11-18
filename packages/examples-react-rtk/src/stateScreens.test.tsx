@@ -150,6 +150,50 @@ describe('a dataset route', () => {
 		expect(onlyMain().querySelector('.fe-boot-caption--hero')?.textContent).toBe('Spinning up worker thread');
 	});
 
+	it('swaps the wine caption’s idle text for a new node when the count starts, rather than rewriting it in place', async () => {
+		// Rewritten in place, the node jumped sideways on the centered hero line: a layout shift. A new node
+		// is an insertion. The words after the count stay the same node as the count grows.
+		let progress: { loaded: number; total: number } | null = null;
+		const listeners = new Set<() => void>();
+		const emit = async (next: { loaded: number; total: number }): Promise<void> => {
+			progress = next;
+			await act(async () => {
+				for (const listener of listeners) {
+					listener();
+				}
+				await Promise.resolve();
+			});
+		};
+		const module: DatasetModule = {
+			bootAndWire: vi.fn(async () => new Promise<never>(() => undefined)),
+			Component: () => null,
+			getProgressSnapshot: () => progress,
+			subscribeProgress: (listener) => {
+				listeners.add(listener);
+
+				return () => listeners.delete(listener);
+			},
+		};
+
+		await renderSettled(<DatasetRoute entry={wineEntryLoading(async () => Promise.resolve(module))} />);
+
+		const caption = (): Element | null => onlyMain().querySelector('.fe-boot-caption--hero');
+		const idleText = caption()?.firstChild;
+
+		expect(idleText?.textContent).toBe('Spinning up worker thread');
+
+		await emit({ loaded: 5_000, total: 150_000 });
+
+		const [loadedText, , ofText] = caption()?.childNodes ?? [];
+
+		expect(loadedText?.textContent).toBe('Loaded ');
+		expect(loadedText).not.toBe(idleText);
+
+		await emit({ loaded: 10_000, total: 150_000 });
+
+		expect(caption()?.childNodes[2]).toBe(ofText);
+	});
+
 	it("shows a failed boot as the dataset's shared failure copy, in an alert inside one main landmark", async () => {
 		await renderSettled(<DatasetRoute entry={entryLoading(async () => Promise.reject(new Error('corpus fetch returned 503')))} />);
 

@@ -13,6 +13,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** A dot (listing) on the map. */
 type Dot = readonly [x: number, y: number];
@@ -77,7 +78,7 @@ export function createRTreeFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-rtree__svg', viewBox: '0 0 440 322', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-rtree__svg', viewBox: FIGURE_VIEW_BOXES.rtree, xmlns: 'http://www.w3.org/2000/svg' },
 				[
 					svg('rect', { class: 'fe-fig-rtree__panel', height: 284, rx: 8, width: 424, x: 8, y: 8 }),
 					// Pruned root box A (top-left) + its dots

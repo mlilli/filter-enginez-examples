@@ -50,6 +50,7 @@
 		compareDataset,
 		corpusTier = '',
 		engine,
+		initialBundle = null,
 		originSpecs,
 		originTree,
 		tier = 'worker',
@@ -71,6 +72,14 @@
 		/** Which corpus tier booted — rendered in the footer beside the resident count. */
 		corpusTier?: string;
 		engine: SignalsEngine<Wine>;
+		/**
+		 * The bundle to show from the first frame, fetched by the route before it rendered this view; the
+		 * fetch loop replaces it as usual. Without one, the panel's chips show their projected counts only
+		 * once the first round trip returns, a frame or two after the view's first paint, and widen in
+		 * front of the visitor. `/wine-server` passes it; `/wine`'s prerendered snapshot already stays up
+		 * until the live chips have their counts.
+		 */
+		initialBundle?: FilterBundle | null;
 		originSpecs: readonly OriginNodeSpec[];
 		originTree: PickerTreeNode | null;
 		/**
@@ -100,7 +109,8 @@
 	// `$state.raw`, not `$state`: the bundle carries `Uint32Array` result indices and `Float64Array`
 	// histogram edges, and Svelte's deep proxy neither preserves typed-array semantics nor survives
 	// 150k entries at any acceptable speed. Same trap as the engine — see `wineBundle.ts`.
-	let bundle = $state.raw<FilterBundle | null>(null);
+	// svelte-ignore state_referenced_locally
+	let bundle = $state.raw<FilterBundle | null>(initialBundle);
 
 	// svelte-ignore state_referenced_locally
 	const fetcher = createBundleFetcher(engine, {

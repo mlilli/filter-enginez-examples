@@ -14,6 +14,7 @@
 import { el, svg } from '@filter-enginez/examples-shared/dom';
 
 import { svgText } from './svgText.js';
+import { FIGURE_VIEW_BOXES } from './viewBoxes.js';
 
 /** The MinHash signature values (illustrative min-hashes). */
 const SIGNATURE = ['3', '7', '1', '9', '2', '5', '8', '4'] as const;
@@ -83,7 +84,7 @@ export function createSimilarityFigure(): HTMLElement {
 		children: [
 			svg(
 				'svg',
-				{ class: 'fe-fig__svg fe-fig-sim__svg', viewBox: '0 0 460 214', xmlns: 'http://www.w3.org/2000/svg' },
+				{ class: 'fe-fig__svg fe-fig-sim__svg', viewBox: FIGURE_VIEW_BOXES.similarity, xmlns: 'http://www.w3.org/2000/svg' },
 				[
 					// Query item
 					svg('rect', { class: 'fe-fig-sim__query', height: 48, rx: 6, width: 92, x: 14, y: 82 }),

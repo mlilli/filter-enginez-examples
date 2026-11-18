@@ -10,8 +10,10 @@
 	 *   1. The server `load` (`+page.server.ts`) filters in-process for the SSR first paint, and
 	 *      `<WineServerFallback>` renders a plain GET `<form>` that works with **zero JavaScript**.
 	 *   2. On mount, the client boots the live server-backed engine, derives the panel's vocabularies /
-	 *      baselines / origin tree from the resident corpus, and swaps in the full `<WineView>` — the
-	 *      exact same component tree as `/wine`. Until then the server-rendered results stay on screen,
+	 *      baselines / origin tree from the resident corpus, fetches the panel's first bundle, and swaps
+	 *      in the full `<WineView>` — the exact same component tree as `/wine` — with that bundle, so its
+	 *      chips show their projected counts from its first frame rather than widening a round trip
+	 *      later. Until then the server-rendered results stay on screen,
 	 *      with the fallback's "connecting" line, as on `/books-server`: the first paint is real content,
 	 *      and its result count is drawn at the live count's size, so the page's largest paint does not
 	 *      wait for the corpus download and the engine boot.
@@ -28,12 +30,15 @@
 	 * transport is plain `fetch` — but the dynamic import is kept for the same SSR-safety reason.
 	 */
 
+	import type { FilterBundle } from '@filter-enginez/core';
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 	import {
+		buildWineBundleQuery,
 		deriveWineFacets,
 		FALLBACK_BOUNDS,
+		fetchBundleOnce,
 		type NumericBounds,
 		type OriginNodeSpec,
 		type PickerTreeNode,
@@ -57,6 +62,8 @@
 	let originSpecs = $state.raw<readonly OriginNodeSpec[]>([]);
 	let originTree = $state.raw<PickerTreeNode | null>(null);
 	let baselines = $state.raw<Record<SliderFieldId, NumericBounds>>(FALLBACK_BOUNDS);
+	// The panel's first bundle, fetched before the swap (see the docblock). `$state.raw`: typed arrays.
+	let initialBundle = $state.raw<FilterBundle | null>(null);
 	// The footer's tier label, read from the boot module so it arrives with the engine.
 	let corpusTier = $state('');
 	let booting = $state(true);
@@ -96,6 +103,7 @@
 				}
 			}
 			stopUrlSync = startEngineUrlSync(booted);
+			initialBundle = await fetchBundleOnce(booted, buildWineBundleQuery(baselines, vocabularies, originSpecs));
 			engine = booted;
 		} catch (caught) {
 			// A failed boot is usually the server being unreachable (corpus fetch / initial state pull
@@ -121,6 +129,7 @@
 		compareDataset="wine-server"
 		{corpusTier}
 		{engine}
+		{initialBundle}
 		{originSpecs}
 		{originTree}
 		tier="server"
