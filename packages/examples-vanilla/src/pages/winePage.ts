@@ -59,6 +59,7 @@ import { createSignalsEngineFromAsync } from '@filter-enginez/reactive-signals/w
 import type { RouteTeardown } from '../router.js';
 
 import { bootCaptionValue } from '../brand/indicators.js';
+import { appendBootScreen, dismissPrerender } from '../shell/prerender.js';
 import { createWineBootFailure, createWineBootScreen } from '../wine/bootScreen.js';
 import { mountWineRoute } from './winePageShell.js';
 
@@ -82,7 +83,7 @@ export async function renderWinePage(container: HTMLElement): Promise<RouteTeard
 	};
 
 	setProgress(null);
-	container.append(bootScreen.element);
+	appendBootScreen(container, bootScreen.element);
 
 	// Subscribe FIRST — see the module docblock.
 	const stopProgress = subscribeWineBootProgress(setProgress);
@@ -107,6 +108,8 @@ export async function renderWinePage(container: HTMLElement): Promise<RouteTeard
 	} catch (error) {
 		console.error('[wine] boot failed:', error);
 		container.replaceChildren(createWineBootFailure(error instanceof Error ? error.message : String(error)));
+		// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+		dismissPrerender();
 
 		// A teardown is still owed: the router calls it on navigation however the render ended.
 		return () => {

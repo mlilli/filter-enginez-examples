@@ -38,6 +38,7 @@ import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
+import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 import {
 	FALLBACK_BOUNDS,
 	type NumericBounds,
@@ -55,6 +56,8 @@ import WineView from '../wine/WineView.vue';
 
 /** `shallowRef`, never `ref` — a deep proxy breaks the engine's signals with no error. */
 const engine = shallowRef<SignalsEngine<Wine> | null>(null);
+// While the prerendered page is up it stands in for the boot screen (`examples-shared/prerender-core`).
+const isPrerendered = hasPrerender();
 
 /**
  * Chip vocabularies, derived from the booted corpus rather than hardcoded.
@@ -174,7 +177,7 @@ onUnmounted(() => {
 		Set <code>VITE_WINE_TIER=default</code> to boot the 10,000-wine default tier on the main thread instead.
 	</BootFailureScreen>
 
-	<main v-else class="vue-wine__booting">
+	<main v-else-if="!isPrerendered" class="vue-wine__booting">
 		<BrainSynapse loader-label="Loading wine reviews" :width="520" />
 		<p class="fe-boot-caption fe-boot-caption--hero">
 			<template v-for="part in bootCaption" :key="part.kind + part.text">

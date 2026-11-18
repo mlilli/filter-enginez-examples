@@ -22,7 +22,9 @@
     // costs no Worker CPU. The Workers Free plan allows 10 ms per request, less than serializing a
     // corpus takes. It also answers `/.well-known/*`, with a plain-text 404: the site publishes nothing
     // there, and the not-found page would boot the whole app to say so (examples-server's src/wellKnown.ts).
-    "run_worker_first": ["/api/*", "!/api/corpus/*", "/.well-known/*"]
+    // And the server-backed page itself: for an address with a filter state it writes that state's count into
+    // the prerendered page (examples-server's src/prerenderedCount.ts); otherwise it serves the static page.
+    "run_worker_first": ["/api/*", "!/api/corpus/*", "/.well-known/*", "/wine-server"]
   },
   "routes": [{ "pattern": "vanilla.filterenginez.com", "custom_domain": true }],
   // The custom domain is the only public address: no *.workers.dev URL, no per-version preview URLs.

@@ -46,6 +46,7 @@ import type { FilterBundle } from '@filter-enginez/core';
 import type { Wine } from '@filter-enginez/mock-data/wine';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+import { releasePrerender } from '@filter-enginez/examples-shared/prerender-core';
 import { type EngineTier } from '@filter-enginez/examples-shared/verticals';
 import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 import {
@@ -157,6 +158,9 @@ function applyMediaState(): void {
 		isFilterOpen.value = mediaQuery.matches;
 	}
 }
+
+// The live page takes over from the prerendered snapshot of itself as it mounts.
+onMounted(releasePrerender);
 
 onMounted(() => {
 	if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {

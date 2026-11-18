@@ -13,7 +13,8 @@
  * 10,000-wine main-thread tier instead.
  */
 import { BOOT_FAILURE_COPY, type BootFailureDataset } from '@filter-enginez/examples-shared/boot-caption';
-import { computed } from 'vue';
+import { dismissPrerender } from '@filter-enginez/examples-shared/prerender-core';
+import { computed, onMounted } from 'vue';
 
 const props = defineProps<{
 	/** Which dataset failed; picks the title and the hint. */
@@ -24,6 +25,9 @@ const props = defineProps<{
 
 /** The dataset's title and hint. */
 const copy = computed(() => BOOT_FAILURE_COPY[props.dataset]);
+
+// A boot that failed replaces the prerendered page at once, or the snapshot would claim a working page.
+onMounted(dismissPrerender);
 </script>
 
 <template>

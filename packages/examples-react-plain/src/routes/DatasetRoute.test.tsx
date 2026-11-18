@@ -247,6 +247,28 @@ describe('DatasetRoute', () => {
 		expect(screen.getByText('the live dataset app')).toBeDefined();
 	});
 
+	it('renders no boot screen under a prerendered snapshot, which the dataset app then takes over from', async () => {
+		// The snapshot of the booted page stands in for the boot screen; the live page releases it in its
+		// first commit (`examples-shared`'s `prerender-core`).
+		const layer = document.createElement('div');
+
+		layer.id = 'fe-prerender';
+		document.body.append(layer);
+		try {
+			await renderBooting();
+
+			expect(screen.queryByLabelText('Loading Books')).toBeNull();
+			expect(document.querySelector('.fe-boot-caption')).toBeNull();
+
+			await resolveBoot();
+
+			expect(screen.getByText('the live dataset app')).toBeDefined();
+			expect(layer.hasAttribute('data-fe-prerender-released')).toBe(true);
+		} finally {
+			layer.remove();
+		}
+	});
+
 	it('loads the dataset module once per mount', async () => {
 		const entry = makeEntry();
 		const load = vi.spyOn(entry, 'load');

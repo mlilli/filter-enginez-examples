@@ -16,6 +16,7 @@ import {
 	PAGE_ERROR_TITLE,
 	pageErrorDetail,
 } from '../page-error/core.js';
+import { useDismissPrerender } from '../prerender/react.js';
 
 /** Props for {@link PageErrorScreen}. */
 export interface PageErrorScreenProps {
@@ -29,16 +30,21 @@ export interface PageErrorScreenProps {
  * @param props - The failure.
  * @returns The screen.
  */
-export const PageErrorScreen = ({ error }: PageErrorScreenProps): React.ReactElement => (
-	<main className="fe-page-error">
-		<div className="fe-page-error__card" role="alert">
-			<p className="fe-page-error__title">{PAGE_ERROR_TITLE}</p>
-			<p className="fe-page-error__detail">{pageErrorDetail(error)}</p>
-			<p className="fe-page-error__hint">{PAGE_ERROR_HINT}</p>
-			{/* A plain link, not a router link: loading the page again is what recovers from a chunk that did not arrive. */}
-			<a className="fe-page-error__link" href={PAGE_ERROR_HOME_HREF}>
-				{PAGE_ERROR_HOME_LABEL}
-			</a>
-		</div>
-	</main>
-);
+export const PageErrorScreen = ({ error }: PageErrorScreenProps): React.ReactElement => {
+	// A page that failed replaces the prerendered snapshot at once, or the snapshot would claim a working page.
+	useDismissPrerender();
+
+	return (
+		<main className="fe-page-error">
+			<div className="fe-page-error__card" role="alert">
+				<p className="fe-page-error__title">{PAGE_ERROR_TITLE}</p>
+				<p className="fe-page-error__detail">{pageErrorDetail(error)}</p>
+				<p className="fe-page-error__hint">{PAGE_ERROR_HINT}</p>
+				{/* A plain link, not a router link: loading the page again is what recovers from a chunk that did not arrive. */}
+				<a className="fe-page-error__link" href={PAGE_ERROR_HOME_HREF}>
+					{PAGE_ERROR_HOME_LABEL}
+				</a>
+			</div>
+		</main>
+	);
+};

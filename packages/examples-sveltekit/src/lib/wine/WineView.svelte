@@ -17,6 +17,7 @@
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+	import { releasePrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import {
 		buildWineBundleQuery,
@@ -30,7 +31,7 @@
 	} from '@filter-enginez/examples-shared/wine-domain';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
 	import ResultsHeader from '$lib/controls/ResultsHeader.svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 
 	import DevtoolsPanel from '../controls/DevtoolsPanel.svelte';
 	import TimeTravelControls from '../controls/TimeTravelControls.svelte';
@@ -170,6 +171,9 @@
 	});
 
 	const showPanel = $derived(isDesktop || isFilterOpen);
+
+	// The live page takes over from the prerendered snapshot of itself as it mounts.
+	onMount(releasePrerender);
 </script>
 
 <div class="fe-books-app">

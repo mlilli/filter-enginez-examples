@@ -12,6 +12,7 @@
  * @packageDocumentation
  */
 
+import { useReleasePrerender } from '@filter-enginez/examples-shared/prerender';
 import { useLinkSerializer } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
@@ -37,6 +38,9 @@ export interface DatasetViewProps {
  * @returns The provider tree.
  */
 export const DatasetView = ({ booted, Component, supportsUrlState }: DatasetViewProps): React.ReactElement => {
+	// The live page takes over from the prerendered snapshot of itself in its first commit.
+	useReleasePrerender();
+
 	return (
 		<Provider store={booted.store}>
 			<FilterEngineProvider engine={booted.engine}>

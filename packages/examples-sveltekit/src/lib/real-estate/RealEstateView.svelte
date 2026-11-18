@@ -32,6 +32,7 @@
 	import type { Listing } from '@filter-enginez/mock-data/real-estate';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+	import { releasePrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import {
 		buildRealEstateBundleQuery,
 		buildRuleSummaries,
@@ -180,6 +181,9 @@
 	});
 
 	const showPanel = $derived(isDesktop || isFilterOpen);
+
+	// The live page takes over from the prerendered snapshot of itself as it mounts.
+	onMount(releasePrerender);
 </script>
 
 <div class="fe-books-app">

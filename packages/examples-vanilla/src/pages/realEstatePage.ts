@@ -63,6 +63,7 @@ import { type BusyCore, resolveAfterPaint } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
 import { createRealEstateView } from '../real-estate/view.js';
 import { bootFailureMessage, createBootFailure } from '../shell/bootFailure.js';
+import { appendBootScreen, dismissPrerender, releasePrerender } from '../shell/prerender.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
@@ -75,7 +76,7 @@ import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 export async function renderRealEstatePage(container: HTMLElement): Promise<RouteTeardown> {
 	const notice = bootingNotice();
 
-	container.append(notice.element);
+	appendBootScreen(container, notice.element);
 
 	// Subscribe FIRST — see the module docblock.
 	const stopProgress = subscribeRealEstateBootProgress(notice.setProgress);
@@ -91,6 +92,8 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 	} catch (error) {
 		console.error('[real-estate] boot failed:', error);
 		container.replaceChildren(createBootFailure('real-estate', bootFailureMessage(error)));
+		// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+		dismissPrerender();
 
 		return () => {
 			container.replaceChildren();
@@ -198,6 +201,9 @@ export async function renderRealEstatePage(container: HTMLElement): Promise<Rout
 			devtools.update();
 		}),
 	);
+
+	// The live page's first frame is painted: it takes over from the prerendered snapshot of itself.
+	releasePrerender();
 
 	return () => {
 		for (const unsubscribe of unsubscribes) {

@@ -22,8 +22,10 @@
 	import type { Book } from '@filter-enginez/mock-data/books';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+	import { releasePrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import { DESKTOP_MEDIA_QUERY } from '@filter-enginez/examples-shared/viewport-core';
 	import { createEngineStores, setFilterEngine } from '@filter-enginez/svelte-signals';
+	import { onMount } from 'svelte';
 
 	import DevtoolsPanel from '../controls/DevtoolsPanel.svelte';
 	import TimeTravelControls from '../controls/TimeTravelControls.svelte';
@@ -94,6 +96,9 @@
 
 	/** Where filtering runs, for the footer. */
 	const engineLabel = $derived(tier === 'server' ? 'server engine over HTTP' : 'main-thread engine');
+
+	// The live page takes over from the prerendered snapshot of itself as it mounts.
+	onMount(releasePrerender);
 </script>
 
 <div class="fe-books-app">

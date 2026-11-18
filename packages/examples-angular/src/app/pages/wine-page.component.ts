@@ -34,6 +34,7 @@ import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
 
 import { BrainSynapseComponent } from '../brand/brain-synapse.component.js';
 import { BootFailureComponent } from '../shell/boot-failure.component.js';
+import { hasPrerender } from '../shell/prerender.js';
 import { WineBootStore } from '../wine/wine-boot-store.js';
 import { WineViewComponent } from '../wine/wine-view.component.js';
 
@@ -77,7 +78,7 @@ import { WineViewComponent } from '../wine/wine-view.component.js';
 				To boot the 10,000-wine default tier on the main thread instead, set
 				<code>WINE_DATASET_SIZE</code> to <code>10_000</code> in <code>src/app/wine/wineBoot.ts</code>.
 			</fe-boot-failure>
-		} @else {
+		} @else if (!isPrerendered) {
 			<main class="fe-wine-booting">
 				<fe-brain-synapse loaderLabel="Loading wine reviews" [width]="520" />
 				<p class="fe-boot-caption fe-boot-caption--hero">
@@ -113,9 +114,12 @@ export class WinePageComponent {
 	 * A `computed` rather than a template call, because `@for` re-evaluates its source expression on
 	 * every change-detection pass and rebuilding the array each time would defeat `track`.
 	 */
+	/** While the prerendered page is up it stands in for the boot screen (`shell/prerender.ts`). */
 	protected readonly bootCaption = computed(() =>
 		bootCaptionParts(this.store.progress(), { recordNoun: 'bottles' }),
 	);
+
+	protected readonly isPrerendered = hasPrerender();
 
 	public constructor() {
 		// Deliberately not awaited: the boot reports through the store's signals, and awaiting here

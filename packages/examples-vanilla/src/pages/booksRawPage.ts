@@ -46,6 +46,7 @@ import { createBooksView } from '../books/view.js';
 import { booksBusyCore } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
 import { bootFailureMessage, createBootFailure } from '../shell/bootFailure.js';
+import { appendBootScreen, dismissPrerender, releasePrerender } from '../shell/prerender.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
@@ -56,7 +57,7 @@ import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
  * @returns A teardown dropping the subscription.
  */
 export async function renderBooksRawPage(container: HTMLElement): Promise<RouteTeardown> {
-	container.append(bootingNotice());
+	appendBootScreen(container, bootingNotice());
 
 	let built;
 
@@ -71,6 +72,8 @@ export async function renderBooksRawPage(container: HTMLElement): Promise<RouteT
 	} catch (error) {
 		console.error('[books-raw] boot failed:', error);
 		container.replaceChildren(createBootFailure('books', bootFailureMessage(error)));
+		// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+		dismissPrerender();
 
 		return () => {
 			container.replaceChildren();
@@ -146,6 +149,9 @@ export async function renderBooksRawPage(container: HTMLElement): Promise<RouteT
 		recentRuleId = 'ruleId' in event ? event.ruleId : null;
 		repaint();
 	});
+
+	// The live page's first frame is painted: it takes over from the prerendered snapshot of itself.
+	releasePrerender();
 
 	return () => {
 		unsubscribe();

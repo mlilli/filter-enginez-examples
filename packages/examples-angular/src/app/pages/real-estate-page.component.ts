@@ -66,6 +66,7 @@ import { realEstateBusyStream } from '../real-estate/real-estate-busy.js';
 import { provideRealEstateFacets } from '../real-estate/real-estate-facets.js';
 import { RealEstateFilterPanelComponent } from '../real-estate/real-estate-filter-panel.component.js';
 import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
+import { releasePrerenderOnFirstRender } from '../shell/prerender.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -250,6 +251,8 @@ export class RealEstatePageComponent {
 	});
 
 	public constructor() {
+		// The live page takes over from the prerendered snapshot of itself after its first render.
+		releasePrerenderOnFirstRender();
 		const stopUrlSync = startEngineUrlSync(this._engine);
 
 		inject(DestroyRef).onDestroy(stopUrlSync);

@@ -52,6 +52,7 @@ import {
 import { ResultsHeaderComponent } from '../controls/results-header.component.js';
 import { TimeTravelControlsComponent } from '../controls/time-travel-controls.component.js';
 import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
+import { releasePrerenderOnFirstRender } from '../shell/prerender.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -232,6 +233,8 @@ export class BooksPageComponent {
 	private readonly _lastChangeEvent = toSignal(this._engine.lastChangeEvent$, { initialValue: null });
 
 	public constructor() {
+		// The live page takes over from the prerendered snapshot of itself after its first render.
+		releasePrerenderOnFirstRender();
 		// Mirror every engine change into the address bar (debounced). Torn down with the route so a
 		// navigation away doesn't leave a subscription rewriting someone else's URL.
 		const stopUrlSync = startEngineUrlSync(this._engine);

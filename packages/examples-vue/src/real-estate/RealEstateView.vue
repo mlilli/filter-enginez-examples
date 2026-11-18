@@ -4,6 +4,7 @@ import type { NumericBounds } from '@filter-enginez/examples-shared/bounds';
 import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+import { releasePrerender } from '@filter-enginez/examples-shared/prerender-core';
 import {
 	buildRealEstateBundleQuery,
 	buildRuleSummaries,
@@ -121,6 +122,9 @@ watch(
  * benefit. It stays `null` in jsdom, where the import is never awaited before assertions run.
  */
 const geoRadiusSection = shallowRef<Component | null>(null);
+
+// The live page takes over from the prerendered snapshot of itself as it mounts.
+onMounted(releasePrerender);
 
 onMounted(async () => {
 	const geoModule = await import('./GeoRadiusSection.vue');

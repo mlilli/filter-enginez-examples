@@ -27,6 +27,7 @@
 	import type { Wine } from '@filter-enginez/mock-data/wine';
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+	import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import {
 		FALLBACK_BOUNDS,
 		type NumericBounds,
@@ -134,6 +135,10 @@
 		stopUrlSync?.();
 		engine?.dispose();
 	});
+
+	// While the prerendered page is up it stands in for the boot screen (`examples-shared/prerender-core`).
+	// `false` in the server render, which never has one.
+	const isPrerendered = hasPrerender();
 </script>
 
 {#if bootError !== null}
@@ -145,6 +150,6 @@
 	</BootFailureScreen>
 {:else if engine}
 	<WineView {baselines} compareDataset="wine" {corpusTier} {engine} {originSpecs} {originTree} {vocabularies} />
-{:else}
+{:else if !isPrerendered}
 	<WineBootScreen {progress} />
 {/if}

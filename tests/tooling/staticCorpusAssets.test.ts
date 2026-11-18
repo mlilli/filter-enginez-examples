@@ -40,15 +40,32 @@ import {
 	EXAMPLES_SERVER_WORKER_ENTRY,
 	listDeployTargets,
 } from '../../scripts/lib/deploy-targets.mjs';
+import { loadPrerenderModule, loadVerticalRoutes } from '../../scripts/lib/prerender-shells.mjs';
 import { workerRunsFirstFor } from './support/workersRouting.js';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 /**
  * The `run_worker_first` every API Worker app carries: the API, minus the corpus files, and the
- * well-known URIs the Worker answers with a 404 (`wellKnownNotFound.test.ts`).
+ * well-known URIs the Worker answers with a 404 (`wellKnownNotFound.test.ts`). Each app adds its own
+ * server-backed page, whose prerendered count the Worker writes per request ({@link serverPagesOf}).
  */
 const API_RUN_WORKER_FIRST = ['/api/*', `!/${API_CORPUS_ASSETS_SUBDIRECTORY}/*`, '/.well-known/*'];
+
+const PRERENDER = await loadPrerenderModule();
+const VERTICAL_ROUTES = await loadVerticalRoutes();
+
+/**
+ * The server-backed pages an app serves (`/books-server`, `/wine-server`), from the verticals registry.
+ *
+ * @param packageDirectory - The app's package directory, `examples-<id>`.
+ * @returns Its server-backed routes, in the registry's order.
+ */
+function serverPagesOf(packageDirectory: string): string[] {
+	const routes = VERTICAL_ROUTES.find(({ id }) => `examples-${id}` === packageDirectory)?.routes ?? [];
+
+	return routes.filter((path) => PRERENDER.SERVER_DATASET_ROUTE_PATHS.includes(path));
+}
 
 /** The SvelteKit app's routes directory, relative to the repository root. */
 const SVELTEKIT_ROUTES = 'packages/examples-sveltekit/src/routes';
@@ -157,8 +174,10 @@ describe('API Worker apps', () => {
 		if (isApiTarget) {
 			it(`${target.packageDirectory}: runs the Worker first for /api/*, except the corpus files`, () => {
 				const runWorkerFirst = target.config.assets?.run_worker_first;
+				const expected = [...API_RUN_WORKER_FIRST, ...serverPagesOf(target.packageDirectory)];
 
-				expect(runWorkerFirst, `set "run_worker_first": ${JSON.stringify(API_RUN_WORKER_FIRST)}`).toEqual(API_RUN_WORKER_FIRST);
+				expect(serverPagesOf(target.packageDirectory).length, 'an API Worker app serves at least one server-backed page').toBeGreaterThan(0);
+				expect(runWorkerFirst, `set "run_worker_first": ${JSON.stringify(expected)}`).toEqual(expected);
 				expect(workerRunsFirstFor(runWorkerFirst, '/api/query')).toBe(true);
 				for (const datasetId of registeredDatasetIds()) {
 					expect(workerRunsFirstFor(runWorkerFirst, `/${API_CORPUS_ASSETS_SUBDIRECTORY}/${datasetId}.json`), `/api/corpus/${datasetId}.json reaches the Worker`).toBe(false);

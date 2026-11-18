@@ -9,8 +9,12 @@
  * @packageDocumentation
  */
 
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+import { PRERENDER } from '@filter-enginez/examples-shared/prerender-core';
+import { booksFilterConfig } from '@filter-enginez/mock-data/books';
 import { describe, expect, it, vi } from 'vitest';
 
+import { applyConfig } from './applyConfig.js';
 import { API_PATH_PREFIX, type ApiWorkerEnvironment, handleWorkerRequest, isApiPath } from './workerRequestHandler.js';
 
 /** The host a deployed server-backed app answers on. */
@@ -100,12 +104,29 @@ describe('handleWorkerRequest', () => {
 		expect(assetsFetch).not.toHaveBeenCalled();
 	});
 
-	it('hands every non-API request to the static assets untouched', async () => {
+	it('hands every other request to the static assets untouched', async () => {
 		const { assetsFetch, environment } = fakeEnvironment();
-		const request = new Request(`${ORIGIN}/books-server?f=x`);
+		const request = new Request(`${ORIGIN}/wine?f=x`);
 		const response = await handleWorkerRequest(request, environment);
 
 		expect(assetsFetch).toHaveBeenCalledExactlyOnceWith(request);
 		expect(await response.text()).toContain('<title>app</title>');
+	});
+
+	it('writes a filtered address’s count into a server-backed page’s prerendered snapshot', async () => {
+		// The page's own request reaches the assets once, and the count comes from the apps' link serializer
+		// and the engine over the dataset (`prerenderedCount.test.ts` covers the rewrite itself).
+		const { assetsFetch, environment } = fakeEnvironment();
+		const snapshot = `<template id="${PRERENDER.phoneTemplateId}"><span class="fe-result-count__number" ${PRERENDER.countAttribute}="">10,000</span></template>`;
+
+		assetsFetch.mockResolvedValue(new Response(snapshot, { status: 200 }));
+
+		const serialized = createLinkSerializer('compact').encode(booksFilterConfig);
+		const request = new Request(`${ORIGIN}/books-server?f=${encodeURIComponent(serialized)}`);
+		const response = await handleWorkerRequest(request, environment);
+		const { matched } = await applyConfig('books', booksFilterConfig, { limit: 0 });
+
+		expect(assetsFetch).toHaveBeenCalledExactlyOnceWith(request);
+		expect(await response.text()).toContain(`>${matched.toLocaleString('en-US')}</span>`);
 	});
 });

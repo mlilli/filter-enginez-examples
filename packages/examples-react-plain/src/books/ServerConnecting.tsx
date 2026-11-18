@@ -13,9 +13,15 @@
 
 import { BrainSynapse } from '@filter-enginez/brand';
 import { SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
+import { hasPrerender } from '@filter-enginez/examples-shared/prerender';
 
 /** Full-screen "talking to the server" loader — the brand `<BrainSynapse>` + a server caption. */
-export const ServerConnecting = (): React.ReactElement => {
+export const ServerConnecting = (): React.ReactElement | null => {
+	// While the prerendered page is up it stands in for this screen (`examples-shared/prerender`).
+	if (hasPrerender()) {
+		return null;
+	}
+
 	// `<main>`: until the server answers, the loader is the page's main content.
 	return (
 		<main

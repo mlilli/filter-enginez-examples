@@ -97,7 +97,9 @@
 	/* The "… Fallback" families are the sites' metric-matched fallback faces
 	   (packages/brand/src/tokens.css); this sheet declares none, so here they are skipped. */
 	--font-sans: 'Inter', 'Inter Fallback', -apple-system, 'Segoe UI', system-ui, sans-serif;
-	--font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', 'SF Mono', Menlo, Consolas, monospace;
+	--font-mono:
+		'JetBrains Mono', 'JetBrains Mono Fallback', 'JetBrains Mono Fallback Android', 'JetBrains Mono Fallback Windows',
+		'JetBrains Mono Fallback Courier', 'SF Mono', Menlo, Consolas, monospace;
 	/* The sites serve a renamed subset of Orbitron (packages/brand/src/tokens.css); this sheet
 	   loads the unmodified TTF, under its own name. */
 	--font-display: 'Filter EngineZ Display', 'Filter EngineZ Display Fallback', 'Orbitron', 'Inter', sans-serif;

@@ -38,6 +38,7 @@ import type { Listing } from '@filter-enginez/mock-data/real-estate';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
+import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 import {
 	bootRealEstateEngine,
 	type RealEstateBootProgress,
@@ -75,6 +76,8 @@ const EMPTY_VOCABULARIES: RealEstateChipVocabularies = {
 };
 
 const engine = shallowRef<SignalsEngine<Listing> | null>(null);
+// While the prerendered page is up it stands in for the boot screen (`examples-shared/prerender-core`).
+const isPrerendered = hasPrerender();
 const vocabularies = shallowRef<RealEstateChipVocabularies>(EMPTY_VOCABULARIES);
 const locationTree = shallowRef<PickerTreeNode | null>(null);
 const locationSpecs = shallowRef<readonly LocationNodeSpec[]>([]);
@@ -191,7 +194,7 @@ onUnmounted(() => {
 		:vocabularies="vocabularies"
 	/>
 	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
-	<main v-else>
+	<main v-else-if="!isPrerendered">
 		<p class="fe-boot-caption fe-boot-caption--inline">
 			<template v-for="part in bootCaption" :key="part.kind + part.text">
 				<span v-if="part.kind === 'value'" class="fe-boot-caption__value">{{ part.text }}</span>

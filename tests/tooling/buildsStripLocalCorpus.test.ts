@@ -13,7 +13,8 @@
  *   linked or not — the landing site's live benchmark loads its wine data, and that loader looks for
  *   the local corpus beside itself, so a deployable build that bundles it strips its output too;
  * - each such app's `build` must run the strip step as its LAST command, so nothing after it can copy
- *   the corpus back in;
+ *   the corpus back in — followed at most by the prerender step (`scripts/prerender-routes.mjs`), which
+ *   only reads the stripped build and writes HTML;
  * - the strip script itself is exercised against a scratch directory, including the "wrong output
  *   path" case, which must fail rather than report a clean build.
  *
@@ -32,6 +33,8 @@ import { listDeployTargets } from '../../scripts/lib/deploy-targets.mjs';
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const STRIP_SCRIPT = resolve(REPO_ROOT, 'scripts/strip-local-corpus.mjs');
 const STRIP_COMMAND = 'node ../../scripts/strip-local-corpus.mjs';
+/** The one step allowed after the strip: it reads the stripped build and writes only HTML shells. */
+const PRERENDER_COMMAND = 'node ../../scripts/prerender-routes.mjs';
 
 /**
  * The app packages `link-wine-corpus.mjs` links the corpus into, read from its `TARGET_DIRS` list.
@@ -83,11 +86,12 @@ describe('production builds strip the local-only wine corpus', () => {
 				readonly scripts?: Readonly<Record<string, string>>;
 			};
 			const build = manifest.scripts?.['build'] ?? '';
-			const lastCommand = build.split('&&').at(-1)?.trim() ?? '';
+			const commands = build.split('&&').map((command) => command.trim());
+			const stripCommand = (commands.at(-1)?.startsWith(PRERENDER_COMMAND) === true ? commands.at(-2) : commands.at(-1)) ?? '';
 
 			expect(
-				lastCommand.startsWith(STRIP_COMMAND),
-				`${app}'s build is "${build}" — it must END with \`${STRIP_COMMAND} <output dirs>\`, or a linked corpus ships in the build`,
+				stripCommand.startsWith(STRIP_COMMAND),
+				`${app}'s build is "${build}" — it must END with \`${STRIP_COMMAND} <output dirs>\` (followed at most by the prerender step), or a linked corpus ships in the build`,
 			).toBe(true);
 		});
 	}

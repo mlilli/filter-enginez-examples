@@ -20,6 +20,7 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 import { bootBooksServerEngine } from '@filter-enginez/examples-shared/books-server-core';
 import { EXAMPLES_SERVER_START_COMMAND, SERVER_ROUTE_SCREEN_COPY } from '@filter-enginez/examples-shared/boot-caption';
+import { useDismissPrerender, useReleasePrerender } from '@filter-enginez/examples-shared/prerender';
 import { useLinkSerializer } from '@filter-enginez/examples-shared/url';
 import { FilterEngineProvider } from '@filter-enginez/react-signals';
 import { FilterEngineUrlSync } from '@filter-enginez/url-state-router';
@@ -98,6 +99,8 @@ export const BooksServerRoute = (): React.ReactElement => {
  * @returns The provider tree.
  */
 const ServerBooksView = ({ booted }: { readonly booted: BootedServer }): React.ReactElement => {
+	// The live page takes over from the prerendered snapshot of itself in its first commit.
+	useReleasePrerender();
 	const serializer = useLinkSerializer();
 
 	return (
@@ -112,6 +115,9 @@ const ServerBooksView = ({ booted }: { readonly booted: BootedServer }): React.R
 
 /** Offline screen — a failed boot means the server isn't running; tell the user how to start it. */
 const ServerOffline = ({ error }: { readonly error: Error }): React.ReactElement => {
+	// An unreachable server replaces the prerendered page at once, or the snapshot would claim a working page.
+	useDismissPrerender();
+
 	// `<main>`: with the server unreachable, this message is the page's main content.
 	return (
 		<main

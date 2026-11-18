@@ -16,11 +16,13 @@
  * - **A character the subset does not have.** A page or a dataset that starts using one renders it in
  *   a fallback font, with no error anywhere. The site's pages and the mock-data vocabulary every demo
  *   generates its records from are checked against the subset's code points.
- * - **A fallback face that no longer matches its webfont.** Each webfont has a metric-matched fallback
- *   face (`packages/brand/scripts/fallback-font-metrics.py` computes them), named second in its
- *   `--font-*` stack. A stack that drops it, or an override edited by hand or left behind by a changed
- *   TTF, brings back the layout shift on every page with no error; the vertical overrides are checked
- *   against the TTFs' own metrics here.
+ * - **A fallback face that no longer matches its webfont.** Each webfont has metric-matched fallback
+ *   families (`packages/brand/scripts/fallback-font-metrics.py` computes them; JetBrains Mono has one per
+ *   platform), named right after it in its `--font-*` stack. A stack that drops one, or an override edited
+ *   by hand or left behind by a changed TTF, brings back the layout shift on every page with no error; the
+ *   vertical overrides are checked against the TTFs' own metrics here. A monospace family's figures face
+ *   must not scale its figures below its text face: a result count first painted smaller than the
+ *   webfont's makes the app's count a later, larger contentful paint.
  *
  * @packageDocumentation
  */
@@ -133,6 +135,32 @@ const WEBFONT_FACES = fontFaces().filter((face) => face.sources.includes('url(')
 
 /** The metric-matched fallback faces: every other face. */
 const FALLBACK_FACES = fontFaces().filter((face) => !face.sources.includes('url('));
+
+/** The fallback faces that set only the figures (a `unicode-range`); the rest set all text. */
+const FIGURES_FACES = FALLBACK_FACES.filter((face) => face.descriptors.has('unicode-range'));
+
+/**
+ * The webfont family a fallback family stands in for: `Inter Fallback`, or a platform's
+ * `JetBrains Mono Fallback Android`.
+ *
+ * @param fallbackFamily - A fallback face's family.
+ * @returns The webfont's family, or `undefined` for a family named after none.
+ */
+function webfontFamilyOf(fallbackFamily: string): string | undefined {
+	return SUBSETS.map(([, font]) => font.family).find(
+		(family) => fallbackFamily === `${family} Fallback` || fallbackFamily.startsWith(`${family} Fallback `),
+	);
+}
+
+/**
+ * A face's name in a case title: its family, weight and, for a figures face, `figures`.
+ *
+ * @param face - A fallback face.
+ * @returns E.g. `JetBrains Mono Fallback Android 400 figures`.
+ */
+function faceName(face: FontFace): string {
+	return `${face.family} ${face.descriptors.get('font-weight') ?? ''}${face.descriptors.has('unicode-range') ? ' figures' : ''}`;
+}
 
 /** A TTF's vertical metrics, in font units. */
 interface VerticalMetrics {
@@ -261,12 +289,35 @@ describe('tokens.css', () => {
 describe('the fallback faces', () => {
 	it('are a regular and a bold face for each webfont family, so the cases below are not vacuous', () => {
 		expect(WEBFONT_FACES).toHaveLength(SUBSETS.length);
-		expect(FALLBACK_FACES.map((face) => `${face.family} ${face.descriptors.get('font-weight') ?? ''}`).sort()).toEqual(
-			SUBSETS.flatMap(([, font]) => [`${font.family} Fallback 400`, `${font.family} Fallback 700`]).sort(),
-		);
+		expect(
+			FALLBACK_FACES.filter((face) => !face.descriptors.has('unicode-range') && SUBSETS.some(([, font]) => face.family === `${font.family} Fallback`))
+				.map(faceName)
+				.sort(),
+		).toEqual(SUBSETS.flatMap(([, font]) => [`${font.family} Fallback 400`, `${font.family} Fallback 700`]).sort());
+		expect(FIGURES_FACES.length).toBeGreaterThan(0);
 	});
 
-	it.each(FALLBACK_FACES.map((face) => [`${face.family} ${face.descriptors.get('font-weight') ?? ''}`, face] as const))(
+	it.each(FALLBACK_FACES.map((face) => [faceName(face), face] as const))('%s stands in for a webfont family it is named after', (_name, face) => {
+		expect(webfontFamilyOf(face.family)).toBeDefined();
+	});
+
+	it.each(FIGURES_FACES.map((face) => [faceName(face), face] as const))(
+		'%s sets the figures no smaller than its text face sets them',
+		(_name, face) => {
+			const textFace = FALLBACK_FACES.find(
+				(other) =>
+					other.family === face.family
+					&& other.descriptors.get('font-weight') === face.descriptors.get('font-weight')
+					&& !other.descriptors.has('unicode-range'),
+			);
+
+			expect(textFace?.sources).toBe(face.sources);
+			expect(fraction(face.descriptors.get('size-adjust'))).toBeGreaterThanOrEqual(fraction(textFace?.descriptors.get('size-adjust')));
+			expect(face.descriptors.get('unicode-range')).toMatch(/U\+0030-0039/u);
+		},
+	);
+
+	it.each(FALLBACK_FACES.map((face) => [faceName(face), face] as const))(
 		'%s renders a local font: no download, no swap of its own',
 		(_name, face) => {
 			expect(face.sources).toMatch(/^local\('[^']+'\)(?:, local\('[^']+'\))*$/u);
@@ -274,10 +325,10 @@ describe('the fallback faces', () => {
 		},
 	);
 
-	it.each(FALLBACK_FACES.map((face) => [`${face.family} ${face.descriptors.get('font-weight') ?? ''}`, face] as const))(
+	it.each(FALLBACK_FACES.map((face) => [faceName(face), face] as const))(
 		'%s takes its webfont’s ascent, descent and line gap, at its own size-adjust',
 		(_name, face) => {
-			const webfont = SUBSETS.find(([, font]) => `${font.family} Fallback` === face.family)?.[1];
+			const webfont = SUBSETS.find(([, font]) => font.family === webfontFamilyOf(face.family))?.[1];
 			const metrics = verticalMetrics(readFileSync(join(FONTS_DIRECTORY, webfont?.source ?? '')));
 			const sizeAdjust = fraction(face.descriptors.get('size-adjust'));
 
@@ -298,10 +349,14 @@ describe('the fallback faces', () => {
 		expect(block.match(/@font-face/gu)).toHaveLength(FALLBACK_FACES.length);
 	});
 
-	it.each(SUBSETS.map(([, font]) => font.family))('%s is followed by its fallback face in its --font-* stack', (family) => {
-		const stacks = [...readFileSync(TOKENS_SHEET, 'utf8').matchAll(/--font-[a-z]+:\s*([^;]+);/gu)].map(([, stack = '']) => stack);
+	it.each(SUBSETS.map(([, font]) => font.family))('%s is followed by its fallback families, in their order, in its --font-* stack', (family) => {
+		const stacks = [...readFileSync(TOKENS_SHEET, 'utf8').matchAll(/--font-[a-z]+:\s*([^;]+);/gu)].map(([, stack = '']) =>
+			stack.trim().replaceAll(/\s+/gu, ' '),
+		);
+		const families = [...new Set(FALLBACK_FACES.map((face) => face.family).filter((name) => webfontFamilyOf(name) === family))];
 
-		expect(stacks.filter((stack) => stack.startsWith(`'${family}', '${family} Fallback',`))).toHaveLength(1);
+		expect(families[0]).toBe(`${family} Fallback`);
+		expect(stacks.filter((stack) => stack.startsWith([family, ...families].map((name) => `'${name}', `).join('')))).toHaveLength(1);
 	});
 
 	it('reads a TTF’s metrics and rejects a non-percentage, so the cases above can fail', () => {

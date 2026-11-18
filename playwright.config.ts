@@ -125,6 +125,8 @@ export default defineConfig({
 	reporter: [['list'], ['html', { open: 'never' }]],
 	retries: 0,
 	testDir: './tests/e2e',
+	// The prerendered pages exist only in production builds: `playwright.prerender.config.ts` runs that spec.
+	testIgnore: 'prerender.spec.ts',
 	timeout: 90_000,
 	use: {
 		baseURL: BASE_URL,

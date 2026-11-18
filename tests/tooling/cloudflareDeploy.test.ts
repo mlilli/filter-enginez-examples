@@ -130,7 +130,9 @@ function strippedDirectories(packageDirectory: string): readonly string[] {
 	const manifest = JSON.parse(readRepoFile(`packages/${packageDirectory}/package.json`)) as {
 		readonly scripts?: Readonly<Record<string, string>>;
 	};
-	const lastCommand = (manifest.scripts?.['build'] ?? '').split('&&').at(-1)?.trim() ?? '';
+	const commands = (manifest.scripts?.['build'] ?? '').split('&&').map((command) => command.trim());
+	// The prerender step may follow the strip; it reads the build and writes only HTML (`prerenderRoutes.test.ts`).
+	const lastCommand = (commands.at(-1)?.startsWith('node ../../scripts/prerender-routes.mjs') === true ? commands.at(-2) : commands.at(-1)) ?? '';
 
 	return lastCommand.startsWith(STRIP_COMMAND)
 		? lastCommand.slice(STRIP_COMMAND.length).trim().split(/\s+/u).map((path) => posix.normalize(path))

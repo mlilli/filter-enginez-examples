@@ -80,6 +80,10 @@ afterAll(() => {
 /**
  * A host's build script's steps.
  *
+ * The prerender step that follows the corpus strip is left off (`prerenderRoutes.test.ts` holds it): it
+ * reads the finished build and writes only the dataset pages' HTML, so every ordering this suite checks
+ * is among the steps before it.
+ *
  * @param host - The host.
  * @returns The `&&`-separated commands, trimmed.
  */
@@ -88,7 +92,9 @@ function buildSteps(host: keyof typeof HOST_PACKAGES): readonly string[] {
 		readonly scripts?: Readonly<Record<string, string>>;
 	};
 
-	return (manifest.scripts?.['build'] ?? '').split('&&').map((step) => step.trim());
+	const steps = (manifest.scripts?.['build'] ?? '').split('&&').map((step) => step.trim());
+
+	return steps.at(-1)?.startsWith('node ../../scripts/prerender-routes.mjs') === true ? steps.slice(0, -1) : steps;
 }
 
 describe('the routed hosts', () => {

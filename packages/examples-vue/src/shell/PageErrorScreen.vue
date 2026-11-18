@@ -19,11 +19,16 @@ import {
 	PAGE_ERROR_TITLE,
 	pageErrorDetail,
 } from '@filter-enginez/examples-shared/page-error-core';
+import { dismissPrerender } from '@filter-enginez/examples-shared/prerender-core';
+import { onMounted } from 'vue';
 
 const props = defineProps<{
 	/** What failed; its message is the detail line. */
 	error: unknown;
 }>();
+
+// A page that failed replaces the prerendered snapshot at once, or the snapshot would claim a working page.
+onMounted(dismissPrerender);
 </script>
 
 <template>

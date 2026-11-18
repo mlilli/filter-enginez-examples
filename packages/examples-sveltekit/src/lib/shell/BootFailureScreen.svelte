@@ -13,9 +13,9 @@
 	 * on the main thread instead of the worker.
 	 */
 
-	import type { Snippet } from 'svelte';
-
 	import { BOOT_FAILURE_COPY, type BootFailureDataset } from '@filter-enginez/examples-shared/boot-caption';
+	import { dismissPrerender } from '@filter-enginez/examples-shared/prerender-core';
+	import { onMount, type Snippet } from 'svelte';
 
 	interface Props {
 		/** Which dataset failed to start. */
@@ -29,6 +29,9 @@
 	const { dataset, message, remedy }: Props = $props();
 
 	const copy = $derived(BOOT_FAILURE_COPY[dataset]);
+
+	// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+	onMount(dismissPrerender);
 </script>
 
 <main>

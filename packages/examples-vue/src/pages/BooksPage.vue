@@ -20,6 +20,7 @@ import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 import { bootBooksEngine } from '@filter-enginez/examples-shared/books-core';
 import { BOOKS_BOOT_IDLE_CAPTION, BOOKS_RECORD_NOUN } from '@filter-enginez/examples-shared/books-domain';
 import { bootCaptionParts, bootCaptionText } from '@filter-enginez/examples-shared/boot-caption';
+import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 import { onMounted, onUnmounted, shallowRef } from 'vue';
 
 import BooksView from '../books/BooksView.vue';
@@ -27,6 +28,8 @@ import BootFailureScreen from '../shell/BootFailureScreen.vue';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 
 const engine = shallowRef<SignalsEngine<Book> | null>(null);
+// While the prerendered page is up it stands in for the boot screen (`examples-shared/prerender-core`).
+const isPrerendered = hasPrerender();
 /** The boot error's message, or `null` while booting or once booted. */
 const bootError = shallowRef<string | null>(null);
 // Teardown for the engine → URL sync loop (client-only; `null` until wired in `onMounted`).
@@ -77,7 +80,7 @@ const bootCaption = bootCaptionText(
 	<BootFailureScreen v-if="bootError !== null" dataset="books" :message="bootError" />
 	<BooksView v-else-if="engine" :engine="engine" />
 	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
-	<main v-else>
+	<main v-else-if="!isPrerendered">
 		<p class="fe-boot-caption fe-boot-caption--inline">{{ bootCaption }}</p>
 	</main>
 </template>

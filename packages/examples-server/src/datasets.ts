@@ -42,14 +42,25 @@ export interface DatasetSummary {
 	readonly recordNoun: string;
 }
 
-/** Raised when an unknown dataset id is requested. */
+/**
+ * Raised when an unknown dataset id is requested.
+ *
+ * @remarks
+ * Fields assigned in the body rather than declared as constructor parameter properties: the apps' build
+ * step loads this module with Node's own type stripping (`scripts/prerender-routes.mjs`), which accepts
+ * only erasable syntax.
+ */
 export class UnknownDatasetError extends Error {
-	constructor(
-		public readonly requestedId: string,
-		public readonly availableIds: readonly string[],
-	) {
+	/** The id that was asked for. */
+	public readonly requestedId: string;
+	/** The ids there are. */
+	public readonly availableIds: readonly string[];
+
+	constructor(requestedId: string, availableIds: readonly string[]) {
 		super(`Unknown dataset "${requestedId}". Available: ${availableIds.join(', ')}.`);
 		this.name = 'UnknownDatasetError';
+		this.requestedId = requestedId;
+		this.availableIds = availableIds;
 	}
 }
 

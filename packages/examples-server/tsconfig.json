@@ -11,5 +11,5 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"],
-  "references": []
+  "references": [{ "path": "../examples-shared/tsconfig.build.json" }]
 }

@@ -21,9 +21,11 @@
  * `handleRequest`: the Node server answers it in development, and the files are written from it.)
  *
  * Like `server.ts`, this is a thin adapter: it strips `/api`, reads the body, calls
- * {@link handleRequest}, and writes the JSON. The other path it is sent, `/.well-known/*`, gets a 404,
+ * {@link handleRequest}, and writes the JSON. The other paths it is sent: `/.well-known/*` gets a 404,
  * because these sites publish nothing there and the assets would answer it with the app's HTML
- * not-found page (`wellKnown.ts`). Anything else is handed to the static-assets binding, so a request that
+ * not-found page (`wellKnown.ts`); a server-backed page (`/books-server`, `/wine-server`) gets its
+ * prerendered page, with the count of the address's filter state written in when it has one
+ * (`prerenderedCount.ts`). Anything else is handed to the static-assets binding, so a request that
  * reaches the Worker by some other path is answered exactly as the assets-only configuration would
  * answer it.
  *
@@ -43,8 +45,14 @@
  * @packageDocumentation
  */
 
+import { createLinkSerializer } from '@filter-enginez/examples-shared/link-serializer';
+
+import { SERVER_PAGE_DATASETS, serveServerPage } from './prerenderedCount.js';
 import { handleRequest } from './requestHandler.js';
 import { isWellKnownPath, wellKnownNotFound } from './wellKnown.js';
+
+/** Reads an address's filter state as the apps write it (`decode` detects the format itself). */
+const LINK_SERIALIZER = createLinkSerializer('human-readable');
 
 /** The path prefix the browser apps put in front of every API route, in development and deployed. */
 export const API_PATH_PREFIX = '/api';
@@ -83,10 +91,14 @@ export function isApiPath(pathname: string): boolean {
  * @returns The response.
  */
 export async function handleWorkerRequest(request: Request, environment: ApiWorkerEnvironment): Promise<Response> {
-	const { pathname } = new URL(request.url);
+	const url = new URL(request.url);
+	const { pathname } = url;
 
 	if (isWellKnownPath(pathname)) {
 		return wellKnownNotFound();
+	}
+	if (SERVER_PAGE_DATASETS.has(pathname)) {
+		return serveServerPage(url, async () => environment.ASSETS.fetch(request), (serialized) => LINK_SERIALIZER.decode(serialized));
 	}
 	if (!isApiPath(pathname)) {
 		return environment.ASSETS.fetch(request);

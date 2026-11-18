@@ -21,9 +21,10 @@ documentation site consume.
 - `fonts/` — the self-hosted variable webfonts (Inter, JetBrains Mono, Orbitron): each font's TTF and `OFL.txt`, and the
   WOFF2 subset of it that `tokens.css` loads, written by `node scripts/subset-brand-fonts.mjs` (Orbitron's is named
   Filter EngineZ Display, because its license reserves the name Orbitron for the unmodified font). `tokens.css` also
-  declares a metric-matched fallback face for each (Arial or Courier New, sized and spaced like the webfont), named
-  second in every `--font-*` stack so the webfont's swap does not move the text; `scripts/fallback-font-metrics.py`
-  computes them from the TTFs
+  declares metric-matched fallback faces for each (Arial; for JetBrains Mono one family per platform, Menlo or DejaVu
+  Sans Mono, Droid Sans Mono, Consolas, then Courier New, with figures never smaller than the webfont's; sized and
+  spaced like the webfont), named right after it in every `--font-*` stack so the webfont's swap does not move the text;
+  `scripts/fallback-font-metrics.py` computes them from the TTFs
 - `./assets/*` — the logomark and favicon files; the four non-React apps serve generated copies
   (`pnpm sync:brand-assets`).
 

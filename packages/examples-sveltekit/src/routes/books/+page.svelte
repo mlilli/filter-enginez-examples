@@ -5,6 +5,7 @@
 	import { bootBooksEngine } from '@filter-enginez/examples-shared/books-core';
 	import { BOOKS_BOOT_IDLE_CAPTION, BOOKS_RECORD_NOUN } from '@filter-enginez/examples-shared/books-domain';
 	import { bootCaptionParts, bootCaptionText } from '@filter-enginez/examples-shared/boot-caption';
+	import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import BooksView from '$lib/books/BooksView.svelte';
 	import BootFailureScreen from '$lib/shell/BootFailureScreen.svelte';
 	import { readConfigFromUrl, startEngineUrlSync } from '$lib/url/urlState.js';
@@ -65,13 +66,17 @@
 	const bootCaption = bootCaptionText(
 		bootCaptionParts(null, { idleCaption: BOOKS_BOOT_IDLE_CAPTION, recordNoun: BOOKS_RECORD_NOUN }),
 	);
+
+	// While the prerendered page is up it stands in for the boot screen (`examples-shared/prerender-core`).
+	// `false` in the server render, which never has one.
+	const isPrerendered = hasPrerender();
 </script>
 
 {#if bootError !== null}
 	<BootFailureScreen dataset="books" message={bootError} />
 {:else if engine}
 	<BooksView {engine} />
-{:else}
+{:else if !isPrerendered}
 	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
 	<main>
 		<p class="fe-boot-caption fe-boot-caption--inline">{bootCaption}</p>

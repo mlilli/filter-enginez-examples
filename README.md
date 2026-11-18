@@ -129,12 +129,15 @@ pnpm test:frameworks  # the Vue, SvelteKit and Angular component tests, under th
 pnpm build            # build every app and package
 pnpm size             # brand bundle-size budgets (after a build)
 pnpm test:e2e         # Playwright across the apps (local only; see below)
+pnpm test:e2e:prerender  # Playwright against the production builds' prerendered pages (after a build)
 ```
 
-CI ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) runs everything above except `test:e2e`, which runs
-locally: it starts every app's dev server and drives a real browser, against the real wine corpus where one is linked
-(see below) and the synthetic wines otherwise. Before the first run, install the browser with
-`pnpm exec playwright install chromium` and stop any running dev servers.
+CI ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) runs everything above except the two end-to-end suites,
+which run locally. `test:e2e` starts every app's dev server and drives a real browser, against the real wine corpus
+where one is linked (see below) and the synthetic wines otherwise. `test:e2e:prerender` serves the six production builds
+as they are deployed (`scripts/serve-builds.mjs`, ports 24620–24625) and checks their prerendered pages. Before the
+first run, install the browser with `pnpm exec playwright install chromium` and stop any running dev servers; the builds
+need it too.
 
 ### Deployment
 
@@ -153,6 +156,15 @@ fails if one is missing), and adds the bundled fonts' licenses.
   and any other path the app's not-found page with a 404. The four with a server-filtered route answer their same-origin
   `/api/*` with [`examples-server`'s Worker entry](./packages/examples-server/README.md), the deployed counterpart of
   the dev-server proxy.
+- Every dataset page's HTML already shows its result count and first results. Each app's build ends by opening its own
+  dataset routes in headless Chromium at a phone width and a desktop width and writing what they render into the pages
+  (`scripts/prerender-routes.mjs`), then checks, with the app's code blocked, that the written page puts the count and
+  the first result exactly where the app does. An inline script shows the snapshot for the viewport as a layer over the
+  page, or none on an address with a query string, which names a state the snapshot does not hold. The app boots
+  underneath it into the same place, and the layer goes once the count's webfont is in and the app shows the snapshot's
+  count, or at the visitor's first input if that is sooner (`examples-shared`'s `prerender-core`). On the
+  server-filtered routes, the Worker writes the count of an address's filter state into the page per request and leaves
+  the results to the app.
 - The documentation site serves the documentation at its root (`/`, `/rules/<id>`, `/algorithms/<id>`, `/playground`,
   `/api`), and answers every `/docs` address with a permanent redirect to the same path without the prefix, query string
   kept. The two React apps serve the same pages under their own `/docs`.

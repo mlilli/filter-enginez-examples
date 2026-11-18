@@ -630,6 +630,9 @@ importers:
       '@filter-enginez/eslint':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.4.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-eslint-0.0.4.tgz(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)(vitest@4.1.12)
+      '@filter-enginez/examples-shared':
+        specifier: workspace:*
+        version: link:../examples-shared
       '@filter-enginez/mock-data':
         specifier: file:../../../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.3.tgz
         version: file:../filter-enginez/tmp/engine-tarballs/filter-enginez-mock-data-0.2.3.tgz(@filter-enginez/core@file:../filter-enginez/tmp/engine-tarballs/filter-enginez-core-0.2.3.tgz(roaring-wasm@1.1.0))(msw@2.15.0(@types/node@24.19.1)(typescript@6.0.3))

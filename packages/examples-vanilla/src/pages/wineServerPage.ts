@@ -51,6 +51,7 @@ import { bootWineServerEngine, SERVER_WINE_TIER_LABEL } from '@filter-enginez/ex
 
 import type { RouteTeardown } from '../router.js';
 
+import { appendBootScreen, dismissPrerender } from '../shell/prerender.js';
 import { createWineBootScreen } from '../wine/bootScreen.js';
 import { mountWineRoute } from './winePageShell.js';
 
@@ -75,7 +76,7 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
 	const bootScreen = createWineBootScreen(SERVER_ROUTE_SCREEN_COPY.connectingLoaderLabel);
 
 	bootScreen.setCaption(SERVER_ROUTE_SCREEN_COPY.connectingCaption);
-	container.append(bootScreen.element);
+	appendBootScreen(container, bootScreen.element);
 
 	let engine;
 
@@ -84,6 +85,8 @@ export async function renderWineServerPage(container: HTMLElement): Promise<Rout
 	} catch (error) {
 		console.error('[wine-server] boot failed:', error);
 		container.replaceChildren(offlineNotice(error instanceof Error ? error.message : String(error)));
+		// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+		dismissPrerender();
 
 		// A teardown is still owed: the router calls it on navigation regardless of how the render
 		// ended, and returning nothing here would make leaving this route throw.

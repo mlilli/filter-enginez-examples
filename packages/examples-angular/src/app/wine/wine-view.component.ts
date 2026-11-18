@@ -94,6 +94,7 @@ import {
 } from '../controls/results-header.component.js';
 import { TimeTravelControlsComponent } from '../controls/time-travel-controls.component.js';
 import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
+import { releasePrerenderOnFirstRender } from '../shell/prerender.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -312,6 +313,8 @@ export class WineViewComponent {
 	protected readonly wineKey = (wine: Wine): string => wine.id;
 
 	public constructor() {
+		// The live page takes over from the prerendered snapshot of itself after its first render.
+		releasePrerenderOnFirstRender();
 		// Mirror every engine change into the address bar (debounced), and tear it down with the route
 		// so a navigation away does not leave a subscription rewriting someone else's URL. Every other
 		// route in this app does this in its PAGE component; wine's page owns the boot rather than the

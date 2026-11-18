@@ -30,6 +30,7 @@
 import { notifyUrlNavigation } from '@filter-enginez/examples-shared/url-state-follower';
 
 import { createPageErrorScreen } from './shell/pageErrorScreen.js';
+import { dismissPrerender } from './shell/prerender.js';
 
 /** Tear down whatever a route's `render` set up (listeners, engine subscriptions, observers). */
 export type RouteTeardown = () => void;
@@ -175,6 +176,8 @@ export function startRouter(container: HTMLElement, routes: readonly Route[], op
 			// shows the page-error screen rather than staying empty. A superseded route's failure lands
 			// on its detached mount, as its paint would have, and it has no resources to release.
 			mount.replaceChildren(createPageErrorScreen(error));
+			// It replaces the prerendered snapshot at once, or the snapshot would claim a working page.
+			dismissPrerender();
 
 			return;
 		}

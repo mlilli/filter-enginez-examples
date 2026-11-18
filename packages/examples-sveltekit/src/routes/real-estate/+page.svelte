@@ -38,6 +38,7 @@
 	import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
 	import { bootCaptionParts } from '@filter-enginez/examples-shared/boot-caption';
+	import { hasPrerender } from '@filter-enginez/examples-shared/prerender-core';
 	import {
 		bootRealEstateEngine,
 		type RealEstateBootProgress,
@@ -173,13 +174,17 @@
 		stopUrlSync?.();
 		engine?.dispose();
 	});
+
+	// While the prerendered page is up it stands in for the boot screen (`examples-shared/prerender-core`).
+	// `false` in the server render, which never has one.
+	const isPrerendered = hasPrerender();
 </script>
 
 {#if bootError !== null}
 	<BootFailureScreen dataset="real-estate" message={bootError} />
 {:else if engine}
 	<RealEstateView {baselines} {engine} {locationSpecs} {locationTree} {metroCenters} {vocabularies} />
-{:else}
+{:else if !isPrerendered}
 	<!-- `<main>`: until the engine boots, the caption is the page's main content. -->
 	<main>
 		<p class="fe-boot-caption fe-boot-caption--inline">

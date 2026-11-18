@@ -2,6 +2,7 @@
 import type { Book } from '@filter-enginez/mock-data/books';
 import type { SignalsEngine } from '@filter-enginez/reactive-signals';
 
+import { releasePrerender } from '@filter-enginez/examples-shared/prerender-core';
 /**
  * `<BooksView>` — the Vue books app shell, at visual + functional parity with the React `<BooksApp>`
  * and the Svelte `<BooksView>`. Mobile-first: a single stacked column with the filters behind a toggle
@@ -47,6 +48,9 @@ function applyMediaState(): void {
 		isFilterOpen.value = mediaQuery.matches;
 	}
 }
+
+// The live page takes over from the prerendered snapshot of itself as it mounts.
+onMounted(releasePrerender);
 
 onMounted(() => {
 	if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {

@@ -86,13 +86,19 @@ interface Manifest {
 /**
  * Read a package's build script, split into its `&&` steps.
  *
+ * The prerender step that follows the corpus strip is left off (`prerenderRoutes.test.ts` holds it): it
+ * reads the finished build and writes only the dataset pages' HTML, so every ordering this suite checks
+ * is among the steps before it.
+ *
  * @param name - The package's directory under `packages/`.
  * @returns The steps, trimmed.
  */
 function buildSteps(name: string): string[] {
 	const manifest = JSON.parse(readFileSync(resolve(REPO_ROOT, 'packages', name, 'package.json'), 'utf8')) as Manifest;
 
-	return (manifest.scripts?.['build'] ?? '').split('&&').map((step) => step.trim());
+	const steps = (manifest.scripts?.['build'] ?? '').split('&&').map((step) => step.trim());
+
+	return steps.at(-1)?.startsWith('node ../../scripts/prerender-routes.mjs') === true ? steps.slice(0, -1) : steps;
 }
 
 /** Every deployed demo app: an `examples-*` package with a `wrangler.jsonc`. */

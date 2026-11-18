@@ -42,6 +42,9 @@ const SHARED_ROOT = resolve(REPO_ROOT, 'packages/examples-shared');
  * the guarantee from its suffix.
  */
 const REACT_FREE_SUBPATHS = [
+	// A shared link's filter state, read into a booted engine before its page renders: the React apps
+	// load it beside the dataset's code (and any app could).
+	'./address-filter-state',
 	// The header's links to the landing site and its subtitle parts. Every app's header renders them,
 	// four of the six with no React at all.
 	'./app-header-core',
@@ -78,6 +81,9 @@ const REACT_FREE_SUBPATHS = [
 	// algorithm catalogs' words, never their React figures.
 	'./page-meta',
 	'./page-meta-docs',
+	// The prerendered page's ids, picker and hand-over, which Vue, SvelteKit, Angular, the framework-free app,
+	// the build step and the examples server read.
+	'./prerender-core',
 	'./picker',
 	'./real-estate-boot-core',
 	'./real-estate-core',

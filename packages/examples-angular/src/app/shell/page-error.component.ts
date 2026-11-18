@@ -24,6 +24,8 @@ import {
 	pageErrorDetail,
 } from '@filter-enginez/examples-shared/page-error-core';
 
+import { dismissPrerenderOnFirstRender } from './prerender.js';
+
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	selector: 'fe-page-error',
@@ -56,4 +58,9 @@ export class PageErrorComponent {
 
 	/** The link's label. */
 	protected readonly homeLabel = PAGE_ERROR_HOME_LABEL;
+
+	public constructor() {
+		// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+		dismissPrerenderOnFirstRender();
+	}
 }

@@ -28,8 +28,11 @@
  * @packageDocumentation
  */
 
+import type * as AddressFilterState from '@filter-enginez/examples-shared/address-filter-state';
+
 import { BrainSynapse } from '@filter-enginez/brand';
 import { BOOT_FAILURE_COPY, type BootCaptionPart, bootCaptionParts, type BootFailureDataset } from '@filter-enginez/examples-shared/boot-caption';
+import { hasPrerender, useDismissPrerender } from '@filter-enginez/examples-shared/prerender';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { BootedDataset, DatasetEntry, DatasetModule } from '../datasets.js';
@@ -47,6 +50,12 @@ const nullSnapshot = (): null => null;
  * @returns The view component, once its chunk has arrived.
  */
 const loadDatasetView = async (): Promise<typeof DatasetView> => (await import('./DatasetView.js')).DatasetView;
+
+/**
+ * The reader of a shared link's filter state, loaded with the dataset's code rather than in the startup
+ * bundle (`examples-shared/src/url/addressFilterState.ts`).
+ */
+const loadAddressFilterState = async (): Promise<typeof AddressFilterState> => import('@filter-enginez/examples-shared/address-filter-state');
 
 /** A dataset ready to render: its code loaded and its engine booted. */
 interface ReadyDataset {
@@ -87,15 +96,24 @@ export const DatasetRoute = ({ entry }: { readonly entry: DatasetEntry }): React
 	useEffect(() => {
 		let isCancelled = false;
 
-		Promise.all([entry.load(), loadDatasetView()])
-			.then(async ([loaded, View]): Promise<ReadyDataset> => {
+		Promise.all([entry.load(), loadDatasetView(), loadAddressFilterState()])
+			.then(async ([loaded, View, { loadFilterStateFromAddress }]): Promise<ReadyDataset> => {
 				// The boot screen subscribes to the module's progress store as soon as it is in hand, so the
 				// caption follows the boot from its first progress event.
 				if (!isCancelled) {
 					setDatasetModule(loaded);
 				}
 
-				return { booted: await loaded.boot(), Component: loaded.Component, View };
+				const booted = await loaded.boot();
+
+				// A shared link opens on its own state from the first frame: loaded between the boot and the
+				// first render, as every other app does, rather than by the URL sync after it (which painted
+				// the unfiltered count first).
+				if (entry.supportsUrlState === true) {
+					loadFilterStateFromAddress(booted.engine.core);
+				}
+
+				return { booted, Component: loaded.Component, View };
 			})
 			.then(
 				(next) => {
@@ -155,13 +173,19 @@ interface DatasetBootScreenProps {
  *
  * @internal
  */
-const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): React.ReactElement => {
+const DatasetBootScreen = ({ datasetModule, entry }: DatasetBootScreenProps): React.ReactElement | null => {
 	const progress = useSyncExternalStore(
 		datasetModule?.subscribeProgress ?? noopSubscribe,
 		datasetModule?.getProgressSnapshot ?? nullSnapshot,
 		nullSnapshot,
 	);
 	const caption = renderCaption(bootCaptionParts(progress, { idleCaption: entry.idleCaption, recordNoun: entry.recordNoun }));
+
+	// While the prerendered page is up it stands in for this screen: the snapshot of the booted page
+	// shows until the dataset view replaces it (`examples-shared/prerender`).
+	if (hasPrerender()) {
+		return null;
+	}
 
 	// `<main>` in both shapes: until the dataset arrives, the loader and its caption are the page's main
 	// content, and a page with no main landmark fails the accessibility audit a visitor's tools run
@@ -226,6 +250,9 @@ interface BootErrorProps {
  */
 const BootError = ({ dataset, error }: BootErrorProps): React.ReactElement => {
 	const copy = BOOT_FAILURE_COPY[dataset];
+
+	// A boot that failed replaces the prerendered page at once, or the snapshot would claim a working page.
+	useDismissPrerender();
 
 	return (
 		<main

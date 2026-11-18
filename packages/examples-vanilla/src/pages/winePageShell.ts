@@ -60,6 +60,7 @@ import type { RouteTeardown } from '../router.js';
 
 import { resolveAfterPaint } from '../busy/engineBusy.js';
 import { createDevtoolsSurface, type DevtoolsCursor } from '../controls/devtools.js';
+import { releasePrerender } from '../shell/prerender.js';
 import { createCompareLinkButton, createCopyLinkButton, createUrlFormatToggle } from '../url/urlControls.js';
 import { readConfigFromUrl, startEngineUrlSync } from '../url/urlState.js';
 import { createWineView } from '../wine/view.js';
@@ -232,6 +233,9 @@ export function mountWineRoute(container: HTMLElement, chrome: WineRouteChrome):
 			devtools.update();
 		}),
 	);
+
+	// The live page's first frame is painted: it takes over from the prerendered snapshot of itself.
+	releasePrerender();
 
 	return () => {
 		for (const unsubscribe of unsubscribes) {

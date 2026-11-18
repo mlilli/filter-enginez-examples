@@ -43,8 +43,14 @@
  * `tests/tooling/buildsStripLocalCorpus.test.ts` checks.
  */
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { stripLocalCorpus } from '../../scripts/lib/local-corpus.mjs';
+
+/** The step every app's build ends with: it writes each dataset route's booted page into its HTML. */
+const PRERENDER_STEP = fileURLToPath(new URL('../../scripts/prerender-routes.mjs', import.meta.url));
 
 /** The adapter targets, and what each one is doing while the build waits on it. */
 const ADAPTER_ACTIVITIES = {
@@ -79,7 +85,14 @@ async function loadAdapter(target) {
 
 /**
  * Wrap an adapter so the local-only wine corpus is removed from the client output before the adapter
- * copies it anywhere.
+ * copies it anywhere, and each dataset route's prerendered page carries its booted snapshot.
+ *
+ * @remarks
+ * The snapshot step (`scripts/prerender-routes.mjs`, the same one the other five apps' builds end with)
+ * serves the client output and the prerendered pages together, as the deployed Worker does, opens each
+ * dataset route the app renders in the browser (`/books`, `/real-estate`, `/wine`; the server-backed
+ * routes render on the server) and writes what it shows into the page. After the corpus strip, so the
+ * snapshot shows the corpus the site deploys; before the adapter, which copies the pages.
  *
  * @param {import('@sveltejs/kit').Adapter} adapter - The adapter to wrap.
  * @param {string} activity - What the adapter is doing, for the build log.
@@ -93,6 +106,17 @@ function withoutLocalCorpus(adapter, activity) {
 
 			if (removed.length > 0) {
 				builder.log(`Left out ${removed.length} local-only wine corpus file(s) before adapting`);
+			}
+
+			const pages = join(builder.config.kit.outDir, 'output', 'prerendered', 'pages');
+			const prerendered = spawnSync(
+				process.execPath,
+				[PRERENDER_STEP, builder.getClientDirectory(), '--host', 'sveltekit', '--pages', pages],
+				{ stdio: 'inherit' },
+			);
+
+			if (prerendered.status !== 0) {
+				throw new Error('prerender-routes failed; its message is above.');
 			}
 
 			builder.log(activity);

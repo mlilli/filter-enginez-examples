@@ -79,6 +79,7 @@ import { BrainSynapseComponent } from './brand/brain-synapse.component.js';
 import { BootFailureComponent } from './shell/boot-failure.component.js';
 import { DatasetBootError } from './shell/dataset-boot-error.js';
 import { PageErrorComponent } from './shell/page-error.component.js';
+import { hasPrerender } from './shell/prerender.js';
 
 /** A base for reading the path out of the router's URL, which carries no origin. */
 const URL_BASE = 'https://angular.filterenginez.com';
@@ -177,7 +178,8 @@ export class AppComponent {
 	protected readonly isOutletActive = signal(false);
 
 	/** The boot screen to draw: the pending route's, only while nothing else is on screen. */
-	protected readonly bootScreen = computed(() => (this.isOutletActive() ? null : this._pendingBootScreen()));
+	// Nothing while the prerendered page stands in for the boot screen (`shell/prerender.ts`).
+	protected readonly bootScreen = computed(() => (this.isOutletActive() || hasPrerender() ? null : this._pendingBootScreen()));
 
 	/** The failed navigation's engine boot, when that is what failed; `null` for any other failure. */
 	protected readonly bootFailure = computed(() => {

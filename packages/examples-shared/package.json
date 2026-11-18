@@ -1,11 +1,12 @@
 {
   "name": "@filter-enginez/examples-shared",
   "version": "0.0.1",
-  "description": "Filter EngineZ — domain code shared by the six example apps and the docs site, organized by dataset. Each domain slice (e.g. ./wine) bundles its state-agnostic presentation (cards) + orchestration (size-aware engine boot, busy tracker); React-free *-core / *-domain subpaths serve the non-React apps. Browser-only.",
+  "description": "Filter EngineZ \u2014 domain code shared by the six example apps and the docs site, organized by dataset. Each domain slice (e.g. ./wine) bundles its state-agnostic presentation (cards) + orchestration (size-aware engine boot, busy tracker); React-free *-core / *-domain subpaths serve the non-React apps. Browser-only.",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
   "exports": {
+    "./address-filter-state": "./src/url/addressFilterState.ts",
     "./app-header": "./src/app-header/index.ts",
     "./app-header-core": "./src/app-header/core.ts",
     "./app-router": "./src/app-router/index.ts",
@@ -34,6 +35,8 @@
     "./page-meta": "./src/page-meta/index.ts",
     "./page-meta-docs": "./src/page-meta/docsPageMeta.ts",
     "./picker": "./src/picker/index.ts",
+    "./prerender": "./src/prerender/react.ts",
+    "./prerender-core": "./src/prerender/index.ts",
     "./real-estate": "./src/real-estate/index.ts",
     "./real-estate-boot-core": "./src/real-estate/bootRealEstateCore.ts",
     "./real-estate-core": "./src/real-estate/core.ts",

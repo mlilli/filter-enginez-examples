@@ -77,6 +77,7 @@ import {
 import { ResultsHeaderComponent } from '../controls/results-header.component.js';
 import { TimeTravelControlsComponent } from '../controls/time-travel-controls.component.js';
 import { AppHeaderBrandComponent } from '../shell/app-header-brand.component.js';
+import { dismissPrerenderOnFirstRender, releasePrerenderOnFirstRender } from '../shell/prerender.js';
 import { CompareLinkButtonComponent } from '../url/compare-link-button.component.js';
 import { CopyLinkButtonComponent } from '../url/copy-link-button.component.js';
 import { UrlFormatToggleComponent } from '../url/url-format-toggle.component.js';
@@ -261,8 +262,13 @@ export class BooksServerPageComponent {
 		const { engine } = this._routeData;
 
 		if (engine === null) {
+			// The offline panel replaces the prerendered page at once, or the snapshot would claim a working page.
+			dismissPrerenderOnFirstRender();
+
 			return;
 		}
+		// The live page takes over from the prerendered snapshot of itself after its first render.
+		releasePrerenderOnFirstRender();
 
 		// Same URL mirroring as `/books`. `startEngineUrlSync` already branches on `asyncEngine` for
 		// `exportConfig` (the sync shim throws on it), which is why it needs no change here.

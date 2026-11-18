@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node ../../scripts/check-site-css.mjs dist --reference @filter-enginez/ui-styles/styles.css --reference @filter-enginez/ui-styles/figures.css --budget 404.html=22 --budget compare.html=17 --budget how-it-works.html=43 --budget index.html=29 && node ../../scripts/strip-local-corpus.mjs dist",
+    "build": "vite build && node ../../scripts/check-site-css.mjs dist --reference @filter-enginez/ui-styles/styles.css --reference @filter-enginez/ui-styles/figures.css --budget 404.html=23 --budget compare.html=18 --budget how-it-works.html=44 --budget index.html=30 && node ../../scripts/strip-local-corpus.mjs dist",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p src/home && tsc --noEmit -p src/how-it-works && tsc --noEmit -p src/compare && tsc --noEmit -p src/sitemap",
     "test": "vitest --watch=false --passWithNoTests",

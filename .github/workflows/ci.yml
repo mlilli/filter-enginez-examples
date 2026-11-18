@@ -156,6 +156,12 @@ jobs:
         working-directory: filter-enginez-examples
         run: pnpm test:frameworks
 
+      # The demo apps' builds end by prerendering their dataset routes in headless Chromium
+      # (`scripts/prerender-routes.mjs`), so the build needs the browser the pinned Playwright drives.
+      - name: Install Chromium for the prerender step
+        working-directory: filter-enginez-examples
+        run: pnpm exec playwright install --with-deps chromium
+
       # Each demo app's build also measures the JavaScript its first screen loads and fails over the
       # budget in its `build` script (`scripts/check-startup-budget.mjs`), so a page that slips back into
       # the startup bundle fails here rather than shipping; and it checks the first page's font preloads
@@ -244,8 +250,15 @@ jobs:
         working-directory: filter-enginez-examples
         run: pnpm install --frozen-lockfile
 
+      # The demo apps' builds end by prerendering their dataset routes in headless Chromium
+      # (`scripts/prerender-routes.mjs`), so the build needs the browser the pinned Playwright drives.
+      - name: Install Chromium for the prerender step
+        working-directory: filter-enginez-examples
+        run: pnpm exec playwright install --with-deps chromium
+
       # turbo builds the package's workspace dependencies first (`^build`). Every app's `build` script
-      # ends by stripping the local-only wine corpus (tests/tooling/buildsStripLocalCorpus.test.ts).
+      # strips the local-only wine corpus (tests/tooling/buildsStripLocalCorpus.test.ts), then prerenders
+      # its dataset routes (tests/tooling/prerenderRoutes.test.ts).
       - name: Build for production
         working-directory: filter-enginez-examples
         run: pnpm turbo run build --filter="$TARGET_PACKAGE"

@@ -20,6 +20,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { BOOT_FAILURE_COPY, type BootFailureDataset } from '@filter-enginez/examples-shared/boot-caption';
 
+import { dismissPrerenderOnFirstRender } from './prerender.js';
+
 @Component({
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	selector: 'fe-boot-failure',
@@ -78,4 +80,9 @@ export class BootFailureComponent {
 
 	/** The dataset's title and hint. */
 	protected readonly copy = computed(() => BOOT_FAILURE_COPY[this.dataset()]);
+
+	public constructor() {
+		// A failure replaces the prerendered page at once, or the snapshot would claim a working page.
+		dismissPrerenderOnFirstRender();
+	}
 }
