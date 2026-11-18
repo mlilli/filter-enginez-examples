@@ -31,6 +31,14 @@
  * and the cap notice all come from `@filter-enginez/examples-shared/verticals` (`RESULT_COPY`,
  * `RESULT_GRID_WINDOW`), so the six apps cannot word the same results column six ways.
  *
+ * ### The header is painted from the engine when it is built
+ *
+ * The pills (or the "No filters active" note) are painted from `core.getRules()` before the view is
+ * returned, not left for the caller's first {@link ResultsView.setRules}. A worker-backed route first
+ * repaints them when its first bundle settles, a round trip after the page's first frame; until then
+ * the header held both the note and an empty pills row, whose gap moved the count and the whole grid
+ * 12px when the repaint hid it. On `/wine` at a desktop width that was a layout shift of 0.056.
+ *
  * @packageDocumentation
  */
 
@@ -337,7 +345,7 @@ export function createResultsView<T>(
 
 	gridElement.addEventListener('scroll', handleScroll);
 
-	return {
+	const view: ResultsView<T> = {
 		dispose: () => {
 			gridElement.removeEventListener('scroll', handleScroll);
 			if (frame !== 0) {
@@ -425,6 +433,11 @@ export function createResultsView<T>(
 			);
 		},
 	};
+
+	// The header's first frame shows the engine's rules, whenever the caller first repaints them.
+	view.setRules(core.getRules(), null);
+
+	return view;
 }
 
 /**

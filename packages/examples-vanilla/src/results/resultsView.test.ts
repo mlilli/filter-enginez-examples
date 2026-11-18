@@ -203,7 +203,50 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
+/** What a freshly built header shows, before its caller has repainted anything. */
+interface BuiltHeader {
+	readonly chipCount: number;
+	readonly isNoteShown: boolean;
+	readonly isPillsRowShown: boolean;
+}
+
+/**
+ * Build a results view over an engine holding one `inSet` rule per id, and read its header at once.
+ *
+ * @param ruleIds - The rules the engine holds before the view is built.
+ * @returns The header as built.
+ */
+function headerAsBuilt(ruleIds: readonly RuleId[]): BuiltHeader {
+	const core = createFilterEngine<Row>({ sourceData: FEW });
+
+	for (const ruleId of ruleIds) {
+		core.addRule(ruleId, inSet<string>('id', [ruleId]));
+	}
+
+	const view = createResultsView<Row>(core, {
+		copy: ROW_COPY,
+		markBusy: vi.fn(),
+		renderCard: (row) => el('article', { className: 'fe-test-card', text: row.title }),
+		summarize: (rules) => [...rules.keys()].map((ruleId) => makeSummary(ruleId)),
+	});
+
+	return {
+		chipCount: view.headerElement.querySelectorAll('.fe-filter-chip').length,
+		isNoteShown: requireElement(view.headerElement, '.fe-active-filters__empty').style.display !== 'none',
+		isPillsRowShown: requireElement(view.headerElement, '.fe-active-filters').style.display !== 'none',
+	};
+}
+
 describe('the active-filter pills', () => {
+	it("paints the engine's rules as it is built, before the caller's first setRules", () => {
+		// A worker-backed route first calls `setRules` when its first bundle settles, a round trip
+		// after the page's first frame, so that frame has to be the final header already: the note
+		// alone over an engine with no rules, the pills alone over one with rules. Both at once is
+		// the empty pills row whose gap moved the count and the whole grid when the repaint hid it.
+		expect(headerAsBuilt([])).toEqual({ chipCount: 0, isNoteShown: true, isPillsRowShown: false });
+		expect(headerAsBuilt(['a', 'b'])).toEqual({ chipCount: 2, isNoteShown: false, isPillsRowShown: true });
+	});
+
 	it('marks only the rule that just changed with the phosphor --recent border', () => {
 		// The brand's dual-accent contract, which is load-bearing: phosphor means "the engine fired
 		// here". It is live — all four page shells pass a real `engine.lastChangeRuleId.value` — but

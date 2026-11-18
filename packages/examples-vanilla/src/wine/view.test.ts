@@ -246,6 +246,23 @@ describe('vanilla wine panel', () => {
 		expect(chipByText(root, 'white').getAttribute('aria-pressed')).toBe('false');
 	});
 
+	it('a view built over an engine already in expression mode shows the smart-filter pill at once', () => {
+		// A shared link can load an expression before the route builds its view, and the results
+		// view paints its pills from the engine as it is built: assuming flat-map mode there would
+		// paint "No filters active" over a narrowed corpus until the first bundle settled.
+		const { core, repaint, root } = mountView();
+
+		chipByText(root, 'Bold reds').click();
+		repaint();
+
+		const rebuilt = createWineView(core, { busy: wineBusyCore, footnote: 'test', subtitle: appHeaderSubtitle('test') });
+		const note = rebuilt.element.querySelector<HTMLElement>('.fe-active-filters__empty');
+
+		expect(rebuilt.element.querySelectorAll('.fe-filter-chip')).toHaveLength(1);
+		expect(note?.style.display).toBe('none');
+		rebuilt.dispose();
+	});
+
 	it('the smart-filter pill\'s × leaves expression mode, where removing a rule by its id would do nothing', () => {
 		const { core, repaint, root } = mountView();
 

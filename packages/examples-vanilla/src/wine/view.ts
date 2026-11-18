@@ -109,7 +109,9 @@ export function createWineView(core: FilterEngine<Wine>, options: WineViewOption
 	// Expression mode changes what the pills MEAN, so the summarizer needs it — but the results view
 	// owns when it re-summarizes. Holding it here and reading it in the callback keeps the pills
 	// honest without giving the results view a wine-shaped parameter.
-	let isExpressionMode = false;
+	// Read from the engine, not assumed off: a shared link may have loaded an expression already, and
+	// the results view paints its pills from the engine as it is built.
+	let isExpressionMode = core.getExpression() !== null;
 	// The pills write through the shared wine helpers every vertical's header calls: "Clear all" drops
 	// every flat facet AND expression mode, and the smart-filter pill's × does the same, because that
 	// pill names no rule a plain `removeRule` could drop.
