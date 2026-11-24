@@ -180,13 +180,14 @@ minimumReleaseAge: 10080
 # ─── Peer ranges pnpm cannot reconcile on its own ─────────────────────────────────────────────────────
 # `oxc-parser` (under `@angular/build` and `@schematics/angular`) lists a WebAssembly fallback,
 # `@oxc-parser/binding-wasm32-wasi`, which installs only on a platform with no native binding (never on
-# macOS or the Linux CI runners). It pins `@emnapi/core` and `@emnapi/runtime` to `2.0.0-alpha.3` beside a
-# `@napi-rs/wasm-runtime` whose peer range names `^1.7.1 || 2.0.0-beta.2`, so `pnpm peers check` reports the
-# pairing oxc publishes as unmet. These rules accept that pairing; nothing installed here changes.
+# macOS or the Linux CI runners). Its 0.156 line pins `@emnapi/core` and `@emnapi/runtime` to
+# `2.0.0-alpha.6` beside a `@napi-rs/wasm-runtime` whose peer range names `^1.7.1 || 2.0.0-beta.2`, so
+# `pnpm peers check` reports the pairing oxc publishes as unmet. These rules accept that pairing; nothing
+# installed here changes.
 peerDependencyRules:
   allowedVersions:
-    '@napi-rs/wasm-runtime>@emnapi/core': '2.0.0-alpha.3'
-    '@napi-rs/wasm-runtime>@emnapi/runtime': '2.0.0-alpha.3'
+    '@napi-rs/wasm-runtime>@emnapi/core': '2.0.0-alpha.6'
+    '@napi-rs/wasm-runtime>@emnapi/runtime': '2.0.0-alpha.6'
 
 overrides:
   react: '^19.2.7'
@@ -253,9 +254,9 @@ overrides:
 #     a path that does not run. Re-review when markdownlint drops the math extension or a 0.16.x patch appears.
 #
 #   - GHSA-g3hv-75wg-m249 (minimatch, moderate) — ACCEPTED: NO IN-MAJOR FIX, the patched major breaks a caller, and no
-#     caller reaches the vulnerable code. Patched only in `>=11.0.1` against a resolved `10.2.6`. eslint,
-#     `@eslint/config-array` and `@typescript-eslint/typescript-estree` have releases on minimatch 11 that are still
-#     inside the release-age quarantine; `eslint-plugin-jsx-a11y-x` has none, and `glob` and `editorconfig` move only
+#     caller reaches the vulnerable code. Patched only in `>=11.0.1` against a resolved `10.2.6`. eslint and
+#     `@eslint/config-array` are on minimatch 11. `@typescript-eslint/typescript-estree` has a release on 11 that is
+#     still inside the release-age quarantine; `eslint-plugin-jsx-a11y-x` has none, and `glob` and `editorconfig` move only
 #     when `js-beautify` allows glob 14 and editorconfig 4. minimatch 11 changed what `Minimatch#set` holds, which
 #     `glob` 13 walks, so an override would break glob. The amplification runs only at `optimizationLevel` 2 or higher.
 #     The lint dependents use the default, 1. `glob` sets 2, and it and `editorconfig` are reached only through
