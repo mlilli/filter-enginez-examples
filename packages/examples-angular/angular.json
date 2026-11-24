@@ -87,7 +87,8 @@
             "buildTarget": "examples-angular:build:development",
             "runner": "vitest",
             "tsConfig": "tsconfig.spec.json",
-            "include": ["src/**/*.spec.ts"]
+            "include": ["src/**/*.spec.ts"],
+            "setupFiles": ["../../tests/setup/asyncWaits.ts"]
           }
         }
       }

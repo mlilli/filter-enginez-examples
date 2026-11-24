@@ -35,6 +35,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { ASYNC_WAIT_TIMEOUT_MS, TEST_TIMEOUT_MS } from '../setup/budgets.js';
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 /**
@@ -94,5 +96,67 @@ describe('vitest timeout budgets', () => {
 		expect(declaredTimeout('hookTimeout') ?? 0).toBeGreaterThanOrEqual(
 			declaredTimeout('testTimeout') ?? 0,
 		);
+	});
+});
+
+/**
+ * Every unit-test runner here, with the file that lists the shared setup and the one that runs its
+ * proof. Paths are from the repository root.
+ *
+ * @remarks
+ * The setup file (`tests/setup/asyncWaits.ts`) raises testing-library's and `vi.waitFor`'s one-second
+ * default wait and gives the framework runners the root's per-test budget. A runner that stops listing
+ * it falls back to those defaults, and the flake returns only under load, on another day. Its proof
+ * (`tests/setup/asyncWaits.test.ts`) fails in a runner that lists the file but does not apply it.
+ */
+const SETUP_RUNNERS = [
+	{
+		config: 'vitest.config.ts',
+		proof: 'vitest.config.ts',
+		proofReference: "'tests/setup/asyncWaits.test.ts'",
+		setupReference: "'./tests/setup/asyncWaits.ts'",
+	},
+	{
+		config: 'packages/examples-vue/vitest.config.ts',
+		proof: 'packages/examples-vue/vitest.config.ts',
+		proofReference: "'../../tests/setup/asyncWaits.test.ts'",
+		setupReference: "'../../tests/setup/asyncWaits.ts'",
+	},
+	{
+		config: 'packages/examples-sveltekit/vitest.config.ts',
+		proof: 'packages/examples-sveltekit/vitest.config.ts',
+		proofReference: "'../../tests/setup/asyncWaits.test.ts'",
+		setupReference: "'../../tests/setup/asyncWaits.ts'",
+	},
+	{
+		// The Angular test builder collects specs only from under the package, so a spec there imports
+		// the shared proof.
+		config: 'packages/examples-angular/angular.json',
+		proof: 'packages/examples-angular/src/async-waits.spec.ts',
+		proofReference: "import '../../../tests/setup/asyncWaits.test.js';",
+		setupReference: '"setupFiles": ["../../tests/setup/asyncWaits.ts"]',
+	},
+] as const;
+
+describe('the shared async-wait budget', () => {
+	it.each(SETUP_RUNNERS)('$config lists the shared setup file', ({ config, setupReference }) => {
+		expect(
+			readFileSync(resolve(REPO_ROOT, config), 'utf8'),
+			`${config} must list tests/setup/asyncWaits.ts as a setup file, or its waits fall back to one second.`,
+		).toContain(setupReference);
+	});
+
+	it.each(SETUP_RUNNERS)('$config runs the proof that the setup applied', ({ proof, proofReference }) => {
+		expect(readFileSync(resolve(REPO_ROOT, proof), 'utf8')).toContain(proofReference);
+	});
+
+	it('gives a wait its own failure well inside a test', () => {
+		// A wait that never resolves should fail naming what it waited for, not as a bare test timeout.
+		expect(ASYNC_WAIT_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
+		expect(ASYNC_WAIT_TIMEOUT_MS * 2).toBeLessThanOrEqual(TEST_TIMEOUT_MS);
+	});
+
+	it('gives the framework runners the root per-test budget', () => {
+		expect(TEST_TIMEOUT_MS).toBe(declaredTimeout('testTimeout'));
 	});
 });

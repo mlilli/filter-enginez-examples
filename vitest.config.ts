@@ -86,6 +86,9 @@ const BROWSER_TEST_PACKAGES: readonly string[] = [
  */
 const SITE_BROWSER_TESTS = 'packages/site/src/{compare,home,how-it-works,sitemap}/**/*.test.ts';
 
+/** Proves the shared setup file applied; every unit-test runner here runs it. */
+const SHARED_SETUP_TEST = 'tests/setup/asyncWaits.test.ts';
+
 /**
  * Build a Vitest `include` glob that scopes to the `*.test.{ts,tsx}` files under
  * the `src/` of the supplied workspace packages.
@@ -149,7 +152,7 @@ export default defineConfig({
 				extends: true,
 				test: {
 					environment: 'jsdom',
-					include: [buildPackageTestGlob(BROWSER_TEST_PACKAGES), SITE_BROWSER_TESTS],
+					include: [buildPackageTestGlob(BROWSER_TEST_PACKAGES), SITE_BROWSER_TESTS, SHARED_SETUP_TEST],
 					name: 'jsdom',
 				},
 			},
@@ -174,6 +177,9 @@ export default defineConfig({
 				},
 			},
 		],
+		// The async-wait and per-test budgets every unit-test runner here shares; `tests/setup/asyncWaits.ts`
+		// explains them, and `tests/setup/asyncWaits.test.ts` (in the browser project) proves they apply.
+		setupFiles: ['./tests/setup/asyncWaits.ts'],
 		/**
 		 * Per-test budget. Vitest's default is 5s; this repo needs more, for a measured reason.
 		 *

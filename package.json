@@ -70,7 +70,7 @@
     "test:min": "vitest --watch=false --passWithNoTests --reporter=dot 2>&1 | grep -E \"FAIL|[0-9]+:[0-9]+$\"",
     "test:ui": "vitest --watch=false --passWithNoTests --ui",
     "test:watch": "vitest --passWithNoTests",
-    "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tests/e2e/tsconfig.json && tsc --noEmit -p tests/tooling/tsconfig.json",
+    "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tests/e2e/tsconfig.json && tsc --noEmit -p tests/tooling/tsconfig.json && tsc --noEmit -p tests/setup/tsconfig.json",
     "typecheck:build": "tsc --build"
   },
   "devDependencies": {
@@ -81,6 +81,7 @@
     "@playwright/test": "^1.63.0",
     "@size-limit/preset-small-lib": "^13.1.1",
     "@stylistic/eslint-plugin": "^5.10.0",
+    "@testing-library/dom": "^10.4.1",
     "@types/node": "^24.19.1",
     "@vitest/coverage-v8": "^4.1.12",
     "@vitest/eslint-plugin": "^1.6.27",

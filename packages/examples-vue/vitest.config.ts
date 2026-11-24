@@ -6,7 +6,7 @@
  * app imports by relative path).
  */
 import vue from '@vitejs/plugin-vue';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [vue()],
@@ -18,5 +18,9 @@ export default defineConfig({
 	test: {
 		environment: 'jsdom',
 		globals: false,
+		// The async-wait and per-test budgets every unit-test runner here shares, and the test proving they
+		// apply in this runner: `tests/setup/asyncWaits.ts` explains both.
+		include: [...configDefaults.include, '../../tests/setup/asyncWaits.test.ts'],
+		setupFiles: ['../../tests/setup/asyncWaits.ts'],
 	},
 });
